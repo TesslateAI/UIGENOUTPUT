@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Refinement Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Light gray background */
+            color: #1e293b; /* Dark text */
+        }
+        .code-input {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', 'monospace';
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 300px;
+            resize: vertical;
+            overflow: auto;
+        }
+        .analysis-section {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .analysis-item {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .refactor-button {
+            background-color: #4f46e5; /* Indigo 600 */
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .refactor-button:hover {
+            background-color: #4338ca; /* Indigo 700 */
+        }
+        .refactor-button:disabled {
+            background-color: #a78bfa; /* Indigo 300 */
+            cursor: not-allowed;
+        }
+        .chart-container {
+            width: 100%;
+            height: 200px; /* Fixed height for charts */
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #e2e8f0;
+            border-radius: 0.5rem;
+            overflow: hidden; /* Ensure chart doesn't overflow */
+        }
+        .chart-placeholder {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6 md:p-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-6 text-gray-800">Code Refinement Assistant</h1>
+
+        <!-- Code Input Section -->
+        <div class="mb-8">
+            <label for="code-input" class="block text-lg font-medium text-gray-700 mb-3">Enter Your Code:</label>
+            <textarea id="code-input" class="code-input" placeholder="Paste your code here..."></textarea>
+        </div>
+
+        <!-- Code Analysis Section -->
+        <div class="analysis-section mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Code Analysis</h2>
+            <p id="analysis-message" class="text-gray-600 mb-4">Paste your code to start the analysis.</p>
+            <div id="analysis-results" class="hidden">
+                <div class="analysis-item">
+                    <h3 class="text-md font-semibold text-gray-800 flex items-center mb-2">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i> Code Quality Score:
+                    </h3>
+                    <p class="text-gray-700" id="quality-score">N/A</p>
+                </div>
+                <div class="analysis-item">
+                    <h3 class="text-md font-semibold text-gray-800 flex items-center mb-2">
+                        <i class="fas fa-bug text-red-500 mr-2"></i> Potential Issues:
+                    </h3>
+                    <ul id="potential-issues" class="list-disc list-inside text-gray-700 space-y-1">
+                        <!-- Dynamic content -->
+                    </ul>
+                </div>
+                <div class="analysis-item">
+                    <h3 class="text-md font-semibold text-gray-800 flex items-center mb-2">
+                        <i class="fas fa-chart-line text-blue-500 mr-2"></i> Complexity Metrics:
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+                        <div>
+                            <p class="font-medium">Cyclomatic Complexity:</p>
+                            <p id="complexity-metric"><span class="chart-container"><span class="chart-placeholder">Loading...</span></span></p>
+                        </div>
+                        <div>
+                            <p class="font-medium">Maintainability Index:</p>
+                            <p id="maintainability-metric"><span class="chart-container"><span class="chart-placeholder">Loading...</span></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refactor Button -->
+        <div class="text-center">
+            <button id="refactor-button" class="refactor-button" disabled>
+                <i class="fas fa-code-branch mr-2"></i> Refactor Code
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const codeInput = document.getElementById('code-input');
+            const analysisMessage = document.getElementById('analysis-message');
+            const analysisResults = document.getElementById('analysis-results');
+            const refactorButton = document.getElementById('refactor-button');
+            const qualityScore = document.getElementById('quality-score');
+            const potentialIssues = document.getElementById('potential-issues');
+            const complexityMetric = document.getElementById('complexity-metric');
+            const maintainabilityMetric = document.getElementById('maintainability-metric');
+
+            let complexityChart;
+            let maintainabilityChart;
+
+            // Dummy data for analysis
+            const dummyAnalysis = () => {
+                const code = codeInput.value;
+                if (code.trim() === '') {
+                    analysisMessage.textContent = 'Please paste some code for analysis.';
+                    analysisResults.classList.add('hidden');
+                    refactorButton.disabled = true;
+                    return null;
+                }
+
+                analysisResults.classList.remove('hidden');
+                analysisMessage.classList.add('hidden');
+
+                const score = Math.floor(Math.random() * 100) + 1;
+                const issues = [
+                    "High cyclomatic complexity in function 'calculateTotal'.",
+                    "Missing JSDoc comments for public API functions.",
+                    "Potential memory leak detected in event listener.",
+                    "Unnecessary nested if-statements found.",
+                    "Inconsistent naming convention for variables."
+                ];
+                const complexityValue = Math.floor(Math.random() * 20) + 1; // 1-20
+                const maintainabilityValue = Math.floor(Math.random() * 100) + 1; // 1-100
+
+                qualityScore.textContent = `${score}/100`;
+                potentialIssues.innerHTML = issues.map(issue => `<li>${issue}</li>`).join('');
+                
+                renderCharts(complexityValue, maintainabilityValue);
+                refactorButton.disabled = false; // Enable refactor button after analysis
+
+                return { score, issues, complexityValue, maintainabilityValue };
+            };
+
+            const renderCharts = (complexity, maintainability) => {
+                const complexityCtx = complexityMetric.querySelector('canvas') || createCanvas(complexityMetric);
+                const maintainabilityCtx = maintainabilityMetric.querySelector('canvas') || createCanvas(maintainabilityMetric);
+
+                if (complexityChart) complexityChart.destroy();
+                if (maintainabilityChart) maintainabilityChart.destroy();
+
+                complexityChart = new Chart(complexityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Cyclomatic Complexity'],
+                        datasets: [{
+                            label: 'Value',
+                            data: [complexity],
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)', // Red
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 20 // Max cyclomatic complexity
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Complexity: ${context.raw}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                maintainabilityChart = new Chart(maintainabilityCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Maintainability Index'],
+                        datasets: [{
+                            data: [maintainability, 100 - maintainability], // 100 - value for the "gap"
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.8)', // Blue
+                                'rgba(243, 244, 246, 0.5)' // Light gray for the gap
+                            ],
+                            borderColor: 'rgba(255, 255, 255, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.dataset.data[context.dataIndex] === maintainability) {
+                                            return `Maintainability: ${maintainability}%`;
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const createCanvas = (parentElement) => {
+                const canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                parentElement.innerHTML = ''; // Clear placeholder
+                parentElement.appendChild(canvas);
+                return canvas.getContext('2d');
+            };
+
+            codeInput.addEventListener('input', () => {
+                dummyAnalysis();
+            });
+
+            refactorButton.addEventListener('click', () => {
+                const analysis = dummyAnalysis(); // Get latest analysis
+                if (!analysis) return;
+
+                // Simulate refactoring process
+                alert('Refactoring initiated! This is a simulated process.');
+                console.log('Refactoring code with analysis:', analysis);
+                // In a real tool, this would trigger a backend process or code transformation logic
+            });
+        });
+    </script>
+</body>
+</html>

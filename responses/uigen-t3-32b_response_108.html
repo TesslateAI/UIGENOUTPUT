@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Development UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #3b82f6; /* Blue */
+            --color-primary-dark: #2563eb;
+            --color-secondary: #1f2937; /* Dark Gray */
+            --color-text-dark: #1f2937;
+            --color-text-light: #f3f4f6;
+            --color-bg-light: #f3f4f6; /* Light Gray */
+            --color-bg-dark: #1f2937;
+            --color-border: #e5e7eb;
+            --color-accent-green: #22c55e;
+            --color-accent-red: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+        }
+
+        .tab-button.active {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .asset-item {
+            border: 1px solid var(--color-border);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .asset-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .asset-item.selected {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px var(--color-primary);
+        }
+
+        .level-grid-cell {
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            transition: background-color 0.1s ease-in-out;
+        }
+        .level-grid-cell.drag-over {
+            background-color: #e0f2fe; /* Light blue for drag-over */
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Top Bar / Navbar -->
+    <header class="flex-shrink-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm z-10">
+        <h1 class="text-2xl font-bold text-gray-800">Game Dev Studio</h1>
+        <div class="flex items-center space-x-4">
+            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                <i class="fas fa-save mr-2"></i>Save Level
+            </button>
+            <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                <i class="fas fa-play mr-2"></i>Play
+            </button>
+            <button class="text-gray-600 hover:text-gray-800 text-lg">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex flex-grow overflow-hidden">
+        <!-- Sidebar / Tools -->
+        <aside class="flex-shrink-0 w-64 bg-gray-50 border-r border-gray-200 p-4 flex flex-col shadow-md z-20">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700">Tools</h2>
+            <nav class="space-y-2">
+                <button id="tab-level-editor" class="tab-button active w-full text-left px-4 py-2 rounded-md bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-paint-brush mr-2"></i>Level Editor
+                </button>
+                <button id="tab-asset-library" class="tab-button w-full text-left px-4 py-2 rounded-md bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-box-open mr-2"></i>Asset Library
+                </button>
+                <button id="tab-scene-view" class="tab-button w-full text-left px-4 py-2 rounded-md bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-eye mr-2"></i>Scene View
+                </button>
+                <button id="tab-inspector" class="tab-button w-full text-left px-4 py-2 rounded-md bg-gray-200 text-gray-700 font-medium hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-sliders-h mr-2"></i>Inspector
+                </button>
+            </nav>
+
+            <div class="mt-auto pt-4 border-t border-gray-200">
+                <h2 class="text-lg font-semibold mb-3 text-gray-700">Project</h2>
+                <div class="space-y-2">
+                    <button class="w-full text-left px-3 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-folder mr-2"></i>New Project
+                    </button>
+                    <button class="w-full text-left px-3 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-folder-open mr-2"></i>Open Project
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Tab Content Area -->
+        <main class="flex-grow overflow-auto p-6 bg-gray-50">
+            <!-- Level Editor Tab -->
+            <div id="level-editor-tab" class="tab-content active">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Level Editor</h2>
+                    <div class="flex space-x-3">
+                        <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i class="fas fa-plus mr-2"></i>New Level
+                        </button>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i class="fas fa-upload mr-2"></i>Import Level
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="flex items-center space-x-2">
+                            <label for="grid-size" class="text-sm font-medium text-gray-700">Grid Size:</label>
+                            <input type="number" id="grid-size" value="20" class="border border-gray-300 rounded-md px-2 py-1 text-sm w-20">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="cell-size" class="text-sm font-medium text-gray-700">Cell Size:</label>
+                            <input type="number" id="cell-size" value="32" class="border border-gray-300 rounded-md px-2 py-1 text-sm w-20">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label for="grid-color" class="text-sm font-medium text-gray-700">Grid Color:</label>
+                            <input type="color" id="grid-color" value="#ccc" class="w-10 h-8 rounded-md border border-gray-300">
+                        </div>
+                    </div>
+
+                    <div id="level-grid" class="border border-gray-300 rounded-md overflow-hidden relative min-h-[400px] bg-white">
+                        <!-- Grid cells will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Asset Library Tab -->
+            <div id="asset-library-tab" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Asset Library</h2>
+                    <div class="flex space-x-3">
+                        <input type="text" placeholder="Search assets..." class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add New Asset
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="asset-list">
+                        <!-- Asset items will be dynamically loaded here -->
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="1" data-asset-type="tile">
+                            <img src="https://placehold.co/100x100/FFD700/FFFFFF?text=Tile" alt="Tile Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Wall Tile</p>
+                            <p class="text-xs text-gray-500">Type: Tile</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="2" data-asset-type="tile">
+                            <img src="https://placehold.co/100x100/ADD8E6/FFFFFF?text=Tile" alt="Tile Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Ground Tile</p>
+                            <p class="text-xs text-gray-500">Type: Tile</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="3" data-asset-type="object">
+                            <img src="https://placehold.co/100x100/90EE90/FFFFFF?text=Object" alt="Object Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Player Character</p>
+                            <p class="text-xs text-gray-500">Type: Object</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="4" data-asset-type="object">
+                            <img src="https://placehold.co/100x100/FFB6C1/FFFFFF?text=Object" alt="Object Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Enemy AI</p>
+                            <p class="text-xs text-gray-500">Type: Object</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="5" data-asset-type="sound">
+                            <img src="https://placehold.co/100x100/87CEEB/FFFFFF?text=Sound" alt="Sound Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Background Music</p>
+                            <p class="text-xs text-gray-500">Type: Sound</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="6" data-asset-type="tile">
+                            <img src="https://placehold.co/100x100/FFA07A/FFFFFF?text=Tile" alt="Tile Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Tree Tile</p>
+                            <p class="text-xs text-gray-500">Type: Tile</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="7" data-asset-type="object">
+                            <img src="https://placehold.co/100x100/D2B48C/FFFFFF?text=Object" alt="Object Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Loot Chest</p>
+                            <p class="text-xs text-gray-500">Type: Object</p>
+                        </div>
+                        <div class="asset-item p-3 rounded-md flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-all duration-200" draggable="true" data-asset-id="8" data-asset-type="sound">
+                            <img src="https://placehold.co/100x100/BA55D3/FFFFFF?text=Sound" alt="Sound Asset" class="w-full h-20 object-cover rounded mb-2">
+                            <p class="text-sm font-medium text-gray-800 truncate">Explosion Sound</p>
+                            <p class="text-xs text-gray-500">Type: Sound</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene View Tab -->
+            <div id="scene-view-tab" class="tab-content">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Scene View</h2>
+                <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 flex items-center justify-center h-[500px] text-gray-500">
+                    <p>Scene Preview Area (3D View Placeholder)</p>
+                </div>
+            </div>
+
+            <!-- Inspector Tab -->
+            <div id="inspector-tab" class="tab-content">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Inspector</h2>
+                <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                    <div class="mb-4">
+                        <label for="asset-name" class="block text-sm font-medium text-gray-700 mb-1">Asset Name</label>
+                        <input type="text" id="asset-name" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Wall Tile">
+                    </div>
+                    <div class="mb-4">
+                        <label for="asset-type" class="block text-sm font-medium text-gray-700 mb-1">Asset Type</label>
+                        <select id="asset-type" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select Type</option>
+                            <option value="tile">Tile</option>
+                            <option value="object">Object</option>
+                            <option value="sound">Sound</option>
+                            <option value="animation">Animation</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="asset-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="asset-description" rows="4" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter a brief description of the asset."></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i class="fas fa-undo mr-2"></i>Reset
+                        </button>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i class="fas fa-check mr-2"></i>Apply Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Deactivate all buttons and hide all content
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                        btn.classList.remove('bg-blue-500', 'text-white');
+                    });
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Activate clicked button and show corresponding content
+                    button.classList.add('active');
+                    button.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    button.classList.add('bg-blue-500', 'text-white');
+                    
+                    const targetTabId = button.id.replace('-tab', '');
+                    document.getElementById(`${targetTabId}-tab`).classList.add('active');
+
+                    // Specific logic for Level Editor to generate grid
+                    if (targetTabId === 'level-editor') {
+                        generateLevelGrid();
+                    }
+                });
+            });
+
+            // Level Editor Grid Generation
+            function generateLevelGrid() {
+                const levelGrid = document.getElementById('level-grid');
+                levelGrid.innerHTML = ''; // Clear previous grid
+
+                const gridSize = parseInt(document.getElementById('grid-size').value);
+                const cellSize = parseInt(document.getElementById('cell-size').value);
+                const gridColor = document.getElementById('grid-color').value;
+
+                levelGrid.style.gridTemplateColumns = `repeat(${gridSize}, ${cellSize}px)`;
+                levelGrid.style.gridTemplateRows = `repeat(${gridSize}, ${cellSize}px)`;
+
+                for (let i = 0; i < gridSize * gridSize; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('level-grid-cell');
+                    cell.style.width = `${cellSize}px`;
+                    cell.style.height = `${cellSize}px`;
+                    cell.style.backgroundColor = gridColor;
+                    cell.dataset.row = Math.floor(i / gridSize);
+                    cell.dataset.col = i % gridSize;
+                    levelGrid.appendChild(cell);
+                }
+
+                // Add drag and drop listeners
+                addDragDropListeners(levelGrid);
+            }
+
+            // Drag and Drop Logic for Assets
+            function addDragDropListeners(container) {
+                const assetItems = document.querySelectorAll('.asset-item');
+                const levelGrid = document.getElementById('level-grid');
+
+                assetItems.forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', e.target.dataset.assetId);
+                        e.dataTransfer.effectAllowed = 'copy';
+                        e.target.classList.add('selected');
+                    });
+
+                    item.addEventListener('dragend', (e) => {
+                        e.target.classList.remove('selected');
+                    });
+                });
+
+                levelGrid.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Allow drop
+                    e.dataTransfer.dropEffect = 'copy';
+                    const targetCell = e.target.closest('.level-grid-cell');
+                    if (targetCell) {
+                        targetCell.classList.add('drag-over');
+                    }
+                });
+
+                levelGrid.addEventListener('dragleave', (e) => {
+                    const targetCell = e.target.closest('.level-grid-cell');
+                    if (targetCell) {
+                        targetCell.classList.remove('drag-over');
+                    }
+                });
+
+                levelGrid.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const targetCell = e.target.closest('.level-grid-cell');
+                    if (targetCell) {
+                        targetCell.classList.remove('drag-over');
+                        const assetId = e.dataTransfer.getData('text/plain');
+                        // In a real app, you'd place the asset visually or update its data
+                        targetCell.innerHTML = `<img src="https://placehold.co/24x24/FFD700/FFFFFF?text=A${assetId}" alt="Asset ${assetId}" class="w-full h-full object-contain">`;
+                        targetCell.style.backgroundColor = '#fff'; // Reset background after placement
+                        console.log(`Asset ID ${assetId} dropped on cell (${targetCell.dataset.row}, ${targetCell.dataset.col})`);
+                    }
+                });
+            }
+
+            // Initial grid generation
+            generateLevelGrid();
+        });
+    </script>
+</body>
+</html>

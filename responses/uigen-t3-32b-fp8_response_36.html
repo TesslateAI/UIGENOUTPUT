@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #3B82F6; /* Blue-500 */
+            --color-primary-light: #BFDBFE; /* Blue-200 */
+            --color-background: #FFFFFF;
+            --color-text-dark: #1F2937; /* Gray-800 */
+            --color-text-medium: #4B5563; /* Gray-600 */
+            --color-border: #E5E7EB; /* Gray-200 */
+            --font-main: 'Inter', sans-serif;
+        }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-background);
+            color: var(--color-text-dark);
+        }
+        .weather-card {
+            background-color: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem; /* 24px */
+        }
+        .forecast-item {
+            border-bottom: 1px solid var(--color-border);
+            padding: 0.75rem 0;
+        }
+        .forecast-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="weather-app-container max-w-lg w-full">
+        <div class="weather-card">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Weather App</h1>
+                <button id="getLocationBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <i class="fas fa-map-marker-alt mr-2"></i> Get Current Location
+                </button>
+            </div>
+
+            <div id="current-weather" class="mb-8">
+                <h2 class="text-2xl font-semibold mb-2 text-gray-800">Current Conditions</h2>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-6xl font-bold text-gray-800" id="current-temp">--°C</p>
+                        <p class="text-xl text-gray-600" id="current-condition">Loading...</p>
+                        <p class="text-sm text-gray-500" id="current-location">Location not found</p>
+                    </div>
+                    <div class="text-center">
+                        <i class="fas fa-sun text-5xl text-yellow-500 mb-2" id="current-icon"></i>
+                        <p class="text-lg text-gray-700" id="current-description">Clear Sky</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mt-6 text-center">
+                    <div>
+                        <p class="text-sm text-gray-500">Humidity</p>
+                        <p class="font-semibold text-gray-800" id="current-humidity">--%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Wind</p>
+                        <p class="font-semibold text-gray-800" id="current-wind">-- km/h</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Feels Like</p>
+                        <p class="font-semibold text-gray-800" id="current-feels-like">--°C</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="forecast" class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">5-Day Forecast</h2>
+                <div class="flex justify-between items-center text-sm font-semibold text-gray-700 mb-2">
+                    <span>Day</span>
+                    <span>Temp (°C)</span>
+                    <span>Condition</span>
+                </div>
+                <div id="forecast-list" class="space-y-2">
+                    <!-- Forecast items will be injected here -->
+                    <div class="forecast-item">
+                        <p class="text-gray-600">Loading forecast...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Replace with your actual OpenWeatherMap API key
+        const API_KEY = 'YOUR_API_KEY_HERE'; // e.g., 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'
+
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        const currentLocationEl = document.getElementById('current-location');
+        const currentTempEl = document.getElementById('current-temp');
+        const currentConditionEl = document.getElementById('current-condition');
+        const currentIconEl = document.getElementById('current-icon');
+        const currentDescriptionEl = document.getElementById('current-description');
+        const currentHumidityEl = document.getElementById('current-humidity');
+        const currentWindEl = document.getElementById('current-wind');
+        const currentFeelsLikeEl = document.getElementById('current-feels-like');
+        const forecastListEl = document.getElementById('forecast-list');
+
+        const getWeatherIcon = (iconCode) => {
+            const iconMap = {
+                '01d': 'fas fa-sun', // clear sky (day)
+                '01n': 'fas fa-moon', // clear sky (night)
+                '02d': 'fas fa-cloud-sun', // few clouds (day)
+                '02n': 'fas fa-cloud-moon', // few clouds (night)
+                '03d': 'fas fa-cloud', // scattered clouds
+                '03n': 'fas fa-cloud',
+                '04d': 'fas fa-cloud', // broken clouds
+                '04n': 'fas fa-cloud',
+                '09d': 'fas fa-cloud-showers-heavy', // shower rain
+                '09n': 'fas fa-cloud-showers-heavy',
+                '10d': 'fas fa-cloud-sun-rain', // rain (day)
+                '10n': 'fas fa-cloud-moon-rain', // rain (night)
+                '11d': 'fas fa-bolt', // thunderstorm
+                '11n': 'fas fa-bolt',
+                '13d': 'fas fa-snowflake', // snow
+                '13n': 'fas fa-snowflake',
+                '50d': 'fas fa-smog', // mist (day)
+                '50n': 'fas fa-smog' // mist (night)
+            };
+            return iconMap[iconCode] || 'fas fa-question-circle';
+        };
+
+        const fetchWeatherData = async (lat, lon) => {
+            try {
+                const currentResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
+                const currentData = await currentResponse.json();
+
+                if (currentResponse.ok) {
+                    const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
+                    const forecastData = await forecastResponse.json();
+
+                    displayCurrentWeather(currentData);
+                    displayForecast(forecastData);
+                } else {
+                    console.error('Error fetching current weather:', currentData.message);
+                    alert('Failed to fetch weather data. Please try again.');
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('Network error. Please check your connection and try again.');
+            }
+        };
+
+        const displayCurrentWeather = (data) => {
+            currentLocationEl.textContent = `${data.name}, ${data.sys.country}`;
+            currentTempEl.textContent = `${Math.round(data.main.temp)}°C`;
+            currentConditionEl.textContent = `${Math.round(data.main.temp_min)}°C / ${Math.round(data.main.temp_max)}°C`;
+            currentIconEl.className = `${getWeatherIcon(data.weather[0].icon)}`;
+            currentDescriptionEl.textContent = data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
+            currentHumidityEl.textContent = `${data.main.humidity}%`;
+            currentWindEl.textContent = `${Math.round(data.wind.speed)} km/h`;
+            currentFeelsLikeEl.textContent = `${Math.round(data.main.feels_like)}°C`;
+        };
+
+        const displayForecast = (data) => {
+            forecastListEl.innerHTML = ''; // Clear previous forecast
+            const uniqueDates = new Set();
+
+            data.list.forEach(item => {
+                const date = new Date(item.dt * 1000);
+                const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const time = date.getHours();
+
+                // Only show forecasts for the next 5 days, and pick one forecast per day (e.g., around noon)
+                if (time >= 10 && time <= 14 && !uniqueDates.has(day)) {
+                    uniqueDates.add(day);
+
+                    const temp = Math.round(item.main.temp);
+                    const iconClass = getWeatherIcon(item.weather[0].icon);
+                    const description = item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1);
+
+                    const forecastItem = `
+                        <div class="forecast-item flex justify-between items-center">
+                            <p class="text-gray-700">${day}</p>
+                            <p class="text-gray-700">${temp}°C</p>
+                            <div class="flex items-center">
+                                <i class="${iconClass} text-xl text-gray-500 mr-2"></i>
+                                <p class="text-sm text-gray-600">${description}</p>
+                            </div>
+                        </div>
+                    `;
+                    forecastListEl.innerHTML += forecastItem;
+                }
+            });
+
+            if (uniqueDates.size === 0) {
+                forecastListEl.innerHTML = '<div class="forecast-item"><p class="text-gray-600">No forecast data available.</p></div>';
+            }
+        };
+
+        const getCurrentLocation = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        fetchWeatherData(lat, lon);
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                        alert('Unable to get your location. Please enable location services or enter a city manually.');
+                        currentLocationEl.textContent = 'Location not found';
+                        currentTempEl.textContent = '--°C';
+                        currentConditionEl.textContent = 'N/A';
+                        currentIconEl.className = 'fas fa-question-circle text-5xl text-gray-400 mb-2';
+                        currentDescriptionEl.textContent = 'Error';
+                        forecastListEl.innerHTML = '<div class="forecast-item"><p class="text-gray-600">Could not load forecast.</p></div>';
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by your browser.');
+                currentLocationEl.textContent = 'Location not found';
+                currentTempEl.textContent = '--°C';
+                currentConditionEl.textContent = 'N/A';
+                currentIconEl.className = 'fas fa-question-circle text-5xl text-gray-400 mb-2';
+                currentDescriptionEl.textContent = 'Error';
+                forecastListEl.innerHTML = '<div class="forecast-item"><p class="text-gray-600">Could not load forecast.</p></div>';
+            }
+        };
+
+        // Initial load
+        getCurrentLocation();
+    </script>
+</body>
+</html>

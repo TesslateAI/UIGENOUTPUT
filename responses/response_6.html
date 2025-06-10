@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My To-Do List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: rgb(33, 33, 33);
+            --color-text-secondary: rgb(110, 110, 110);
+            --color-background-primary: rgb(240, 245, 247);
+            --color-background-secondary: rgb(255, 255, 255);
+            --color-accent-primary: rgb(30, 145, 225);
+            --color-accent-secondary: rgb(20, 120, 190);
+            --color-border-primary: rgb(227, 227, 227);
+            --color-success: rgb(64, 197, 112);
+            --color-error: rgb(255, 85, 85);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .task-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+
+        .task-card.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-4xl mx-auto bg-[var(--color-background-secondary)] rounded-xl shadow-lg p-6 sm:p-8 border border-[var(--color-border-primary)]">
+        <h1 class="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] mb-6 text-center">My To-Do List</h1>
+
+        <!-- Add Task Section -->
+        <div class="mb-8 flex flex-col sm:flex-row gap-4">
+            <input type="text" id="taskInput" placeholder="Task Name" class="flex-grow p-3 border border-[var(--color-border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]">
+            <input type="date" id="dueDateInput" class="p-3 border border-[var(--color-border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]">
+            <button id="addTaskBtn" class="bg-[var(--color-accent-primary)] text-white p-3 rounded-lg hover:bg-[var(--color-accent-secondary)] transition-colors flex items-center justify-center">
+                <i class="fas fa-plus mr-2"></i> Add Task
+            </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList" class="space-y-4">
+            <!-- Tasks will be dynamically added here -->
+        </div>
+
+        <!-- No Tasks Message -->
+        <div id="noTasksMessage" class="text-center text-[var(--color-text-secondary)] py-8 hidden">
+            <i class="fas fa-clipboard-list text-5xl mb-4 text-gray-300"></i>
+            <p class="text-lg">No tasks yet! Add one above.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const taskInput = document.getElementById('taskInput');
+            const dueDateInput = document.getElementById('dueDateInput');
+            const addTaskBtn = document.getElementById('addTaskBtn');
+            const taskList = document.getElementById('taskList');
+            const noTasksMessage = document.getElementById('noTasksMessage');
+
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+            function renderTasks() {
+                taskList.innerHTML = '';
+                if (tasks.length === 0) {
+                    noTasksMessage.classList.remove('hidden');
+                } else {
+                    noTasksMessage.classList.add('hidden');
+                    tasks.forEach((task, index) => {
+                        const taskCard = document.createElement('div');
+                        taskCard.className = `task-card p-4 rounded-lg shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between border border-[var(--color-border-primary)] ${task.completed ? 'completed' : ''}`;
+                        taskCard.dataset.id = task.id;
+
+                        const taskInfo = document.createElement('div');
+                        taskInfo.className = 'flex-grow mb-2 sm:mb-0';
+                        taskInfo.innerHTML = `
+                            <h3 class="text-lg font-semibold text-[var(--color-text-primary)]">${task.name}</h3>
+                            ${task.dueDate ? `<p class="text-sm text-[var(--color-text-secondary)] flex items-center"><i class="fas fa-calendar-alt mr-2"></i> Due: ${task.dueDate}</p>` : ''}
+                            ${task.reminder ? `<p class="text-sm text-[var(--color-text-secondary)] flex items-center"><i class="fas fa-bell mr-2"></i> Reminder: ${task.reminder}</p>` : ''}
+                        `;
+
+                        const taskActions = document.createElement('div');
+                        taskActions.className = 'flex items-center space-x-2';
+
+                        const completeBtn = document.createElement('button');
+                        completeBtn.className = `p-2 rounded-full ${task.completed ? 'bg-[var(--color-success)] text-white' : 'bg-gray-200 text-[var(--color-text-secondary)] hover:bg-gray-300'} transition-colors`;
+                        completeBtn.innerHTML = `<i class="fas fa-check"></i>`;
+                        completeBtn.title = task.completed ? 'Mark as Incomplete' : 'Mark as Complete';
+                        completeBtn.onclick = () => toggleComplete(task.id);
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = `p-2 rounded-full bg-red-100 text-[var(--color-error)] hover:bg-red-200 transition-colors`;
+                        deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+                        deleteBtn.title = 'Delete Task';
+                        deleteBtn.onclick = () => deleteTask(task.id);
+
+                        taskActions.appendChild(completeBtn);
+                        taskActions.appendChild(deleteBtn);
+
+                        taskCard.appendChild(taskInfo);
+                        taskCard.appendChild(taskActions);
+                        taskList.appendChild(taskCard);
+                    });
+                }
+            }
+
+            function addTask() {
+                const name = taskInput.value.trim();
+                const dueDate = dueDateInput.value;
+                if (name) {
+                    const newTask = {
+                        id: Date.now().toString(),
+                        name: name,
+                        dueDate: dueDate,
+                        reminder: '', // Reminder can be added later via a modal or edit feature
+                        completed: false
+                    };
+                    tasks.push(newTask);
+                    saveTasks();
+                    renderTasks();
+                    taskInput.value = '';
+                    dueDateInput.value = '';
+                }
+            }
+
+            function toggleComplete(id) {
+                const taskIndex = tasks.findIndex(task => task.id === id);
+                if (taskIndex > -1) {
+                    tasks[taskIndex].completed = !tasks[taskIndex].completed;
+                    saveTasks();
+                    renderTasks();
+                }
+            }
+
+            function deleteTask(id) {
+                tasks = tasks.filter(task => task.id !== id);
+                saveTasks();
+                renderTasks();
+            }
+
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+
+            addTaskBtn.addEventListener('click', addTask);
+            taskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addTask();
+                }
+            });
+
+            renderTasks(); // Initial render
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Sports Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-bg-primary-val: 0, 0, 0;
+            --color-text-primary-val: 255, 255, 255;
+            --color-bg-secondary-val: 20, 20, 20;
+            --color-border-primary-val: 30, 30, 30;
+            --color-accent-val: 102, 48, 236; /* A nice purple for accents */
+            --color-text-muted-val: 255, 255, 255, 0.65;
+            --color-success-val: 34, 197, 94; /* Green for positive stats */
+            --color-danger-val: 239, 68, 68; /* Red for negative stats */
+
+            --font-primary: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: rgb(var(--color-bg-primary-val));
+            color: rgb(var(--color-text-primary-val));
+            font-family: var(--font-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-display {
+            font-family: var(--font-primary);
+        }
+
+        .bg-primary { background-color: rgb(var(--color-bg-primary-val)); }
+        .text-primary { color: rgb(var(--color-text-primary-val)); }
+        .bg-secondary { background-color: rgb(var(--color-bg-secondary-val)); }
+        .border-primary { border-color: rgb(var(--color-border-primary-val)); }
+        .text-accent { color: rgb(var(--color-accent-val)); }
+        .bg-accent { background-color: rgb(var(--color-accent-val)); }
+        .text-muted { color: rgba(var(--color-text-primary-val), 0.65); }
+        .text-success { color: rgb(var(--color-success-val)); }
+        .text-danger { color: rgb(var(--color-danger-val)); }
+        .border-accent { border-color: rgb(var(--color-accent-val)); }
+
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgb(var(--color-bg-secondary-val));
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgb(var(--color-accent-val));
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgb(var(--color-accent-val), 0.8);
+        }
+
+        /* Animation helper classes */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-primary text-primary font-display">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-primary/80 backdrop-blur-md border-b border-border-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center space-x-2">
+                        <i class="fa-solid fa-rocket text-accent text-xl"></i>
+                        <span class="font-bold text-2xl text-primary">Fantasy Hub</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#overview" class="text-primary hover:text-accent transition-colors font-medium">Overview</a>
+                    <a href="#player-stats" class="text-primary hover:text-accent transition-colors font-medium">Player Stats</a>
+                    <a href="#team-rankings" class="text-primary hover:text-accent transition-colors font-medium">Team Rankings</a>
+                    <a href="#" class="bg-accent text-white px-5 py-2.5 rounded-lg font-medium hover:bg-opacity-80 transition-colors flex items-center space-x-2">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Add Player</span>
+                    </a>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="p-2 rounded-md text-primary hover:text-accent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
+                        <i class="fa-solid fa-bars h-6 w-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden bg-secondary border-t border-border-primary">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#overview" class="block px-3 py-2 rounded-md text-base font-medium text-primary hover:bg-bg-primary hover:text-accent">Overview</a>
+                <a href="#player-stats" class="block px-3 py-2 rounded-md text-base font-medium text-primary hover:bg-bg-primary hover:text-accent">Player Stats</a>
+                <a href="#team-rankings" class="block px-3 py-2 rounded-md text-base font-medium text-primary hover:bg-bg-primary hover:text-accent">Team Rankings</a>
+                <a href="#" class="block w-full mt-2 text-center bg-accent text-white px-4 py-2 rounded-lg font-medium hover:bg-opacity-80 transition-colors flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Add Player</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <!-- Overview Card -->
+            <section id="overview" class="lg:col-span-2 bg-secondary p-6 rounded-xl border border-border-primary animate-on-scroll">
+                <h2 class="text-2xl font-bold mb-6 flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-line text-accent"></i>
+                    <span>Team Overview</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-bg-primary p-4 rounded-lg border border-border-primary">
+                        <p class="text-sm text-muted">Total Points</p>
+                        <p class="text-3xl font-bold text-primary">12,450</p>
+                    </div>
+                    <div class="bg-bg-primary p-4 rounded-lg border border-border-primary">
+                        <p class="text-sm text-muted">Projected Points</p>
+                        <p class="text-3xl font-bold text-primary">13,100</p>
+                    </div>
+                    <div class="bg-bg-primary p-4 rounded-lg border border-border-primary">
+                        <p class="text-sm text-muted">Rank</p>
+                        <p class="text-3xl font-bold text-primary">3<sup>rd</sup></p>
+                    </div>
+                </div>
+                <div class="h-64">
+                    <canvas id="teamPerformanceChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Player Stats Card -->
+            <section id="player-stats" class="bg-secondary p-6 rounded-xl border border-border-primary animate-on-scroll" style="transition-delay: 0.1s;">
+                <h2 class="text-2xl font-bold mb-6 flex items-center space-x-2">
+                    <i class="fa-solid fa-player-cards text-accent"></i>
+                    <span>Top Performing Players</span>
+                </h2>
+                <div class="space-y-4">
+                    <!-- Player 1 -->
+                    <div class="flex items-center justify-between bg-bg-primary p-4 rounded-lg border border-border-primary">
+                        <div class="flex items-center space-x-4">
+                            <img src="https://placehold.co/60x60/805AD5/FFFFFF?text=P1" alt="Player 1" class="w-16 h-16 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-primary">John Doe</p>
+                                <p class="text-sm text-muted">QB - Team A</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-lg text-success">+120 pts</p>
+                            <p class="text-xs text-muted">Last Game</p>
+                        </div>
+                    </div>
+                    <!-- Player 2 -->
+                    <div class="flex items-center justify-between bg-bg-primary p-4 rounded-lg border border-border-primary">
+                        <div class="flex items-center space-x-4">
+                            <img src="https://placehold.co/60x60/805AD5/FFFFFF?text=P2" alt="Player 2" class="w-16 h-16 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-primary">Jane Smith</p>
+                                <p class="text-sm text-muted">RB - Team B</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-lg text-success">+95 pts</p>
+                            <p class="text-xs text-muted">Last Game</p>
+                        </div>
+                    </div>
+                    <!-- Player 3 -->
+                    <div class="flex items-center justify-between bg-bg-primary p-4 rounded-lg border border-border-primary">
+                        <div class="flex items-center space-x-4">
+                            <img src="https://placehold.co/60x60/805AD5/FFFFFF?text=P3" alt="Player 3" class="w-16 h-16 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-primary">Mike Johnson</p>
+                                <p class="text-sm text-muted">WR - Team C</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-lg text-success">+80 pts</p>
+                            <p class="text-xs text-muted">Last Game</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-center">
+                    <a href="#" class="text-accent hover:underline font-medium">View All Players <i class="fa-solid fa-arrow-right ml-1"></i></a>
+                </div>
+            </section>
+
+            <!-- Team Rankings Card -->
+            <section id="team-rankings" class="lg:col-span-3 bg-secondary p-6 rounded-xl border border-border-primary animate-on-scroll" style="transition-delay: 0.2s;">
+                <h2 class="text-2xl font-bold mb-6 flex items-center space-x-2">
+                    <i class="fa-solid fa-trophy text-accent"></i>
+                    <span>League Standings</span>
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-border-primary">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Rank</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Team Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Owner</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Total Points</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Change</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border-primary">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">1</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">The Dominators</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">Alice</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">15,200</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-success">+150</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">2</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">Dream Team</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">Bob</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">14,850</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-success">+80</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">3</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">Fantasy Pros</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">Charlie</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">12,450</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-success">+120</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">4</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">The Gurus</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">Diana</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">11,900</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-danger">-30</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">5</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">Newbies United</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">Eve</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-primary">11,200</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-success">+50</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-6 text-center">
+                    <a href="#" class="text-accent hover:underline font-medium">View Full Standings <i class="fa-solid fa-arrow-right ml-1"></i></a>
+                </div>
+            </section>
+
+            <!-- Recent Activity / Notifications (Optional) -->
+            <section class="lg:col-span-1 bg-secondary p-6 rounded-xl border border-border-primary animate-on-scroll" style="transition-delay: 0.3s;">
+                <h2 class="text-2xl font-bold mb-6 flex items-center space-x-2">
+                    <i class="fa-solid fa-bell text-accent"></i>
+                    <span>Recent Activity</span>
+                </h2>
+                <ul class="space-y-4">
+                    <li class="flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-exclamation text-danger text-lg mt-1"></i>
+                        <div>
+                            <p class="text-primary font-medium">Player Injury Alert!</p>
+                            <p class="text-sm text-muted">John Doe (QB) is out for the next game. Consider a replacement.</p>
+                            <span class="text-xs text-muted block mt-1">2 hours ago</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fa-solid fa-star text-accent text-lg mt-1"></i>
+                        <div>
+                            <p class="text-primary font-medium">New Player Added!</p>
+                            <p class="text-sm text-muted">Jane Smith (RB) has been successfully added to your team.</p>
+                            <span class="text-xs text-muted block mt-1">Yesterday</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fa-solid fa-chart-simple text-primary text-lg mt-1"></i>
+                        <div>
+                            <p class="text-primary font-medium">Weekly Projections Updated</p>
+                            <p class="text-sm text-muted">Check out the latest projected points for your team.</p>
+                            <span class="text-xs text-muted block mt-1">3 days ago</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu Toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    mobileMenuButton.setAttribute('aria-expanded', mobileMenu.classList.contains('hidden') ? 'false' : 'true');
+                });
+            }
+
+            // Intersection Observer for scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target); // Stop observing once visible
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+
+            // Chart.js for Team Performance
+            const teamPerformanceCtx = document.getElementById('teamPerformanceChart').getContext('2d');
+            new Chart(teamPerformanceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'],
+                    datasets: [{
+                        label: 'Team Points',
+                        data: [1000, 1150, 1080, 1250, 1300, 1280, 12450],
+                        borderColor: 'rgb(var(--color-accent-val))',
+                        backgroundColor: 'rgba(var(--color-accent-val), 0.2)',
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: 'rgb(var(--color-accent-val))',
+                        pointBorderColor: 'rgb(var(--color-accent-val))',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Points: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(var(--color-text-primary-val), 0.05)',
+                            },
+                            ticks: {
+                                color: 'rgba(var(--color-text-primary-val), 0.7)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(var(--color-text-primary-val), 0.05)',
+                            },
+                            ticks: {
+                                color: 'rgba(var(--color-text-primary-val), 0.7)',
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

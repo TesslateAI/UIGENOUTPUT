@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #3b82f6; /* Blue */
+            --color-primary-dark: #2563eb;
+            --color-secondary: #10b981; /* Green */
+            --color-accent: #f59e0b; /* Yellow */
+            --color-background: #f9fafb; /* Light Gray */
+            --color-text-dark: #1f2937; /* Dark Gray */
+            --color-text-light: #ffffff; /* White */
+            --color-border: #e5e7eb; /* Lighter Gray */
+            --color-event-work: #10b981; /* Green */
+            --color-event-personal: #f59e0b; /* Yellow */
+            --color-event-health: #ef4444; /* Red */
+            --color-event-study: #a855f7; /* Purple */
+            --color-event-social: #f97316; /* Orange */
+            --color-event-other: #6b7280; /* Gray */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-dark);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: var(--color-border);
+            border-radius: 0.75rem; /* rounded-xl */
+            overflow: hidden;
+        }
+
+        .calendar-day {
+            background-color: var(--color-background);
+            padding: 0.75rem;
+            min-height: 120px; /* Increased height for events */
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background-color: var(--color-background);
+        }
+
+        .calendar-day.current-month {
+            color: var(--color-text-dark);
+        }
+
+        .calendar-day.other-month {
+            color: var(--color-border);
+            opacity: 0.6;
+        }
+
+        .calendar-day.has-event {
+            background-color: var(--color-background);
+            border-radius: 0.5rem;
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+            text-align: right; /* Align number to right for better event visibility */
+        }
+
+        .event-item {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event-category-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .event-modal {
+            background-color: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: scale(0.95);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .event-modal.open {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        /* Custom scrollbar for event list */
+        .event-list-scroll {
+            max-height: 200px; /* Adjust as needed */
+            overflow-y: auto;
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: var(--color-primary) var(--color-border); /* Firefox */
+        }
+        .event-list-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .event-list-scroll::-webkit-scrollbar-track {
+            background: var(--color-border);
+            border-radius: 10px;
+        }
+        .event-list-scroll::-webkit-scrollbar-thumb {
+            background-color: var(--color-primary);
+            border-radius: 10px;
+            border: 2px solid var(--color-border);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <!-- Calendar Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <div class="flex items-center space-x-4 mb-4 sm:mb-0">
+                <button id="prevMonth" class="p-2 rounded-full hover:bg-gray-100 text-[var(--color-text-dark)]" aria-label="Previous month">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 id="currentMonthYear" class="text-2xl font-bold text-[var(--color-text-dark)]"></h2>
+                <button id="nextMonth" class="p-2 rounded-full hover:bg-gray-100 text-[var(--color-text-dark)]" aria-label="Next month">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <button id="addEventBtn" class="bg-[var(--color-primary)] text-[var(--color-text-light)] px-4 py-2 rounded-lg font-medium hover:bg-[var(--color-primary-dark)] transition-colors flex items-center gap-2">
+                <i class="fas fa-plus"></i> Add Event
+            </button>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="calendar-grid">
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Sun</div>
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Mon</div>
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Tue</div>
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Wed</div>
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Thu</div>
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Fri</div>
+            <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Sat</div>
+            <!-- Calendar days will be injected here by JavaScript -->
+        </div>
+
+        <!-- Event Creation/Editing Modal -->
+        <div id="eventModal" class="event-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+            <div class="w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modalTitle" class="text-xl font-bold text-[var(--color-text-dark)]">Create New Event</h3>
+                    <button id="closeModal" class="text-[var(--color-text-dark)] hover:text-red-500" aria-label="Close modal">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form id="eventForm" class="space-y-4">
+                    <div>
+                        <label for="eventTitle" class="block text-sm font-medium text-[var(--color-text-dark)] mb-1">Event Title</label>
+                        <input type="text" id="eventTitle" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" required>
+                    </div>
+                    <div>
+                        <label for="eventDate" class="block text-sm font-medium text-[var(--color-text-dark)] mb-1">Date</label>
+                        <input type="date" id="eventDate" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" required>
+                    </div>
+                    <div>
+                        <label for="eventTime" class="block text-sm font-medium text-[var(--color-text-dark)] mb-1">Time (Optional)</label>
+                        <input type="time" id="eventTime" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]">
+                    </div>
+                    <div>
+                        <label for="eventCategory" class="block text-sm font-medium text-[var(--color-text-dark)] mb-1">Category</label>
+                        <select id="eventCategory" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]">
+                            <option value="work" style="background-color: var(--color-event-work); color: var(--color-text-light);">Work</option>
+                            <option value="personal" style="background-color: var(--color-event-personal); color: var(--color-text-light);">Personal</option>
+                            <option value="health" style="background-color: var(--color-event-health); color: var(--color-text-light);">Health</option>
+                            <option value="study" style="background-color: var(--color-event-study); color: var(--color-text-light);">Study</option>
+                            <option value="social" style="background-color: var(--color-event-social); color: var(--color-text-light);">Social</option>
+                            <option value="other" style="background-color: var(--color-event-other); color: var(--color-text-light);">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="eventDescription" class="block text-sm font-medium text-[var(--color-text-dark)] mb-1">Description (Optional)</label>
+                        <textarea id="eventDescription" rows="3" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" id="deleteEventBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors hidden">Delete Event</button>
+                        <button type="submit" id="saveEventBtn" class="bg-[var(--color-primary)] text-[var(--color-text-light)] px-4 py-2 rounded-lg font-medium hover:bg-[var(--color-primary-dark)] transition-colors">Save Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const calendarGrid = document.querySelector('.calendar-grid');
+            const currentMonthYearEl = document.getElementById('currentMonthYear');
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            const addEventBtn = document.getElementById('addEventBtn');
+            const eventModal = document.getElementById('eventModal');
+            const closeModalBtn = document.getElementById('closeModal');
+            const eventForm = document.getElementById('eventForm');
+            const eventTitleInput = document.getElementById('eventTitle');
+            const eventDateInput = document.getElementById('eventDate');
+            const eventTimeInput = document.getElementById('eventTime');
+            const eventCategorySelect = document.getElementById('eventCategory');
+            const eventDescriptionInput = document.getElementById('eventDescription');
+            const modalTitleEl = document.getElementById('modalTitle');
+            const deleteEventBtn = document.getElementById('deleteEventBtn');
+
+            let currentMonth = new Date().getMonth();
+            let currentYear = new Date().getFullYear();
+            let events = JSON.parse(localStorage.getItem('calendarEvents')) || [];
+            let editingEventId = null;
+
+            const categoryColors = {
+                work: 'var(--color-event-work)',
+                personal: 'var(--color-event-personal)',
+                health: 'var(--color-event-health)',
+                study: 'var(--color-event-study)',
+                social: 'var(--color-event-social)',
+                other: 'var(--color-event-other)'
+            };
+
+            const renderCalendar = () => {
+                calendarGrid.innerHTML = `
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Sun</div>
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Mon</div>
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Tue</div>
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Wed</div>
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Thu</div>
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Fri</div>
+                    <div class="p-3 text-center font-semibold text-[var(--color-text-dark)]">Sat</div>
+                `;
+                currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+                const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay(); // 0 for Sunday, 1 for Monday, etc.
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+                // Add days from previous month
+                for (let i = firstDayOfMonth; i > 0; i--) {
+                    const dayEl = document.createElement('div');
+                    dayEl.classList.add('calendar-day', 'other-month');
+                    dayEl.innerHTML = `<span class="day-number">${daysInPrevMonth - i + 1}</span>`;
+                    calendarGrid.appendChild(dayEl);
+                }
+
+                // Add days of the current month
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.classList.add('calendar-day', 'current-month');
+                    dayEl.innerHTML = `<span class="day-number">${i}</span>`;
+                    dayEl.dataset.date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                    dayEl.addEventListener('click', () => openEventModal(dayEl.dataset.date));
+                    calendarGrid.appendChild(dayEl);
+                }
+
+                // Add days from next month to fill the grid
+                const totalDaysDisplayed = firstDayOfMonth + daysInMonth;
+                const remainingDays = 42 - totalDaysDisplayed; // Ensure 6 rows (6*7=42)
+                for (let i = 1; i <= remainingDays; i++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.classList.add('calendar-day', 'other-month');
+                    dayEl.innerHTML = `<span class="day-number">${i}</span>`;
+                    calendarGrid.appendChild(dayEl);
+                }
+
+                displayEvents();
+            };
+
+            const displayEvents = () => {
+                document.querySelectorAll('.calendar-day').forEach(dayEl => {
+                    dayEl.querySelectorAll('.event-item').forEach(el => el.remove()); // Clear existing events
+                    dayEl.classList.remove('has-event'); // Remove has-event class
+
+                    const dayDate = dayEl.dataset.date;
+                    if (dayDate) {
+                        const dayEvents = events.filter(event => event.date === dayDate);
+                        if (dayEvents.length > 0) {
+                            dayEl.classList.add('has-event');
+                            dayEvents.forEach(event => {
+                                const eventEl = document.createElement('div');
+                                eventEl.classList.add('event-item');
+                                eventEl.style.backgroundColor = categoryColors[event.category];
+                                eventEl.innerHTML = `
+                                    <span class="event-category-dot" style="background-color: ${categoryColors[event.category]};"></span>
+                                    <span class="font-medium">${event.title}</span>
+                                `;
+                                if (event.time) {
+                                    eventEl.innerHTML += `<span class="text-xs text-gray-600 ml-auto">${event.time}</span>`;
+                                }
+                                dayEl.appendChild(eventEl);
+                            });
+                        }
+                    }
+                });
+            };
+
+            const openEventModal = (date = null, event = null) => {
+                eventModal.classList.add('open');
+                eventModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling body
+
+                if (event) {
+                    editingEventId = event.id;
+                    modalTitleEl.textContent = 'Edit Event';
+                    eventTitleInput.value = event.title;
+                    eventDateInput.value = event.date;
+                    eventTimeInput.value = event.time || '';
+                    eventCategorySelect.value = event.category;
+                    eventDescriptionInput.value = event.description || '';
+                    deleteEventBtn.classList.remove('hidden');
+                } else {
+                    editingEventId = null;
+                    modalTitleEl.textContent = 'Create New Event';
+                    eventForm.reset();
+                    eventDateInput.value = date || new Date().toISOString().split('T')[0]; // Set default to today
+                    deleteEventBtn.classList.add('hidden');
+                }
+            };
+
+            const closeEventModal = () => {
+                eventModal.classList.remove('open');
+                setTimeout(() => eventModal.classList.add('hidden'), 300); // Hide after transition
+                document.body.style.overflow = '';
+            };
+
+            const saveEvent = (e) => {
+                e.preventDefault();
+                const newEvent = {
+                    id: editingEventId || Date.now().toString(),
+                    title: eventTitleInput.value,
+                    date: eventDateInput.value,
+                    time: eventTimeInput.value,
+                    category: eventCategorySelect.value,
+                    description: eventDescriptionInput.value
+                };
+
+                if (editingEventId) {
+                    // Update existing event
+                    events = events.map(event => event.id === editingEventId ? newEvent : event);
+                } else {
+                    // Add new event
+                    events.push(newEvent);
+                }
+
+                localStorage.setItem('calendarEvents', JSON.stringify(events));
+                renderCalendar();
+                closeEventModal();
+            };
+
+            const deleteEvent = () => {
+                if (confirm('Are you sure you want to delete this event?')) {
+                    events = events.filter(event => event.id !== editingEventId);
+                    localStorage.setItem('calendarEvents', JSON.stringify(events));
+                    renderCalendar();
+                    closeEventModal();
+                }
+            };
+
+            // Event Listeners
+            prevMonthBtn.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar();
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar();
+            });
+
+            addEventBtn.addEventListener('click', () => openEventModal());
+
+            closeModalBtn.addEventListener('click', closeEventModal);
+            eventModal.addEventListener('click', (e) => {
+                if (e.target === eventModal) { // Close if clicked outside modal content
+                    closeEventModal();
+                }
+            });
+            eventForm.addEventListener('submit', saveEvent);
+            deleteEventBtn.addEventListener('click', deleteEvent);
+
+            // Initial render
+            renderCalendar();
+        });
+    </script>
+</body>
+</html>

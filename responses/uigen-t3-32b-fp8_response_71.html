@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Messaging Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Light background for contrast */
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-width: 900px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            background-color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            scroll-behavior: smooth;
+        }
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .message-bubble.sent {
+            background-color: #3b82f6; /* Blue */
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .message-bubble.received {
+            background-color: #e2e8f0; /* Light gray */
+            color: #1f2937;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .message-bubble .timestamp {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: block;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.8) !important; /* For sent messages */
+            color: rgba(31, 41, 55, 0.6) !important; /* For received messages */
+        }
+        .message-bubble.received .timestamp {
+            text-align: left;
+        }
+        .message-bubble.sent .timestamp {
+            text-align: right;
+        }
+        .message-actions {
+            position: absolute;
+            bottom: 0.25rem;
+            right: 0.25rem;
+            display: flex;
+            gap: 0.25rem;
+        }
+        .message-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7); /* For sent messages */
+            color: rgba(31, 41, 55, 0.6); /* For received messages */
+            transition: color 0.2s;
+        }
+        .message-actions button:hover {
+            color: rgba(255, 255, 255, 1); /* For sent messages */
+            color: rgba(31, 41, 55, 1); /* For received messages */
+        }
+        .message-actions.sent .fa-ellipsis-v {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .message-actions.received .fa-ellipsis-v {
+            color: rgba(31, 41, 55, 0.6);
+        }
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        .typing-indicator span {
+            background-color: #e2e8f0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: bounce 1s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-4px); }
+        }
+
+        .reaction-menu {
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+        .reaction-menu button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.2s;
+        }
+        .reaction-menu button:hover {
+            color: #3b82f6;
+        }
+        .reaction-count {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-left: 0.25rem;
+        }
+        .read-receipt {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+            text-align: right;
+        }
+        .threaded-reply {
+            margin-left: 2rem; /* Indent for replies */
+            background-color: #e2e8f0; /* Light gray for replies */
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-bottom-left-radius: 0.25rem;
+            position: relative;
+        }
+        .threaded-reply.sent {
+            background-color: #dbeafe; /* Light blue for sent replies */
+            border-bottom-right-radius: 0.25rem;
+        }
+        .threaded-reply .timestamp {
+            text-align: right;
+        }
+        .threaded-reply.sent .timestamp {
+            text-align: left;
+        }
+        .threaded-reply .reply-arrow {
+            position: absolute;
+            top: 0.75rem;
+            left: -0.75rem;
+            width: 0;
+            height: 0;
+            border-top: 0.75rem solid transparent;
+            border-bottom: 0.75rem solid transparent;
+            border-right: 0.75rem solid #e2e8f0;
+        }
+        .threaded-reply.sent .reply-arrow {
+            border-right-color: #dbeafe;
+        }
+        .chat-input-area {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-top: 1px solid #e2e8f0;
+            background-color: #f1f5f9;
+        }
+        .chat-input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .chat-input:focus {
+            border-color: #3b82f6;
+        }
+        .send-button {
+            background-color: #3b82f6;
+            color: #ffffff;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-left: 0.75rem;
+            transition: background-color 0.2s;
+        }
+        .send-button:hover {
+            background-color: #2563eb;
+        }
+        .chat-input-area button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 1.2rem;
+            margin-left: 0.5rem;
+            transition: color 0.2s;
+        }
+        .chat-input-area button:hover {
+            color: #3b82f6;
+        }
+        .reaction-dropdown {
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+        .reaction-dropdown button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.2s;
+        }
+        .reaction-dropdown button:hover {
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="https://placehold.co/40x40/e2e8f0/6b7280?text=JD" alt="User Avatar" class="w-10 h-10 rounded-full object-cover">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">John Doe</h2>
+                <p class="text-sm text-gray-500">Online</p>
+            </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+            <!-- Example Messages -->
+            <div class="message-bubble received">
+                <img src="https://placehold.co/32x32/e2e8f0/6b7280?text=JD" alt="Avatar" class="w-8 h-8 rounded-full object-cover mr-2">
+                <div>
+                    <p>Hello! How can I help you today?</p>
+                    <span class="timestamp">10:00 AM</span>
+                    <div class="message-actions received">
+                        <button class="message-reactions-toggle" data-message-id="msg1"><i class="fas fa-smile"></i></button>
+                        <button class="message-reply-button" data-message-id="msg1"><i class="fas fa-reply"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="message-bubble sent">
+                <div>
+                    <p>I'm looking for information about your latest product features.</p>
+                    <span class="timestamp">10:01 AM</span>
+                    <div class="message-actions sent">
+                        <button class="message-reactions-toggle" data-message-id="msg2"><i class="fas fa-smile"></i></button>
+                        <button class="message-reply-button" data-message-id="msg2"><i class="fas fa-reply"></i></button>
+                    </div>
+                </div>
+                <img src="https://placehold.co/32x32/3b82f6/ffffff?text=You" alt="Avatar" class="w-8 h-8 rounded-full object-cover ml-2">
+            </div>
+
+            <div class="message-bubble received">
+                <img src="https://placehold.co/32x32/e2e8f0/6b7280?text=JD" alt="Avatar" class="w-8 h-8 rounded-full object-cover mr-2">
+                <div>
+                    <p>Great! I'll provide a detailed overview. Is there a specific feature you're interested in?</p>
+                    <span class="timestamp">10:02 AM</span>
+                    <div class="message-actions received">
+                        <button class="message-reactions-toggle" data-message-id="msg3"><i class="fas fa-smile"></i></button>
+                        <button class="message-reply-button" data-message-id="msg3"><i class="fas fa-reply"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-indicator hidden">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="text-gray-500">John Doe is typing...</span>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="message-input" class="chat-input" placeholder="Type a message...">
+            <button id="send-button" class="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+            <button id="add-reaction-button" class="text-gray-500 hover:text-blue-600">
+                <i class="fas fa-smile"></i>
+            </button>
+            <button id="add-attachment-button" class="text-gray-500 hover:text-blue-600">
+                <i class="fas fa-paperclip"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const typingIndicator = document.querySelector('.typing-indicator');
+            const messageReactionsToggles = document.querySelectorAll('.message-reactions-toggle');
+            const messageReplyButtons = document.querySelectorAll('.message-reply-button');
+            const addReactionButton = document.getElementById('add-reaction-button');
+            const chatInputArea = document.querySelector('.chat-input-area');
+
+            let typingTimeout;
+            let isTyping = false;
+            let currentMessageIdForReactions = null;
+            let currentMessageIdForReply = null;
+
+            const messages = [
+                { id: 'msg1', sender: 'John Doe', text: 'Hello! How can I help you today?', time: '10:00 AM', isReceived: true },
+                { id: 'msg2', sender: 'You', text: "I'm looking for information about your latest product features.", time: '10:01 AM', isReceived: false },
+                { id: 'msg3', sender: 'John Doe', text: 'Great! I\'ll provide a detailed overview. Is there a specific feature you\'re interested in?', time: '10:02 AM', isReceived: true },
+            ];
+
+            function renderMessages() {
+                chatMessages.innerHTML = '';
+                messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message-bubble');
+                    messageDiv.classList.add(msg.isReceived ? 'received' : 'sent');
+                    messageDiv.setAttribute('data-message-id', msg.id);
+
+                    const avatar = document.createElement('img');
+                    avatar.src = msg.isReceived ? 'https://placehold.co/32x32/e2e8f0/6b7280?text=JD' : 'https://placehold.co/32x32/3b82f6/ffffff?text=You';
+                    avatar.alt = 'Avatar';
+                    avatar.classList.add('w-8', 'h-8', 'rounded-full', 'object-cover');
+                    if (msg.isReceived) {
+                        avatar.classList.add('mr-2');
+                    } else {
+                        avatar.classList.add('ml-2');
+                    }
+
+                    const messageContent = document.createElement('div');
+                    messageContent.innerHTML = `<p>${msg.text}</p><span class="timestamp">${msg.time}</span>`;
+
+                    const messageActions = document.createElement('div');
+                    messageActions.classList.add('message-actions');
+                    messageActions.classList.add(msg.isReceived ? 'received' : 'sent');
+
+                    const reactionsButton = document.createElement('button');
+                    reactionsButton.classList.add('message-reactions-toggle');
+                    reactionsButton.setAttribute('data-message-id', msg.id);
+                    reactionsButton.innerHTML = '<i class="fas fa-smile"></i>';
+                    reactionsButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleReactionMenu(msg.id);
+                    });
+
+                    const replyButton = document.createElement('button');
+                    replyButton.classList.add('message-reply-button');
+                    replyButton.setAttribute('data-message-id', msg.id);
+                    replyButton.innerHTML = '<i class="fas fa-reply"></i>';
+                    replyButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openReplyThread(msg.id, msg.sender, msg.text);
+                    });
+
+                    messageActions.appendChild(reactionsButton);
+                    messageActions.appendChild(replyButton);
+
+                    if (msg.isReceived) {
+                        messageDiv.appendChild(avatar);
+                        messageDiv.appendChild(messageContent);
+                        messageDiv.appendChild(messageActions);
+                    } else {
+                        messageDiv.appendChild(messageContent);
+                        messageDiv.appendChild(messageActions);
+                        messageDiv.appendChild(avatar);
+                    }
+
+                    chatMessages.appendChild(messageDiv);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+            }
+
+            function sendMessage() {
+                const text = messageInput.value.trim();
+                if (text === '') return;
+
+                const newMessage = {
+                    id: `msg${messages.length + 1}`,
+                    sender: 'You',
+                    text: text,
+                    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                    isReceived: false
+                };
+                messages.push(newMessage);
+                renderMessages();
+                messageInput.value = '';
+
+                // Simulate typing indicator
+                setTimeout(() => {
+                    isTyping = true;
+                    typingIndicator.classList.remove('hidden');
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 500);
+
+                setTimeout(() => {
+                    isTyping = false;
+                    typingIndicator.classList.add('hidden');
+                    // Simulate a reply
+                    const replyMessage = {
+                        id: `msg${messages.length + 1}`,
+                        sender: 'John Doe',
+                        text: `Got it! I'll send you more details about ${text}.`,
+                        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                        isReceived: true
+                    };
+                    messages.push(replyMessage);
+                    renderMessages();
+                }, 2000);
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Typing indicator logic
+            messageInput.addEventListener('input', () => {
+                if (!isTyping) {
+                    isTyping = true;
+                    typingIndicator.classList.remove('hidden');
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                    typingIndicator.classList.add('hidden');
+                }, 3000); // Hide after 3 seconds of no input
+            });
+
+            // Message reactions
+            let reactionMenu = null;
+
+            function createReactionMenu(messageId) {
+                if (reactionMenu) {
+                    reactionMenu.remove();
+                }
+                reactionMenu = document.createElement('div');
+                reactionMenu.classList.add('reaction-menu');
+                reactionMenu.id = `reaction-menu-${messageId}`;
+                const reactions = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉'];
+                reactions.forEach(reaction => {
+                    const button = document.createElement('button');
+                    button.textContent = reaction;
+                    button.dataset.reaction = reaction;
+                    button.dataset.messageId = messageId;
+                    button.addEventListener('click', (e) => {
+                        addReaction(e.target.dataset.messageId, e.target.dataset.reaction);
+                        reactionMenu.remove();
+                        reactionMenu = null;
+                    });
+                    reactionMenu.appendChild(button);
+                });
+                document.body.appendChild(reactionMenu); // Append to body to avoid positioning issues
+            }
+
+            function toggleReactionMenu(messageId) {
+                if (currentMessageIdForReactions === messageId) {
+                    if (reactionMenu) {
+                        reactionMenu.remove();
+                        reactionMenu = null;
+                    }
+                    currentMessageIdForReactions = null;
+                } else {
+                    currentMessageIdForReactions = messageId;
+                    createReactionMenu(messageId);
+                    const targetElement = document.querySelector(`.message-bubble[data-message-id="${messageId}"] .message-reactions-toggle`);
+                    if (targetElement) {
+                        reactionMenu.style.top = `${targetElement.offsetTop - reactionMenu.offsetHeight - 5}px`;
+                        reactionMenu.style.left = `${targetElement.offsetLeft + targetElement.offsetWidth / 2 - reactionMenu.offsetWidth / 2}px`;
+                    }
+                }
+            }
+
+            document.addEventListener('click', (e) => {
+                if (reactionMenu && !reactionMenu.contains(e.target) && !e.target.classList.contains('message-reactions-toggle')) {
+                    reactionMenu.remove();
+                    reactionMenu = null;
+                    currentMessageIdForReactions = null;
+                }
+            });
+
+            function addReaction(messageId, reaction) {
+                const messageElement = document.querySelector(`.message-bubble[data-message-id="${messageId}"]`);
+                if (messageElement) {
+                    let existingReaction = messageElement.querySelector('.reaction-count');
+                    if (existingReaction) {
+                        existingReaction.textContent = reaction;
+                    } else {
+                        const reactionSpan = document.createElement('span');
+                        reactionSpan.classList.add('reaction-count');
+                        reactionSpan.textContent = reaction;
+                        messageElement.querySelector('.timestamp').after(reactionSpan);
+                    }
+                    // In a real app, you'd update the backend and broadcast to other users
+                    console.log(`User added reaction "${reaction}" to message ${messageId}`);
+                }
+            }
+
+            // Threaded replies
+            let replyThread = null;
+
+            function openReplyThread(messageId, originalSender, originalText) {
+                if (replyThread) {
+                    replyThread.remove();
+                    replyThread = null;
+                }
+                replyThread = document.createElement('div');
+                replyThread.classList.add('threaded-reply', 'sent'); // Always sent for replies
+                replyThread.id = `reply-thread-${messageId}`;
+                replyThread.innerHTML = `
+                    <div class="reply-arrow"></div>
+                    <div>
+                        <p>Replied to <span class="font-semibold">${originalSender}</span>: "${originalText}"</p>
+                        <input type="text" class="reply-input chat-input" placeholder="Type your reply...">
+                        <button class="send-reply-button send-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                `;
+                chatMessages.appendChild(replyThread);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to new reply input
+
+                const replyInput = replyThread.querySelector('.reply-input');
+                const sendReplyButton = replyThread.querySelector('.send-reply-button');
+
+                sendReplyButton.addEventListener('click', () => {
+                    const replyText = replyInput.value.trim();
+                    if (replyText) {
+                        const newReply = {
+                            id: `reply-${messageId}-${messages.length + 1}`,
+                            sender: 'You',
+                            text: replyText,
+                            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                            isReceived: false,
+                            replyTo: messageId // Indicate this is a reply
+                        };
+                        messages.push(newReply);
+                        renderMessages(); // Re-render to show the reply
+                        replyInput.value = '';
+                        replyThread.remove();
+                        replyThread = null;
+                    }
+                });
+
+                replyInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendReplyButton.click();
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (replyThread && !replyThread.contains(e.target) && !e.target.classList.contains('message-reply-button')) {
+                    replyThread.remove();
+                    replyThread = null;
+                }
+            });
+
+            // Read receipts
+            function addReadReceipt(messageId) {
+                const messageElement = document.querySelector(`.message-bubble[data-message-id="${messageId}"]`);
+                if (messageElement && !messageElement.querySelector('.read-receipt')) {
+                    const readReceiptSpan = document.createElement('span');
+                    readReceiptSpan.classList.add('read-receipt');
+                    readReceiptSpan.textContent = 'Read';
+                    messageElement.querySelector('.timestamp').after(readReceiptSpan);
+                    console.log(`Message ${messageId} marked as read.`);
+                }
+            }
+
+            // Simulate reading a message when it's clicked (for demonstration)
+            chatMessages.addEventListener('click', (e) => {
+                const messageBubble = e.target.closest('.message-bubble');
+                if (messageBubble && !messageBubble.classList.contains('sent')) {
+                    const messageId = messageBubble.dataset.messageId;
+                    addReadReceipt(messageId);
+                }
+            });
+
+            // Initial render
+            renderMessages();
+        });
+    </script>
+</body>
+</html>

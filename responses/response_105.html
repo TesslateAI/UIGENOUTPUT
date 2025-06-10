@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: rgb(255, 255, 255);
+            --color-text-secondary: rgb(160, 160, 160);
+            --color-bg-primary: rgb(10, 10, 10);
+            --color-bg-secondary: rgb(24, 24, 24);
+            --color-bg-tertiary: rgb(37, 37, 37);
+            --color-accent-primary: rgb(0, 153, 255);
+            --color-accent-secondary: rgb(255, 128, 0);
+            --color-border-primary: rgb(41, 41, 41);
+            --color-delivered: rgb(128, 128, 128); /* Grey for delivered */
+            --color-read: rgb(0, 153, 255); /* Blue for read */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            max-height: 800px;
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-primary);
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-header {
+            background-color: var(--color-bg-tertiary);
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            scroll-behavior: smooth;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            position: relative;
+        }
+
+        .message-bubble.sent {
+            background-color: var(--color-accent-primary);
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .message-bubble.received {
+            background-color: var(--color-bg-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+            border: 1px solid var(--color-border-primary);
+        }
+
+        .message-bubble.sent .status-indicator {
+            position: absolute;
+            bottom: -8px;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .status-indicator .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--color-delivered);
+            transition: background-color 0.3s ease;
+        }
+
+        .status-indicator .dot.read {
+            background-color: var(--color-read);
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0.5rem 1rem;
+            border-radius: 1.25rem;
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: var(--color-text-secondary);
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes pulse {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .chat-input-area {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-top: 1px solid var(--color-border-primary);
+            background-color: var(--color-bg-secondary);
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border-primary);
+            border-radius: 0.75rem;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            outline: none;
+            font-size: 1rem;
+        }
+
+        .chat-input::placeholder {
+            color: var(--color-text-secondary);
+        }
+
+        .send-button {
+            background-color: var(--color-accent-primary);
+            color: var(--color-text-primary);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            margin-left: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover {
+            background-color: var(--color-accent-hover, rgb(0, 128, 200)); /* Example hover color */
+        }
+
+        /* Custom scrollbar for messages */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--color-bg-secondary);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--color-border-primary);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <div class="flex items-center">
+                <img src="https://placehold.co/40x40/0099FF/FFFFFF/png?text=U" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                <div>
+                    <h3 class="font-dm-sans text-lg font-bold">Chat with User A</h3>
+                    <p class="text-sm text-text-secondary">Online</p>
+                </div>
+            </div>
+            <button class="text-text-secondary hover:text-text-primary">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div id="chat-messages" class="chat-messages">
+            <!-- Example Received Message -->
+            <div class="message-line flex items-end">
+                <img src="https://placehold.co/32x32/FF8000/FFFFFF/png?text=UA" alt="User A Avatar" class="w-8 h-8 rounded-full mr-2">
+                <div class="message-bubble received">
+                    Hi there! How can I help you today?
+                </div>
+            </div>
+
+            <!-- Example Sent Message -->
+            <div class="message-line flex items-end justify-end">
+                <div class="message-bubble sent">
+                    I'm looking for information on your latest product features.
+                    <div class="status-indicator">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                </div>
+                <img src="https://placehold.co/32x32/0099FF/FFFFFF/png?text=Me" alt="My Avatar" class="w-8 h-8 rounded-full ml-2">
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="typing-indicator hidden">
+                <span></span><span></span><span></span>
+                <span class="text-text-secondary">User A is typing...</span>
+            </div>
+
+            <!-- More messages can be added here -->
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="chat-input-area">
+            <input type="text" id="message-input" class="chat-input" placeholder="Type a message...">
+            <button id="send-button" class="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        let isTyping = false;
+        let typingTimeout;
+        const typingDelay = 1500; // Time to wait before considering typing stopped
+
+        // Function to scroll to the bottom of the chat messages
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Function to add a message bubble
+        function addMessage(text, isSent, status = 'delivered') {
+            const messageLine = document.createElement('div');
+            messageLine.classList.add('message-line', 'flex', 'items-end');
+            if (isSent) {
+                messageLine.classList.add('justify-end');
+            } else {
+                messageLine.classList.add('justify-start');
+            }
+
+            const messageBubble = document.createElement('div');
+            messageBubble.classList.add('message-bubble');
+            if (isSent) {
+                messageBubble.classList.add('sent');
+            } else {
+                messageBubble.classList.add('received');
+            }
+            messageBubble.textContent = text;
+
+            if (isSent) {
+                const statusIndicator = document.createElement('div');
+                statusIndicator.classList.add('status-indicator');
+                const dot1 = document.createElement('span');
+                dot1.classList.add('dot', status);
+                const dot2 = document.createElement('span');
+                dot2.classList.add('dot', status);
+                statusIndicator.appendChild(dot1);
+                statusIndicator.appendChild(dot2);
+                messageBubble.appendChild(statusIndicator);
+            }
+
+            if (isSent) {
+                const avatar = document.createElement('img');
+                avatar.src = "https://placehold.co/32x32/0099FF/FFFFFF/png?text=Me";
+                avatar.alt = "My Avatar";
+                avatar.classList.add('w-8', 'h-8', 'rounded-full', 'ml-2');
+                messageLine.appendChild(messageBubble);
+                messageLine.appendChild(avatar);
+            } else {
+                const avatar = document.createElement('img');
+                avatar.src = "https://placehold.co/32x32/FF8000/FFFFFF/png?text=UA";
+                avatar.alt = "User A Avatar";
+                avatar.classList.add('w-8', 'h-8', 'rounded-full', 'mr-2');
+                messageLine.appendChild(avatar);
+                messageLine.appendChild(messageBubble);
+            }
+
+            chatMessages.appendChild(messageLine);
+            scrollToBottom();
+        }
+
+        // Function to simulate typing indicator
+        function simulateTyping() {
+            if (!isTyping) {
+                typingIndicator.classList.remove('hidden');
+                scrollToBottom();
+                isTyping = true;
+            } else {
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    typingIndicator.classList.add('hidden');
+                    isTyping = false;
+                }, typingDelay);
+            }
+        }
+
+        // Handle sending messages
+        sendButton.addEventListener('click', () => {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                addMessage(messageText, true);
+                messageInput.value = '';
+
+                // Simulate receiving a message after a delay
+                setTimeout(() => {
+                    const receivedMessage = "Got it! I'll send you more details shortly.";
+                    addMessage(receivedMessage, false, 'delivered');
+                }, 1500);
+
+                // Simulate reading status after another delay
+                setTimeout(() => {
+                    const lastSentMessage = chatMessages.querySelector('.message-bubble.sent:last-of-type .status-indicator .dot');
+                    if (lastSentMessage) {
+                        lastSentMessage.classList.remove('delivered');
+                        lastSentMessage.classList.add('read');
+                    }
+                }, 3000);
+            }
+        });
+
+        // Handle typing events
+        messageInput.addEventListener('input', () => {
+            simulateTyping();
+        });
+
+        // Initial scroll to bottom
+        scrollToBottom();
+    </script>
+</body>
+</html>

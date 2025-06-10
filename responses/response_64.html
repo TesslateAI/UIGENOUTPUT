@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Themeable Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon Library -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* Light Theme Variables */
+            --color-bg-primary-light: #f7f9fc;
+            --color-bg-secondary-light: #ffffff;
+            --color-text-primary-light: #0f1149;
+            --color-text-secondary-light: #777777;
+            --color-border-light: #e0e0e0;
+            --color-accent-light: #6e56cf;
+            --color-bubble-bg-light: #e0e0e0;
+            --color-bubble-text-light: #0f1149;
+
+            /* Dark Theme Variables */
+            --color-bg-primary-dark: #0f1149;
+            --color-bg-secondary-dark: #1a1c5e;
+            --color-text-primary-dark: #f7f9fc;
+            --color-text-secondary-dark: #b0b0b0;
+            --color-border-dark: #333333;
+            --color-accent-dark: #a892ff;
+            --color-bubble-bg-dark: #333333;
+            --color-bubble-text-dark: #f7f9fc;
+
+            /* Applied Theme */
+            --color-bg-primary: var(--color-bg-primary-light);
+            --color-bg-secondary: var(--color-bg-secondary-light);
+            --color-text-primary: var(--color-text-primary-light);
+            --color-text-secondary: var(--color-text-secondary-light);
+            --color-border: var(--color-border-light);
+            --color-accent: var(--color-accent-light);
+            --color-bubble-bg: var(--color-bubble-bg-light);
+            --color-bubble-text: var(--color-bubble-text-light);
+        }
+
+        body.dark-theme {
+            --color-bg-primary: var(--color-bg-primary-dark);
+            --color-bg-secondary: var(--color-bg-secondary-dark);
+            --color-text-primary: var(--color-text-primary-dark);
+            --color-text-secondary: var(--color-text-secondary-dark);
+            --color-border: var(--color-border-dark);
+            --color-accent: var(--color-accent-dark);
+            --color-bubble-bg: var(--color-bubble-bg-dark);
+            --color-bubble-text: var(--color-bubble-text-dark);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .chat-container {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .message-bubble {
+            background-color: var(--color-bubble-bg);
+            color: var(--color-bubble-text);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message-bubble.sent {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary); /* Ensure text is readable on accent */
+        }
+
+        .typing-indicator span {
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .emoji-picker {
+            display: none; /* Hidden by default */
+            position: absolute;
+            bottom: 100%; /* Position above the input */
+            left: 0;
+            width: 100%;
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .emoji-picker.open {
+            display: flex;
+        }
+
+        .emoji-picker span {
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .emoji-picker span:hover {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary);
+        }
+    </style>
+</head>
+<body class="p-4 flex items-center justify-center min-h-screen">
+
+    <div class="chat-container w-full max-w-md h-[80vh] flex flex-col md:h-[70vh] rounded-lg overflow-hidden">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
+            <div class="flex items-center space-x-3">
+                <img src="https://placehold.co/40x40/cccccc/ffffff?text=U" alt="User Avatar" class="w-10 h-10 rounded-full border border-[var(--color-border)]" aria-hidden="true">
+                <h2 class="text-lg font-semibold text-[var(--color-text-primary)]">Chat with AI</h2>
+            </div>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors duration-200" aria-label="Toggle Theme">
+                <i class="fas fa-sun text-[var(--color-text-secondary)]"></i>
+            </button>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="messages" class="flex-1 p-4 overflow-y-auto space-y-4">
+            <div class="flex justify-start">
+                <div class="message-bubble">
+                    <p>Hello! How can I assist you today?</p>
+                </div>
+            </div>
+            <div class="flex justify-start">
+                <div class="message-bubble">
+                    <p>I can answer questions, help with coding, or just chat!</p>
+                </div>
+            </div>
+            <!-- Typing Indicator (initially hidden) -->
+            <div id="typing-indicator" class="flex items-center space-x-1 text-[var(--color-text-secondary)] hidden">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span class="text-sm">AI is typing</span>
+                <div class="typing-indicator flex space-x-1">
+                    <span class="w-1.5 h-1.5 bg-[var(--color-text-secondary)] rounded-full"></span>
+                    <span class="w-1.5 h-1.5 bg-[var(--color-text-secondary)] rounded-full"></span>
+                    <span class="w-1.5 h-1.5 bg-[var(--color-text-secondary)] rounded-full"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-[var(--color-border)] flex items-center space-x-3">
+            <button id="emoji-button" class="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors duration-200" aria-label="Open Emoji Picker">
+                <i class="fas fa-smile text-[var(--color-text-secondary)]"></i>
+            </button>
+            <div class="relative flex-1">
+                <input type="text" id="message-input" placeholder="Type a message..." class="w-full p-3 rounded-full bg-[var(--color-bg-primary)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition-colors duration-200" aria-label="Message input">
+                <div id="emoji-picker" class="emoji-picker">
+                    <!-- Emojis will be injected here -->
+                </div>
+            </div>
+            <button id="send-button" class="p-3 rounded-full bg-[var(--color-accent)] text-[var(--color-text-primary)] hover:opacity-90 transition-opacity duration-200" aria-label="Send Message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const messagesContainer = document.getElementById('messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // --- Theme Toggling ---
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-theme');
+            if (body.classList.contains('dark-theme')) {
+                themeToggle.innerHTML = '<i class="fas fa-moon text-[var(--color-text-secondary)]"></i>';
+            } else {
+                themeToggle.innerHTML = '<i class="fas fa-sun text-[var(--color-text-secondary)]"></i>';
+            }
+        });
+
+        // --- Emoji Picker ---
+        const emojis = ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '😘', '🥰', '😗', '😙', '😚', '🤗', '🤩', '🤔', '🤨', '😐', '😑', '😶', '😏', '😣', '😤', '😠', '🤬', '🤯', '😳', '😱', '😨', '😰', '😥', '😢', '😭', '😓', '😤', '😖', '😡', '🤬', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '🐵', '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦢', '🦩', '🦜', '🦤', '🦢', '🦩', '🦜', '🦤', '🦢', '🦩', '🦜', '🦤'];
+
+        emojiButton.addEventListener('click', () => {
+            emojiPicker.classList.toggle('open');
+            if (emojiPicker.classList.contains('open')) {
+                emojiPicker.innerHTML = emojis.map(emoji => `<span>${emoji}</span>`).join('');
+                emojiPicker.focus(); // Keep focus on the picker for accessibility
+            } else {
+                emojiPicker.innerHTML = '';
+            }
+        });
+
+        emojiPicker.addEventListener('click', (event) => {
+            if (event.target.tagName === 'SPAN') {
+                messageInput.value += event.target.textContent;
+                messageInput.focus();
+                emojiPicker.classList.remove('open');
+            }
+        });
+
+        // Close emoji picker if clicked outside
+        document.addEventListener('click', (event) => {
+            if (!emojiPicker.contains(event.target) && !emojiButton.contains(event.target)) {
+                emojiPicker.classList.remove('open');
+            }
+        });
+
+        // --- Message Sending ---
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('flex', 'justify-end');
+                messageBubble.innerHTML = `
+                    <div class="message-bubble sent">
+                        <p>${messageText}</p>
+                    </div>
+                `;
+                messagesContainer.appendChild(messageBubble);
+                messageInput.value = '';
+                messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom
+
+                // Simulate AI response
+                setTimeout(() => {
+                    typingIndicator.classList.remove('hidden');
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    setTimeout(() => {
+                        typingIndicator.classList.add('hidden');
+                        const aiResponse = document.createElement('div');
+                        aiResponse.classList.add('flex', 'justify-start');
+                        aiResponse.innerHTML = `
+                            <div class="message-bubble">
+                                <p>Got it! I'm processing your request: "${messageText}"</p>
+                            </div>
+                        `;
+                        messagesContainer.appendChild(aiResponse);
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 2000); // AI response after 2 seconds
+                }, 500); // Show typing indicator for 0.5 seconds
+            }
+        }
+    </script>
+</body>
+</html>

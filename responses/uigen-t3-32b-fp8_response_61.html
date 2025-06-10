@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Themeable Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #007bff; /* Default primary color */
+            --color-primary-dark: #0056b3;
+            --color-background-light: #f0f2f5;
+            --color-background-dark: #1a202c;
+            --color-text-light: #e2e8f0;
+            --color-text-dark: #2d3748;
+            --color-message-sent: #e0f2fe; /* Light blue for sent */
+            --color-message-received: #e0e0e0; /* Light gray for received */
+            --color-message-sent-dark: #1a202c; /* Dark for sent */
+            --color-message-received-dark: #2d3748; /* Dark for received */
+            --color-border-light: #e0e0e0;
+            --color-border-dark: #4a5568;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Theme toggle for demonstration */
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--color-border-light);
+            border-radius: 9999px;
+            padding: 0.5rem;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .theme-toggle svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: var(--color-primary);
+        }
+
+        /* Chat container */
+        .chat-container {
+            width: 100%;
+            max-width: 400px;
+            height: 80vh;
+            max-height: 800px;
+            background-color: var(--color-background-light);
+            border-radius: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--color-border-light);
+        }
+
+        /* Dark theme */
+        body.dark {
+            --color-background-light: #1a202c;
+            --color-text-light: #e2e8f0;
+            --color-text-dark: #cbd5e0;
+            --color-message-sent: #1a202c;
+            --color-message-received: #2d3748;
+            --color-border-light: #4a5568;
+            --color-border-dark: #4a5568;
+        }
+        
+        body.dark .chat-container {
+            background-color: var(--color-background-dark);
+            border-color: var(--color-border-dark);
+        }
+        body.dark .chat-header {
+            background-color: var(--color-background-dark);
+            border-bottom-color: var(--color-border-dark);
+        }
+        body.dark .chat-messages {
+            background-color: var(--color-background-dark);
+        }
+        body.dark .message-bubble.sent {
+            background-color: var(--color-primary);
+            color: var(--color-text-light);
+        }
+        body.dark .message-bubble.received {
+            background-color: var(--color-message-received);
+            color: var(--color-text-light);
+        }
+        body.dark .input-area {
+            background-color: var(--color-background-dark);
+            border-color: var(--color-border-dark);
+        }
+        body.dark .input-field {
+            background-color: var(--color-message-received);
+            color: var(--color-text-light);
+            border-color: var(--color-border-dark);
+        }
+        body.dark .input-field::placeholder {
+            color: var(--color-text-dark);
+        }
+        body.dark .send-button {
+            background-color: var(--color-primary);
+            color: var(--color-text-light);
+            border-color: var(--color-primary-dark);
+        }
+        body.dark .send-button:hover {
+            background-color: var(--color-primary-dark);
+        }
+        body.dark .emoji-picker-button {
+            color: var(--color-text-light);
+        }
+        body.dark .emoji-picker {
+            background-color: var(--color-background-dark);
+            border-color: var(--color-border-dark);
+        }
+        body.dark .emoji-picker button {
+            color: var(--color-text-light);
+        }
+        body.dark .typing-indicator span {
+            background-color: var(--color-text-light);
+        }
+
+        /* Chat header */
+        .chat-header {
+            background-color: var(--color-background-light);
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        /* Chat messages */
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background-color: var(--color-background-light);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            position: relative;
+            word-wrap: break-word;
+            transition: opacity 0.3s ease-in-out;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .message-bubble.sent {
+            background-color: var(--color-message-sent);
+            align-self: flex-end;
+            border-bottom-right-radius: 0px;
+        }
+
+        .message-bubble.received {
+            background-color: var(--color-message-received);
+            align-self: flex-start;
+            border-bottom-left-radius: 0px;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--color-text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            align-self: flex-start;
+            margin-top: 0.5rem;
+        }
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--color-primary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-3px); }
+        }
+
+        /* Input area */
+        .input-area {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            gap: 0.75rem;
+            border-top: 1px solid var(--color-border-light);
+            flex-shrink: 0;
+            background-color: var(--color-background-light);
+        }
+
+        .input-field {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 24px;
+            border: 1px solid var(--color-border-light);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease-in-out;
+            color: var(--color-text-dark);
+        }
+
+        .input-field::placeholder {
+            color: var(--color-text-dark);
+        }
+
+        .input-field:focus {
+            border-color: var(--color-primary);
+        }
+
+        .send-button {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover {
+            background-color: var(--color-primary-dark);
+        }
+
+        /* Emoji Picker */
+        .emoji-picker-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--color-text-dark);
+            transition: color 0.2s ease-in-out;
+            flex-shrink: 0;
+        }
+        .emoji-picker-button:hover {
+            color: var(--color-primary);
+        }
+
+        .emoji-picker {
+            position: absolute;
+            bottom: 60px; /* Above the input area */
+            right: 1rem;
+            background-color: var(--color-background-light);
+            border: 1px solid var(--color-border-light);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+            gap: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+
+        .emoji-picker.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .emoji-picker button {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .emoji-picker button:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        /* Utility for fade-in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="light-theme">
+
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2 class="text-xl font-semibold">Chat with AI</h2>
+            <div class="flex items-center space-x-2">
+                <button class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-ellipsis-v text-gray-600 dark:text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be appended here -->
+            <div class="message-bubble received" style="animation-delay: 0.1s;">
+                Hello! How can I help you today?
+            </div>
+            <div class="message-bubble sent" style="animation-delay: 0.2s;">
+                Hi, I'm looking for information about your new product line.
+            </div>
+            <div class="message-bubble received" style="animation-delay: 0.3s;">
+                Great! What specific details are you interested in?
+            </div>
+        </div>
+
+        <div class="input-area">
+            <button id="emoji-picker-toggle" class="emoji-picker-button" aria-label="Toggle emoji picker">
+                <i class="far fa-smile"></i>
+            </button>
+            <div id="emoji-picker" class="emoji-picker">
+                <!-- Emojis will be loaded here -->
+            </div>
+            <input type="text" id="message-input" class="input-field" placeholder="Type a message..." aria-label="Type your message">
+            <button id="send-button" class="send-button" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const emojiPickerToggle = document.getElementById('emoji-picker-toggle');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const body = document.body;
+
+        // --- Theme Toggle ---
+        function toggleTheme() {
+            if (body.classList.contains('dark')) {
+                body.classList.remove('dark');
+                body.classList.add('light-theme');
+                document.getElementById('sun-icon').classList.remove('hidden');
+                document.getElementById('moon-icon').classList.add('hidden');
+            } else {
+                body.classList.remove('light-theme');
+                body.classList.add('dark');
+                document.getElementById('sun-icon').classList.add('hidden');
+                document.getElementById('moon-icon').classList.remove('hidden');
+            }
+        }
+
+        // --- Message Sending ---
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', 'sent');
+                messageBubble.textContent = messageText;
+                messageBubble.style.animationDelay = `${Date.now() * 0.001}s`; // Unique animation delay
+                chatMessages.appendChild(messageBubble);
+                messageInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+
+                // Simulate AI response
+                setTimeout(() => {
+                    const aiResponse = document.createElement('div');
+                    aiResponse.classList.add('message-bubble', 'received');
+                    aiResponse.textContent = `Got it! I'll provide information about "${messageText}".`;
+                    aiResponse.style.animationDelay = `${Date.now() * 0.001}s`;
+                    chatMessages.appendChild(aiResponse);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 1000);
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // --- Emoji Picker ---
+        const emojis = ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤩', '🤔', '🤨', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯', '😪', '😫', '😴', '😌', '😛', '😜', '😝', '🤤', '😒', '😓', '😔', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '🤯', '😬', '😰', '😱', '😳', '😵', '😵‍💫', '😡', '😠', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇', '🥳', '🥺', '🤠', '🤡', '🤥', '🤫', '🤭', '🧐', '🤓', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+
+        function populateEmojiPicker() {
+            emojis.forEach(emoji => {
+                const button = document.createElement('button');
+                button.textContent = emoji;
+                button.setAttribute('aria-label', `Insert emoji ${emoji}`);
+                button.addEventListener('click', () => {
+                    messageInput.value += emoji;
+                    messageInput.focus();
+                    toggleEmojiPicker();
+                });
+                emojiPicker.appendChild(button);
+            });
+        }
+
+        function toggleEmojiPicker() {
+            emojiPicker.classList.toggle('active');
+            if (emojiPicker.classList.contains('active')) {
+                emojiPicker.style.bottom = `${chatMessages.offsetHeight - chatMessages.scrollTop - messageInput.offsetHeight - 1rem}px`; // Position above input
+                emojiPicker.style.right = '1rem';
+            }
+        }
+
+        emojiPickerToggle.addEventListener('click', toggleEmojiPicker);
+        document.addEventListener('click', (e) => {
+            if (!emojiPicker.contains(e.target) && !emojiPickerToggle.contains(e.target) && emojiPicker.classList.contains('active')) {
+                toggleEmojiPicker();
+            }
+        });
+
+        // --- Typing Indicator (simulated) ---
+        let isTyping = false;
+        const typingIndicator = document.createElement('div');
+        typingIndicator.classList.add('typing-indicator');
+        typingIndicator.innerHTML = 'AI is typing <span></span><span></span><span></span>';
+
+        function showTypingIndicator() {
+            if (!isTyping) {
+                isTyping = true;
+                chatMessages.appendChild(typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        function hideTypingIndicator() {
+            if (isTyping && typingIndicator.parentNode) {
+                typingIndicator.remove();
+                isTyping = false;
+            }
+        }
+
+        // Simulate AI typing when user sends a message
+        sendButton.addEventListener('click', () => {
+            setTimeout(() => {
+                showTypingIndicator();
+                setTimeout(hideTypingIndicator, 2000); // Hide after 2 seconds
+            }, 500);
+        });
+
+        // Initialize
+        populateEmojiPicker();
+    </script>
+</body>
+</html>

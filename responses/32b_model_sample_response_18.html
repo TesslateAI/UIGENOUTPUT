@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Launch 3D Animation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #00c7ff; /* Bright Cyan */
+            --color-primary-light: #00e0ff; /* Lighter Cyan */
+            --color-bg-dark: #0a0a0a; /* Almost Black */
+            --color-bg-medium: #1a1a1a; /* Dark Grey */
+            --color-text-light: #ffffff;
+            --color-text-muted: #b0b0b0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            overflow: hidden; /* Hide scrollbar for the full screen animation */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .product-display {
+            perspective: 1000px; /* For 3D transformations */
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max size for the product display */
+            height: 450px; /* Fixed height for consistent display */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .product-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth rotation */
+            cursor: grab;
+            touch-action: none; /* Prevent browser touch actions */
+        }
+
+        .product {
+            width: 250px; /* Adjust product size */
+            height: 250px; /* Adjust product size */
+            background-color: var(--color-primary-light);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--color-bg-dark);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Particle effect styles */
+        .particle {
+            position: absolute;
+            background-color: var(--color-primary);
+            border-radius: 50%;
+            opacity: 0;
+            animation: particle-fade 1s forwards;
+            will-change: transform, opacity;
+        }
+
+        @keyframes particle-fade {
+            0% {
+                transform: translate3d(0, 0, 0);
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Call to Action button */
+        .cta-button {
+            background-color: var(--color-primary);
+            color: var(--color-bg-dark);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 199, 255, 0.3);
+        }
+        .cta-button:hover {
+            background-color: var(--color-primary-light);
+        }
+
+        /* Accessibility adjustments */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="product-display">
+        <div id="product-container" class="product-container">
+            <div id="product" class="product">
+                <img src="https://placehold.co/250x250/00c7ff/0a0a0a?text=Product" alt="Product Launch" class="w-full h-full object-contain">
+            </div>
+        </div>
+    </div>
+
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-6 z-20">
+        <button id="play-button" class="cta-button px-8 py-3 rounded-full text-lg font-semibold flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform duration-300" aria-label="Play Product Demo">
+            <i class="fas fa-play-circle text-2xl"></i>
+            <span>Play Demo</span>
+        </button>
+        <button id="close-button" class="cta-button px-8 py-3 rounded-full text-lg font-semibold flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform duration-300" aria-label="Close Product Demo">
+            <i class="fas fa-times text-2xl"></i>
+            <span>Close</span>
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const productContainer = document.getElementById('product-container');
+            const product = document.getElementById('product');
+            const playButton = document.getElementById('play-button');
+            const closeButton = document.getElementById('close-button');
+
+            let isDragging = false;
+            let startX, startY;
+            let currentRotateX = 0;
+            let currentRotateY = 0;
+            let lastX, lastY;
+
+            // Particle effect function
+            const createParticle = (x, y, size) => {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                productContainer.appendChild(particle);
+
+                const duration = Math.random() * 1 + 0.5; // 0.5 to 1.5s
+                const offsetX = (Math.random() - 0.5) * 100; // Random horizontal spread
+                const offsetY = (Math.random() - 0.5) * 100; // Random vertical spread
+
+                particle.style.animation = `particle-fade ${duration}s forwards`;
+                particle.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(0)`; // Start from center and scale to 0
+                particle.style.opacity = '0'; // Start with opacity 0
+                particle.style.transition = `transform ${duration}s ease-out, opacity ${duration}s ease-out`;
+
+                setTimeout(() => {
+                    particle.remove();
+                }, duration * 1000);
+            };
+
+            // Handle product rotation
+            const handleDrag = (e) => {
+                if (!isDragging) return;
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                const deltaX = clientX - lastX;
+                const deltaY = clientY - lastY;
+
+                currentRotateY += deltaX * 0.5; // Sensitivity for horizontal rotation
+                currentRotateX -= deltaY * 0.5; // Sensitivity for vertical rotation
+
+                // Limit rotation to prevent excessive flipping
+                currentRotateX = Math.max(-70, Math.min(70, currentRotateX));
+
+                productContainer.style.transform = `rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg)`;
+
+                lastX = clientX;
+                lastY = clientY;
+            };
+
+            productContainer.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                lastX = startX;
+                lastY = startY;
+                productContainer.style.cursor = 'grabbing';
+                // Trigger particle effect on drag start
+                const rect = product.getBoundingClientRect();
+                const particleX = rect.left + rect.width / 2;
+                const particleY = rect.top + rect.height / 2;
+                createParticle(particleX, particleY, 10);
+            });
+
+            productContainer.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                lastX = startX;
+                lastY = startY;
+                // Trigger particle effect on drag start
+                const rect = product.getBoundingClientRect();
+                const particleX = rect.left + rect.width / 2;
+                const particleY = rect.top + rect.height / 2;
+                createParticle(particleX, particleY, 10);
+            }, { passive: true });
+
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('touchmove', handleDrag, { passive: true });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                productContainer.style.cursor = 'grab';
+            });
+
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+
+            // Play button functionality
+            playButton.addEventListener('click', () => {
+                // In a real scenario, this would trigger a video or more detailed animation
+                alert('Product Demo Playing!');
+                // You could also add a more complex animation sequence here
+                // For example, a sequence of product rotations and particle bursts
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        const rect = product.getBoundingClientRect();
+                        const particleX = rect.left + rect.width / 2;
+                        const particleY = rect.top + rect.height / 2;
+                        createParticle(particleX, particleY, 10);
+                    }, i * 100); // Stagger particles
+                }
+            });
+
+            // Close button functionality
+            closeButton.addEventListener('click', () => {
+                // In a real scenario, this would close the animation or navigate away
+                alert('Closing Product Launch Animation.');
+                // You might want to reset the rotation or hide the element
+                productContainer.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                currentRotateX = 0;
+                currentRotateY = 0;
+            });
+        });
+    </script>
+</body>
+</html>

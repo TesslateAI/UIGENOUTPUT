@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: #14171A; /* Dark blue-grey */
+            --color-text-secondary: #657786; /* Lighter grey */
+            --color-text-tertiary: #AAB8C2; /* Even lighter grey */
+            --color-bg-primary: #15202B; /* Very dark blue-grey */
+            --color-bg-secondary: #1D2A37; /* Slightly lighter dark blue-grey */
+            --color-bg-tertiary: #283747; /* Even lighter dark blue-grey */
+            --color-accent: #1DA1F2; /* Twitter Blue */
+            --color-border-primary: #38444D; /* Darker border */
+            --color-border-secondary: #4A5568; /* Lighter border */
+            --color-card-bg: #1D2A37; /* Card background */
+            --color-hover-bg: #2A3642; /* Hover background */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-border-primary);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-border-secondary);
+        }
+
+        /* Modal specific styles */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border-primary);
+            z-index: 1001;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-secondary': 'var(--color-text-secondary)',
+                        'text-tertiary': 'var(--color-text-tertiary)',
+                        'bg-primary': 'var(--color-bg-primary)',
+                        'bg-secondary': 'var(--color-bg-secondary)',
+                        'bg-tertiary': 'var(--color-bg-tertiary)',
+                        'accent': 'var(--color-accent)',
+                        'border-primary': 'var(--color-border-primary)',
+                        'border-secondary': 'var(--color-border-secondary)',
+                        'card-bg': 'var(--color-card-bg)',
+                        'hover-bg': 'var(--color-hover-bg)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex min-h-screen">
+
+    <!-- Left Sidebar (Navigation) -->
+    <aside class="hidden md:flex flex-col w-64 p-4 border-r border-border-primary bg-bg-secondary">
+        <div class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors mb-6">
+            <i class="fas fa-home text-2xl text-accent"></i>
+            <span class="text-xl font-bold text-text-primary">Home</span>
+        </div>
+        <nav class="flex-grow space-y-2">
+            <a href="#" class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors">
+                <i class="fas fa-hashtag text-xl text-text-secondary"></i>
+                <span class="text-text-secondary">Explore</span>
+            </a>
+            <a href="#" class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors">
+                <i class="fas fa-bell text-xl text-text-secondary"></i>
+                <span class="text-text-secondary">Notifications</span>
+            </a>
+            <a href="#" class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors">
+                <i class="fas fa-envelope text-xl text-text-secondary"></i>
+                <span class="text-text-secondary">Messages</span>
+            </a>
+            <a href="#" class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors">
+                <i class="fas fa-bookmark text-xl text-text-secondary"></i>
+                <span class="text-text-secondary">Bookmarks</span>
+            </a>
+            <a href="#" class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors">
+                <i class="fas fa-user text-xl text-text-secondary"></i>
+                <span class="text-text-secondary">Profile</span>
+            </a>
+            <a href="#" class="flex items-center space-x-2 p-2 rounded-full hover:bg-hover-bg cursor-pointer transition-colors">
+                <i class="fas fa-ellipsis-h text-xl text-text-secondary"></i>
+                <span class="text-text-secondary">More</span>
+            </a>
+        </nav>
+        <button id="compose-tweet-button" class="bg-accent text-text-primary font-bold py-3 rounded-full hover:opacity-90 transition-opacity mt-4">
+            Tweet
+        </button>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-2xl border-x border-border-primary">
+        <!-- Header -->
+        <header class="sticky top-0 bg-bg-primary bg-opacity-90 backdrop-blur-sm border-b border-border-primary p-4 z-10">
+            <h1 class="text-xl font-bold">Home</h1>
+        </header>
+
+        <!-- Timeline -->
+        <section id="timeline" class="space-y-4 p-4">
+            <!-- Example Tweet 1 -->
+            <div class="bg-card-bg rounded-lg p-4 border border-border-primary">
+                <div class="flex items-start space-x-3">
+                    <img src="https://placehold.co/48x48/1DA1F2/FFFFFF?text=JD" alt="User Avatar" class="w-12 h-12 rounded-full object-cover">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-1">
+                            <span class="font-bold text-text-primary">John Doe</span>
+                            <span class="text-text-secondary">@johndoe</span>
+                            <span class="text-text-secondary">• 2h</span>
+                        </div>
+                        <p class="text-text-primary mt-1">Just launched my new project! Excited to see how it goes. #webdev #coding</p>
+                        <img src="https://placehold.co/500x250/2A3642/FFFFFF?text=Project+Screenshot" alt="Tweet Image" class="rounded-lg mt-3 w-full max-h-80 object-cover">
+                        <div class="flex justify-between text-text-secondary text-sm mt-3">
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="far fa-comment"></i>
+                                <span>12</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
+                                <i class="fas fa-retweet"></i>
+                                <span>5</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                <i class="far fa-heart"></i>
+                                <span>23</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Tweet 2 -->
+            <div class="bg-card-bg rounded-lg p-4 border border-border-primary">
+                <div class="flex items-start space-x-3">
+                    <img src="https://placehold.co/48x48/FF5733/FFFFFF?text=AJ" alt="User Avatar" class="w-12 h-12 rounded-full object-cover">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-1">
+                            <span class="font-bold text-text-primary">Alice Johnson</span>
+                            <span class="text-text-secondary">@alicej</span>
+                            <span class="text-text-secondary">• 5h</span>
+                        </div>
+                        <p class="text-text-primary mt-1">Loving the new features in the latest update! So much more efficient. #tech #updates</p>
+                        <div class="flex justify-between text-text-secondary text-sm mt-3">
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="far fa-comment"></i>
+                                <span>8</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
+                                <i class="fas fa-retweet"></i>
+                                <span>3</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                <i class="far fa-heart"></i>
+                                <span>15</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Tweet 3 -->
+            <div class="bg-card-bg rounded-lg p-4 border border-border-primary">
+                <div class="flex items-start space-x-3">
+                    <img src="https://placehold.co/48x48/33FF57/FFFFFF?text=MB" alt="User Avatar" class="w-12 h-12 rounded-full object-cover">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-1">
+                            <span class="font-bold text-text-primary">Mike Brown</span>
+                            <span class="text-text-secondary">@mikeb</span>
+                            <span class="text-text-secondary">• 1d</span>
+                        </div>
+                        <p class="text-text-primary mt-1">Working on a new design system for our team. It's going to be amazing! #design #system</p>
+                        <div class="flex justify-between text-text-secondary text-sm mt-3">
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="far fa-comment"></i>
+                                <span>20</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
+                                <i class="fas fa-retweet"></i>
+                                <span>10</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                <i class="far fa-heart"></i>
+                                <span>45</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Right Sidebar (Trends, Who to follow) -->
+    <aside class="hidden lg:flex flex-col w-80 p-4 space-y-4">
+        <!-- Search Bar -->
+        <div class="relative">
+            <input type="text" placeholder="Search Twitter" class="w-full bg-bg-secondary rounded-full py-2 pl-10 pr-4 text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"></i>
+        </div>
+
+        <!-- Trends for you -->
+        <div class="bg-card-bg rounded-xl p-4">
+            <h2 class="text-lg font-bold mb-4">Trends for you</h2>
+            <div class="space-y-3">
+                <div class="text-sm">
+                    <p class="text-text-secondary">Trending in Technology</p>
+                    <p class="font-bold">#WebDev</p>
+                    <p class="text-text-secondary">12.5K Tweets</p>
+                </div>
+                <div class="text-sm">
+                    <p class="text-text-secondary">Trending in Design</p>
+                    <p class="font-bold">#UIUX</p>
+                    <p class="text-text-secondary">8.2K Tweets</p>
+                </div>
+                <div class="text-sm">
+                    <p class="text-text-secondary">Trending in Sports</p>
+                    <p class="font-bold">#NBA</p>
+                    <p class="text-text-secondary">50K Tweets</p>
+                </div>
+                <a href="#" class="text-accent hover:underline text-sm mt-2 block">Show more</a>
+            </div>
+        </div>
+
+        <!-- Who to follow -->
+        <div class="bg-card-bg rounded-xl p-4">
+            <h2 class="text-lg font-bold mb-4">Who to follow</h2>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <img src="https://placehold.co/40x40/1DA1F2/FFFFFF?text=JD" alt="User Avatar" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <p class="font-bold text-text-primary">John Doe</p>
+                            <p class="text-text-secondary text-sm">@johndoe</p>
+                        </div>
+                    </div>
+                    <button class="bg-text-primary text-bg-primary px-4 py-1.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity">Follow</button>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <img src="https://placehold.co/40x40/FF5733/FFFFFF?text=AJ" alt="User Avatar" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <p class="font-bold text-text-primary">Alice Johnson</p>
+                            <p class="text-text-secondary text-sm">@alicej</p>
+                        </div>
+                    </div>
+                    <button class="bg-text-primary text-bg-primary px-4 py-1.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity">Follow</button>
+                </div>
+                <a href="#" class="text-accent hover:underline text-sm mt-2 block">Show more</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Compose Tweet Dialog (Modal) -->
+    <div id="compose-tweet-modal" class="fixed inset-0 hidden items-center justify-center modal-overlay">
+        <div class="modal-content p-6 rounded-xl w-full max-w-lg">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">New Tweet</h2>
+                <button id="close-compose-modal" class="text-text-secondary hover:text-text-primary text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex space-x-3 mb-4">
+                <img src="https://placehold.co/48x48/1DA1F2/FFFFFF?text=You" alt="Your Avatar" class="w-12 h-12 rounded-full object-cover">
+                <div class="flex-1">
+                    <textarea id="tweet-textarea" class="w-full bg-transparent text-text-primary placeholder-text-secondary outline-none resize-none" rows="3" placeholder="What's happening?"></textarea>
+                    <div class="flex justify-between items-center mt-3 text-text-secondary text-sm">
+                        <div class="flex space-x-4">
+                            <button class="hover:text-accent transition-colors"><i class="far fa-image"></i> Media</button>
+                            <button class="hover:text-accent transition-colors"><i class="fas fa-chart-bar"></i> Poll</button>
+                            <button class="hover:text-accent transition-colors"><i class="far fa-smile"></i> Emoji</button>
+                            <button class="hover:text-accent transition-colors"><i class="fas fa-calendar-alt"></i> Schedule</button>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span id="tweet-char-count" class="text-text-secondary">280</span>
+                            <button class="bg-accent text-text-primary px-5 py-2 rounded-full font-bold hover:opacity-90 transition-opacity">Tweet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tweet Detail Modal -->
+    <div id="tweet-detail-modal" class="fixed inset-0 hidden items-center justify-center modal-overlay">
+        <div class="modal-content p-6 rounded-xl w-full max-w-lg">
+            <div class="flex items-center justify-between mb-4">
+                <button id="close-tweet-detail-modal" class="text-text-secondary hover:text-text-primary text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="tweet-detail-content" class="bg-bg-tertiary rounded-lg p-4 border border-border-primary">
+                <!-- Tweet content will be loaded here -->
+                <div class="flex items-start space-x-3">
+                    <img src="https://placehold.co/48x48/1DA1F2/FFFFFF?text=JD" alt="User Avatar" class="w-12 h-12 rounded-full object-cover">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-1">
+                            <span class="font-bold text-text-primary">John Doe</span>
+                            <span class="text-text-secondary">@johndoe</span>
+                            <span class="text-text-secondary">• 2h</span>
+                        </div>
+                        <p class="text-text-primary mt-1">Just launched my new project! Excited to see how it goes. #webdev #coding</p>
+                        <img src="https://placehold.co/500x250/2A3642/FFFFFF?text=Project+Screenshot" alt="Tweet Image" class="rounded-lg mt-3 w-full max-h-80 object-cover">
+                        <div class="flex justify-between text-text-secondary text-sm mt-3">
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="far fa-comment"></i>
+                                <span>12</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
+                                <i class="fas fa-retweet"></i>
+                                <span>5</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                <i class="far fa-heart"></i>
+                                <span>23</span>
+                            </button>
+                            <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Reply section -->
+            <div class="mt-6 bg-bg-tertiary rounded-lg p-4 border border-border-primary">
+                <div class="flex items-start space-x-3">
+                    <img src="https://placehold.co/48x48/1DA1F2/FFFFFF?text=You" alt="Your Avatar" class="w-12 h-12 rounded-full object-cover">
+                    <div class="flex-1">
+                        <textarea class="w-full bg-transparent text-text-primary placeholder-text-secondary outline-none resize-none" rows="3" placeholder="Tweet your reply"></textarea>
+                        <div class="flex justify-between items-center mt-3 text-text-secondary text-sm">
+                            <div class="flex space-x-4">
+                                <button class="hover:text-accent transition-colors"><i class="far fa-image"></i> Media</button>
+                            </div>
+                            <button class="bg-accent text-text-primary px-5 py-2 rounded-full font-bold hover:opacity-90 transition-opacity">Tweet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile View (Modal) -->
+    <div id="profile-modal" class="fixed inset-0 hidden items-center justify-center modal-overlay">
+        <div class="modal-content p-6 rounded-xl w-full max-w-lg">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Profile</h2>
+                <button id="close-profile-modal" class="text-text-secondary hover:text-text-primary text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="bg-card-bg rounded-xl p-4 mb-4 border border-border-primary">
+                <div class="flex items-center space-x-4">
+                    <img src="https://placehold.co/80x80/1DA1F2/FFFFFF?text=JD" alt="User Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-accent">
+                    <div>
+                        <h3 class="text-xl font-bold text-text-primary">John Doe</h3>
+                        <p class="text-text-secondary">@johndoe</p>
+                        <button class="bg-text-primary text-bg-primary px-4 py-1.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity mt-2">Follow</button>
+                    </div>
+                </div>
+                <p class="text-text-primary mt-4">Building cool stuff and sharing my journey. Passionate about web development and design.</p>
+                <div class="flex space-x-4 text-text-secondary text-sm mt-3">
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-user-friends"></i>
+                        <span>123</span>
+                        <span class="font-bold">Following</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="fas fa-users"></i>
+                        <span>456</span>
+                        <span class="font-bold">Followers</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Profile Tweets -->
+            <div id="profile-tweets-content" class="space-y-4">
+                <!-- Example Profile Tweet 1 -->
+                <div class="bg-card-bg rounded-lg p-4 border border-border-primary">
+                    <div class="flex items-start space-x-3">
+                        <img src="https://placehold.co/48x48/1DA1F2/FFFFFF?text=JD" alt="User Avatar" class="w-12 h-12 rounded-full object-cover">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-1">
+                                <span class="font-bold text-text-primary">John Doe</span>
+                                <span class="text-text-secondary">@johndoe</span>
+                                <span class="text-text-secondary">• 3h</span>
+                            </div>
+                            <p class="text-text-primary mt-1">Just launched my new project! Excited to see how it goes. #webdev #coding</p>
+                            <img src="https://placehold.co/500x250/2A3642/FFFFFF?text=Project+Screenshot" alt="Tweet Image" class="rounded-lg mt-3 w-full max-h-80 object-cover">
+                            <div class="flex justify-between text-text-secondary text-sm mt-3">
+                                <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                    <i class="far fa-comment"></i>
+                                    <span>12</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
+                                    <i class="fas fa-retweet"></i>
+                                    <span>5</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                    <i class="far fa-heart"></i>
+                                    <span>23</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                    <i class="fas fa-share-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Example Profile Tweet 2 -->
+                <div class="bg-card-bg rounded-lg p-4 border border-border-primary">
+                    <div class="flex items-start space-x-3">
+                        <img src="https://placehold.co/48x48/1DA1F2/FFFFFF?text=JD" alt="User Avatar" class="w-12 h-12 rounded-full object-cover">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-1">
+                                <span class="font-bold text-text-primary">John Doe</span>
+                                <span class="text-text-secondary">@johndoe</span>
+                                <span class="text-text-secondary">• 1d</span>
+                            </div>
+                            <p class="text-text-primary mt-1">Loving the new features in the latest update! So much more efficient. #tech #updates</p>
+                            <div class="flex justify-between text-text-secondary text-sm mt-3">
+                                <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                    <i class="far fa-comment"></i>
+                                    <span>8</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-green-500 transition-colors">
+                                    <i class="fas fa-retweet"></i>
+                                    <span>3</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                    <i class="far fa-heart"></i>
+                                    <span>15</span>
+                                </button>
+                                <button class="flex items-center space-x-1 hover:text-accent transition-colors">
+                                    <i class="fas fa-share-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const composeTweetModal = document.getElementById('compose-tweet-modal');
+            const closeComposeModalButton = document.getElementById('close-compose-modal');
+            const composeTweetButton = document.getElementById('compose-tweet-button');
+            const tweetTextarea = document.getElementById('tweet-textarea');
+            const tweetCharCount = document.getElementById('tweet-char-count');
+
+            const tweetDetailModal = document.getElementById('tweet-detail-modal');
+            const closeTweetDetailModalButton = document.getElementById('close-tweet-detail-modal');
+            const tweetDetailContent = document.getElementById('tweet-detail-content');
+
+            const profileModal = document.getElementById('profile-modal');
+            const closeProfileModalButton = document.getElementById('close-profile-modal');
+
+            // Compose Tweet Modal Logic
+            composeTweetButton.addEventListener('click', () => {
+                composeTweetModal.classList.remove('hidden');
+                tweetTextarea.focus();
+            });
+
+            closeComposeModalButton.addEventListener('click', () => {
+                composeTweetModal.classList.add('hidden');
+                tweetTextarea.value = ''; // Clear textarea
+                tweetCharCount.textContent = 280; // Reset character count
+            });
+
+            composeTweetModal.addEventListener('click', (e) => {
+                if (e.target === composeTweetModal) {
+                    composeTweetModal.classList.add('hidden');
+                    tweetTextarea.value = '';
+                    tweetCharCount.textContent = 280;
+                }
+            });
+
+            tweetTextarea.addEventListener('input', () => {
+                const currentLength = tweetTextarea.value.length;
+                tweetCharCount.textContent = 280 - currentLength;
+            });
+
+            // Tweet Detail Modal Logic
+            document.querySelectorAll('.tweet-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // Check if the click was on a tweet action button (comment, retweet, etc.)
+                    if (e.target.closest('button')) {
+                        return;
+                    }
+                    // Simulate loading tweet content into the modal
+                    tweetDetailContent.innerHTML = card.innerHTML;
+                    tweetDetailModal.classList.remove('hidden');
+                });
+            });
+
+            closeTweetDetailModalButton.addEventListener('click', () => {
+                tweetDetailModal.classList.add('hidden');
+            });
+
+            tweetDetailModal.addEventListener('click', (e) => {
+                if (e.target === tweetDetailModal) {
+                    tweetDetailModal.classList.add('hidden');
+                }
+            });
+
+            // Profile View Modal Logic
+            document.querySelectorAll('.profile-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent actual navigation
+                    // Simulate loading profile content into the modal
+                    // In a real app, you'd fetch data based on the profile link
+                    profileModal.classList.remove('hidden');
+                });
+            });
+
+            closeProfileModalButton.addEventListener('click', () => {
+                profileModal.classList.add('hidden');
+            });
+
+            profileModal.addEventListener('click', (e) => {
+                if (e.target === profileModal) {
+                    profileModal.classList.add('hidden');
+                }
+            });
+
+            // Close modals with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    composeTweetModal.classList.add('hidden');
+                    tweetDetailModal.classList.add('hidden');
+                    profileModal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

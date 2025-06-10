@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Quiz Template</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #1A1A2E; /* Darker background */
+            --color-bg-secondary: #16213E; /* Slightly lighter dark */
+            --color-text-primary: #E0E0E0; /* Off-white text */
+            --color-text-secondary: #A0A0A0; /* Lighter grey for secondary text */
+            --color-accent: #6C5CE7; /* Purple accent */
+            --color-accent-light: #8173F7; /* Lighter purple */
+            --color-success: #4CAF50; /* Green for correct */
+            --color-error: #F44336; /* Red for incorrect */
+            --color-border: #33334A; /* Dark border */
+            --font-main: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .quiz-container {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .option-button {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .option-button:hover {
+            background-color: var(--color-accent-light);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .option-button.selected {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .option-button.correct {
+            background-color: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
+        .option-button.incorrect {
+            background-color: var(--color-error);
+            border-color: var(--color-error);
+            color: white;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--color-accent);
+            transition: width 0.5s ease-out;
+        }
+
+        .result-message.success {
+            color: var(--color-success);
+        }
+
+        .result-message.error {
+            color: var(--color-error);
+        }
+
+        .adaptive-level-indicator {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="quiz-app" class="quiz-container w-full max-w-2xl p-6 md:p-8 lg:p-10">
+
+        <!-- Quiz Header -->
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Adaptive Knowledge Quiz</h1>
+            <div class="adaptive-level-indicator px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                <i class="fas fa-level-up-alt mr-2"></i>
+                <span id="current-level">Level 1</span>
+            </div>
+        </div>
+
+        <!-- Quiz Progress -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between text-sm mb-2">
+                <span class="text-white">Progress:</span>
+                <span id="progress-text" class="text-white font-semibold"></span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-3">
+                <div id="progress-bar" class="progress-bar-fill h-3 rounded-full" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Question Display -->
+        <div id="question-display" class="mb-8 text-center">
+            <p id="question-text" class="text-xl md:text-2xl text-white leading-relaxed mb-6"></p>
+            <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Options will be injected here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Quiz Controls -->
+        <div class="flex justify-between items-center mt-8">
+            <button id="prev-btn" class="px-6 py-3 rounded-lg bg-gray-700 text-white font-semibold hover:bg-gray-600 transition-colors hidden">
+                <i class="fas fa-arrow-left mr-2"></i> Previous
+            </button>
+            <button id="next-btn" class="px-6 py-3 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[var(--color-accent-light)] transition-colors">
+                Next Question <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+
+        <!-- Quiz Results -->
+        <div id="results-display" class="hidden mt-10 p-6 bg-[var(--color-bg-primary)] rounded-lg text-center">
+            <h2 class="text-2xl md:text-3xl font-bold mb-4 text-white">Quiz Complete!</h2>
+            <p class="text-xl text-white mb-4">
+                You answered <span class="font-bold text-[var(--color-success)]" id="correct-answers"></span> out of <span class="font-bold" id="total-questions"></span> questions correctly.
+            </p>
+            <p class="text-lg text-white mb-4">
+                Your final adaptive level: <span class="font-bold text-[var(--color-accent)]" id="final-level"></span>
+            </p>
+            <button id="restart-quiz-btn" class="px-6 py-3 rounded-lg bg-[var(--color-accent)] text-white font-semibold hover:bg-[var(--color-accent-light)] transition-colors">
+                Restart Quiz <i class="fas fa-redo ml-2"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const quizData = [
+            // Level 1 Questions (Easy)
+            {
+                level: 1,
+                question: "What is the capital of France?",
+                options: ["London", "Paris", "Berlin", "Rome"],
+                answer: "Paris"
+            },
+            {
+                level: 1,
+                question: "Which planet is known as the Red Planet?",
+                options: ["Earth", "Mars", "Jupiter", "Saturn"],
+                answer: "Mars"
+            },
+            {
+                level: 1,
+                question: "Who wrote 'To Kill a Mockingbird'?",
+                options: ["Harper Lee", "J.K. Rowling", "George Orwell", "Ernest Hemingway"],
+                answer: "Harper Lee"
+            },
+            {
+                level: 1,
+                question: "What is the largest ocean on Earth?",
+                options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+                answer: "Pacific Ocean"
+            },
+            {
+                level: 1,
+                question: "Which gas do plants absorb from the atmosphere?",
+                options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"],
+                answer: "Carbon Dioxide"
+            },
+
+            // Level 2 Questions (Medium)
+            {
+                level: 2,
+                question: "What is the chemical symbol for water?",
+                options: ["O2", "H2O", "CO2", "NaCl"],
+                answer: "H2O"
+            },
+            {
+                level: 2,
+                question: "In which year did the Titanic sink?",
+                options: ["1912", "1920", "1905", "1918"],
+                answer: "1912"
+            },
+            {
+                level: 2,
+                question: "What is the process by which plants make their own food?",
+                options: ["Photosynthesis", "Respiration", "Fermentation", "Decomposition"],
+                answer: "Photosynthesis"
+            },
+            {
+                level: 2,
+                question: "Which famous scientist developed the theory of relativity?",
+                options: ["Isaac Newton", "Albert Einstein", "Galileo Galilei", "Nikola Tesla"],
+                answer: "Albert Einstein"
+            },
+            {
+                level: 2,
+                question: "What is the main function of the human heart?",
+                options: ["To pump blood", "To digest food", "To produce hormones", "To filter blood"],
+                answer: "To pump blood"
+            },
+
+            // Level 3 Questions (Hard)
+            {
+                level: 3,
+                question: "What is the value of pi (π) rounded to two decimal places?",
+                options: ["3.14", "3.16", "3.00", "3.10"],
+                answer: "3.14"
+            },
+            {
+                level: 3,
+                question: "Which element has the atomic number 1?",
+                options: ["Hydrogen", "Helium", "Oxygen", "Carbon"],
+                answer: "Hydrogen"
+            },
+            {
+                level: 3,
+                question: "What is the square root of 144?",
+                options: ["10", "12", "14", "16"],
+                answer: "12"
+            },
+            {
+                level: 3,
+                question: "What is the term for a large group of stars held together by gravity?",
+                options: ["Galaxy", "Cluster", "Constellation", "Nebula"],
+                answer: "Galaxy"
+            },
+            {
+                level: 3,
+                question: "Which programming language is known for its use in artificial intelligence and machine learning?",
+                options: ["Python", "Java", "C++", "JavaScript"],
+                answer: "Python"
+            }
+        ];
+
+        let currentLevel = 1;
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let score = 0;
+        let totalQuestions = quizData.length;
+
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const currentLevelIndicator = document.getElementById('current-level');
+        const resultsDisplay = document.getElementById('results-display');
+        const correctAnswersSpan = document.getElementById('correct-answers');
+        const totalQuestionsSpan = document.getElementById('total-questions');
+        const finalLevelSpan = document.getElementById('final-level');
+        const quizApp = document.getElementById('quiz-app');
+        const questionDisplay = document.getElementById('question-display');
+
+        function getQuestionsByLevel(level) {
+            return quizData.filter(q => q.level === level);
+        }
+
+        function getAdaptiveQuestions() {
+            // Filter questions based on the current level
+            return quizData.filter(q => q.level <= currentLevel);
+        }
+
+        function displayQuestion() {
+            const questions = getAdaptiveQuestions();
+            if (currentQuestionIndex >= questions.length) {
+                showResults();
+                return;
+            }
+
+            const question = questions[currentQuestionIndex];
+            questionText.textContent = question.question;
+            optionsContainer.innerHTML = ''; // Clear previous options
+
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.className = 'option-button w-full py-3 rounded-lg text-lg font-medium flex items-center justify-center';
+                button.dataset.value = option;
+                button.addEventListener('click', () => selectOption(button, option === question.answer));
+                optionsContainer.appendChild(button);
+            });
+
+            updateProgressBar();
+            updateCurrentLevelIndicator();
+            updateNavigationButtons();
+        }
+
+        function selectOption(button, isCorrect) {
+            const selectedOption = button.dataset.value;
+            const currentQuestions = getAdaptiveQuestions();
+
+            // Disable all other buttons
+            document.querySelectorAll('.option-button').forEach(btn => {
+                btn.disabled = true;
+                if (btn !== button) {
+                    btn.classList.add('incorrect'); // Mark others as incorrect
+                }
+            });
+
+            button.classList.add('selected'); // Mark selected button
+
+            const question = currentQuestions[currentQuestionIndex];
+            const userAnswer = {
+                question: question.question,
+                selected: selectedOption,
+                correct: question.answer,
+                isCorrect: isCorrect
+            };
+            userAnswers.push(userAnswer);
+
+            if (isCorrect) {
+                button.classList.add('correct');
+                score++;
+                // Increase level after a correct answer to make it harder
+                currentLevel = Math.min(currentLevel + 1, 3);
+            } else {
+                button.classList.add('incorrect');
+                // Decrease level after an incorrect answer to make it easier
+                currentLevel = Math.max(currentLevel - 1, 1);
+            }
+
+            // After a short delay, move to the next question
+            setTimeout(() => {
+                currentQuestionIndex++;
+                displayQuestion();
+            }, 1000); // 1 second delay to show feedback
+        }
+
+        function updateProgressBar() {
+            const questions = getAdaptiveQuestions();
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
+        }
+
+        function updateCurrentLevelIndicator() {
+            currentLevelIndicator.textContent = `Level ${currentLevel}`;
+        }
+
+        function updateNavigationButtons() {
+            const questions = getAdaptiveQuestions();
+            if (currentQuestionIndex === 0) {
+                prevBtn.classList.add('hidden');
+            } else {
+                prevBtn.classList.remove('hidden');
+            }
+            if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.textContent = 'Submit Quiz';
+                nextBtn.classList.remove('bg-[var(--color-accent)]', 'hover:bg-[var(--color-accent-light)]');
+                nextBtn.classList.add('bg-[var(--color-error)]', 'hover:bg-[var(--color-error)]');
+                nextBtn.innerHTML = 'Submit Quiz <i class="fas fa-check ml-2"></i>';
+            } else {
+                nextBtn.textContent = 'Next Question';
+                nextBtn.classList.remove('bg-[var(--color-error)]', 'hover:bg-[var(--color-error)]');
+                nextBtn.classList.add('bg-[var(--color-accent)]', 'hover:bg-[var(--color-accent-light)]');
+                nextBtn.innerHTML = 'Next Question <i class="fas fa-arrow-right ml-2"></i>';
+            }
+        }
+
+        function showResults() {
+            quizApp.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                quizApp.classList.add('hidden');
+                resultsDisplay.classList.remove('hidden');
+                correctAnswersSpan.textContent = score;
+                totalQuestionsSpan.textContent = totalQuestions;
+                finalLevelSpan.textContent = `Level ${currentLevel}`;
+            }, 300);
+        }
+
+        function restartQuiz() {
+            currentLevel = 1;
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = [];
+            resultsDisplay.classList.add('hidden');
+            quizApp.classList.remove('hidden');
+            quizApp.classList.remove('opacity-0', 'scale-95');
+            quizApp.classList.add('opacity-100', 'scale-100');
+            displayQuestion();
+        }
+
+        // Event Listeners
+        nextBtn.addEventListener('click', () => {
+            const selectedButton = document.querySelector('.option-button.selected');
+            if (selectedButton) {
+                // If an option is already selected, proceed
+                const isCorrect = selectedButton.dataset.value === quizData[currentQuestionIndex].answer;
+                selectOption(selectedButton, isCorrect);
+            } else {
+                // If no option is selected, just move to next question (treat as incorrect)
+                currentQuestionIndex++;
+                displayQuestion();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        });
+
+        document.getElementById('restart-quiz-btn').addEventListener('click', restartQuiz);
+
+        // Initial display
+        displayQuestion();
+    </script>
+</body>
+</html>

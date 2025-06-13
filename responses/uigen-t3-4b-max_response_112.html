@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #1A1A1A;
+            --color-bg-medium: #282828;
+            --color-bg-light: #3A3A3A;
+            --color-text-light: #F0F0F0;
+            --color-text-dark: #1A1A1A;
+            --color-accent: #007BFF; /* A vibrant blue for buttons */
+            --color-error: #FF6B6B;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .calculator-container {
+            background-color: var(--color-bg-medium);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 320px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .display {
+            background-color: var(--color-bg-light);
+            padding: 20px;
+            font-size: 2.5rem;
+            text-align: right;
+            color: var(--color-text-light);
+            border-bottom: 1px solid var(--color-bg-dark);
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .btn {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            font-size: 1.5rem;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease, border-color 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn.primary {
+            background-color: var(--color-accent);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn.secondary {
+            background-color: var(--color-bg-dark);
+            border: 1px solid var(--color-bg-medium);
+            color: var(--color-text-light);
+        }
+
+        .btn.secondary:hover {
+            background-color: var(--color-bg-light);
+            border-color: var(--color-accent);
+        }
+
+        .btn.error {
+            background-color: var(--color-error);
+            color: white;
+        }
+
+        .btn.error:hover {
+            background-color: #EF4444;
+        }
+
+        .btn:disabled {
+            background-color: #4B4B4B;
+            color: #A0A0A0;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <div class="display" id="display">0</div>
+        <div class="buttons-grid">
+            <button class="btn primary" data-value="C">C</button>
+            <button class="btn primary" data-value="+/-">+/-</button>
+            <button class="btn primary" data-value="%">%</button>
+            <button class="btn primary" data-value="/">&#247;</button>
+
+            <button class="btn secondary" data-value="7">7</button>
+            <button class="btn secondary" data-value="8">8</button>
+            <button class="btn secondary" data-value="9">9</button>
+            <button class="btn primary" data-value="*">&#215;</button>
+
+            <button class="btn secondary" data-value="4">4</button>
+            <button class="btn secondary" data-value="5">5</button>
+            <button class="btn secondary" data-value="6">6</button>
+            <button class="btn primary" data-value="-">-</button>
+
+            <button class="btn secondary" data-value="1">1</button>
+            <button class="btn secondary" data-value="2">2</button>
+            <button class="btn secondary" data-value="3">3</button>
+            <button class="btn primary" data-value="+">+</button>
+
+            <button class="btn secondary" data-value="0">0</button>
+            <button class="btn secondary" data-value=".">.</button>
+            <button class="btn primary" data-value="=">=</button>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        const buttons = document.querySelectorAll('.btn');
+
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = null;
+        let calculating = false;
+
+        function updateDisplay() {
+            display.textContent = currentInput;
+            if (display.textContent.length > 16) { // Limit display length
+                display.textContent = currentInput.substring(0, 16);
+            }
+        }
+
+        function appendNumber(number) {
+            if (calculating) {
+                currentInput = number;
+                calculating = false;
+            } else if (currentInput === '0' && number !== '.') {
+                currentInput = number;
+            } else if (number === '.' && currentInput.includes('.')) {
+                return;
+            } else if (number === '.' && currentInput === '') {
+                currentInput = '0.';
+            } else {
+                currentInput += number;
+            }
+            updateDisplay();
+        }
+
+        function handleOperator(nextOperator) {
+            if (operator && !calculating) {
+                calculate();
+            }
+            operator = nextOperator;
+            calculating = true;
+            previousInput = currentInput;
+            currentInput = '0'; // Reset for next input
+            updateDisplay();
+        }
+
+        function calculate() {
+            if (operator === null || !previousInput || !currentInput) return;
+
+            let result;
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operator) {
+                case '+':
+                    result = prev + current;
+                    break;
+                case '-':
+                    result = prev - current;
+                    break;
+                case '*':
+                    result = prev * current;
+                    break;
+                case '/':
+                    if (current === 0) {
+                        currentInput = 'Error';
+                        operator = null;
+                        calculating = false;
+                        return;
+                    }
+                    result = prev / current;
+                    break;
+                default:
+                    return;
+            }
+
+            currentInput = result.toString();
+            previousInput = '';
+            operator = null;
+            updateDisplay();
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = '';
+            operator = null;
+            calculating = false;
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            if (currentInput === 'Error') return;
+            currentInput = (parseFloat(currentInput) * -1).toString();
+            updateDisplay();
+        }
+
+        function handlePercentage() {
+            if (currentInput === 'Error') return;
+            currentInput = (parseFloat(currentInput) / 100).toString();
+            updateDisplay();
+        }
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const value = button.dataset.value;
+
+                if (value === 'C') {
+                    clearAll();
+                } else if (value === '=') {
+                    if (calculating) {
+                        calculate();
+                    }
+                } else if (value === '+/-') {
+                    toggleSign();
+                } else if (value === '%') {
+                    handlePercentage();
+                } else {
+                    appendNumber(value);
+                }
+            });
+        });
+
+        // Initial display update
+        updateDisplay();
+    </script>
+</body>
+</html>

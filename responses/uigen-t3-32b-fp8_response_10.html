@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: rgb(3, 3, 3);
+            --color-text-secondary: rgb(105, 105, 105);
+            --color-bg-primary: rgb(255, 255, 255);
+            --color-bg-secondary: rgb(242, 242, 242);
+            --color-accent: rgb(0, 122, 255);
+            --color-border: rgb(227, 227, 227);
+            --color-success: rgb(34, 197, 94);
+            --color-error: rgb(239, 68, 68);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .chatbot-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--color-bg-primary);
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background-color: var(--color-bg-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            line-height: 1.4;
+        }
+        .bot-message {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            align-self: flex-start;
+            color: var(--color-text-primary);
+        }
+        .user-message {
+            background-color: var(--color-accent);
+            color: white;
+            align-self: flex-end;
+        }
+        .chat-input-area {
+            padding: 1rem;
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .input-field {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: 9999px; /* full rounded */
+            outline: none;
+            font-size: 1rem;
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-secondary);
+        }
+        .input-field::placeholder {
+            color: var(--color-text-secondary);
+        }
+        .send-button {
+            background-color: var(--color-accent);
+            color: white;
+            border-radius: 9999px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .send-button:hover {
+            background-color: rgb(0, 100, 200);
+        }
+        .language-selector {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .language-menu {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0.5rem;
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 20;
+            min-width: 100px;
+            padding: 0.5rem 0;
+        }
+        .language-menu button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            width: 100%;
+            text-align: left;
+            font-size: 0.875rem;
+            color: var(--color-text-primary);
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .language-menu button:hover {
+            background-color: var(--color-bg-secondary);
+        }
+        .language-menu button.active {
+            background-color: var(--color-accent);
+            color: white;
+        }
+        .language-menu button.active:hover {
+            background-color: rgb(0, 100, 200);
+        }
+        .language-menu button i {
+            width: 1.25rem; /* Ensure consistent icon size */
+            text-align: center;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .chat-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .language-selector {
+                position: static;
+                margin-left: auto; /* Push to right */
+                margin-right: 0.5rem;
+            }
+            .language-menu {
+                position: static;
+                margin-top: 0.5rem;
+                width: 100%;
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]">
+
+    <div class="chatbot-container mx-auto max-w-md w-full">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <h1 class="text-xl font-semibold">Global Chatbot</h1>
+            <div class="relative">
+                <button id="languageSelector" class="language-selector">
+                    <i class="fa-solid fa-globe mr-2"></i>
+                    <span id="selectedLanguage">English</span>
+                    <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+                </button>
+                <div id="languageMenu" class="language-menu hidden">
+                    <button data-lang="en" class="active">
+                        <i class="fa-solid fa-flag-usa"></i> English
+                    </button>
+                    <button data-lang="es">
+                        <i class="fa-solid fa-flag-es"></i> Spanish
+                    </button>
+                    <button data-lang="fr">
+                        <i class="fa-solid fa-flag-fr"></i> French
+                    </button>
+                    <button data-lang="de">
+                        <i class="fa-solid fa-flag-de"></i> German
+                    </button>
+                    <button data-lang="ja">
+                        <i class="fa-solid fa-flag-jp"></i> Japanese
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div id="chatMessages" class="chat-messages">
+            <!-- Bot Welcome Message -->
+            <div class="message-bubble bot-message" data-lang="en">Hi there! How can I assist you today?</div>
+            <div class="message-bubble bot-message" data-lang="es">¡Hola! ¿En qué puedo ayudarte hoy?</div>
+            <div class="message-bubble bot-message" data-lang="fr">Bonjour ! Comment puis-je vous aider aujourd'hui ?</div>
+            <div class="message-bubble bot-message" data-lang="de">Hallo! Wie kann ich Ihnen heute helfen?</div>
+            <div class="message-bubble bot-message" data-lang="ja">こんにちは！今日はどのようにお手伝いできますか？</div>
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="chat-input-area">
+            <input type="text" id="userInput" class="input-field" placeholder="Type your message...">
+            <button id="sendButton" class="send-button">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const languageSelector = document.getElementById('languageSelector');
+        const languageMenu = document.getElementById('languageMenu');
+        const selectedLanguageSpan = document.getElementById('selectedLanguage');
+
+        // Language data (simplified for example)
+        const languageData = {
+            en: {
+                welcome: "Hi there! How can I assist you today?",
+                placeholder: "Type your message...",
+                sendButton: "Send",
+                error: "I'm sorry, I don't understand that. Can you please rephrase?",
+                regions: [
+                    { name: "United States", flag: "fa-flag-usa", langCode: "en-US" },
+                    { name: "United Kingdom", flag: "fa-flag-gb", langCode: "en-GB" },
+                    { name: "Australia", flag: "fa-flag-au", langCode: "en-AU" }
+                ]
+            },
+            es: {
+                welcome: "¡Hola! ¿En qué puedo ayudarte hoy?",
+                placeholder: "Escribe tu mensaje...",
+                sendButton: "Enviar",
+                error: "Lo siento, no entiendo eso. ¿Podrías reformularlo?",
+                regions: [
+                    { name: "España", flag: "fa-flag-es", langCode: "es-ES" },
+                    { name: "México", flag: "fa-flag-mx", langCode: "es-MX" }
+                ]
+            },
+            fr: {
+                welcome: "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+                placeholder: "Tapez votre message...",
+                sendButton: "Envoyer",
+                error: "Je suis désolé, je ne comprends pas cela. Pourriez-vous reformuler ?",
+                regions: [
+                    { name: "France", flag: "fa-flag-fr", langCode: "fr-FR" },
+                    { name: "Belgique", flag: "fa-flag-be", langCode: "fr-BE" }
+                ]
+            },
+            de: {
+                welcome: "Hallo! Wie kann ich Ihnen heute helfen?",
+                placeholder: "Geben Sie Ihre Nachricht ein...",
+                sendButton: "Senden",
+                error: "Es tut mir leid, ich verstehe das nicht. Können Sie es bitte umformulieren?",
+                regions: [
+                    { name: "Deutschland", flag: "fa-flag-de", langCode: "de-DE" },
+                    { name: "Österreich", flag: "fa-flag-at", langCode: "de-AT" }
+                ]
+            },
+            ja: {
+                welcome: "こんにちは！今日はどのようにお手伝いできますか？",
+                placeholder: "メッセージを入力してください...",
+                sendButton: "送信",
+                error: "申し訳ありません、その意味がわかりません。もう一度言い直してください。",
+                regions: [
+                    { name: "日本", flag: "fa-flag-jp", langCode: "ja-JP" }
+                ]
+            }
+        };
+
+        let currentLanguage = 'en'; // Default language
+
+        // Function to set language
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            selectedLanguageSpan.textContent = languageData[lang].regions[0].name; // Show region name for now
+            document.querySelectorAll('.language-menu button').forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.lang === lang) {
+                    button.classList.add('active');
+                }
+            });
+
+            // Update chat messages based on new language
+            document.querySelectorAll('.message-bubble').forEach(bubble => {
+                const dataLang = bubble.dataset.lang;
+                if (dataLang === lang) {
+                    bubble.style.display = 'block'; // Show relevant message
+                } else {
+                    bubble.style.display = 'none'; // Hide others
+                }
+            });
+
+            // Update input field placeholder
+            userInput.placeholder = languageData[lang].placeholder;
+        }
+
+        // Event listener for language selection
+        languageSelector.addEventListener('click', () => {
+            languageMenu.classList.toggle('hidden');
+        });
+
+        // Close menu if clicked outside
+        document.addEventListener('click', (event) => {
+            if (!languageSelector.contains(event.target) && !languageMenu.contains(event.target)) {
+                languageMenu.classList.add('hidden');
+            }
+        });
+
+        // Event listener for language menu buttons
+        languageMenu.addEventListener('click', (event) => {
+            const targetButton = event.target.closest('button');
+            if (targetButton && targetButton.dataset.lang) {
+                setLanguage(targetButton.dataset.lang);
+                languageMenu.classList.add('hidden');
+            }
+        });
+
+        // Send message function
+        function sendMessage() {
+            const messageText = userInput.value.trim();
+            if (messageText === '') return;
+
+            // Add user message to chat
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.classList.add('message-bubble', 'user-message');
+            userMessageDiv.textContent = messageText;
+            chatMessages.appendChild(userMessageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Clear input
+            userInput.value = '';
+
+            // Simulate bot response
+            setTimeout(() => {
+                let botResponse = languageData[currentLanguage].error; // Default error response
+                if (messageText.toLowerCase().includes('hello') || messageText.toLowerCase().includes('hi')) {
+                    botResponse = languageData[currentLanguage].welcome;
+                } else if (messageText.toLowerCase().includes('how are you')) {
+                    botResponse = "I'm just a chatbot, but I'm functioning perfectly! How can I help you?";
+                } else if (messageText.toLowerCase().includes('thank you')) {
+                    botResponse = "You're welcome! Is there anything else I can assist you with?";
+                } else if (messageText.toLowerCase().includes('language')) {
+                    botResponse = `I currently support ${Object.keys(languageData).join(', ')}!`;
+                } else if (messageText.toLowerCase().includes('regions')) {
+                    const regionList = languageData[currentLanguage].regions.map(r => r.name).join(', ');
+                    botResponse = `I can communicate in ${regionList} dialects of ${selectedLanguageSpan.textContent}.`;
+                }
+                
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.classList.add('message-bubble', 'bot-message');
+                botMessageDiv.textContent = botResponse;
+                chatMessages.appendChild(botMessageDiv);
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 500); // Simulate network delay
+        }
+
+        // Event listener for send button
+        sendButton.addEventListener('click', sendMessage);
+
+        // Event listener for 'Enter' key
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize with default language
+        setLanguage('en');
+    </script>
+</body>
+</html>

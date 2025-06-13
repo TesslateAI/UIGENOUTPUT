@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --color-primary-blue: #2563eb; /* A vibrant blue for primary actions */
+            --color-primary-blue-dark: #1d4ed8;
+            --color-secondary-green: #10b981; /* For success/positive states */
+            --color-secondary-red: #ef4444; /* For error/negative states */
+            --color-text-dark: #111827;
+            --color-text-light: #ffffff;
+            --color-background-light: #f9fafb;
+            --color-background-dark: #1f2937; /* For dark mode elements */
+            --color-border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-light);
+            color: var(--color-text-dark);
+            overflow: hidden; /* Prevent body scroll, map will handle its own */
+        }
+
+        .leaflet-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px; /* Pill shape */
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-online {
+            background-color: var(--color-secondary-green);
+            color: var(--color-text-light);
+        }
+
+        .status-offline {
+            background-color: var(--color-secondary-red);
+            color: var(--color-text-light);
+        }
+
+        .status-pending {
+            background-color: #facc15; /* Amber */
+            color: #1d1d1d;
+        }
+
+        .status-on-route {
+            background-color: #3b82f6; /* Blue-500 */
+            color: var(--color-text-light);
+        }
+
+        .status-stopped {
+            background-color: #6b7280; /* Gray-500 */
+            color: var(--color-text-light);
+        }
+
+        .route-path {
+            stroke: #2563eb; /* Primary blue */
+            stroke-width: 5;
+            stroke-dasharray: 5,5;
+            fill: none;
+            opacity: 0.7;
+        }
+
+        .route-polygon {
+            stroke: #2563eb;
+            stroke-width: 4;
+            stroke-dasharray: 4,4;
+            fill: none;
+            opacity: 0.6;
+        }
+
+        .route-circle {
+            fill: #2563eb;
+            fill-opacity: 0.3;
+            stroke: #2563eb;
+            stroke-width: 2;
+        }
+
+        .route-marker {
+            background-color: #2563eb;
+            color: #ffffff;
+            border-radius: 50%;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid var(--color-text-light);
+        }
+
+        .route-marker.offline {
+            background-color: #ef4444;
+        }
+
+        .route-marker.on-route {
+            background-color: #3b82f6;
+        }
+
+        .route-marker.stopped {
+            background-color: #6b7280;
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- Sidebar (Left) -->
+    <aside class="w-64 bg-[var(--color-background-dark)] text-[var(--color-text-light)] p-6 flex flex-col justify-between hidden md:flex">
+        <div>
+            <h1 class="text-3xl font-bold mb-8">FleetPro</h1>
+            <nav>
+                <ul>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center text-[var(--color-secondary-green)] hover:text-[var(--color-primary-blue)] transition-colors">
+                            <i class="fas fa-map-marked-alt mr-3"></i> Map
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center text-[var(--color-secondary-green)] hover:text-[var(--color-primary-blue)] transition-colors">
+                            <i class="fas fa-truck mr-3"></i> Vehicles
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center text-[var(--color-secondary-green)] hover:text-[var(--color-primary-blue)] transition-colors">
+                            <i class="fas fa-users-cog mr-3"></i> Drivers
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center text-[var(--color-secondary-green)] hover:text-[var(--color-primary-blue)] transition-colors">
+                            <i class="fas fa-chart-line mr-3"></i> Reports
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center text-[var(--color-secondary-green)] hover:text-[var(--color-primary-blue)] transition-colors">
+                            <i class="fas fa-cog mr-3"></i> Settings
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <div class="mt-8">
+            <button class="w-full bg-[var(--color-primary-blue)] hover:bg-[var(--color-primary-blue-dark)] text-[var(--color-text-light)] py-3 rounded-md transition-colors">
+                <i class="fas fa-plus mr-2"></i> Add Vehicle
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col p-6 overflow-hidden">
+        <!-- Top Bar -->
+        <header class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-[var(--color-text-dark)]">Real-time Fleet</h2>
+            <div class="flex items-center space-x-4">
+                <input type="text" placeholder="Search by vehicle ID or driver..." class="p-2 border border-[var(--color-border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-blue)]">
+                <button class="bg-[var(--color-primary-blue)] hover:bg-[var(--color-primary-blue-dark)] text-[var(--color-text-light)] py-2 px-4 rounded-md transition-colors">
+                    <i class="fas fa-filter mr-2"></i> Filter
+                </button>
+                <button class="text-[var(--color-text-dark)] hover:text-[var(--color-primary-blue)]">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <div class="w-10 h-10 bg-[var(--color-background-light)] rounded-full flex items-center justify-center text-[var(--color-text-dark)] font-semibold">JD</div>
+            </div>
+        </header>
+
+        <!-- Map and Controls -->
+        <div class="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
+            <!-- Map -->
+            <div id="map" class="flex-1 bg-[var(--color-background-light)] relative rounded-lg overflow-hidden shadow-lg">
+                <!-- Map controls (e.g., zoom, layers, etc.) -->
+                <div class="absolute top-4 left-4 bg-white p-2 rounded-lg shadow-md flex space-x-2">
+                    <button class="p-1 rounded hover:bg-gray-100" title="Zoom In"><i class="fas fa-plus"></i></button>
+                    <button class="p-1 rounded hover:bg-gray-100" title="Zoom Out"><i class="fas fa-minus"></i></button>
+                    <button class="p-1 rounded hover:bg-gray-100" title="Reset View"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="absolute bottom-4 left-4 right-4 bg-white p-2 rounded-lg shadow-md flex flex-wrap gap-2">
+                    <button class="flex items-center bg-[var(--color-primary-blue)] text-[var(--color-text-light)] px-4 py-2 rounded-md text-sm hover:bg-[var(--color-primary-blue-dark)] transition-colors">Road Map</button>
+                    <button class="flex items-center bg-[var(--color-secondary-green)] text-[var(--color-text-light)] px-4 py-2 rounded-md text-sm hover:bg-[var(--color-primary-blue)] transition-colors">Hybrid</button>
+                    <button class="flex items-center bg-[var(--color-border)] text-[var(--color-text-dark)] px-4 py-2 rounded-md text-sm">Open Street Map</button>
+                    <button class="flex items-center bg-[var(--color-border)] text-[var(--color-text-dark)] px-4 py-2 rounded-md text-sm">Topographic</button>
+                </div>
+            </div>
+
+            <!-- Route Optimization & Status Panel -->
+            <div class="w-full lg:w-96 bg-[var(--color-background-light)] p-6 rounded-lg shadow-lg flex flex-col">
+                <h3 class="text-xl font-bold mb-4">Route & Status</h3>
+
+                <!-- Route Optimization Section -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold mb-2">Current Route (Optimized)</h4>
+                    <div id="routeOptimizationOutput" class="text-sm text-gray-600">
+                        <p>Optimized route for delivery to <span class="font-bold">Client A</span> and <span class="font-bold">Client B</span>.</p>
+                        <p>Estimated arrival: 10:30 AM - 11:00 AM (0:30 hours)</p>
+                        <p>Distance: 25.5 miles</p>
+                    </div>
+                    <button class="mt-4 w-full bg-[var(--color-primary-blue)] hover:bg-[var(--color-primary-blue-dark)] text-[var(--color-text-light)] py-2 rounded-md transition-colors">
+                        <i class="fas fa-redo mr-2"></i> Recalculate Route
+                    </button>
+                </div>
+
+                <!-- Vehicle Status & Control Section -->
+                <div class="flex-1 overflow-y-auto">
+                    <h4 class="text-lg font-semibold mb-2">Vehicle Status</h4>
+                    <div id="vehicleStatusList" class="space-y-3">
+                        <!-- Vehicle 1 -->
+                        <div class="flex items-center justify-between p-3 bg-white rounded-md shadow-sm">
+                            <div>
+                                <p class="font-semibold">Vehicle #ABC-123</p>
+                                <p class="text-sm text-gray-600">Driver: John Doe</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-badge status-online">Online</span>
+                                <button class="text-[var(--color-primary-blue)] hover:text-[var(--color-primary-blue-dark)]"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <!-- Vehicle 2 -->
+                        <div class="flex items-center justify-between p-3 bg-white rounded-md shadow-sm">
+                            <div>
+                                <p class="font-semibold">Vehicle #XYZ-456</p>
+                                <p class="text-sm text-gray-600">Driver: Jane Smith</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-badge status-on-route">On Route</span>
+                                <button class="text-[var(--color-primary-blue)] hover:text-[var(--color-primary-blue-dark)]"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <!-- Vehicle 3 -->
+                        <div class="flex items-center justify-between p-3 bg-white rounded-md shadow-sm">
+                            <div>
+                                <p class="font-semibold">Vehicle #DEF-789</p>
+                                <p class="text-sm text-gray-600">Driver: Michael Brown</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-badge status-pending">Pending</span>
+                                <button class="text-[var(--color-primary-blue)] hover:text-[var(--color-primary-blue-dark)]"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <!-- Vehicle 4 -->
+                        <div class="flex items-center justify-between p-3 bg-white rounded-md shadow-sm">
+                            <div>
+                                <p class="font-semibold">Vehicle #GHI-012</p>
+                                <p class="text-sm text-gray-600">Driver: Sarah Johnson</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-badge status-stopped">Stopped</span>
+                                <button class="text-[var(--color-primary-blue)] hover:text-[var(--color-primary-blue-dark)]"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <!-- Vehicle 5 -->
+                        <div class="flex items-center justify-between p-3 bg-white rounded-md shadow-sm">
+                            <div>
+                                <p class="font-semibold">Vehicle #JKL-345</p>
+                                <p class="text-sm text-gray-600">Driver: David Lee</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-badge status-online">Online</span>
+                                <button class="text-[var(--color-primary-blue)] hover:text-[var(--color-primary-blue-dark)]"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Leaflet Map Initialization
+        const map = L.map('map').setView([37.7749, -122.4194], 13); // Centered on San Francisco, zoom 13
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Example Vehicle Data (in real app, this would come from a backend)
+        const vehicles = [
+            { id: 'ABC-123', lat: 37.775, lng: -122.419, status: 'online', driver: 'John Doe', destination: 'Client A' },
+            { id: 'XYZ-456', lat: 37.78, -122.42, status: 'on-route', driver: 'Jane Smith', destination: 'Client B' },
+            { id: 'DEF-789', lat: 37.76, -122.43, status: 'pending', driver: 'Michael Brown', destination: 'Warehouse' },
+            { id: 'GHI-012', lat: 37.75, -122.44, status: 'stopped', driver: 'Sarah Johnson', destination: 'Rest Area' },
+            { id: 'JKL-345', lat: 37.77, -122.40, status: 'online', driver: 'David Lee', destination: 'Client C' },
+        ];
+
+        // Function to render vehicles on the map
+        function renderVehicles() {
+            map.eachLayer(L.Layer.extend({}).getEvents().remove); // Clear existing layers
+
+            vehicles.forEach(vehicle => {
+                const vehicleMarker = L.marker([vehicle.lat, vehicle.lng])
+                    .addTo(map)
+                    .bindPopup(`<b>${vehicle.id}</b><br>Driver: ${vehicle.driver}<br>Status: <span class="status-badge status-${vehicle.status.toLowerCase()}">${vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}</span><br>Destination: ${vehicle.destination}`);
+
+                // Add a custom class for different statuses
+                if (vehicle.status === 'online') {
+                    vehicleMarker.on('mouseover', () => vehicleMarker.getElement().classList.add('route-marker'));
+                    vehicleMarker.on('mouseout', () => vehicleMarker.getElement().classList.remove('route-marker'));
+                }
+                // For other statuses, you might add different marker icons or colors
+                // Example: L.divIcon({ className: 'route-marker' + vehicle.status, html: vehicle.id, ... });
+            });
+        }
+
+        // Initial render
+        renderVehicles();
+
+        // Example of a dynamic update (e.g., vehicle status change)
+        setTimeout(() => {
+            vehicles[1].status = 'offline'; // Simulate a vehicle going offline
+            renderVehicles(); // Re-render the map
+        }, 5000);
+
+        // Route Optimization (Placeholder for a more complex algorithm)
+        function calculateOptimizedRoute(vehicles) {
+            // This is a very simplified example.
+            // In a real system, this would involve graph algorithms, Dijkstra's, A*, or TSP.
+            // For this UI, we'll just show a static output based on the first two vehicles.
+            if (vehicles.length >= 2) {
+                return {
+                    optimizedRoute: `Optimized route for delivery to ${vehicles[0].destination} and ${vehicles[1].destination}.`,
+                    estimatedArrival: `Estimated arrival: 10:30 AM - 11:00 AM (0:30 hours)`,
+                    distance: `Distance: 25.5 miles`
+                };
+            }
+            return {
+                optimizedRoute: 'No vehicles selected for route optimization.',
+                estimatedArrival: '',
+                distance: ''
+            };
+        }
+
+        const routeOptimizationOutput = document.getElementById('routeOptimizationOutput');
+        const vehicleStatusList = document.getElementById('vehicleStatusList');
+
+        // Simulate route optimization update (every 10 seconds)
+        setInterval(() => {
+            const currentRouteData = calculateOptimizedRoute(vehicles);
+            routeOptimizationOutput.innerHTML = `
+                <p>${currentRouteData.optimizedRoute}</p>
+                <p>Estimated arrival: ${currentRouteData.estimatedArrival}</p>
+                <p>Distance: ${currentRouteData.distance}</p>
+            `;
+        }, 10000);
+
+        // Simulate vehicle status update (every 5 seconds)
+        setInterval(() => {
+            vehicles.forEach(vehicle => {
+                // Simple status toggle for demonstration
+                if (vehicle.status === 'online') vehicle.status = 'on-route';
+                else if (vehicle.status === 'on-route') vehicle.status = 'stopped';
+                else if (vehicle.status === 'stopped') vehicle.status = 'pending';
+                else if (vehicle.status === 'pending') vehicle.status = 'online';
+            });
+            renderVehicles(); // Re-render the map with new statuses
+        }, 5000);
+
+    </script>
+</body>
+</html>

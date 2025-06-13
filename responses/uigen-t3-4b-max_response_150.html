@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Patient Outcomes Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-bg-main: #1a202c; /* Dark Blue-Black */
+            --color-text-light: #e2e8f0; /* Light Gray */
+            --color-accent-green: #48bb78; /* Teal */
+            --color-accent-red: #ef4444; /* Red for negative outcomes */
+            --color-bg-card: #2d3748; /* Slightly lighter dark blue */
+            --color-border: #4a5568; /* Darker Gray for borders */
+            --color-text-muted: #a0aec0; /* Muted Gray */
+        }
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-light);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .btn-primary {
+            background-color: var(--color-accent-green);
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #38a169;
+        }
+        .card {
+            background-color: var(--color-bg-card);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--color-border);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px; /* Fixed height to prevent infinite extension */
+            width: 100%;
+        }
+        .chart-tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .chart-tooltip.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+        <!-- Sidebar / Navigation (for larger screens) -->
+        <aside class="hidden lg:block col-span-1 p-4 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-6 text-[var(--color-accent-green)]">HealthDash</h2>
+            <nav>
+                <ul class="space-y-3">
+                    <li><a href="#" class="flex items-center text-[var(--color-text-light)] hover:text-[var(--color-accent-green)] transition-colors"><i class="fas fa-home mr-2"></i>Dashboard</a></li>
+                    <li><a href="#" class="flex items-center text-[var(--color-text-light)] hover:text-[var(--color-accent-green)] transition-colors"><i class="fas fa-users-medical mr-2"></i>Patient Data</a></li>
+                    <li><a href="#" class="flex items-center text-[var(--color-text-light)] hover:text-[var(--color-accent-green)] transition-colors"><i class="fas fa-chart-line mr-2"></i>Outcomes</a></li>
+                    <li><a href="#" class="flex items-center text-[var(--color-text-light)] hover:text-[var(--color-accent-green)] transition-colors"><i class="fas fa-cog mr-2"></i>Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="col-span-1 lg:col-span-3 space-y-6">
+
+            <!-- Overview Card -->
+            <div class="card flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--color-text-muted)]">Overall Patient Satisfaction</p>
+                    <h3 class="text-3xl font-bold text-[var(--color-accent-green)] mt-1">92%</h3>
+                    <p class="text-sm text-[var(--color-accent-green)] flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 2.5% from last quarter
+                    </p>
+                </div>
+                <div class="mt-4 sm:mt-0 sm:ml-4 text-right">
+                    <p class="text-sm text-[var(--color-text-muted)]">Key Metric: Patient Feedback Score</p>
+                </div>
+            </div>
+
+            <!-- Patient Demographics (Chart) -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Patient Demographics</h2>
+                <div class="chart-container">
+                    <canvas id="patientDemographicsChart"></canvas>
+                </div>
+                <div class="flex justify-center mt-4 space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-[var(--color-accent-green)]" title="Male"></div>
+                    <div class="w-3 h-3 rounded-full bg-[var(--color-accent-red)]" title="Female"></div>
+                    <div class="w-3 h-3 rounded-full border border-[var(--color-border)]" title="Unknown"></div>
+                </div>
+            </div>
+
+            <!-- Outcomes Overview (KPIs) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="card text-center">
+                    <p class="text-sm text-[var(--color-text-muted)]">Readmission Rate</p>
+                    <h3 class="text-2xl font-bold text-[var(--color-accent-red)] mt-1">15.2%</h3>
+                    <p class="text-sm text-[var(--color-accent-red)] flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 1.8% increase
+                    </p>
+                </div>
+                <div class="card text-center">
+                    <p class="text-sm text-[var(--color-text-muted)]">Average Length of Stay</p>
+                    <h3 class="text-2xl font-bold text-[var(--color-accent-green)] mt-1">5.8 Days</h3>
+                    <p class="text-sm text-[var(--color-accent-green)] flex items-center">
+                        <i class="fas fa-arrow-down mr-1"></i> 0.5 Days decrease
+                    </p>
+                </div>
+                <div class="card text-center">
+                    <p class="text-sm text-[var(--color-text-muted)]">Hospital Mortality</p>
+                    <h3 class="text-2xl font-bold text-[var(--color-accent-red)] mt-1">3.1%</h3>
+                    <p class="text-sm text-[var(--color-accent-red)] flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 0.2% increase
+                    </p>
+                </div>
+                <div class="card text-center">
+                    <p class="text-sm text-[var(--color-text-muted)]">Patient Readmission Rate</p>
+                    <h3 class="text-2xl font-bold text-[var(--color-accent-green)] mt-1">12.7%</h3>
+                    <p class="text-sm text-[var(--color-accent-green)] flex items-center">
+                        <i class="fas fa-arrow-down mr-1"></i> 0.3% decrease
+                    </p>
+                </div>
+            </div>
+
+            <!-- Trend Over Time (Line Chart) -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Patient Outcomes Over Time</h2>
+                <div class="chart-container">
+                    <canvas id="outcomesTrendChart"></canvas>
+                </div>
+                <div class="flex justify-center mt-4 space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-[var(--color-accent-green)]" title="Readmission"></div>
+                    <div class="w-3 h-3 rounded-full bg-[var(--color-accent-red)]" title="Mortality"></div>
+                </div>
+            </div>
+
+            <!-- Recent Patient Activity (Table) -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Recent Patient Activity</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-[var(--color-border)]">
+                        <thead class="bg-[var(--color-bg-card)]">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Patient ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Admission Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[var(--color-border)]">
+                            <tr class="bg-[var(--color-bg-main)]">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P-001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">John Doe</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-muted)]">2024-03-01</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-accent-green)]">Discharged</td>
+                            </tr>
+                            <tr class="bg-[var(--color-bg-main)]">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P-002</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">Jane Smith</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-muted)]">2024-03-05</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-accent-red)]">Readmission</td>
+                            </tr>
+                            <tr class="bg-[var(--color-bg-main)]">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P-003</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">Robert Johnson</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-muted)]">2024-03-08</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-accent-green)]">Discharged</td>
+                            </tr>
+                            <tr class="bg-[var(--color-bg-main)]">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P-004</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">Emily Davis</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-muted)]">2024-03-10</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-accent-green)]">Discharged</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Patient Demographics Chart
+        const demographicsCtx = document.getElementById('patientDemographicsChart').getContext('2d');
+        const patientDemographicsChart = new Chart(demographicsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Male', 'Female', 'Unknown'],
+                datasets: [{
+                    data: [55, 35, 10],
+                    backgroundColor: [
+                        'var(--color-accent-green)',
+                        'var(--color-accent-red)',
+                        'var(--color-border)'
+                    ],
+                    borderColor: 'var(--color-bg-card)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false,
+                        position: 'right',
+                        labels: {
+                            color: 'var(--color-text-light)',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Outcomes Trend Chart
+        const outcomesTrendCtx = document.getElementById('outcomesTrendChart').getContext('2d');
+        const outcomesTrendChart = new Chart(outcomesTrendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+                datasets: [
+                    {
+                        label: 'Readmission Rate',
+                        data: [16, 15, 17, 15.2],
+                        borderColor: 'var(--color-accent-red)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Hospital Mortality',
+                        data: [3.5, 3.2, 3.0, 3.1],
+                        borderColor: 'var(--color-accent-green)',
+                        backgroundColor: 'rgba(72, 187, 120, 0.2)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'var(--color-text-light)',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'var(--color-text-muted)'
+                        },
+                        grid: {
+                            color: 'var(--color-border)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'var(--color-text-muted)',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'var(--color-border)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

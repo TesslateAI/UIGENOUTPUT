@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art Gallery Virtual Tour</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-white: 255, 255, 255;
+            --color-black: 0, 0, 0;
+            --color-text-dark: 15, 23, 42; /* Tailwind gray-900 */
+            --color-text-medium: 75, 85, 99; /* Tailwind gray-600 */
+            --color-primary: 231, 76, 62; /* Tailwind red-600 */
+            --color-primary-dark: 156, 36, 26; /* Tailwind red-800 */
+            --color-bg-light: 243, 244, 246; /* Tailwind gray-100 */
+            --color-bg-card: 255, 255, 255; /* White */
+            --color-border-light: 229, 231, 235; /* Tailwind gray-200 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: rgb(var(--color-text-dark));
+            background-color: rgb(var(--color-bg-light));
+            overflow-x: hidden;
+        }
+
+        .hotspot {
+            position: absolute;
+            width: 40px; /* Size of the hotspot circle */
+            height: 40px;
+            background-color: rgba(var(--color-primary), 0.7);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            z-index: 10;
+        }
+
+        .hotspot:hover {
+            background-color: rgba(var(--color-primary-dark), 0.9);
+            transform: scale(1.1);
+        }
+
+        .hotspot-icon {
+            font-size: 16px;
+            color: white;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .audio-player {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: rgba(var(--color-bg-card), 0.9);
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .audio-player input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            background: none;
+            outline: none;
+            border-radius: 4px;
+            height: 8px;
+            margin: 12px 0;
+            transition: background 0.2s ease;
+        }
+
+        .audio-player input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgb(var(--color-primary));
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-player input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgb(var(--color-primary));
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-player button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgb(var(--color-white));
+            font-size: 1.2em;
+            transition: color 0.2s ease;
+        }
+
+        .audio-player button:hover {
+            color: rgb(var(--color-primary-dark));
+        }
+
+        .audio-player .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(var(--color-border-light), 0.3);
+            border-radius: 2px;
+            position: relative;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .audio-player .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: rgb(var(--color-primary));
+            border-radius: 2px;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .audio-player .current-time, .audio-player .duration {
+            color: rgb(var(--color-text-medium));
+            font-size: 0.8em;
+            margin: 0 10px;
+        }
+
+        .audio-player .play-pause-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgb(var(--color-primary));
+            font-size: 1.5em;
+        }
+
+        .audio-player .stop-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgb(var(--color-text-medium));
+            font-size: 1.2em;
+            transition: color 0.2s ease;
+        }
+
+        .audio-player .stop-btn:hover {
+            color: rgb(var(--color-primary-dark));
+        }
+
+        .audio-player .volume-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgb(var(--color-text-medium));
+            font-size: 1.2em;
+            transition: color 0.2s ease;
+        }
+
+        .audio-player .volume-btn:hover {
+            color: rgb(var(--color-primary-dark));
+        }
+    </style>
+</head>
+<body class="bg-[rgb(var(--color-bg-light))] text-[rgb(var(--color-text-dark))]">
+
+    <!-- Header -->
+    <header class="bg-[rgb(var(--color-bg-card))] shadow-md py-4 px-6 flex justify-between items-center">
+        <div class="text-2xl font-bold text-[rgb(var(--color-primary))]">Art Gallery</div>
+        <nav class="flex space-x-4">
+            <a href="#" class="text-[rgb(var(--color-text-dark))] hover:text-[rgb(var(--color-primary))] transition-colors">Home</a>
+            <a href="#" class="text-[rgb(var(--color-text-dark))] hover:text-[rgb(var(--color-primary))] transition-colors">Exhibitions</a>
+            <a href="#" class="text-[rgb(var(--color-text-dark))] hover:text-[rgb(var(--color-primary))] transition-colors">About</a>
+            <a href="#" class="text-[rgb(var(--color-text-dark))] hover:text-[rgb(var(--color-primary))] transition-colors">Contact</a>
+        </nav>
+        <div class="flex items-center space-x-4">
+            <button class="text-[rgb(var(--color-text-dark))] hover:text-[rgb(var(--color-primary))] transition-colors" aria-label="Search">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="text-[rgb(var(--color-text-dark))] hover:text-[rgb(var(--color-primary))] transition-colors" aria-label="User profile">
+                <i class="fas fa-user-circle"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content (Virtual Tour Area) -->
+    <main class="min-h-screen flex items-center justify-center">
+        <div class="relative w-full h-[600px] md:h-[800px] bg-gray-200 rounded-lg overflow-hidden shadow-xl" id="gallery-tour-container">
+            <!-- Placeholder for 360/VR/2D gallery view -->
+            <img src="https://placehold.co/1200x800/e0e0e0/666?text=Virtual+Gallery+View" alt="Virtual Gallery View" class="w-full h-full object-cover">
+            
+            <!-- Hotspots will be appended here by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Audio Guide Overlay (Initially hidden) -->
+    <div id="audio-guide-overlay" class="overlay">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-lg text-center">
+            <h3 id="audio-guide-title" class="text-2xl font-bold text-[rgb(var(--color-text-dark))] mb-4">Artwork Title</h3>
+            <p id="audio-guide-description" class="text-[rgb(var(--color-text-medium))] leading-relaxed mb-4">
+                This is a detailed description of the artwork. It provides historical context, the artist's intent, and notable features.
+                Click the play button to listen to the audio guide.
+            </p>
+            <div class="audio-player">
+                <input type="range" id="audio-progress" value="0" min="0" max="100" step="1">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="audio-progress-bar"></div>
+                </div>
+                <div class="current-time" id="audio-current-time">00:00</div>
+                <div class="duration" id="audio-duration">00:00</div>
+                <button id="play-pause-btn" class="play-pause-btn" aria-label="Play/Pause audio">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button id="stop-btn" class="stop-btn" aria-label="Stop audio" style="display: none;">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button id="volume-btn" class="volume-btn" aria-label="Toggle mute/unmute">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+            </div>
+            <div class="mt-6">
+                <button id="close-audio-guide" class="text-[rgb(var(--color-primary))] hover:text-[rgb(var(--color-primary-dark))] transition-colors" aria-label="Close audio guide">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const galleryContainer = document.getElementById('gallery-tour-container');
+        const audioGuideOverlay = document.getElementById('audio-guide-overlay');
+        const audioGuideTitle = document.getElementById('audio-guide-title');
+        const audioGuideDescription = document.getElementById('audio-guide-description');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const audioProgress = document.getElementById('audio-progress');
+        const audioProgressBar = document.getElementById('audio-progress-bar');
+        const audioCurrentTime = document.getElementById('audio-current-time');
+        const audioDuration = document.getElementById('audio-duration');
+        const volumeBtn = document.getElementById('volume-btn');
+        const closeAudioGuideBtn = document.getElementById('close-audio-guide');
+        let audio = new Audio();
+
+        // Sample artwork data for hotspots
+        const artworkData = [
+            {
+                id: 'spot-1',
+                title: 'The Urban Canvas',
+                description: 'This piece captures the vibrant energy of a modern city, blending vibrant colors with intricate brushstrokes. It reflects the artist\'s fascination with urban landscapes and their dynamic essence. The texture is thick, creating a tactile impression as you explore the virtual space.',
+                audioUrl: 'audio/urban-canvas.mp3',
+                audioDuration: 120
+            },
+            {
+                id: 'spot-2',
+                title: 'Whispers of Nature',
+                description: 'A serene depiction of a forest, where subtle movements of light and shadow create a sense of tranquility. The artist uses a delicate layering technique, revealing the depth of the natural world. This artwork invites the viewer to experience the quiet beauty of the woods, a stark contrast to the city\'s chaos.',
+                audioUrl: 'audio/whispers-nature.mp3',
+                audioDuration: 150
+            },
+            {
+                id: 'spot-3',
+                title: 'Abstract Emotional',
+                description: 'This abstract piece is a visual journey of emotions, using bold colors and chaotic forms to convey a complex inner world. The viewer is encouraged to interpret the artwork, allowing their own feelings to guide their exploration. It challenges traditional forms of representation, pushing the boundaries of artistic expression.',
+                audioUrl: 'audio/abstract-emotional.mp3',
+                audioDuration: 100
+            }
+        ];
+
+        // Function to position and append hotspots
+        function addHotspots() {
+            artworkData.forEach((artwork, index) => {
+                const hotspot = document.createElement('div');
+                hotspot.className = 'hotspot';
+                hotspot.id = `hotspot-${artwork.id}`;
+                hotspot.textContent = '▶'; // Using a simple arrow for the hotspot
+                hotspot.style.left = `${Math.random() * 100}%`; // Random position
+                hotspot.style.top = `${Math.random() * 100}%`;
+                hotspot.setAttribute('tabindex', '0'); // Make it focusable for accessibility
+                hotspot.setAttribute('role', 'button');
+                hotspot.setAttribute('aria-label', `View details for ${artwork.title}`);
+
+                galleryContainer.appendChild(hotspot);
+
+                // Add event listener for interaction
+                hotspot.addEventListener('click', () => {
+                    showAudioGuide(artwork);
+                });
+                hotspot.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        showAudioGuide(artwork);
+                    }
+                });
+            });
+        }
+
+        // Function to display the audio guide
+        function showAudioGuide(artwork) {
+            audioGuideTitle.textContent = artwork.title;
+            audioGuideDescription.textContent = artwork.description;
+            audio.src = artwork.audioUrl;
+            audio.duration = artwork.audioDuration; // Set duration for progress bar
+
+            audioGuideOverlay.classList.add('active');
+            audio.currentTime = 0; // Reset audio to start
+            audio.play();
+
+            audioProgress.value = 0;
+            audioProgressBar.style.width = '0%';
+            audioCurrentTime.textContent = '00:00';
+            audioDuration.textContent = formatTime(artwork.audioDuration);
+
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            stopBtn.style.display = 'none';
+            volumeBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            audio.volume = 1; // Set volume for accessibility
+
+            audio.addEventListener('timeupdate', () => {
+                audioProgress.value = (audio.currentTime / audio.duration) * 100;
+                audioProgressBar.style.width = `${audioProgress.value}%`;
+                audioCurrentTime.textContent = formatTime(audio.currentTime);
+            });
+
+            audio.addEventListener('loadedmetadata', () => {
+                audioDuration.textContent = formatTime(audio.duration);
+            });
+
+            audio.addEventListener('ended', () => {
+                audio.pause();
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                stopBtn.style.display = 'block';
+            });
+
+            audio.addEventListener('volumechange', () => {
+                if (audio.volume === 0) {
+                    volumeBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                } else {
+                    volumeBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                }
+            });
+
+            // Close button for overlay
+            closeAudioGuideBtn.addEventListener('click', () => {
+                audio.pause();
+                audio.currentTime = 0;
+                audioGuideOverlay.classList.remove('active');
+            });
+
+            // Play/Pause logic
+            playPauseBtn.addEventListener('click', () => {
+                if (audio.paused) {
+                    audio.play();
+                    playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                } else {
+                    audio.pause();
+                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                }
+            });
+
+            // Stop button logic
+            stopBtn.addEventListener('click', () => {
+                audio.pause();
+                audio.currentTime = 0;
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            });
+
+            // Volume button logic
+            volumeBtn.addEventListener('click', () => {
+                if (audio.volume === 0) {
+                    audio.volume = 1;
+                    volumeBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                } else {
+                    audio.volume = 0;
+                    volumeBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                }
+            });
+
+            // Progress bar drag functionality (basic)
+            audioProgress.addEventListener('input', (e) => {
+                const seekTime = (e.target.value / 100) * audio.duration;
+                audio.currentTime = seekTime;
+            });
+
+            // Ensure audio is muted when overlay is closed
+            audioGuideOverlay.addEventListener('click', (e) => {
+                if (e.target === audioGuideOverlay) { // Close only if clicking the overlay itself
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            });
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // Initialize hotspots when the DOM is ready
+        document.addEventListener('DOMContentLoaded', addHotspots);
+    </script>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon Library: Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F8F8; /* Light background for chat */
+            color: #333;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px); /* Adjust for body margin */
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid #E7EBF0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #E7EBF0;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background-color: #F8F8F8; /* Lighter background for message area */
+        }
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .message-bubble.sent {
+            background-color: #004FFF; /* Primary Blue */
+            color: #FFFFFF;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .message-bubble.received {
+            background-color: #E7EBF0; /* Light Grey */
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .message-bubble.sent::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -10px; /* Adjust based on border-radius */
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+            border-left-color: #004FFF;
+            border-bottom-color: #004FFF;
+        }
+        .message-bubble.received::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -10px; /* Adjust based on border-radius */
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+            border-right-color: #E7EBF0;
+            border-bottom-color: #E7EBF0;
+        }
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 0.5rem;
+            text-align: right;
+            display: block;
+        }
+        .message-bubble.received .message-timestamp {
+            text-align: left;
+        }
+        .threaded-messages {
+            margin-left: 2rem; /* Indent for replies */
+            border-left: 2px solid #D1D5DB;
+            padding-left: 1rem;
+        }
+        .threaded-messages .message-bubble {
+            max-width: 80%; /* Adjust as needed for replies */
+            margin-bottom: 0.5rem;
+        }
+        .message-input-area {
+            padding: 1rem;
+            border-top: 1px solid #E7EBF0;
+            display: flex;
+            align-items: center;
+            background-color: #FFFFFF;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        .message-input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+            background-color: #F8F8F8;
+        }
+        .message-input::placeholder {
+            color: #A1A1A1;
+        }
+        .emoji-picker {
+            position: absolute;
+            bottom: 60px; /* Above the input area */
+            left: 0;
+            right: 0;
+            background-color: #FFFFFF;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.5rem;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none; /* Hidden by default */
+        }
+        .emoji-picker.active {
+            display: grid;
+        }
+        .emoji-picker button {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .emoji-picker button:hover {
+            background-color: #E7EBF0;
+        }
+        .emoji-picker button:active {
+            background-color: #D1D5DB;
+        }
+        .voice-message-indicator {
+            width: 10px;
+            height: 10px;
+            background-color: #004FFF;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <div class="flex items-center space-x-3">
+                <img src="https://placehold.co/40x40/E7EBF0/393939?text=P" alt="Profile" class="w-10 h-10 rounded-full object-cover">
+                <div>
+                    <h2 class="font-bold text-lg">Project Partner</h2>
+                    <p class="text-sm text-gray-500">Online</p>
+                </div>
+            </div>
+            <div class="flex space-x-4 text-gray-600">
+                <button aria-label="Call" class="text-xl hover:text-blue-600"><i class="fas fa-phone-alt"></i></button>
+                <button aria-label="Video Call" class="text-xl hover:text-blue-600"><i class="fas fa-video"></i></button>
+                <button aria-label="More Options" class="text-xl hover:text-blue-600"><i class="fas fa-ellipsis-v"></i></button>
+            </div>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div class="chat-messages" id="chat-messages">
+            <!-- Example Received Message -->
+            <div class="message-bubble received">
+                <p>Hey there! How's the project coming along?</p>
+                <span class="message-timestamp">10:30 AM</span>
+            </div>
+
+            <!-- Example Sent Message -->
+            <div class="message-bubble sent">
+                <p>It's going well, thanks! I just finished the design mockups.</p>
+                <span class="message-timestamp">10:32 AM</span>
+            </div>
+
+            <!-- Threaded Conversation Example -->
+            <div class="message-bubble received">
+                <p>Great! I'll review them now. Do you have any questions about the feedback?</p>
+                <span class="message-timestamp">10:35 AM</span>
+            </div>
+            <div class="threaded-messages">
+                <div class="message-bubble received">
+                    <p>Yes, I'm a bit unsure about the color palette. Should I go with the original blue or the new green?</p>
+                    <span class="message-timestamp">10:36 AM</span>
+                </div>
+                <div class="message-bubble sent">
+                    <p>Definitely the new green! It looks much more vibrant and fresh.</p>
+                    <span class="message-timestamp">10:37 AM</span>
+                </div>
+                <div class="message-bubble received">
+                    <p>Awesome, I'll update it right away. <i class="fas fa-smile"></i></p>
+                    <span class="message-timestamp">10:38 AM</span>
+                </div>
+            </div>
+
+            <!-- Voice Message Example -->
+            <div class="message-bubble sent">
+                <div class="flex items-center space-x-2">
+                    <div class="voice-message-indicator"></div>
+                    <span class="font-semibold">Audio Message (0:25)</span>
+                </div>
+                <span class="message-timestamp">10:40 AM</span>
+            </div>
+
+            <!-- Example Received Message with emoji -->
+            <div class="message-bubble received">
+                <p>Got it! I'll be sure to add some more details to the report. <i class="fas fa-star"></i></p>
+                <span class="message-timestamp">10:45 AM</span>
+            </div>
+            <div class="message-bubble sent">
+                <p>Thanks! That's exactly what we needed. <i class="fas fa-clipboard-check"></i></p>
+                <span class="message-timestamp">10:46 AM</span>
+            </div>
+        </div>
+
+        <!-- Message Input Area -->
+        <div class="message-input-area">
+            <button id="emoji-button" aria-label="Emoji Picker" class="text-xl text-gray-600 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100">
+                <i class="fas fa-smile"></i>
+            </button>
+            <div id="emoji-picker" class="emoji-picker" role="group" aria-label="Emoji Picker">
+                <!-- Emojis will be dynamically loaded here -->
+                <button data-emoji="😀">😀</button>
+                <button data-emoji="😂">😂</button>
+                <button data-emoji="😍">😍</button>
+                <button data-emoji="👍">👍</button>
+                <button data-emoji="🎉">🎉</button>
+                <button data-emoji="🔥">🔥</button>
+                <button data-emoji="🌟">🌟</button>
+                <button data-emoji="💬">💬</button>
+                <button data-emoji="👍">👍</button>
+                <button data-emoji="🙌">🙌</button>
+                <button data-emoji="💯">💯</button>
+                <button data-emoji="👌">👌</button>
+                <button data-emoji="❤️">❤️</button>
+                <button data-emoji="😊">😊</button>
+                <button data-emoji="😎">😎</button>
+                <button data-emoji="🤯">🤯</button>
+                <button data-emoji="😱">😱</button>
+                <button data-emoji="😂">😂</button>
+                <button data-emoji="👍">👍</button>
+                <button data-emoji="🎉">🎉</button>
+                <button data-emoji="🔥">🔥</button>
+                <button data-emoji="🌟">🌟</button>
+                <button data-emoji="💬">💬</button>
+                <button data-emoji="🙌">🙌</button>
+                <button data-emoji="💯">💯</button>
+                <button data-emoji="👌">👌</button>
+                <button data-emoji="❤️">❤️</button>
+                <button data-emoji="😊">😊</button>
+                <button data-emoji="😎">😎</button>
+                <button data-emoji="🤯">🤯</button>
+                <button data-emoji="😱">😱</button>
+            </div>
+            <input type="text" id="message-input" class="message-input" placeholder="Type a message..." aria-label="Message Input">
+            <button id="voice-button" aria-label="Record Voice Message" class="text-xl text-gray-600 hover:text-blue-600 p-2 rounded-full hover:bg-gray-100 ml-2">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <button id="send-button" aria-label="Send Message" class="bg-primary-blue text-white p-3 rounded-full ml-2 hover:opacity-90 transition-opacity">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const chatMessages = document.getElementById('chat-messages');
+            const emojiButton = document.getElementById('emoji-button');
+            const emojiPicker = document.getElementById('emoji-picker');
+
+            // Scroll to bottom when messages load
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Send message functionality
+            sendButton.addEventListener('click', () => {
+                const messageText = messageInput.value.trim();
+                if (messageText) {
+                    addMessage(messageText, 'sent');
+                    messageInput.value = '';
+                    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to new message
+                }
+            });
+
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+
+            // Emoji Picker functionality
+            emojiButton.addEventListener('click', () => {
+                emojiPicker.classList.toggle('active');
+                // Focus on the first emoji button for accessibility
+                if (emojiPicker.classList.contains('active')) {
+                    emojiPicker.querySelector('button').focus();
+                }
+            });
+
+            emojiPicker.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' && e.target.dataset.emoji) {
+                    messageInput.value += e.target.dataset.emoji;
+                    messageInput.focus();
+                }
+            });
+
+            // Close emoji picker when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!emojiPicker.contains(e.target) && !emojiButton.contains(e.target) && emojiPicker.classList.contains('active')) {
+                    emojiPicker.classList.remove('active');
+                }
+            });
+
+            // Function to add a new message to the chat
+            function addMessage(text, type) {
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', type);
+                messageBubble.innerHTML = `<p>${text}</p><span class="message-timestamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
+                chatMessages.appendChild(messageBubble);
+            }
+
+            // Voice message functionality (simplified)
+            const voiceButton = document.getElementById('voice-button');
+            let isRecording = false;
+            let mediaRecorder;
+            let audioChunks = [];
+
+            voiceButton.addEventListener('click', () => {
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            });
+
+            function startRecording() {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.start();
+                        isRecording = true;
+                        voiceButton.innerHTML = '<i class="fas fa-stop text-red-500"></i>';
+                        voiceButton.setAttribute('aria-label', 'Stop Voice Recording');
+                        audioChunks = []; // Clear previous chunks
+                        mediaRecorder.addEventListener('dataavailable', event => {
+                            audioChunks.push(event.data);
+                        });
+                        mediaRecorder.addEventListener('stop', () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            // In a real app, you'd send this blob to a server
+                            console.log('Voice message recorded:', audioBlob);
+                            addVoiceMessage('Audio Message (0:10)');
+                            stream.getTracks().forEach(track => track.stop());
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Error accessing microphone:', err);
+                        alert('Could not access microphone. Please check permissions.');
+                    });
+            }
+
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    voiceButton.innerHTML = '<i class="fas fa-microphone text-gray-600"></i>';
+                    voiceButton.setAttribute('aria-label', 'Record Voice Message');
+                }
+            }
+
+            function addVoiceMessage(text) {
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', 'sent');
+                messageBubble.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="voice-message-indicator"></div>
+                        <span class="font-semibold">${text}</span>
+                    </div>
+                    <span class="message-timestamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                `;
+                chatMessages.appendChild(messageBubble);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>

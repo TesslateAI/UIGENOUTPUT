@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic News Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-primary: #1a1a1a;
+            --color-bg-secondary: #2a2a2a;
+            --color-text-primary: #f0f0f0;
+            --color-text-secondary: #b0b0b0;
+            --color-accent: #007bff; /* A vibrant blue for accents */
+            --color-border-primary: #3a3a3a;
+            --color-border-secondary: #4a4a4a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .article-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+
+        .article-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .category-button {
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+
+        .category-button.active {
+            background-color: var(--color-accent);
+            color: white;
+        }
+
+        .category-button:hover:not(.active) {
+            background-color: rgba(0, 123, 255, 0.2); /* Lighter accent on hover */
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--color-accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-[var(--color-bg-secondary)] p-4 border-b border-[var(--color-border-primary)] flex items-center justify-between">
+            <h1 class="text-2xl font-bold">News Reader</h1>
+            <div class="flex items-center space-x-4">
+                <button id="refresh-button" class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                    <i class="fas fa-sync-alt"></i> <span class="sr-only">Refresh</span>
+                </button>
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                    <i class="fas fa-search"></i> <span class="sr-only">Search</span>
+                </button>
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                    <i class="fas fa-cog"></i> <span class="sr-only">Settings</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow p-6 md:p-8">
+            <!-- Category Filters -->
+            <div class="mb-8 flex flex-wrap gap-3">
+                <button data-category="all" class="category-button active px-4 py-2 rounded-full text-sm font-medium bg-[var(--color-bg-secondary)] border border-[var(--color-border-secondary)] text-[var(--color-text-primary)]">
+                    All
+                </button>
+                <button data-category="technology" class="category-button px-4 py-2 rounded-full text-sm font-medium bg-[var(--color-bg-secondary)] border border-[var(--color-border-secondary)] text-[var(--color-text-primary)]">
+                    Technology
+                </button>
+                <button data-category="sports" class="category-button px-4 py-2 rounded-full text-sm font-medium bg-[var(--color-bg-secondary)] border border-[var(--color-border-secondary)] text-[var(--color-text-primary)]">
+                    Sports
+                </button>
+                <button data-category="business" class="category-button px-4 py-2 rounded-full text-sm font-medium bg-[var(--color-bg-secondary)] border border-[var(--color-border-secondary)] text-[var(--color-text-primary)]">
+                    Business
+                </button>
+                <button data-category="health" class="category-button px-4 py-2 rounded-full text-sm font-medium bg-[var(--color-bg-secondary)] border border-[var(--color-border-secondary)] text-[var(--color-text-primary)]">
+                    Health
+                </button>
+            </div>
+
+            <!-- Article Grid -->
+            <div id="article-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Articles will be loaded here -->
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="hidden flex justify-center items-center py-8">
+                <div class="loading-spinner"></div>
+            </div>
+
+            <!-- No Articles Message -->
+            <div id="no-articles-message" class="hidden text-center text-[var(--color-text-secondary)] py-8">
+                No articles found for this category.
+            </div>
+        </main>
+
+        <!-- Article Detail Modal (Hidden by default) -->
+        <div id="article-detail-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-[var(--color-bg-secondary)] rounded-lg shadow-xl p-6 w-full max-w-2xl relative">
+                <button id="close-detail-modal" class="absolute top-4 right-4 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h2 id="modal-article-title" class="text-3xl font-bold mb-4"></h2>
+                <p id="modal-article-date" class="text-sm text-[var(--color-text-secondary)] mb-4"></p>
+                <p id="modal-article-content" class="text-[var(--color-text-primary)] leading-relaxed mb-4"></p>
+                <p id="modal-article-source" class="text-xs text-[var(--color-text-secondary)] text-right">Source: <span id="modal-article-source-link" class="text-[var(--color-accent)] hover:underline cursor-pointer"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const articleGrid = document.getElementById('article-grid');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const noArticlesMessage = document.getElementById('no-articles-message');
+        const categoryButtons = document.querySelectorAll('.category-button');
+        const refreshButton = document.getElementById('refresh-button');
+        const articleDetailModal = document.getElementById('article-detail-modal');
+        const closeDetailModalButton = document.getElementById('close-detail-modal');
+        const modalArticleTitle = document.getElementById('modal-article-title');
+        const modalArticleDate = document.getElementById('modal-article-date');
+        const modalArticleContent = document.getElementById('modal-article-content');
+        const modalArticleSource = document.getElementById('modal-article-source-link');
+
+        let currentCategory = 'all';
+        let page = 1;
+        let hasMoreArticles = true;
+        let articles = []; // Store all loaded articles for filtering
+
+        // Simulate fetching articles
+        async function fetchArticles(category, pageNumber) {
+            loadingIndicator.classList.remove('hidden');
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const mockData = {
+                'all': [
+                    { id: 1, title: 'AI Breakthrough in Healthcare', category: 'health', date: '2023-10-27', summary: 'New AI algorithms are revolutionizing disease diagnosis and treatment.', content: 'Detailed article content about AI in healthcare.', source: 'HealthTech News', link: 'https://example.com/healthtech' },
+                    { id: 2, title: 'Quantum Computing Advances', category: 'technology', date: '2023-10-26', summary: 'Significant progress reported in quantum computing research.', content: 'In-depth analysis of recent quantum computing developments.', source: 'Tech Daily', link: 'https://example.com/techdaily' },
+                    { id: 3, title: 'Local Sports Team Wins Championship', category: 'sports', date: '2023-10-25', summary: 'The city's beloved team clinches the national title.', content: 'Full coverage of the championship game and team reactions.', source: 'Sports Weekly', link: 'https://example.com/sportsweekly' },
+                    { id: 4, title: 'Global Economic Outlook for 2024', category: 'business', date: '2023-10-24', summary: 'Economists predict a mixed bag for global markets next year.', content: 'Comprehensive report on economic trends and forecasts.', source: 'Business Insights', link: 'https://example.com/businessinsights' },
+                    { id: 5, title: 'New Study on Mental Health', category: 'health', date: '2023-10-23', summary: 'Research highlights the importance of early intervention in mental health.', content: 'Findings from a groundbreaking mental health study.', source: 'Psychology Today', link: 'https://example.com/psychologytoday' },
+                    { id: 6, title: 'SpaceX Launches New Satellite', category: 'technology', date: '2023-10-22', summary: 'SpaceX successfully launches a new satellite into orbit.', content: 'Details on the mission and satellite capabilities.', source: 'Space Daily', link: 'https://example.com/spacedaily' },
+                    { id: 7, title: 'Olympic Athlete Sets New Record', category: 'sports', date: '2023-10-21', summary: 'A star athlete breaks a long-standing Olympic record.', content: 'Interview with the athlete and analysis of the performance.', source: 'Sports Channel', link: 'https://example.com/sportschannel' },
+                    { id: 8, title: 'Startup Funding Trends', category: 'business', date: '2023-10-20', summary: 'Venture capital investments are on the rise this quarter.', content: 'Insights into current startup funding landscape.', source: 'Entrepreneurial Hub', link: 'https://example.com/entrepreneurialhub' },
+                    { id: 9, title: 'Nutrition and Longevity', category: 'health', date: '2023-10-19', summary: 'New research explores the link between diet and lifespan.', content: 'Scientific findings on diet and longevity.', source: 'Nutrition Journal', link: 'https://example.com/nutritionjournal' },
+                    { id: 10, title: 'Next-Gen Smartphone Release', category: 'technology', date: '2023-10-18', summary: 'Major tech company unveils its latest flagship smartphone.', content: 'Review and specifications of the new smartphone.', source: 'Gadget World', link: 'https://example.com/gadgetworld' },
+                    { id: 11, title: 'World Cup Qualifiers Update', category: 'sports', date: '2023-10-17', summary: 'Latest updates from the ongoing World Cup qualifiers.', content: 'Match summaries and team standings.', source: 'Football News', link: 'https://example.com/footballnews' },
+                    { id: 12, title: 'Market Volatility Explained', category: 'business', date: '2023-10-16', summary: 'Analysts break down the causes of recent market fluctuations.', content: 'Detailed explanation of market volatility factors.', source: 'Financial Times', link: 'https://example.com/financialtimes' },
+                    { id: 13, title: 'Mental Health in the Workplace', category: 'health', date: '2023-10-15', summary: 'New initiatives aim to improve mental health support for employees.', content: 'Overview of workplace mental health programs.', source: 'Workplace Wellness', link: 'https://example.com/workplacewellness' },
+                    { id: 14, title: 'Robotics in Manufacturing', category: 'technology', date: '2023-10-14', summary: 'Advancements in robotics are transforming manufacturing processes.', content: 'Case studies on robotic integration in factories.', source: 'Manufacturing Today', link: 'https://example.com/manufacturingtoday' },
+                    { id: 15, title: 'Winter Sports Season Preview', category: 'sports', date: '2023-10-13', summary: 'Excitement builds as the winter sports season approaches.', content: 'Preview of key events and athletes to watch.', source: 'Winter Sports Hub', link: 'https://example.com/wintersportshub' },
+                    { id: 16, title: 'Global Trade Agreements', category: 'business', date: '2023-10-12', summary: 'New trade agreements are expected to boost international commerce.', content: 'Analysis of the impact on global markets.', source: 'Trade Reports', link: 'https://example.com/tradereports' },
+                    { id: 17, title: 'Genetic Research Breakthrough', category: 'health', date: '2023-10-11', summary: 'Scientists make significant progress in genetic editing.', content: 'Implications of the latest genetic research.', source: 'Genomics Journal', link: 'https://example.com/genomicsjournal' },
+                    { id: 18, title: 'AI in Cybersecurity', category: 'technology', date: '2023-10-10', summary: 'AI is increasingly being used to combat cyber threats.', content: 'How AI enhances cybersecurity measures.', source: 'Cybersecurity Today', link: 'https://example.com/cybersecuritytoday' },
+                    { id: 19, title: 'Olympic Training Camps', category: 'sports', date: '2023-10-09', summary: 'Athletes are hard at work in their pre-Olympic training camps.', content: 'Insider look at Olympic training regimens.', source: 'Olympic News', link: 'https://example.com/olympicnews' },
+                    { id: 20, title: 'Startup Success Stories', category: 'business', date: '2023-10-08', summary: 'Inspiring stories of startups that made it big.', content: 'Lessons learned from successful startups.', source: 'Startup Success', link: 'https://example.com/startupsuccess' },
+                ],
+                'technology': [
+                    { id: 2, title: 'Quantum Computing Advances', category: 'technology', date: '2023-10-26', summary: 'Significant progress reported in quantum computing research.', content: 'In-depth analysis of recent quantum computing developments.', source: 'Tech Daily', link: 'https://example.com/techdaily' },
+                    { id: 6, title: 'SpaceX Launches New Satellite', category: 'technology', date: '2023-10-22', summary: 'SpaceX successfully launches a new satellite into orbit.', content: 'Details on the mission and satellite capabilities.', source: 'Space Daily', link: 'https://example.com/spacedaily' },
+                    { id: 10, title: 'Next-Gen Smartphone Release', category: 'technology', date: '2023-10-18', summary: 'Major tech company unveils its latest flagship smartphone.', content: 'Review and specifications of the new smartphone.', source: 'Gadget World', link: 'https://example.com/gadgetworld' },
+                    { id: 14, title: 'Robotics in Manufacturing', category: 'technology', date: '2023-10-14', summary: 'Advancements in robotics are transforming manufacturing processes.', content: 'Case studies on robotic integration in factories.', source: 'Manufacturing Today', link: 'https://example.com/manufacturingtoday' },
+                    { id: 18, title: 'AI in Cybersecurity', category: 'technology', date: '2023-10-10', summary: 'AI is increasingly being used to combat cyber threats.', content: 'How AI enhances cybersecurity measures.', source: 'Cybersecurity Today', link: 'https://example.com/cybersecuritytoday' },
+                ],
+                'sports': [
+                    { id: 3, title: 'Local Sports Team Wins Championship', category: 'sports', date: '2023-10-25', summary: 'The city's beloved team clinches the national title.', content: 'Full coverage of the championship game and team reactions.', source: 'Sports Weekly', link: 'https://example.com/sportsweekly' },
+                    { id: 7, title: 'Olympic Athlete Sets New Record', category: 'sports', date: '2023-10-21', summary: 'A star athlete breaks a long-standing Olympic record.', content: 'Interview with the athlete and analysis of the performance.', source: 'Sports Channel', link: 'https://example.com/sportschannel' },
+                    { id: 11, title: 'World Cup Qualifiers Update', category: 'sports', date: '2023-10-17', summary: 'Latest updates from the ongoing World Cup qualifiers.', content: 'Match summaries and team standings.', source: 'Football News', link: 'https://example.com/footballnews' },
+                    { id: 15, title: 'Winter Sports Season Preview', category: 'sports', date: '2023-10-13', summary: 'Excitement builds as the winter sports season approaches.', content: 'Preview of key events and athletes to watch.', source: 'Winter Sports Hub', link: 'https://example.com/wintersportshub' },
+                    { id: 19, title: 'Olympic Training Camps', category: 'sports', date: '2023-10-09', summary: 'Athletes are hard at work in their pre-Olympic training camps.', content: 'Insider look at Olympic training regimens.', source: 'Olympic News', link: 'https://example.com/olympicnews' },
+                ],
+                'business': [
+                    { id: 4, title: 'Global Economic Outlook for 2024', category: 'business', date: '2023-10-24', summary: 'Economists predict a mixed bag for global markets next year.', content: 'Comprehensive report on economic trends and forecasts.', source: 'Business Insights', link: 'https://example.com/businessinsights' },
+                    { id: 8, title: 'Startup Funding Trends', category: 'business', date: '2023-10-20', summary: 'Venture capital investments are on the rise this quarter.', content: 'Insights into current startup funding landscape.', source: 'Entrepreneurial Hub', link: 'https://example.com/entrepreneurialhub' },
+                    { id: 12, title: 'Market Volatility Explained', category: 'business', date: '2023-10-16', summary: 'Analysts break down the causes of recent market fluctuations.', content: 'Detailed explanation of market volatility factors.', source: 'Financial Times', link: 'https://example.com/financialtimes' },
+                    { id: 16, title: 'Global Trade Agreements', category: 'business', date: '2023-10-12', summary: 'New trade agreements are expected to boost international commerce.', content: 'Analysis of the impact on global markets.', source: 'Trade Reports', link: 'https://example.com/tradereports' },
+                    { id: 20, title: 'Startup Success Stories', category: 'business', date: '2023-10-08', summary: 'Inspiring stories of startups that made it big.', content: 'Lessons learned from successful startups.', source: 'Startup Success', link: 'https://example.com/startupsuccess' },
+                ],
+                'health': [
+                    { id: 1, title: 'AI Breakthrough in Healthcare', category: 'health', date: '2023-10-27', summary: 'New AI algorithms are revolutionizing disease diagnosis and treatment.', content: 'Detailed article content about AI in healthcare.', source: 'HealthTech News', link: 'https://example.com/healthtech' },
+                    { id: 5, title: 'New Study on Mental Health', category: 'health', date: '2023-10-23', summary: 'Research highlights the importance of early intervention in mental health.', content: 'Findings from a groundbreaking mental health study.', source: 'Psychology Today', link: 'https://example.com/psychologytoday' },
+                    { id: 9, title: 'Nutrition and Longevity', category: 'health', date: '2023-10-19', summary: 'New research explores the link between diet and lifespan.', content: 'Scientific findings on diet and longevity.', source: 'Nutrition Journal', link: 'https://example.com/nutritionjournal' },
+                    { id: 13, title: 'Mental Health in the Workplace', category: 'health', date: '2023-10-15', summary: 'New initiatives aim to improve mental health support for employees.', content: 'Overview of workplace mental health programs.', source: 'Workplace Wellness', link: 'https://example.com/workplacewellness' },
+                    { id: 17, title: 'Genetic Research Breakthrough', category: 'health', date: '2023-10-11', summary: 'Scientists make significant progress in genetic editing.', content: 'Implications of the latest genetic research.', source: 'Genomics Journal', link: 'https://example.com/genomicsjournal' },
+                ]
+            };
+
+            // Simulate pagination
+            const articlesPerPage = 6;
+            const startIndex = (pageNumber - 1) * articlesPerPage;
+            const endIndex = startIndex + articlesPerPage;
+            const categoryArticles = mockData[category];
+
+            if (categoryArticles && categoryArticles.length > 0) {
+                const newArticles = categoryArticles.slice(startIndex, endIndex);
+                if (newArticles.length === 0) {
+                    hasMoreArticles = false; // No more articles to load for this category
+                }
+                return newArticles;
+            } else {
+                hasMoreArticles = false;
+                return [];
+            }
+        }
+
+        // Render articles
+        function renderArticles(articlesToRender) {
+            articleGrid.innerHTML = ''; // Clear existing articles
+            if (articlesToRender.length === 0) {
+                noArticlesMessage.classList.remove('hidden');
+            } else {
+                noArticlesMessage.classList.add('hidden');
+                articlesToRender.forEach(article => {
+                    const articleElement = document.createElement('div');
+                    articleElement.className = 'article-card bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden shadow-lg cursor-pointer';
+                    articleElement.innerHTML = `
+                        <img src="https://placehold.co/600x350/2a2a2a/b0b0b0?text=${article.category.toUpperCase()}" alt="${article.title}" class="w-full h-48 object-cover">
+                        <div class="p-6">
+                            <h2 class="text-xl font-semibold mb-2">${article.title}</h2>
+                            <p class="text-sm text-[var(--color-text-secondary)] mb-3">${article.summary}</p>
+                            <div class="flex items-center text-xs text-[var(--color-text-secondary)]">
+                                <i class="far fa-calendar-alt mr-2"></i> ${article.date}
+                                <span class="mx-2">•</span>
+                                <span class="capitalize">${article.category}</span>
+                            </div>
+                        </div>
+                    `;
+                    articleElement.addEventListener('click', () => openArticleDetail(article));
+                    articleGrid.appendChild(articleElement);
+                });
+            }
+            loadingIndicator.classList.add('hidden');
+        }
+
+        // Open Article Detail Modal
+        function openArticleDetail(article) {
+            modalArticleTitle.textContent = article.title;
+            modalArticleDate.textContent = article.date;
+            modalArticleContent.textContent = article.content;
+            modalArticleSource.textContent = article.source;
+            modalArticleSourceLink.href = article.link;
+            articleDetailModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scroll
+        }
+
+        // Close Article Detail Modal
+        function closeArticleDetailModal() {
+            articleDetailModal.classList.add('hidden');
+            document.body.style.overflow = ''; // Restore background scroll
+        }
+
+        // Handle Category Clicks
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                currentCategory = button.dataset.category;
+                page = 1; // Reset page when changing category
+                hasMoreArticles = true;
+                articles = []; // Clear previous articles for new category
+                renderArticles([]); // Clear grid
+                loadMoreArticles(); // Load first page of new category
+                updateCategoryButtons(button);
+            });
+        });
+
+        function updateCategoryButtons(activeButton) {
+            categoryButtons.forEach(button => {
+                button.classList.remove('active');
+                button.classList.add('bg-[var(--color-bg-secondary)]', 'border', 'border-[var(--color-border-secondary)]');
+            });
+            activeButton.classList.add('active');
+            activeButton.classList.remove('bg-[var(--color-bg-secondary)]', 'border', 'border-[var(--color-border-secondary)]');
+        }
+
+        // Handle Infinite Scroll
+        let isLoading = false;
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !isLoading && hasMoreArticles) {
+                isLoading = true;
+                loadMoreArticles();
+            }
+        });
+
+        async function loadMoreArticles() {
+            if (!hasMoreArticles) {
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            loadingIndicator.classList.remove('hidden');
+            const newArticles = await fetchArticles(currentCategory, page);
+            articles = articles.concat(newArticles); // Add new articles to the list
+            renderArticles(articles); // Re-render all articles
+
+            page++;
+            isLoading = false;
+        }
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMoreArticles();
+        });
+
+        // Refresh button functionality
+        refreshButton.addEventListener('click', () => {
+            page = 1;
+            hasMoreArticles = true;
+            articles = [];
+            renderArticles([]);
+            loadMoreArticles();
+        });
+
+        // Close modal button
+        closeDetailModalButton.addEventListener('click', closeArticleDetailModal);
+        articleDetailModal.addEventListener('click', (e) => {
+            if (e.target === articleDetailModal) {
+                closeArticleDetailModal();
+            }
+        });
+    </script>
+</body>
+</html>

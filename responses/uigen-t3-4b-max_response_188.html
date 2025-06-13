@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Chat Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: #1A1A1A;
+            --color-text-secondary: #6B6B6B;
+            --color-bg-primary: #FFFFFF;
+            --color-bg-secondary: #F5F5F5;
+            --color-accent: #007BFF; /* A vibrant blue for active states */
+            --color-accent-light: #E0F2F7;
+            --color-border: #E0E0E0;
+            --color-message-sent: #D1F0FF; /* Light blue for sent messages */
+            --color-message-received: #FFF3E0; /* Light yellow for received messages */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for chat */
+            min-height: 100vh;
+            overflow: hidden; /* Prevent body scroll, content will scroll */
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px; /* Max width for the chat area */
+            height: 90vh; /* Adjust height for desktop, will be responsive */
+            display: flex;
+            flex-direction: column;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background-color: var(--color-bg-primary);
+        }
+
+        .chat-header {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message-sent {
+            background-color: var(--color-message-sent);
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .message-received {
+            background-color: var(--color-message-received);
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .message-reactions {
+            position: absolute;
+            bottom: -1.25rem; /* Position above the bubble */
+            right: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            color: white;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .message-bubble:hover .message-reactions {
+            opacity: 1;
+        }
+
+        .message-media {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            position: relative;
+        }
+
+        .message-media img, .message-media video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            display: block; /* Remove extra space below image */
+        }
+
+        .message-media video {
+            object-fit: cover;
+        }
+
+        .chat-input-area {
+            background-color: var(--color-bg-primary);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .chat-input:focus {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+        }
+
+        .chat-send-button {
+            background-color: var(--color-accent);
+            color: white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            flex-shrink: 0;
+        }
+
+        .chat-send-button:hover {
+            background-color: #0069D9; /* Darker blue on hover */
+        }
+
+        .chat-attachment-button {
+            background-color: var(--color-accent);
+            color: white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            flex-shrink: 0;
+        }
+
+        .chat-attachment-button:hover {
+            background-color: #0069D9;
+        }
+
+        .threading-indicator {
+            background-color: var(--color-accent-light);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            color: var(--color-accent);
+            margin-left: 0.5rem;
+            position: relative;
+        }
+
+        .threading-indicator::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .message-action-button {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+
+        .message-action-button:hover {
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <div class="flex items-center">
+                <img src="https://placehold.co/40x40/007BFF/FFFFFF/png?text=U" alt="User Avatar" class="rounded-full mr-3">
+                <div>
+                    <h2 class="font-semibold text-lg">Team Collaboration</h2>
+                    <p class="text-sm text-gray-300">5 members online</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="text-white hover:text-white/80 transition-colors">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="text-white hover:text-white/80 transition-colors">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages" id="chat-messages">
+            <!-- Example 1: Sent Message with Reaction -->
+            <div class="message-bubble message-sent">
+                <p>Hey everyone, just finished the client's latest project! What are your thoughts on the new design?</p>
+                <div class="message-reactions" data-reactions="👍 2, 😄 1">👍 2, 😄 1</div>
+            </div>
+
+            <!-- Example 2: Received Message with Media -->
+            <div class="message-bubble message-received">
+                <p>That's amazing! I really like the new color palette. I've attached a preview of the updated UI.</p>
+                <div class="message-media">
+                    <img src="https://placehold.co/400x200/FFD700/000000/png?text=UI+Preview" alt="UI Preview">
+                </div>
+            </div>
+
+            <!-- Example 3: Sent Message with Threading (simulated) -->
+            <div class="message-bubble message-sent">
+                <p>Great, I'll take a look! I had a question about the layout of the sidebar for mobile. Can we make it a bit more compact?</p>
+                <div class="threading-indicator">Thread</div>
+            </div>
+
+            <!-- Example 4: Received Message with Threading (simulated) -->
+            <div class="message-bubble message-received">
+                <p>Yes, I've got a few ideas for that. I'll send a detailed mockup for your review soon. Thanks for the feedback!</p>
+                <div class="message-actions">
+                    <button class="message-action-button" aria-label="Reply to message">
+                        <i class="fas fa-reply"></i>
+                    </button>
+                    <button class="message-action-button" aria-label="More options">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Example 5: Received Message with Video -->
+            <div class="message-bubble message-received">
+                <p>Just recorded a quick demo of the new feature. Check it out!</p>
+                <div class="message-media">
+                    <video controls src="https://www.w3schools.com/html/mov_bbb.mp4" poster="https://placehold.co/400x200/87CEEB/000000/png?text=Video+Demo" class="rounded-lg"></video>
+                </div>
+            </div>
+
+            <!-- Example 6: Sent Message with Reaction -->
+            <div class="message-bubble message-sent">
+                <p>Awesome! I'm excited for the new release. Let's hit the ground running!</p>
+                <div class="message-reactions" data-reactions="🔥 1, 🎉 1">🔥 1, 🎉 1</div>
+            </div>
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" placeholder="Type a message..." id="message-input">
+            <button class="chat-attachment-button" aria-label="Attach file">
+                <i class="fas fa-paperclip"></i>
+            </button>
+            <button class="chat-send-button" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.querySelector('.chat-send-button');
+
+        // Simulate sending messages
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const newMessage = document.createElement('div');
+                newMessage.className = 'message-bubble message-sent';
+                newMessage.innerHTML = `<p>${messageText}</p>`;
+
+                // Add reactions (simulated)
+                const reactions = {
+                    '👍': 0, '😂': 0, '🔥': 0, '🎉': 0, '🙏': 0
+                };
+                if (Math.random() > 0.7) { // 30% chance of a reaction
+                    const randomReaction = Object.keys(reactions).filter(r => reactions[r] < 5)[Math.floor(Math.random() * Object.keys(reactions).filter(r => reactions[r] < 5).length)];
+                    if (randomReaction) {
+                        const reactionDiv = document.createElement('div');
+                        reactionDiv.className = 'message-reactions';
+                        reactionDiv.textContent = `${randomReaction} 1`;
+                        newMessage.appendChild(reactionDiv);
+                    }
+                }
+
+                chatMessages.appendChild(newMessage);
+                messageInput.value = ''; // Clear input
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+            }
+        }
+
+        // Basic scroll to bottom on load
+        chatMessages.addEventListener('load', () => {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+    </script>
+</body>
+</html>

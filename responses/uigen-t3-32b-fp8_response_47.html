@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Editor UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --token-bg-dark: #1a1a1a;
+            --token-bg-medium: #2a2a2a;
+            --token-bg-light: #3a3a3a;
+            --token-text-light: #f5f5f5;
+            --token-text-medium: #b0b0b0;
+            --token-text-dark: #606060;
+            --token-accent: #0099ff;
+            --token-border-gray: #4a4a4a;
+            --token-selection-bg: #4a4a4a;
+            --token-selection-text: #f5f5f5;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-bg-dark);
+            color: var(--token-text-light);
+            overflow: hidden; /* Prevent body scroll, layout handles it */
+        }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--token-bg-medium);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--token-border-gray);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--token-text-medium);
+        }
+
+        .editor-area {
+            background-color: #1e1e1e; /* Visual distinction for editor */
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Lucida Console', monospace; /* Code font */
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap; /* Wrap long lines */
+            overflow-x: auto; /* Enable horizontal scroll for code */
+        }
+
+        /* Syntax highlighting (simplified for demo) */
+        .editor-area .keyword { color: #569cd6; } /* Blue */
+        .editor-area .string { color: #ce9178; } /* Orange */
+        .editor-area .comment { color: #6a9955; } /* Green */
+        .editor-area .function { color: #dcdcaa; } /* Yellow */
+        .editor-area .number { color: #b5cea8; } /* Light Green */
+        .editor-area .operator { color: #d4d4d4; } /* White */
+        .editor-area .variable { color: #9cdcfe; } /* Light Blue */
+
+        /* File explorer item hover */
+        .file-explorer-item:hover {
+            background-color: var(--token-bg-light);
+        }
+
+        /* Git status item hover */
+        .git-status-item:hover {
+            background-color: var(--token-bg-light);
+        }
+
+        /* Tab active state */
+        .tab-button.active {
+            border-bottom: 2px solid var(--token-accent);
+            color: var(--token-accent);
+        }
+    </style>
+</head>
+<body class="flex h-screen text-base">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-[var(--token-bg-medium)] border-r border-[var(--token-border-gray)] flex flex-col p-4 overflow-y-auto">
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-[var(--token-text-light)] mb-4">Files</h2>
+            <div class="space-y-1">
+                <div class="file-explorer-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors" data-path="src/index.js">
+                    <i class="fas fa-folder mr-2 text-[var(--token-text-medium)]"></i> src
+                </div>
+                <div class="file-explorer-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors ml-4" data-path="src/index.js">
+                    <i class="fas fa-file mr-2 text-[var(--token-text-medium)]"></i> index.js
+                </div>
+                <div class="file-explorer-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors ml-4" data-path="src/styles.css">
+                    <i class="fas fa-file mr-2 text-[var(--token-text-medium)]"></i> styles.css
+                </div>
+                <div class="file-explorer-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors" data-path="public/index.html">
+                    <i class="fas fa-folder mr-2 text-[var(--token-text-medium)]"></i> public
+                </div>
+                <div class="file-explorer-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors ml-4" data-path="public/index.html">
+                    <i class="fas fa-file mr-2 text-[var(--token-text-medium)]"></i> index.html
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-[var(--token-text-light)] mb-4">Git Status</h2>
+            <div class="space-y-2">
+                <div class="git-status-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors">
+                    <i class="fas fa-plus-circle mr-2 text-green-400"></i> <span class="text-[var(--token-text-light)]">README.md</span>
+                </div>
+                <div class="git-status-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors">
+                    <i class="fas fa-code-branch mr-2 text-blue-400"></i> <span class="text-[var(--token-text-light)]">main</span>
+                </div>
+                <div class="git-status-item flex items-center p-2 rounded-md cursor-pointer hover:bg-[var(--token-bg-light)] transition-colors">
+                    <i class="fas fa-undo mr-2 text-yellow-400"></i> <span class="text-[var(--token-text-light)]">index.js</span>
+                </div>
+            </div>
+            <div class="mt-4 flex space-x-2">
+                <button class="flex-1 bg-[var(--token-accent)] text-[var(--token-bg-dark)] py-2 rounded-md hover:bg-opacity-90 transition-colors text-sm font-medium">
+                    <i class="fas fa-code-branch mr-2"></i> Commit
+                </button>
+                <button class="flex-1 bg-[var(--token-border-gray)] text-[var(--token-text-light)] py-2 rounded-md hover:bg-opacity-80 transition-colors text-sm font-medium">
+                    <i class="fas fa-paper-plane mr-2"></i> Push
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col bg-[var(--token-bg-dark)]">
+        <!-- Tabs -->
+        <div class="flex border-b border-[var(--token-border-gray)] overflow-x-auto">
+            <button class="tab-button active px-4 py-2 text-sm text-[var(--token-text-medium)] hover:text-[var(--token-text-light)] transition-colors whitespace-nowrap" data-file="src/index.js">
+                index.js
+                <i class="fas fa-times ml-2 text-xs hover:text-[var(--token-accent)] cursor-pointer"></i>
+            </button>
+            <button class="tab-button px-4 py-2 text-sm text-[var(--token-text-medium)] hover:text-[var(--token-text-light)] transition-colors whitespace-nowrap" data-file="src/styles.css">
+                styles.css
+                <i class="fas fa-times ml-2 text-xs hover:text-[var(--token-accent)] cursor-pointer"></i>
+            </button>
+            <button class="tab-button px-4 py-2 text-sm text-[var(--token-text-medium)] hover:text-[var(--token-text-light)] transition-colors whitespace-nowrap" data-file="public/index.html">
+                index.html
+                <i class="fas fa-times ml-2 text-xs hover:text-[var(--token-accent)] cursor-pointer"></i>
+            </button>
+            <!-- Add more tabs as needed -->
+        </div>
+
+        <!-- Editor Area -->
+        <div class="flex-1 p-4 overflow-auto editor-area">
+            <!-- Content will be loaded here based on active tab -->
+            <pre><code>
+                <span class="keyword">function</span> <span class="function">greet</span>(<span class="variable">name</span>) {
+                    <span class="keyword">const</span> <span class="variable">message</span> = <span class="string">`Hello, ${name}!`</span>;
+                    <span class="keyword">console</span>.<span class="function">log</span>(<span class="variable">message</span>);
+                }
+
+                <span class="keyword">const</span> <span class="variable">user</span> = <span class="string">'World'</span>;
+                <span class="function">greet</span>(<span class="variable">user</span>);
+
+                <span class="keyword">let</span> <span class="variable">count</span> = <span class="number">0</span>;
+                <span class="keyword">while</span> (<span class="variable">count</span> <span class="operator">&lt;</span> <span class="number">5</span>) {
+                    <span class="keyword">console</span>.<span class="function">log</span>(<span class="variable">count</span>);
+                    <span class="variable">count</span><span class="operator">++</span>;
+                }
+                <span class="comment">// This is a comment</span>
+            </code></pre>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const editorArea = document.querySelector('.editor-area');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const fileExplorerItems = document.querySelectorAll('.file-explorer-item');
+
+            const fileContents = {
+                'src/index.js': `<span class="keyword">function</span> <span class="function">greet</span>(<span class="variable">name</span>) {
+    <span class="keyword">const</span> <span class="variable">message</span> = <span class="string">"Hello, ${name}!"</span>;
+    <span class="keyword">console</span>.<span class="function">log</span>(<span class="variable">message</span>);
+}
+
+<span class="keyword">const</span> <span class="variable">user</span> = <span class="string">'World'</span>;
+<span class="function">greet</span>(<span class="variable">user</span>);
+
+<span class="keyword">let</span> <span class="variable">count</span> = <span class="number">0</span>;
+<span class="keyword">while</span> (<span class="variable">count</span> <span class="operator">&lt;</span> <span class="number">5</span>) {
+    <span class="keyword">console</span>.<span class="function">log</span>(<span class="variable">count</span>);
+    <span class="variable">count</span><span class="operator">++</span>;
+}
+<span class="comment">// This is a comment</span>`,
+                'src/styles.css': `/* Basic CSS */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Responsive grid */
+.grid-2-col {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .grid-2-col {
+        grid-template-columns: 1fr;
+    }
+}`,
+                'public/index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Website</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to My Site!</h1>
+        <p>This is a simple HTML page.</p>
+        <div class="grid-2-col">
+            <div>Column 1</div>
+            <div>Column 2</div>
+        </div>
+    </div>
+</body>
+</html>`
+            };
+
+            function loadFileContent(filePath) {
+                const content = fileContents[filePath];
+                if (content) {
+                    editorArea.innerHTML = `<pre><code>${content}</code></pre>`;
+                    // Re-apply syntax highlighting if needed, or let the initial HTML do it
+                } else {
+                    editorArea.innerHTML = `<pre><code>File not found: ${filePath}</code></pre>`;
+                }
+            }
+
+            // Tab switching logic
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked tab
+                    button.classList.add('active');
+                    // Load content for the clicked file
+                    const filePath = button.dataset.file;
+                    loadFileContent(filePath);
+                });
+            });
+
+            // File explorer item click logic
+            fileExplorerItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const filePath = item.dataset.path;
+                    // Check if this file is already open in a tab
+                    let tabExists = false;
+                    tabButtons.forEach(button => {
+                        if (button.dataset.file === filePath) {
+                            button.click(); // Simulate click on existing tab
+                            tabExists = true;
+                        }
+                    });
+
+                    if (!tabExists) {
+                        // Create a new tab
+                        const newTabButton = document.createElement('button');
+                        newTabButton.className = 'tab-button px-4 py-2 text-sm text-[var(--token-text-medium)] hover:text-[var(--token-text-light)] transition-colors whitespace-nowrap';
+                        newTabButton.dataset.file = filePath;
+                        newTabButton.innerHTML = `${filePath.split('/').pop()} <i class="fas fa-times ml-2 text-xs hover:text-[var(--token-accent)] cursor-pointer"></i>`;
+                        newTabButton.addEventListener('click', () => {
+                            // Remove active from all, add to new
+                            tabButtons.forEach(btn => btn.classList.remove('active'));
+                            newTabButton.classList.add('active');
+                            loadFileContent(filePath);
+                        });
+
+                        // Add event listener for close button
+                        newTabButton.querySelector('i').addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent tab click
+                            newTabButton.remove();
+                            // If this was the active tab, switch to another or clear editor
+                            if (newTabButton.classList.contains('active')) {
+                                if (tabButtons.length > 0) {
+                                    tabButtons[0].click(); // Switch to first tab
+                                } else {
+                                    editorArea.innerHTML = '<pre><code>No files open.</code></pre>';
+                                }
+                            }
+                        });
+
+                        // Insert new tab after the active one or at the end
+                        const activeTab = document.querySelector('.tab-button.active');
+                        if (activeTab) {
+                            activeTab.parentNode.insertBefore(newTabButton, activeTab.nextSibling);
+                        } else {
+                            document.querySelector('.flex.border-b').appendChild(newTabButton);
+                        }
+
+                        newTabButton.click(); // Activate the newly created tab
+                    }
+                });
+            });
+
+            // Initial load of the first tab
+            if (tabButtons.length > 0) {
+                tabButtons[0].click();
+            }
+        });
+    </script>
+</body>
+</html>

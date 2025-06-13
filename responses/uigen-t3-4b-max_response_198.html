@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: rgb(26, 26, 26);
+            --color-text-secondary: rgb(109, 109, 109);
+            --color-bg-primary: rgb(255, 255, 255);
+            --color-bg-alt: rgb(248, 248, 248);
+            --color-accent: rgb(36, 151, 226);
+            --color-card-bg: rgb(255, 255, 255);
+            --color-border-light: rgb(229, 229, 229);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--color-bg-alt);
+            color: var(--color-text-primary);
+            overflow-x: hidden;
+        }
+
+        .kanban-board {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1.5rem;
+            align-items: flex-start;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .kanban-column {
+            background-color: var(--color-card-bg);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            min-width: 280px;
+            max-width: 350px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .kanban-column h3 {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--color-text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .kanban-cards {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            overflow-y: auto; /* Allow cards to scroll if too many */
+        }
+
+        .kanban-card {
+            background-color: var(--color-bg-primary);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            cursor: grab;
+            transition: all 0.2s ease-in-out;
+            min-height: 60px; /* Ensure a minimum height for draggable cards */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kanban-card:hover {
+            box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+        }
+
+        .kanban-card.dragging {
+            opacity: 0.7;
+            transform: scale(0.98);
+            box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.15), 0 4px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .kanban-card-title {
+            font-weight: 500;
+            color: var(--color-text-primary);
+            flex-grow: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .kanban-card-meta {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .kanban-card-meta i {
+            color: var(--color-accent);
+        }
+
+        .kanban-add-card-btn, .kanban-add-column-btn {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kanban-add-card-btn:hover, .kanban-add-column-btn:hover {
+            background-color: #2a92d6; /* Slightly darker accent */
+            transform: translateY(-2px);
+        }
+
+        .kanban-add-column-btn {
+            margin-top: 1rem;
+            border-radius: 0.75rem; /* Match column border-radius */
+            padding: 1rem 1.25rem;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .kanban-add-column-btn:hover {
+            background-color: #2a92d6;
+        }
+
+        .kanban-card.dragging .kanban-card-title,
+        .kanban-card.dragging .kanban-card-meta {
+            text-decoration: none; /* Remove underline for dragging */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .kanban-board {
+                flex-direction: column;
+                align-items: center;
+            }
+            .kanban-column {
+                width: 100%;
+                max-width: 100%;
+                margin-bottom: 1.5rem;
+                border-radius: 0.5rem; /* Slightly less rounded */
+                padding: 0.75rem;
+            }
+            .kanban-column h3 {
+                font-size: 1.125rem;
+            }
+            .kanban-cards {
+                padding: 0.5rem;
+                gap: 0.5rem;
+            }
+            .kanban-card {
+                padding: 0.6rem 0.9rem;
+                min-height: 50px;
+            }
+            .kanban-add-card-btn, .kanban-add-column-btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="kanban-board">
+        <!-- To Do Column -->
+        <div class="kanban-column" id="column-todo">
+            <h3>To Do <span class="text-sm text-[var(--color-text-secondary)]" id="todo-count">(0)</span></h3>
+            <div class="kanban-cards" id="cards-todo">
+                <!-- Cards will be dynamically added here -->
+            </div>
+            <button class="kanban-add-card-btn" aria-label="Add new card to To Do column">
+                <i class="fas fa-plus"></i> Add Card
+            </button>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="kanban-column" id="column-inprogress">
+            <h3>In Progress <span class="text-sm text-[var(--color-text-secondary)]" id="inprogress-count">(0)</span></h3>
+            <div class="kanban-cards" id="cards-inprogress">
+                <!-- Cards will be dynamically added here -->
+            </div>
+            <button class="kanban-add-card-btn" aria-label="Add new card to In Progress column">
+                <i class="fas fa-plus"></i> Add Card
+            </button>
+        </div>
+
+        <!-- Done Column -->
+        <div class="kanban-column" id="column-done">
+            <h3>Done <span class="text-sm text-[var(--color-text-secondary)]" id="done-count">(0)</span></h3>
+            <div class="kanban-cards" id="cards-done">
+                <!-- Cards will be dynamically added here -->
+            </div>
+            <button class="kanban-add-column-btn" aria-label="Add new column">
+                <i class="fas fa-plus"></i> Add New Column
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const columns = {
+                'column-todo': { id: 'todo', title: 'To Do', cards: [] },
+                'column-inprogress': { id: 'inprogress', title: 'In Progress', cards: [] },
+                'column-done': { id: 'done', title: 'Done', cards: [] },
+            };
+
+            const allColumns = Object.keys(columns).map(columnId => columns[columnId]);
+
+            let draggedCard = null;
+            let draggedFromColumn = null;
+
+            // --- Card Data and DOM Manipulation ---
+            const updateCardCount = (columnId) => {
+                const countElement = document.getElementById(`${columnId}-count`);
+                if (countElement) {
+                    countElement.textContent = `(${columns[columnId].cards.length})`;
+                }
+            };
+
+            const renderCards = (columnId) => {
+                const cardsContainer = document.getElementById(`cards-${columnId}`);
+                cardsContainer.innerHTML = ''; // Clear existing cards
+                columns[columnId].cards.forEach((card, index) => {
+                    const cardElement = createCardElement(card, index);
+                    cardsContainer.appendChild(cardElement);
+                });
+                updateCardCount(columnId);
+            };
+
+            const createCardElement = (cardData, index) => {
+                const card = document.createElement('div');
+                card.className = 'kanban-card';
+                card.dataset.id = cardData.id;
+                card.dataset.columnId = columnId; // This will be set when rendering
+                card.setAttribute('draggable', 'true');
+                card.innerHTML = `
+                    <div class="kanban-card-title">${cardData.title}</div>
+                    <div class="kanban-card-meta">
+                        <i class="fas ${cardData.icon || 'fa-tag'}"></i>
+                        <span>${cardData.status}</span>
+                    </div>
+                `;
+                return card;
+            };
+
+            // --- Drag and Drop Logic ---
+            const startDrag = (e) => {
+                draggedCard = e.target.closest('.kanban-card');
+                draggedFromColumn = draggedCard.dataset.columnId;
+                if (draggedCard) {
+                    draggedCard.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', draggedCard.dataset.id);
+                    e.dataTransfer.setDragImage(draggedCard, 0, 0); // Set drag image for better visual
+                }
+            };
+
+            const endDrag = (e) => {
+                if (draggedCard) {
+                    draggedCard.classList.remove('dragging');
+                    draggedCard = null;
+                }
+            };
+
+            const doDragOver = (e) => {
+                e.preventDefault(); // Necessary to allow drop
+                e.dataTransfer.dropEffect = 'move';
+            };
+
+            const doDrop = (e) => {
+                e.preventDefault();
+                const targetColumnId = e.currentTarget.closest('.kanban-column').id;
+
+                if (draggedCard && draggedFromColumn !== targetColumnId) {
+                    const cardId = draggedCard.dataset.id;
+                    const cardData = columns[draggedFromColumn].cards.find(c => c.id === cardId);
+
+                    if (cardData) {
+                        const targetCardsContainer = e.currentTarget.closest('.kanban-cards');
+                        const afterElement = getDragAfterElement(targetCardsContainer, e.clientY);
+
+                        if (afterElement == null) {
+                            targetCardsContainer.appendChild(draggedCard);
+                        } else {
+                            targetCardsContainer.insertBefore(draggedCard, afterElement);
+                        }
+                    }
+                }
+            };
+
+            const getDragAfterElement = (container, y) => {
+                const draggableElements = [...container.querySelectorAll('.kanban-card:not(.dragging)')];
+
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = container.getBoundingClientRect();
+                    const childMidY = box.top + box.height / 2 - offset.top;
+                    const diff = y - childMidY;
+
+                    if (diff < 0 && diff > -15) { // Check if near the top of the card
+                        return null; // Don't drop above if very close to the top
+                    }
+                    if (diff > 15) { // Check if far below the card
+                        return null; // Don't drop below if very far
+                    }
+
+                    if (closest === null || diff * 2 < (childMidY - offset.top) * 2) { // Smaller diff means closer to the top
+                        return child;
+                    }
+                    return null;
+                }, null);
+            };
+
+            // --- Event Listeners ---
+            document.addEventListener('dragstart', startDrag, false);
+            document.addEventListener('dragend', endDrag, false);
+            document.addEventListener('dragover', doDragOver, false);
+            document.addEventListener('drop', doDrop, false);
+
+            // --- Initial Render ---
+            allColumns.forEach(column => {
+                renderCards(column.id);
+            });
+
+            // --- Add Card Functionality ---
+            document.querySelectorAll('.kanban-add-card-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const newCardId = `card-${Date.now()}`;
+                    const newCard = {
+                        id: newCardId,
+                        title: 'New Task',
+                        status: 'To Do', // Default status
+                        icon: 'fa-clipboard' // Default icon
+                    };
+                    columns[e.target.closest('.kanban-column').id].cards.push(newCard);
+                    renderCards(e.target.closest('.kanban-column').id);
+                });
+            });
+
+            // --- Add Column Functionality (Simplified for demo, can expand later) ---
+            document.querySelector('.kanban-add-column-btn').addEventListener('click', () => {
+                const newColumnId = `column-${Date.now()}`;
+                const newColumn = {
+                    id: newColumnId,
+                    title: 'New Column',
+                    cards: []
+                };
+                columns[newColumnId] = newColumn;
+                allColumns.push(newColumn);
+                renderColumns(); // Re-render all columns
+            });
+
+            const renderColumns = () => {
+                const board = document.querySelector('.kanban-board');
+                board.innerHTML = ''; // Clear the board
+                allColumns.forEach(column => {
+                    const columnDiv = document.createElement('div');
+                    columnDiv.className = 'kanban-column';
+                    columnDiv.id = column.id;
+                    columnDiv.innerHTML = `
+                        <h3>${column.title} <span class="text-sm text-[var(--color-text-secondary)]" id="${column.id}-count">(0)</span></h3>
+                        <div class="kanban-cards" id="cards-${column.id}"></div>
+                        <button class="kanban-add-card-btn" aria-label="Add new card to ${column.title} column">
+                            <i class="fas fa-plus"></i> Add Card
+                        </button>
+                    `;
+                    board.appendChild(columnDiv);
+                });
+                allColumns.forEach(column => {
+                    renderCards(column.id);
+                });
+            };
+
+            // Initial render of columns (including the default ones)
+            renderColumns();
+        });
+    </script>
+</body>
+</html>

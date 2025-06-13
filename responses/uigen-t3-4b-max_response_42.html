@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board - Project Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: #f8f9fa; /* Light gray background */
+            --color-bg-card: #ffffff; /* White card background */
+            --color-bg-board: #e9ecef; /* Slightly darker gray for the board area */
+            --color-text-primary: #343a40; /* Dark text */
+            --color-text-secondary: #6c757d; /* Muted text */
+            --color-accent-blue: #007bff; /* Primary blue for actions */
+            --color-accent-green: #28a745; /* Green for completed */
+            --color-accent-red: #dc3545; /* Red for overdue */
+            --color-border-light: #dee2e6; /* Light border */
+            --color-shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            overflow-x: hidden;
+        }
+
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .kanban-board {
+            display: flex;
+            overflow-x: auto;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background-color: var(--color-bg-board);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px var(--color-shadow), 0 2px 4px -1px var(--color-shadow);
+        }
+
+        .kanban-column {
+            background-color: var(--color-bg-card);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-width: 280px;
+            flex-shrink: 0;
+            max-height: 80vh; /* Limit column height */
+            overflow-y: auto; /* Scroll if content overflows */
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .kanban-column-header {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--color-text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kanban-tasks {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding-top: 0.5rem; /* Space between column header and tasks */
+        }
+
+        .kanban-task {
+            background-color: #ffffff;
+            border-radius: 0.375rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            cursor: grab;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative; /* For the draggable handle */
+        }
+
+        .kanban-task:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+            box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .kanban-task .task-title {
+            font-weight: 500;
+            color: var(--color-text-primary);
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .kanban-task .task-due-date {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            margin-left: 0.75rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .kanban-task .task-due-date .date-badge {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kanban-task .task-due-date.overdue .date-badge {
+            background-color: var(--color-accent-red);
+            color: white;
+        }
+
+        .kanban-task .task-due-date.completed .date-badge {
+            background-color: var(--color-accent-green);
+            color: white;
+        }
+
+        .kanban-task .task-due-date.todays .date-badge {
+            background-color: var(--color-accent-blue);
+            color: white;
+        }
+
+        .kanban-task .task-drag-handle {
+            cursor: grab;
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .kanban-task.dragging {
+            opacity: 0.5;
+            border: 2px dashed var(--color-accent-blue);
+        }
+
+        .kanban-column.drag-over {
+            border: 2px dashed var(--color-accent-blue);
+        }
+
+        .add-task-button {
+            background-color: var(--color-accent-blue);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .add-task-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        /* Responsive adjustments for columns */
+        @media (max-width: 768px) {
+            .kanban-board {
+                flex-wrap: wrap; /* Allow columns to wrap on smaller screens */
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .kanban-column {
+                min-width: 250px;
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <h1 class="text-4xl font-playfair font-bold text-center text-[var(--color-text-primary)] mb-8">Project Kanban Board</h1>
+
+    <div class="kanban-board">
+        <!-- To Do Column -->
+        <div class="kanban-column" id="todo-column">
+            <div class="kanban-column-header">
+                <h2 class="text-lg font-semibold">To Do <span class="text-[var(--color-text-secondary)]">(3)</span></h2>
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-accent-blue)]" title="Add Task">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="kanban-tasks">
+                <div class="kanban-task" draggable="true" data-due-date="2024-07-25">
+                    <span class="task-title">Design landing page mockup</span>
+                    <div class="task-due-date">
+                        <span class="date-badge">25 Jul</span>
+                    </div>
+                    <span class="task-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                </div>
+                <div class="kanban-task" draggable="true" data-due-date="2024-07-20">
+                    <span class="task-title">Develop user authentication module</span>
+                    <div class="task-due-date">
+                        <span class="date-badge">20 Jul</span>
+                    </div>
+                    <span class="task-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                </div>
+                <div class="kanban-task" draggable="true" data-due-date="2024-07-28">
+                    <span class="task-title">Prepare marketing content for Q3</span>
+                    <div class="task-due-date">
+                        <span class="date-badge">28 Jul</span>
+                    </div>
+                    <span class="task-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                </div>
+            </div>
+            <button class="add-task-button mt-4" title="Add New Task">
+                <i class="fas fa-plus"></i> Add Task
+            </button>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="kanban-column" id="inprogress-column">
+            <div class="kanban-column-header">
+                <h2 class="text-lg font-semibold">In Progress <span class="text-[var(--color-text-secondary)]">(2)</span></h2>
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-accent-blue)]" title="Add Task">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="kanban-tasks">
+                <div class="kanban-task" draggable="true" data-due-date="2024-07-22">
+                    <span class="task-title">Refine UI/UX for dashboard</span>
+                    <div class="task-due-date">
+                        <span class="date-badge">22 Jul</span>
+                    </div>
+                    <span class="task-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                </div>
+                <div class="kanban-task" draggable="true" data-due-date="2024-07-26">
+                    <span class="task-title">Integrate API with backend</span>
+                    <div class="task-due-date">
+                        <span class="date-badge">26 Jul</span>
+                    </div>
+                    <span class="task-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                </div>
+            </div>
+            <button class="add-task-button mt-4" title="Add New Task">
+                <i class="fas fa-plus"></i> Add Task
+            </button>
+        </div>
+
+        <!-- Done Column -->
+        <div class="kanban-column" id="done-column">
+            <div class="kanban-column-header">
+                <h2 class="text-lg font-semibold">Done <span class="text-[var(--color-text-secondary)]">(1)</span></h2>
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-accent-blue)]" title="Add Task">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="kanban-tasks">
+                <div class="kanban-task" draggable="true" data-due-date="2024-07-15">
+                    <span class="task-title">Initial setup of project database</span>
+                    <div class="task-due-date completed">
+                        <span class="date-badge">15 Jul</span>
+                    </div>
+                    <span class="task-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                </div>
+            </div>
+            <button class="add-task-button mt-4" title="Add New Task">
+                <i class="fas fa-plus"></i> Add Task
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const kanbanBoard = document.querySelector('.kanban-board');
+            let draggedTask = null;
+
+            // Function to update task status
+            function updateTaskStatus(taskElement, columnId) {
+                const dueDate = taskElement.dataset.dueDate;
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todaysDate = `${year}-${month}-${day}`;
+
+                let statusClass = '';
+                let badgeClass = '';
+
+                if (dueDate === todaysDate) {
+                    statusClass = 'todays';
+                    badgeClass = 'date-badge';
+                } else if (dueDate < todaysDate) {
+                    statusClass = 'overdue';
+                    badgeClass = 'date-badge';
+                } else {
+                    statusClass = 'completed'; // Placeholder for completed tasks
+                    badgeClass = 'date-badge';
+                }
+
+                const dueDateElement = taskElement.querySelector('.task-due-date');
+                if (dueDateElement) {
+                    dueDateElement.classList.remove('todays', 'overdue', 'completed');
+                    dueDateElement.classList.add(statusClass);
+                }
+            }
+
+            // Initialize task status on load
+            document.querySelectorAll('.kanban-task').forEach(task => {
+                updateTaskStatus(task, task.closest('.kanban-column').id);
+            });
+
+            // Drag and Drop Logic
+            kanbanBoard.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('kanban-task')) {
+                    draggedTask = e.target;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', e.target.id); // Store task ID
+                    setTimeout(() => {
+                        e.target.classList.add('dragging');
+                    }, 0);
+                }
+            });
+
+            kanbanBoard.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Necessary to allow drop
+                if (e.target.classList.contains('kanban-tasks') || e.target.closest('.kanban-tasks')) {
+                    kanbanBoard.classList.add('drag-over');
+                    // Optional: Highlight where the task will be dropped
+                    const afterElement = getDragAfterElement(e.target, e.clientY, e.clientX);
+                    if (afterElement == null) {
+                        e.target.closest('.kanban-tasks').appendChild(draggedTask);
+                    } else {
+                        e.target.closest('.kanban-tasks').insertBefore(draggedTask, afterElement);
+                    }
+                }
+            });
+
+            kanbanBoard.addEventListener('dragleave', (e) => {
+                if (e.target.classList.contains('kanban-tasks') || e.target.closest('.kanban-tasks')) {
+                    kanbanBoard.classList.remove('drag-over');
+                }
+            });
+
+            kanbanBoard.addEventListener('drop', (e) => {
+                e.preventDefault();
+                kanbanBoard.classList.remove('drag-over');
+                if (draggedTask) {
+                    const targetColumn = e.target.closest('.kanban-column');
+                    if (targetColumn && targetColumn.id !== draggedTask.closest('.kanban-column').id) {
+                        const afterElement = getDragAfterElement(e.target, e.clientY, e.clientX);
+                        if (afterElement == null) {
+                            targetColumn.querySelector('.kanban-tasks').appendChild(draggedTask);
+                        } else {
+                            targetColumn.querySelector('.kanban-tasks').insertBefore(draggedTask, afterElement);
+                        }
+                    }
+                }
+                draggedTask.classList.remove('dragging');
+                draggedTask = null;
+            });
+
+            kanbanBoard.addEventListener('dragend', (e) => {
+                if (draggedTask) {
+                    draggedTask.classList.remove('dragging');
+                    draggedTask = null;
+                }
+                kanbanBoard.classList.remove('drag-over');
+            });
+
+            // Helper to find the element to insert after
+            function getDragAfterElement(container, y, x) {
+                const draggableElements = [...container.querySelectorAll('.kanban-tasks > :not(.add-task-button)')];
+
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+        });
+    </script>
+</body>
+</html>

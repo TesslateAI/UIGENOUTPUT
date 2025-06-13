@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenTrack - Track Your Carbon Footprint</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: #262626;
+            --color-text-secondary: #575757;
+            --color-bg-main: #FFFFFF;
+            --color-bg-alt: #F5F5F5;
+            --color-accent: #34D399; /* A friendly green for sustainability */
+            --color-border-light: #E0E0E0;
+            --color-shadow-light: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-alt);
+            color: var(--color-text-primary);
+        }
+
+        .card {
+            background-color: var(--color-bg-main);
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 6px -1px var(--color-shadow-light), 0 2px 4px -1px var(--color-shadow-light);
+            padding: 1.5rem; /* 24px */
+            margin-bottom: 1.5rem; /* 24px */
+            border: 1px solid var(--color-border-light);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px; /* Fixed height to prevent excessive growth */
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            overflow: hidden; /* Important for fixed height */
+        }
+
+        .chart-bar {
+            background-color: var(--color-accent);
+            height: 100%;
+            border-radius: 0.25rem 0.25rem 0 0;
+            transition: width 0.5s ease-out;
+        }
+
+        .progress-ring {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            border: 4px solid var(--color-bg-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .progress-ring-outer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid var(--color-bg-main);
+            border-bottom: 4px solid var(--color-accent);
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-inner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid var(--color-bg-main);
+            border-top: 4px solid var(--color-accent);
+        }
+
+        .progress-ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .progress-ring-outer span,
+        .progress-ring-inner span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+        }
+
+        .progress-ring-outer span {
+            font-size: 2rem;
+        }
+
+        .progress-ring-inner span {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        .progress-ring-outer span::after,
+        .progress-ring-inner span::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--color-bg-main);
+        }
+        .progress-ring-outer span::after {
+            border-color: var(--color-accent) var(--color-bg-main) var(--color-bg-main) var(--color-bg-main);
+        }
+        .progress-ring-inner span::after {
+            border-color: var(--color-bg-main) var(--color-accent) var(--color-accent) var(--color-accent);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-[var(--color-text-primary)]">GreenTrack</h1>
+            <p class="text-lg text-[var(--color-text-secondary)] mt-2">Your journey to a sustainable future, one footprint at a time.</p>
+        </header>
+
+        <!-- Main Dashboard Card -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-semibold">Your Carbon Footprint</h2>
+                <span class="text-[var(--color-accent)] text-sm font-medium">Overall: <span id="total-footprint" class="font-bold">0.0 kg CO2e</span></span>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Left Column: Individual Footprint and Trends -->
+                <div class="w-full md:w-1/2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-medium">Daily vs. Weekly</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-bg-alt)] text-[var(--color-text-secondary)] hover:bg-[var(--color-text-primary)] hover:text-white transition-colors">Daily</button>
+                            <button class="px-3 py-1 rounded-full text-sm font-medium bg-[var(--color-accent)] text-white">Weekly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="carbonTrendChart"></canvas>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-sm text-[var(--color-text-secondary)]">
+                        <p>Average daily footprint: <span id="daily-average" class="font-semibold">0.0 kg CO2e</span></p>
+                        <p>Change from last week: <span id="weekly-change" class="text-[var(--color-accent)]">0.0%</span></p>
+                    </div>
+                </div>
+
+                <!-- Right Column: Top Emitters -->
+                <div class="w-full md:w-1/2">
+                    <h3 class="text-xl font-medium mb-4">Your Top Emitters</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium">Transportation</p>
+                                <p class="text-sm text-[var(--color-text-secondary)]">E.g., Car, Public Transit</p>
+                            </div>
+                            <span class="w-24 text-right text-[var(--color-text-secondary)]">0.5 kg CO2e</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium">Food & Drink</p>
+                                <p class="text-sm text-[var(--color-text-secondary)]">E.g., Meat, Coffee</p>
+                            </div>
+                            <span class="w-24 text-right text-[var(--color-text-secondary)]">0.4 kg CO2e</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium">Energy Use</p>
+                                <p class="text-sm text-[var(--color-text-secondary)]">E.g., Electricity, Heating</p>
+                            </div>
+                            <span class="w-24 text-right text-[var(--color-text-secondary)]">0.3 kg CO2e</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium">Waste</p>
+                                <p class="text-sm text-[var(--color-text-secondary)]">E.g., Plastic, Landfill</p>
+                            </div>
+                            <span class="w-24 text-right text-[var(--color-text-secondary)]">0.2 kg CO2e</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actionable Suggestions Card -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Sustainable Choices</h2>
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <i class="fas fa-check-circle text-[var(--color-accent)] mr-3 mt-1"></i>
+                    <div>
+                        <p class="font-medium">Switch to Public Transport</p>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Reducing your transportation footprint by 50-70% on average.</p>
+                        <button class="mt-1 text-[var(--color-accent)] hover:underline text-sm">Learn More</button>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="fas fa-check-circle text-[var(--color-accent)] mr-3 mt-1"></i>
+                    <div>
+                        <p class="font-medium">Opt for Plant-Based Meals</p>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Significantly lower your food-related carbon emissions.</p>
+                        <button class="mt-1 text-[var(--color-accent)] hover:underline text-sm">Explore Recipes</button>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="fas fa-check-circle text-[var(--color-accent)] mr-3 mt-1"></i>
+                    <div>
+                        <p class="font-medium">Reduce Single-Use Plastics</p>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Minimize waste and its associated environmental impact.</p>
+                        <button class="mt-1 text-[var(--color-accent)] hover:underline text-sm">Replace Guide</button>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <i class="fas fa-check-circle text-[var(--color-accent)] mr-3 mt-1"></i>
+                    <div>
+                        <p class="font-medium">Energy Efficiency Tips</p>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Conserve energy and lower your utility bills.</p>
+                        <button class="mt-1 text-[var(--color-accent)] hover:underline text-sm">Action Plan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personalized Goals Card -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Set Your Goals</h2>
+            <p class="text-[var(--color-text-secondary)] mb-4">Define what you want to achieve with GreenTrack. Track your progress towards a greener lifestyle.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex items-center">
+                    <input type="checkbox" id="goal1" class="form-checkbox h-5 w-5 text-[var(--color-accent)] rounded border-[var(--color-border-light)] focus:ring-[var(--color-accent)]">
+                    <label for="goal1" class="ml-2 text-[var(--color-text-primary)]">Reduce daily footprint by 10%</label>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="goal2" class="form-checkbox h-5 w-5 text-[var(--color-accent)] rounded border-[var(--color-border-light)] focus:ring-[var(--color-accent)]">
+                    <label for="goal2" class="ml-2 text-[var(--color-text-primary)]">Achieve 100% renewable energy in home</label>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="goal3" class="form-checkbox h-5 w-5 text-[var(--color-accent)] rounded border-[var(--color-border-light)] focus:ring-[var(--color-accent)]">
+                    <label for="goal3" class="ml-2 text-[var(--color-text-primary)]">Eat more plant-based meals</label>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="goal4" class="form-checkbox h-5 w-5 text-[var(--color-accent)] rounded border-[var(--color-border-light)] focus:ring-[var(--color-accent)]">
+                    <label for="goal4" class="ml-2 text-[var(--color-text-primary)]">Achieve zero single-use plastic</label>
+                </div>
+            </div>
+            <button class="mt-6 w-full py-2 px-4 rounded-md bg-[var(--color-accent)] text-white font-semibold hover:bg-green-600 transition-colors">Save Goals</button>
+        </div>
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Chart.js setup for Carbon Trend
+        const ctx = document.getElementById('carbonTrendChart').getContext('2d');
+        const carbonTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Daily Carbon Footprint (kg CO2e)',
+                    data: [0.8, 0.9, 0.7, 1.0, 0.6, 0.5, 0.95], // Example data
+                    borderColor: 'var(--color-accent)',
+                    backgroundColor: 'rgba(52, 211, 153, 0.2)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'var(--color-accent)',
+                    pointBorderColor: 'white',
+                    pointHoverBorderColor: 'var(--color-text-primary)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Important for fixed height
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'CO2e (kg)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' kg';
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Day of the Week'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw + ' kg CO2e';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Simulate data updates (for demonstration)
+        function updateDashboardData() {
+            // Simulate a small change in footprint
+            const currentTotal = parseFloat(document.getElementById('total-footprint').textContent.replace(' kg CO2e', ''));
+            const newTotal = (currentTotal * 1.05).toFixed(1); // 5% increase
+            document.getElementById('total-footprint').textContent = `${newTotal} kg CO2e`;
+
+            // Simulate a change in average and weekly change
+            const currentDailyAvg = parseFloat(document.getElementById('daily-average').textContent.replace(' kg CO2e', ''));
+            const newDailyAvg = (currentDailyAvg * 1.02).toFixed(1); // 2% increase
+            document.getElementById('daily-average').textContent = `${newDailyAvg} kg CO2e`;
+
+            const currentWeeklyChange = parseFloat(document.getElementById('weekly-change').textContent.replace('%', ''));
+            const newWeeklyChange = (currentWeeklyChange * 1.01).toFixed(2); // 1% increase
+            document.getElementById('weekly-change').textContent = `${newWeeklyChange}%`;
+
+            // Update the line chart data (simulating new point)
+            const currentMax = carbonTrendChart.data.datasets[0].data[carbonTrendChart.data.labels.length - 1];
+            const newPoint = (currentMax * 1.03).toFixed(2); // 3% increase
+            carbonTrendChart.data.datasets[0].data.push(parseFloat(newPoint));
+            carbonTrendChart.data.labels.push(new Date().toLocaleDateString('en-US', { weekday: 'short' }));
+            carbonTrendChart.update();
+
+            // Re-render the chart to ensure it fits within its fixed height
+            // This is a simpler way than a full re-render, but for dynamic data, you'd re-draw
+            // or adjust the canvas size. For fixed height, the `scales` in options might need
+            // to be dynamic, or a `max` for y-axis.
+            // For a real app, you'd use a responsive chart library or dynamically adjust
+            // the chart's height.
+        }
+
+        // Initial data load
+        updateDashboardData();
+
+        // Update data every 5 seconds for demonstration
+        setInterval(updateDashboardData, 5000);
+    </script>
+</body>
+</html>

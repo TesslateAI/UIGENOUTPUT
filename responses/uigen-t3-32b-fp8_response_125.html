@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Reader App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Icon library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: #0E0E0E; /* Darker background */
+            --color-bg-card: #1A1A1A; /* Card background */
+            --color-text-primary: #E0E0E0; /* Light text */
+            --color-text-secondary: #B0B0B0; /* Secondary text */
+            --color-accent: #007bff; /* Blue accent for buttons/links */
+            --color-border: #2A2A2A; /* Border color */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+        }
+
+        .category-button {
+            @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200;
+            background-color: var(--color-bg-card);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+        }
+
+        .category-button.active {
+            background-color: var(--color-accent);
+            color: white;
+            border-color: var(--color-accent);
+        }
+
+        .category-button:hover:not(.active) {
+            background-color: var(--color-border);
+            color: var(--color-text-primary);
+        }
+
+        .article-card {
+            @apply bg-card-bg rounded-xl overflow-hidden shadow-lg border border-border-color;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .article-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .article-image {
+            @apply w-full h-48 object-cover object-center;
+        }
+
+        .article-content {
+            @apply p-4;
+        }
+
+        .article-title {
+            @apply text-lg font-semibold text-primary-text mb-2;
+        }
+
+        .article-source {
+            @apply text-sm text-secondary-text mb-2;
+        }
+
+        .article-excerpt {
+            @apply text-sm text-secondary-text line-clamp-3;
+        }
+
+        .load-more-btn {
+            @apply px-6 py-3 bg-accent text-white rounded-lg font-medium text-base hover:bg-blue-600 transition-colors duration-200;
+        }
+
+        /* Responsive grid for articles */
+        @media (min-width: 768px) {
+            .article-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .article-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body class="bg-bg-main text-primary-text">
+
+    <!-- Header / Navbar -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-bg-main bg-opacity-90 backdrop-blur-md border-b border-border-color">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
+            <div class="flex items-center justify-between h-16">
+                <a href="#" class="text-2xl font-bold text-accent flex items-center">
+                    <i class="fas fa-newspaper mr-2"></i> NewsFlow
+                </a>
+                <nav class="hidden md:flex space-x-6 items-center">
+                    <button id="add-category-btn" class="category-button">
+                        <i class="fas fa-plus mr-2"></i> Add Category
+                    </button>
+                    <div class="relative">
+                        <button id="search-btn" class="category-button">
+                            <i class="fas fa-search mr-2"></i> Search
+                        </button>
+                        <!-- Search Modal (hidden by default) -->
+                        <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+                            <div class="bg-bg-card p-6 rounded-lg shadow-xl w-full max-w-md border border-border-color">
+                                <h3 class="text-xl font-semibold mb-4">Search News</h3>
+                                <input type="text" id="search-input" placeholder="Enter keywords..." class="w-full p-3 rounded-md bg-bg-main border border-border-color text-primary-text placeholder-secondary-text focus:outline-none focus:border-accent mb-4">
+                                <div class="flex justify-end space-x-3">
+                                    <button id="close-search-modal" class="px-4 py-2 rounded-md text-secondary-text hover:text-primary-text transition-colors">Cancel</button>
+                                    <button id="perform-search" class="px-4 py-2 rounded-md bg-accent text-white hover:bg-blue-600 transition-colors">Search</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-primary-text focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu (hidden by default) -->
+        <div id="mobile-menu" class="md:hidden hidden bg-bg-main border-b border-border-color">
+            <a href="#" class="block py-3 px-4 text-sm hover:bg-bg-card">Home</a>
+            <button id="mobile-add-category-btn" class="w-full text-left py-3 px-4 text-sm hover:bg-bg-card">
+                <i class="fas fa-plus mr-2"></i> Add Category
+            </button>
+            <button id="mobile-search-btn" class="w-full text-left py-3 px-4 text-sm hover:bg-bg-card">
+                <i class="fas fa-search mr-2"></i> Search
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="container mx-auto max-w-screen-xl">
+            <!-- Category Navigation -->
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Categories</h2>
+                <div class="flex flex-wrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <button class="category-button active" data-category="all">All News</button>
+                    <button class="category-button" data-category="technology">Technology</button>
+                    <button class="category-button" data-category="business">Business</button>
+                    <button class="category-button" data-category="sports">Sports</button>
+                    <button class="category-button" data-category="health">Health</button>
+                    <button class="category-button" data-category="entertainment">Entertainment</button>
+                    <button class="category-button" data-category="politics">Politics</button>
+                    <button class="category-button" data-category="science">Science</button>
+                    <button class="category-button" data-category="travel">Travel</button>
+                    <button class="category-button" data-category="food">Food</button>
+                    <!-- Add more categories dynamically -->
+                </div>
+            </div>
+
+            <!-- Article List -->
+            <div id="article-list" class="grid article-grid gap-6">
+                <!-- Articles will be loaded here -->
+            </div>
+
+            <!-- Load More Button -->
+            <div id="load-more-container" class="text-center mt-10">
+                <button id="load-more-btn" class="load-more-btn">Load More</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-bg-card border-t border-border-color py-6 px-4 sm:px-6 lg:px-8 mt-16">
+        <div class="container mx-auto max-w-screen-xl text-center text-sm text-secondary-text">
+            &copy; 2024 NewsFlow. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Add Category Modal -->
+    <div id="add-category-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-bg-card p-6 rounded-lg shadow-xl w-full max-w-sm border border-border-color">
+            <h3 class="text-xl font-semibold mb-4">Add New Category</h3>
+            <input type="text" id="new-category-input" placeholder="e.g., Finance, Environment" class="w-full p-3 rounded-md bg-bg-main border border-border-color text-primary-text placeholder-secondary-text focus:outline-none focus:border-accent mb-4">
+            <div class="flex justify-end space-x-3">
+                <button id="close-add-category-modal" class="px-4 py-2 rounded-md text-secondary-text hover:text-primary-text transition-colors">Cancel</button>
+                <button id="add-category-submit" class="px-4 py-2 rounded-md bg-accent text-white hover:bg-blue-600 transition-colors">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const articleList = document.getElementById('article-list');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            const categoryButtons = document.querySelectorAll('.category-button');
+            const addCategoryBtn = document.getElementById('add-category-btn');
+            const addCategoryModal = document.getElementById('add-category-modal');
+            const closeAddCategoryModal = document.getElementById('close-add-category-modal');
+            const addCategorySubmit = document.getElementById('add-category-submit');
+            const newCategoryInput = document.getElementById('new-category-input');
+            const searchBtn = document.getElementById('search-btn');
+            const searchModal = document.getElementById('search-modal');
+            const searchInput = document.getElementById('search-input');
+            const closeSearchModal = document.getElementById('close-search-modal');
+            const performSearchBtn = document.getElementById('perform-search');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileAddCategoryBtn = document.getElementById('mobile-add-category-btn');
+            const mobileSearchBtn = document.getElementById('mobile-search-btn');
+
+            let currentCategory = 'all';
+            let articlesPerPage = 6; // Number of articles to load per scroll/page
+            let currentPage = 1;
+            let allArticles = []; // Store all articles for filtering
+            let loadedArticlesCount = 0; // Track how many articles have been loaded
+
+            // Mock Article Data
+            const mockArticles = [
+                { id: 1, category: 'technology', title: 'AI Breakthroughs in 2024', excerpt: 'Explore the latest advancements in artificial intelligence...', source: 'Tech Daily', image: 'https://placehold.co/600x400/333/FFF?text=AI+Image', date: '2024-03-15' },
+                { id: 2, category: 'business', title: 'Market Trends for Q1 2024', excerpt: 'An in-depth analysis of the current economic landscape...', source: 'Business Weekly', image: 'https://placehold.co/600x400/444/FFF?text=Market+Image', date: '2024-03-14' },
+                { id: 3, category: 'sports', title: 'Championship Final Highlights', excerpt: 'Key moments from the thrilling final match...', source: 'Sports News', image: 'https://placehold.co/600x400/555/FFF?text=Sports+Image', date: '2024-03-13' },
+                { id: 4, category: 'health', title: 'New Study on Mental Wellness', excerpt: 'Discover the latest research on improving mental health...', source: 'Health Today', image: 'https://placehold.co/600x400/666/FFF?text=Health+Image', date: '2024-03-12' },
+                { id: 5, category: 'entertainment', title: 'Upcoming Blockbuster Films', excerpt: 'A preview of the most anticipated movies this summer...', source: 'Entertainment Weekly', image: 'https://placehold.co/600x400/777/FFF?text=Entertainment+Image', date: '2024-03-11' },
+                { id: 6, category: 'politics', title: 'New Policy Announcements', excerpt: 'Overview of recent political developments and their implications...', source: 'Political Insights', image: 'https://placehold.co/600x400/888/FFF?text=Politics+Image', date: '2024-03-10' },
+                { id: 7, category: 'science', title: 'Exploring Quantum Computing', excerpt: 'The future of computing and its potential impact...', source: 'Science Monthly', image: 'https://placehold.co/600x400/999/FFF?text=Science+Image', date: '2024-03-09' },
+                { id: 8, category: 'travel', title: 'Best Destinations for Summer 2024', excerpt: 'Plan your next adventure with these top travel spots...', source: 'Travel Guide', image: 'https://placehold.co/600x400/AAA/FFF?text=Travel+Image', date: '2024-03-08' },
+                { id: 9, category: 'food', title: 'Trending Culinary Innovations', excerpt: 'Discover the latest trends in food and beverage...', source: 'Foodie Forum', image: 'https://placehold.co/600x400/BBB/FFF?text=Food+Image', date: '2024-03-07' },
+                { id: 10, category: 'technology', title: 'Cybersecurity Threats to Watch', excerpt: 'Understanding the evolving landscape of digital threats...', source: 'Tech Daily', image: 'https://placehold.co/600x400/CCC/FFF?text=Cyber+Image', date: '2024-03-06' },
+                { id: 11, category: 'business', title: 'Startup Success Stories', excerpt: 'Learn from the journeys of successful entrepreneurs...', source: 'Business Weekly', image: 'https://placehold.co/600x400/DDD/FFF?text=Startup+Image', date: '2024-03-05' },
+                { id: 12, category: 'sports', title: 'Olympic Preparations Update', excerpt: 'Behind the scenes of the upcoming Olympic Games...', source: 'Sports News', image: 'https://placehold.co/600x400/EEE/FFF?text=Olympic+Image', date: '2024-03-04' },
+                { id: 13, category: 'health', title: 'Nutrition for Athletes', excerpt: 'Optimal dietary strategies for peak athletic performance...', source: 'Health Today', image: 'https://placehold.co/600x400/111/FFF?text=Athlete+Image', date: '2024-03-03' },
+                { id: 14, category: 'entertainment', title: 'Pop Culture Roundup', excerpt: 'The biggest stories in music, movies, and TV...', source: 'Entertainment Weekly', image: 'https://placehold.co/600x400/222/FFF?text=Pop+Image', date: '2024-03-02' },
+                { id: 15, category: 'politics', title: 'Global Diplomatic Talks', excerpt: 'Recent developments in international relations...', source: 'Political Insights', image: 'https://placehold.co/600x400/333/FFF?text=Diplomacy+Image', date: '2024-03-01' },
+                { id: 16, category: 'science', title: 'Space Exploration Milestones', excerpt: 'New discoveries and missions beyond our planet...', source: 'Science Monthly', image: 'https://placehold.co/600x400/444/FFF?text=Space+Image', date: '2024-02-29' },
+                { id: 17, category: 'travel', title: 'Sustainable Travel Tips', excerpt: 'How to explore the world responsibly...', source: 'Travel Guide', image: 'https://placehold.co/600x400/555/FFF?text=Sustainable+Image', date: '2024-02-28' },
+                { id: 18, category: 'food', title: 'Plant-Based Recipes', excerpt: 'Delicious and healthy vegan and vegetarian dishes...', source: 'Foodie Forum', image: 'https://placehold.co/600x400/666/FFF?text=PlantBased+Image', date: '2024-02-27' },
+            ];
+
+            // Initialize all articles
+            allArticles = [...mockArticles];
+
+            // Function to render articles
+            const renderArticles = (articlesToRender) => {
+                articleList.innerHTML = ''; // Clear current articles
+                articlesToRender.forEach(article => {
+                    const articleCard = document.createElement('div');
+                    articleCard.className = 'article-card';
+                    articleCard.innerHTML = `
+                        <img src="${article.image}" alt="${article.title}" class="article-image">
+                        <div class="article-content">
+                            <p class="article-source">${article.source} - ${article.date}</p>
+                            <h3 class="article-title">${article.title}</h3>
+                            <p class="article-excerpt">${article.excerpt}</p>
+                            <div class="flex justify-between items-center text-secondary-text text-xs mt-2">
+                                <span><i class="fas fa-comment mr-1"></i> 12 Comments</span>
+                                <span><i class="fas fa-share-alt mr-1"></i> Share</span>
+                            </div>
+                        </div>
+                    `;
+                    articleList.appendChild(articleCard);
+                });
+                loadedArticlesCount = articlesToRender.length;
+            };
+
+            // Function to load articles based on category
+            const loadArticles = (category = 'all', page = 1) => {
+                let filteredArticles = allArticles;
+
+                if (category !== 'all') {
+                    filteredArticles = allArticles.filter(article => article.category === category);
+                }
+
+                const startIndex = (page - 1) * articlesPerPage;
+                const endIndex = startIndex + articlesPerPage;
+                const paginatedArticles = filteredArticles.slice(startIndex, endIndex);
+
+                if (paginatedArticles.length > 0) {
+                    paginatedArticles.forEach(article => {
+                        const articleCard = document.createElement('div');
+                        articleCard.className = 'article-card';
+                        articleCard.innerHTML = `
+                            <img src="${article.image}" alt="${article.title}" class="article-image">
+                            <div class="article-content">
+                                <p class="article-source">${article.source} - ${article.date}</p>
+                                <h3 class="article-title">${article.title}</h3>
+                                <p class="article-excerpt">${article.excerpt}</p>
+                                <div class="flex justify-between items-center text-secondary-text text-xs mt-2">
+                                    <span><i class="fas fa-comment mr-1"></i> 12 Comments</span>
+                                    <span><i class="fas fa-share-alt mr-1"></i> Share</span>
+                                </div>
+                            </div>
+                        `;
+                        articleList.appendChild(articleCard);
+                    });
+                    loadedArticlesCount += paginatedArticles.length;
+                }
+
+                // Hide load more button if no more articles
+                if (endIndex >= filteredArticles.length) {
+                    loadMoreBtn.style.display = 'none';
+                } else {
+                    loadMoreBtn.style.display = 'block';
+                }
+            };
+
+            // Event listener for category buttons
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    categoryButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    currentCategory = button.dataset.category;
+                    currentPage = 1; // Reset page when category changes
+                    articleList.innerHTML = ''; // Clear current articles
+                    loadArticles(currentCategory, currentPage);
+                    // Re-enable load more button
+                    loadMoreBtn.style.display = 'block';
+                });
+            });
+
+            // Event listener for "Load More" button
+            loadMoreBtn.addEventListener('click', () => {
+                currentPage++;
+                loadArticles(currentCategory, currentPage);
+            });
+
+            // Infinite Scroll using Intersection Observer
+            const loadMoreTrigger = document.createElement('div');
+            loadMoreTrigger.id = 'load-more-trigger';
+            loadMoreTrigger.className = 'h-20'; // A small buffer zone
+            document.body.appendChild(loadMoreTrigger);
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Trigger load more when the trigger element is in view
+                        currentPage++;
+                        loadArticles(currentCategory, currentPage);
+                    }
+                });
+            }, { threshold: 0.1 }); // Trigger when 10% of the trigger is visible
+
+            observer.observe(loadMoreTrigger);
+
+            // Add Category Modal functionality
+            addCategoryBtn.addEventListener('click', () => {
+                addCategoryModal.classList.remove('hidden');
+            });
+
+            closeAddCategoryModal.addEventListener('click', () => {
+                addCategoryModal.classList.add('hidden');
+            });
+
+            addCategorySubmit.addEventListener('click', () => {
+                const categoryName = newCategoryInput.value.trim();
+                if (categoryName && !categoryButtons.some(btn => btn.dataset.category === categoryName.toLowerCase())) {
+                    const newCategoryButton = document.createElement('button');
+                    newCategoryButton.className = 'category-button';
+                    newCategoryButton.dataset.category = categoryName.toLowerCase();
+                    newCategoryButton.textContent = categoryName;
+                    newCategoryButton.addEventListener('click', () => {
+                        categoryButtons.forEach(btn => btn.classList.remove('active'));
+                        newCategoryButton.classList.add('active');
+                        currentCategory = newCategoryButton.dataset.category;
+                        currentPage = 1;
+                        articleList.innerHTML = '';
+                        loadArticles(currentCategory, currentPage);
+                        loadMoreBtn.style.display = 'block';
+                    });
+                    document.querySelector('.flex.flex-wrap.gap-2').appendChild(newCategoryButton);
+                    addCategoryModal.classList.add('hidden');
+                    newCategoryInput.value = '';
+                } else {
+                    alert('Category name is empty or already exists!');
+                }
+            });
+
+            // Search Modal functionality
+            searchBtn.addEventListener('click', () => {
+                searchModal.classList.remove('hidden');
+            });
+
+            closeSearchModal.addEventListener('click', () => {
+                searchModal.classList.add('hidden');
+            });
+
+            performSearchBtn.addEventListener('click', () => {
+                const query = searchInput.value.trim().toLowerCase();
+                if (query) {
+                    const searchResults = allArticles.filter(article => 
+                        article.title.toLowerCase().includes(query) || 
+                        article.excerpt.toLowerCase().includes(query) || 
+                        article.source.toLowerCase().includes(query)
+                    );
+                    renderArticles(searchResults);
+                    searchModal.classList.add('hidden');
+                } else {
+                    alert('Please enter a search term.');
+                }
+            });
+
+            // Mobile Menu Toggle
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            mobileMenu.addEventListener('click', (e) => {
+                if (e.target === mobileMenu || e.target.closest('a')) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+
+            mobileAddCategoryBtn.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                addCategoryModal.classList.remove('hidden');
+            });
+
+            mobileSearchBtn.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                searchModal.classList.remove('hidden');
+            });
+
+            // Initial load
+            loadArticles(currentCategory, currentPage);
+        });
+    </script>
+</body>
+</html>

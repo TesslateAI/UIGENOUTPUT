@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Project Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --token-bg-dark: #0F0F0F;
+            --token-primary: #6637ED;
+            --token-primary-light: #9366FF;
+            --token-text-light: #E6E6E7;
+            --token-text-medium: #828284;
+            --token-bg-dark-accent: #141414;
+            --token-border-dark: #292929;
+            --token-bg-glass: rgba(255, 255, 255, 0.05);
+            --token-bg-glass-darker: rgba(17, 17, 17, 0.5);
+            --token-glow-blue: #5856D6;
+            --token-glow-pink: #FF7EFF;
+            --token-glow-purple: #B56FFA;
+            --token-glow-green: #00E676;
+            --token-glow-yellow: #FFD700;
+            --token-glow-red: #FF4131;
+            --token-glow-cyan: #00FFFF;
+            --token-glow-orange: #FFA500;
+            --token-glow-light-purple: #E0B0FF;
+
+            /* Project Management Specific Colors */
+            --color-status-todo: #4CAF50; /* Green */
+            --color-status-in-progress: #FFC107; /* Yellow */
+            --color-status-done: #2196F3; /* Blue */
+            --color-status-blocked: #F44336; /* Red */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-bg-dark);
+            color: var(--token-text-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr auto; /* Header, Main Content, Footer */
+            height: 100vh;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 2fr; /* Sidebar, Main Content */
+                grid-template-rows: auto 1fr;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 2fr 1fr; /* Sidebar, Main Content, Right Panel */
+            }
+        }
+
+        .main-content-area {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr; /* Header, Content */
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .main-content-area {
+                grid-template-columns: 1fr 1fr; /* Kanban, Gantt */
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .main-content-area {
+                grid-template-columns: 2fr 1fr; /* Kanban, Gantt */
+            }
+        }
+
+        .kanban-column {
+            background-color: var(--token-bg-dark-accent);
+            border: 1px solid var(--token-border-dark);
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .kanban-task-card {
+            background-color: var(--token-bg-dark);
+            border: 1px solid var(--token-border-dark);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: grab;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .kanban-task-card:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .gantt-chart-container {
+            background-color: var(--token-bg-dark-accent);
+            border: 1px solid var(--token-border-dark);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            height: 400px; /* Fixed height for scrollable area */
+        }
+
+        .gantt-timeline {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            min-width: 100%; /* Ensures it expands for wide timelines */
+        }
+
+        .gantt-date-label {
+            width: 50px; /* Fixed width for date labels */
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--token-text-medium);
+        }
+
+        .gantt-task-bar {
+            height: 20px;
+            background-color: var(--token-primary);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .gantt-task-bar:hover {
+            background-color: var(--token-primary-light);
+        }
+
+        .gantt-task-bar .task-name {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.7rem;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        .activity-feed-item {
+            background-color: var(--token-bg-dark-accent);
+            border: 1px solid var(--token-border-dark);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Drag & Drop styles */
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed var(--token-primary-light);
+        }
+    </style>
+</head>
+<body class="dashboard-grid">
+
+    <!-- Header (Top Bar) -->
+    <header class="col-span-full bg-[var(--token-bg-dark-accent)] border-b border-[var(--token-border-dark)] p-4 flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-[var(--token-text-light)]">Project Dashboard</h1>
+        <div class="flex items-center space-x-4">
+            <button class="text-[var(--token-text-medium)] hover:text-[var(--token-text-light)] transition-colors">
+                <i class="fas fa-bell text-xl"></i>
+            </button>
+            <div class="relative group">
+                <img src="https://placehold.co/40x40/6637ED/FFFFFF/png?text=JD" alt="User Avatar" class="w-10 h-10 rounded-full cursor-pointer border-2 border-[var(--token-primary)]">
+                <div class="absolute right-0 mt-2 w-48 bg-[var(--token-bg-dark-accent)] border border-[var(--token-border-dark)] rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <a href="#" class="block px-4 py-2 text-sm text-[var(--token-text-light)] hover:bg-[var(--token-bg-dark)]">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-[var(--token-text-light)] hover:bg-[var(--token-bg-dark)]">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-[var(--token-text-light)] hover:bg-[var(--token-bg-dark)]">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar (Navigation) -->
+    <aside class="hidden md:block bg-[var(--token-bg-dark-accent)] border-r border-[var(--token-border-dark)] p-4">
+        <nav class="space-y-4">
+            <a href="#" class="flex items-center space-x-3 text-[var(--token-text-light)] hover:text-[var(--token-primary)] hover:bg-[var(--token-bg-dark)] p-2 rounded-md transition-colors">
+                <i class="fas fa-tachometer-alt text-xl"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 text-[var(--token-text-medium)] hover:text-[var(--token-primary)] hover:bg-[var(--token-bg-dark)] p-2 rounded-md transition-colors">
+                <i class="fas fa-tasks text-xl"></i>
+                <span>Tasks</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 text-[var(--token-text-medium)] hover:text-[var(--token-primary)] hover:bg-[var(--token-bg-dark)] p-2 rounded-md transition-colors">
+                <i class="fas fa-users text-xl"></i>
+                <span>Team</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 text-[var(--token-text-medium)] hover:text-[var(--token-primary)] hover:bg-[var(--token-bg-dark)] p-2 rounded-md transition-colors">
+                <i class="fas fa-chart-line text-xl"></i>
+                <span>Reports</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 text-[var(--token-text-medium)] hover:text-[var(--token-primary)] hover:bg-[var(--token-bg-dark)] p-2 rounded-md transition-colors">
+                <i class="fas fa-cog text-xl"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content-area col-span-full lg:col-span-2">
+        <!-- Top Bar for Main Content -->
+        <div class="bg-[var(--token-bg-dark-accent)] border-b border-[var(--token-border-dark)] p-4 flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-[var(--token-text-light)]">Project Overview</h2>
+            <div class="flex space-x-2">
+                <button class="bg-[var(--token-primary)] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[var(--token-primary-light)] transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Add Task
+                </button>
+                <button class="bg-[var(--token-bg-dark)] text-[var(--token-text-light)] px-4 py-2 rounded-md text-sm font-medium hover:bg-[var(--token-bg-dark-accent)] transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filters
+                </button>
+            </div>
+        </div>
+
+        <!-- Kanban Board Section -->
+        <section class="kanban-section p-4 bg-[var(--token-bg-dark)] border border-[var(--token-border-dark)] rounded-lg">
+            <h3 class="text-lg font-semibold text-[var(--token-text-light)] mb-4">Kanban Board</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- To Do Column -->
+                <div id="todo-column" class="kanban-column">
+                    <h4 class="text-md font-semibold text-[var(--token-text-light)] mb-3">To Do <span class="text-[var(--color-status-todo)] ml-2">(<span id="todo-count">0</span>)</span></h4>
+                    <div class="kanban-tasks flex-grow overflow-y-auto pr-2">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                    <button class="add-task-button mt-3 w-full bg-[var(--token-bg-dark-accent)] text-[var(--token-text-light)] px-3 py-2 rounded-md text-sm hover:bg-[var(--token-primary)] hover:text-white transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Task
+                    </button>
+                </div>
+
+                <!-- In Progress Column -->
+                <div id="in-progress-column" class="kanban-column">
+                    <h4 class="text-md font-semibold text-[var(--token-text-light)] mb-3">In Progress <span class="text-[var(--color-status-in-progress)] ml-2">(<span id="in-progress-count">0</span>)</span></h4>
+                    <div class="kanban-tasks flex-grow overflow-y-auto pr-2">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                    <button class="add-task-button mt-3 w-full bg-[var(--token-bg-dark-accent)] text-[var(--token-text-light)] px-3 py-2 rounded-md text-sm hover:bg-[var(--token-primary)] hover:text-white transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Task
+                    </button>
+                </div>
+
+                <!-- Done Column -->
+                <div id="done-column" class="kanban-column">
+                    <h4 class="text-md font-semibold text-[var(--token-text-light)] mb-3">Done <span class="text-[var(--color-status-done)] ml-2">(<span id="done-count">0</span>)</span></h4>
+                    <div class="kanban-tasks flex-grow overflow-y-auto pr-2">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                    <button class="add-task-button mt-3 w-full bg-[var(--token-bg-dark-accent)] text-[var(--token-text-light)] px-3 py-2 rounded-md text-sm hover:bg-[var(--token-primary)] hover:text-white transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add Task
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gantt Chart Section -->
+        <section class="gantt-chart-section p-4 bg-[var(--token-bg-dark)] border border-[var(--token-border-dark)] rounded-lg">
+            <h3 class="text-lg font-semibold text-[var(--token-text-light)] mb-4">Gantt Chart</h3>
+            <div class="gantt-chart-container">
+                <div class="flex items-center mb-2">
+                    <div class="gantt-date-label">Date</div>
+                    <!-- Date labels will be dynamically generated here -->
+                </div>
+                <div id="gantt-tasks-container" class="gantt-timeline">
+                    <!-- Task bars will be dynamically added here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Right Panel (Activity Feed) -->
+    <aside class="hidden lg:block p-4 bg-[var(--token-bg-dark)] border border-[var(--token-border-dark)] rounded-lg">
+        <h3 class="text-lg font-semibold text-[var(--token-text-light)] mb-4">Team Activity Feed</h3>
+        <div id="activity-feed" class="space-y-4">
+            <!-- Activity items will be dynamically added here -->
+            <div class="activity-feed-item">
+                <p class="text-sm text-[var(--token-text-medium)]">You assigned "Design Homepage" to <span class="text-[var(--token-primary)] font-medium">John Doe</span>.</p>
+                <span class="text-xs text-[var(--token-text-medium)]">2 hours ago</span>
+            </div>
+            <div class="activity-feed-item">
+                <p class="text-sm text-[var(--token-text-medium)]"><span class="text-[var(--token-primary)] font-medium">Jane Smith</span> updated "Develop User Auth" to "In Progress".</p>
+                <span class="text-xs text-[var(--token-text-medium)]">5 hours ago</span>
+            </div>
+            <div class="activity-feed-item">
+                <p class="text-sm text-[var(--token-text-medium)]">Project "Marketing Campaign" is now <span class="text-[var(--token-primary)] font-medium">Completed</span>.</p>
+                <span class="text-xs text-[var(--token-text-medium)]">Yesterday</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Footer -->
+    <footer class="col-span-full bg-[var(--token-bg-dark-accent)] border-t border-[var(--token-border-dark)] p-4 text-center text-[var(--token-text-medium)] text-sm">
+        &copy; <span id="current-year"></span> SaaS Project Management. All rights reserved.
+        <script>
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+        </script>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sample Data
+            const tasks = [
+                { id: 1, title: "Design Homepage", status: "To Do", assignee: "John Doe", dueDate: "2024-07-20", duration: 5 },
+                { id: 2, title: "Develop User Auth", status: "In Progress", assignee: "Jane Smith", dueDate: "2024-07-25", duration: 3 },
+                { id: 3, title: "Database Setup", status: "Done", assignee: "Alice Brown", dueDate: "2024-07-18", duration: 2 },
+                { id: 4, title: "Content Writing", status: "To Do", assignee: "Bob White", dueDate: "2024-07-22", duration: 4 },
+                { id: 5, title: "Frontend Integration", status: "In Progress", assignee: "John Doe", dueDate: "2024-07-27", duration: 5 },
+                { id: 6, title: "Testing & QA", status: "To Do", assignee: "Jane Smith", dueDate: "2024-07-28", duration: 3 },
+                { id: 7, title: "Launch Preparation", status: "To Do", assignee: "Alice Brown", dueDate: "2024-07-30", duration: 2 }
+            ];
+
+            let currentTasks = { ...tasks.reduce((acc, task) => {
+                acc[task.status] = acc[task.status] || [];
+                acc[task.status].push(task);
+                return acc;
+            }, {}) };
+
+            const kanbanColumns = {
+                'To Do': document.getElementById('todo-column').querySelector('.kanban-tasks'),
+                'In Progress': document.getElementById('in-progress-column').querySelector('.kanban-tasks'),
+                'Done': document.getElementById('done-column').querySelector('.kanban-tasks')
+            };
+
+            const columnCounts = {
+                'To Do': document.getElementById('todo-count'),
+                'In Progress': document.getElementById('in-progress-count'),
+                'Done': document.getElementById('done-count')
+            };
+
+            const ganttTasksContainer = document.getElementById('gantt-tasks-container');
+            const activityFeed = document.getElementById('activity-feed');
+
+            // --- Kanban Board Functionality ---
+
+            function renderKanbanTasks() {
+                for (const status in kanbanColumns) {
+                    kanbanColumns[status].innerHTML = ''; // Clear existing tasks
+                    currentTasks[status].forEach(task => {
+                        const taskCard = document.createElement('div');
+                        taskCard.className = 'kanban-task-card';
+                        taskCard.dataset.taskId = task.id;
+                        taskCard.draggable = true;
+                        taskCard.innerHTML = `
+                            <h4 class="font-semibold text-[var(--token-text-light)]">${task.title}</h4>
+                            <p class="text-sm text-[var(--token-text-medium)]">Assigned to: ${task.assignee}</p>
+                            <p class="text-xs text-[var(--token-text-medium)]">Due: ${task.dueDate}</p>
+                        `;
+                        kanbanColumns[status].appendChild(taskCard);
+                    });
+                    columnCounts[status].textContent = currentTasks[status] ? currentTasks[status].length : 0;
+                }
+                addDragAndDropListeners();
+            }
+
+            function addDragAndDropListeners() {
+                document.querySelectorAll('.kanban-task-card').forEach(card => {
+                    card.addEventListener('dragstart', handleDragStart);
+                    card.addEventListener('dragend', handleDragEnd);
+                });
+
+                document.querySelectorAll('.kanban-tasks').forEach(column => {
+                    column.addEventListener('dragover', handleDragOver);
+                    column.addEventListener('drop', handleDrop);
+                });
+            }
+
+            let draggedTask = null;
+
+            function handleDragStart(e) {
+                draggedTask = this;
+                setTimeout(() => this.classList.add('dragging'), 0);
+                e.dataTransfer.setData('text/plain', this.dataset.taskId);
+            }
+
+            function handleDragEnd() {
+                this.classList.remove('dragging');
+                draggedTask = null;
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault(); // Allow drop
+                const afterElement = getDragAfterElement(this, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                if (draggable) {
+                    if (afterElement == null) {
+                        this.appendChild(draggable);
+                    } else {
+                        this.insertBefore(draggable, afterElement);
+                    }
+                }
+            }
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.kanban-task-card:not(.dragging)')];
+
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData('text/plain');
+                const droppedTask = tasks.find(t => t.id == taskId);
+                if (!droppedTask) return;
+
+                const targetColumn = e.currentTarget.closest('.kanban-tasks').closest('.kanban-column').querySelector('.kanban-tasks');
+
+                const newStatus = targetColumn.id === 'todo-column' ? 'To Do' :
+                                  targetColumn.id === 'in-progress-column' ? 'In Progress' :
+                                  'Done';
+
+                if (currentTasks[droppedTask.status]) {
+                    currentTasks[droppedTask.status] = currentTasks[droppedTask.status].filter(t => t.id !== taskId);
+                }
+
+                if (!currentTasks[newStatus]) {
+                    currentTasks[newStatus] = [];
+                }
+                currentTasks[newStatus].push(droppedTask);
+
+                // Update activity feed
+                addActivityItem(`${droppedTask.title} moved to "${newStatus}" by you.`);
+                renderKanbanTasks(); // Re-render to update counts and order
+                renderGanttChart(); // Re-render Gantt chart
+            }
+
+            // --- Gantt Chart Functionality ---
+
+            function renderGanttChart() {
+                ganttTasksContainer.innerHTML = ''; // Clear existing bars
+                ganttTasksContainer.appendChild(document.createElement('div').className = 'gantt-date-label'); // Placeholder for first label
+
+                const today = new Date();
+                const todayDateString = today.toISOString().split('T')[0];
+
+                let allDates = new Set();
+                tasks.forEach(task => {
+                    const dueDate = new Date(task.dueDate);
+                    const durationDays = task.duration;
+                    let currentTaskDate = new Date(task.dueDate);
+
+                    for (let i = 0; i < durationDays; i++) {
+                        allDates.add(currentTaskDate.toISOString().split('T')[0]);
+                        currentTaskDate.setDate(currentTaskDate.getDate() - 1); // Move backward for start date
+                    }
+                });
+
+                // Sort and prepare dates for display
+                const sortedDates = Array.from(allDates).sort();
+                const dateLabels = sortedDates.map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                });
+
+                // Add date labels to the Gantt chart
+                const dateLabelContainer = ganttTasksContainer.querySelector('.gantt-date-label');
+                if (dateLabelContainer) {
+                    dateLabelContainer.remove(); // Remove the placeholder
+                }
+                const newDateLabelContainer = document.createElement('div');
+                newDateLabelContainer.className = 'gantt-date-label'; // Re-add with class
+                ganttTasksContainer.prepend(newDateLabelContainer); // Prepend to the start
+
+                dateLabels.forEach(label => {
+                    const dateLabelDiv = document.createElement('div');
+                    dateLabelDiv.className = 'gantt-date-label';
+                    dateLabelDiv.textContent = label;
+                    ganttTasksContainer.appendChild(dateLabelDiv);
+                });
+
+                // Add task bars
+                tasks.forEach(task => {
+                    const taskBar = document.createElement('div');
+                    taskBar.className = 'gantt-task-bar';
+                    taskBar.style.backgroundColor = getStatusColor(task.status);
+                    taskBar.dataset.taskId = task.id;
+                    taskBar.innerHTML = `<span class="task-name">${task.title}</span>`;
+
+                    // Calculate position and width based on dates
+                    const start = new Date(task.dueDate);
+                    start.setDate(start.getDate() - (task.duration - 1)); // Start date is duration days before due date
+
+                    const startDateIndex = sortedDates.indexOf(start.toISOString().split('T')[0]);
+                    const endDateIndex = sortedDates.indexOf(task.dueDate);
+
+                    if (startDateIndex === -1 || endDateIndex === -1) {
+                        console.warn(`Task ${task.title} dates not found in Gantt chart timeline.`);
+                        return;
+                    }
+
+                    const totalDays = endDateIndex - startDateIndex + 1;
+                    const barWidth = (totalDays / sortedDates.length) * 100; // Percentage of total width
+
+                    taskBar.style.width = `${barWidth}%`;
+                    taskBar.style.left = `${(startDateIndex / sortedDates.length) * 100}%`;
+                    taskBar.style.position = 'absolute'; // Use absolute positioning for dynamic width/position
+                    taskBar.style.top = '0'; // Align to top of container
+                    taskBar.style.height = '20px'; // Fixed height
+
+                    // Add tooltip on hover
+                    taskBar.addEventListener('mouseover', (e) => {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'absolute bg-[var(--token-bg-dark-accent)] border border-[var(--token-border-dark)] text-[var(--token-text-light)] px-3 py-2 rounded-md text-sm z-50';
+                        tooltip.style.left = `${e.clientX + 10}px`;
+                        tooltip.style.top = `${e.clientY + 10}px`;
+                        tooltip.textContent = `${task.title}\nAssigned to: ${task.assignee}\nDue: ${task.dueDate}\nStatus: ${task.status}`;
+                        document.body.appendChild(tooltip);
+                        // Remove tooltip on mouseout
+                        taskBar.addEventListener('mouseout', () => {
+                            tooltip.remove();
+                        });
+                    });
+
+                    ganttTasksContainer.appendChild(taskBar);
+                });
+            }
+
+            function getStatusColor(status) {
+                switch (status) {
+                    case 'To Do': return 'var(--color-status-todo)';
+                    case 'In Progress': return 'var(--color-status-in-progress)';
+                    case 'Done': return 'var(--color-status-done)';
+                    case 'Blocked': return 'var(--color-status-blocked)';
+                    default: return 'var(--token-primary)';
+                }
+            }
+
+            // --- Activity Feed Functionality ---
+
+            function addActivityItem(message) {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-feed-item';
+                activityItem.innerHTML = `
+                    <p class="text-sm text-[var(--token-text-medium)]">${message}</p>
+                    <span class="text-xs text-[var(--token-text-medium)]">Just now</span>
+                `;
+                activityFeed.prepend(activityItem); // Add to the top
+                if (activityFeed.children.length > 10) { // Keep only last 10 items
+                    activityFeed.removeChild(activityFeed.lastChild);
+                }
+            }
+
+            // Initial Render
+            renderKanbanTasks();
+            renderGanttChart();
+
+            // Add Task Button Click Listener (for demonstration, adds a new task to 'To Do')
+            document.querySelectorAll('.add-task-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const newTaskId = tasks.length + 1;
+                    const newTaskTitle = `New Task ${newTaskId}`;
+                    const newTask = {
+                        id: newTaskId,
+                        title: newTaskTitle,
+                        status: 'To Do',
+                        assignee: 'Me',
+                        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+                        duration: 3
+                    };
+                    tasks.push(newTask);
+                    currentTasks['To Do'].push(newTask);
+                    addActivityItem(`You added "${newTask.title}" to "To Do".`);
+                    renderKanbanTasks();
+                    renderGanttChart();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

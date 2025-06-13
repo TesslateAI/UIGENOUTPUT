@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Patient Outcomes Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-bg-dark: rgb(0, 0, 0);
+            --color-bg-dark-secondary: rgb(13, 13, 13);
+            --color-text-light: rgb(255, 255, 255);
+            --color-text-light-muted: rgba(255, 255, 255, 0.7);
+            --color-text-light-faded: rgba(255, 255, 255, 0.4);
+            --color-accent: rgb(255, 101, 45);
+            --color-accent-dark: rgb(204, 79, 35);
+            --color-border-dark: rgb(34, 34, 34);
+            --color-bg-glass: rgba(255, 255, 255, 0.05);
+            --color-bg-glass-darker: rgba(13, 13, 13, 0.5);
+            --font-primary: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .card {
+            background-color: var(--color-bg-dark-secondary);
+            border: 1px solid var(--color-border-dark);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px; /* Fixed height to prevent excessive scrolling */
+            width: 100%;
+        }
+
+        /* Animation for dashboard elements */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-dark)] text-[var(--color-text-light)]">
+
+    <!-- Header / Navbar -->
+    <header class="bg-[var(--color-bg-dark)] border-b border-[var(--color-border-dark)] sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="#" class="text-2xl font-bold text-[var(--color-text-light)]">HealthData</a>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#" class="text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">Dashboard</a>
+                    <a href="#" class="text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">Patients</a>
+                    <a href="#" class="text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">Reports</a>
+                    <a href="#" class="text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">Settings</a>
+                </nav>
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" aria-label="Toggle theme" class="p-2 rounded-full hover:bg-[var(--color-bg-dark-secondary)]">
+                        <i id="theme-icon-dark" class="fas fa-moon h-5 w-5 text-[var(--color-text-light-muted)]"></i>
+                        <i id="theme-icon-light" class="fas fa-sun h-5 w-5 text-[var(--color-text-light-muted)] hidden"></i>
+                    </button>
+                    <div class="relative group">
+                        <button class="flex items-center space-x-2 text-[var(--color-text-light)] hover:text-[var(--color-accent)] transition-colors">
+                            <img src="https://placehold.co/32x32/FF652D/FFFFFF/png?text=JD" alt="User Avatar" class="rounded-full w-8 h-8 border border-[var(--color-border-dark)]">
+                            <span class="hidden md:inline">John Doe</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <!-- Dropdown for user menu -->
+                        <div class="absolute right-0 mt-2 w-48 bg-[var(--color-bg-dark-secondary)] border border-[var(--color-border-dark)] rounded-md shadow-lg py-1 hidden group-hover:block">
+                            <a href="#" class="block px-4 py-2 text-sm text-[var(--color-text-light-muted)] hover:bg-[var(--color-bg-dark)]">Profile</a>
+                            <a href="#" class="block px-4 py-2 text-sm text-[var(--color-text-light-muted)] hover:bg-[var(--color-bg-dark)]">Sign out</a>
+                        </div>
+                    </div>
+                    <button id="mobile-menu-button" class="md:hidden p-2 rounded-md hover:bg-[var(--color-bg-dark-secondary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--color-accent)]">
+                        <span class="sr-only">Open main menu</span>
+                        <i class="fas fa-bars h-6 w-6 text-[var(--color-text-light)]"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden bg-[var(--color-bg-dark)] border-b border-[var(--color-border-dark)]">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-light)] hover:bg-[var(--color-bg-dark-secondary)]">Dashboard</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-light-muted)] hover:bg-[var(--color-bg-dark-secondary)]">Patients</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-light-muted)] hover:bg-[var(--color-bg-dark-secondary)]">Reports</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-light-muted)] hover:bg-[var(--color-bg-dark-secondary)]">Settings</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 class="text-3xl font-bold mb-6 text-[var(--color-text-light)]">Patient Outcomes Overview</h1>
+
+        <!-- Dashboard Filters and Actions -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="relative w-full md:w-auto">
+                <select id="filter-by-date" class="block w-full md:w-64 px-4 py-2 bg-[var(--color-bg-dark-secondary)] border border-[var(--color-border-dark)] rounded-md text-[var(--color-text-light)] focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] appearance-none pr-8">
+                    <option value="last-30-days">Last 30 Days</option>
+                    <option value="last-90-days">Last 90 Days</option>
+                    <option value="last-180-days">Last 180 Days</option>
+                    <option value="this-year">This Year</option>
+                    <option value="all-time">All Time</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--color-text-light-muted)]">
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+            <button id="export-data-btn" class="px-6 py-2 bg-[var(--color-accent)] text-[var(--color-text-light)] rounded-md hover:bg-[var(--color-accent-dark)] transition-colors flex items-center gap-2">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+        </div>
+
+        <!-- Key Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="card animate-on-scroll">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-[var(--color-text-light)]">Patient Outcomes</h3>
+                    <i class="fas fa-syringe text-[var(--color-accent)] text-xl"></i>
+                </div>
+                <p class="text-4xl font-bold text-[var(--color-text-light)]">92.5%</p>
+                <p class="text-sm text-[var(--color-text-light-muted)] mt-1">Positive Recovery Rate</p>
+                <div class="flex items-center text-sm mt-2">
+                    <i class="fas fa-arrow-up text-green-400 mr-1"></i>
+                    <span class="text-green-400">+1.2%</span> from last month
+                </div>
+            </div>
+
+            <div class="card animate-on-scroll" style="transition-delay: 0.1s;">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-[var(--color-text-light)]">Patient Satisfaction</h3>
+                    <i class="fas fa-smile text-blue-400 text-xl"></i>
+                </div>
+                <p class="text-4xl font-bold text-[var(--color-text-light)]">4.8 / 5</p>
+                <p class="text-sm text-[var(--color-text-light-muted)] mt-1">Average Score</p>
+                <div class="flex items-center text-sm mt-2">
+                    <i class="fas fa-arrow-up text-green-400 mr-1"></i>
+                    <span class="text-green-400">+0.1</span> from last month
+                </div>
+            </div>
+
+            <div class="card animate-on-scroll" style="transition-delay: 0.2s;">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-[var(--color-text-light)]">Adverse Events</h3>
+                    <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                </div>
+                <p class="text-4xl font-bold text-[var(--color-text-light)]">0.8%</p>
+                <p class="text-sm text-[var(--color-text-light-muted)] mt-1">Rate</p>
+                <div class="flex items-center text-sm mt-2">
+                    <i class="fas fa-arrow-down text-red-400 mr-1"></i>
+                    <span class="text-red-400">-0.3%</span> from last month
+                </div>
+            </div>
+
+            <div class="card animate-on-scroll" style="transition-delay: 0.3s;">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-[var(--color-text-light)]">Readmission Rate</h3>
+                    <i class="fas fa-hospital-user text-purple-400 text-xl"></i>
+                </div>
+                <p class="text-4xl font-bold text-[var(--color-text-light)]">5.1%</p>
+                <p class="text-sm text-[var(--color-text-light-muted)] mt-1">Within 30 Days</p>
+                <div class="flex items-center text-sm mt-2">
+                    <i class="fas fa-arrow-up text-red-400 mr-1"></i>
+                    <span class="text-red-400">+0.5%</span> from last month
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="card animate-on-scroll" style="transition-delay: 0.4s;">
+                <h3 class="text-lg font-semibold mb-4 text-[var(--color-text-light)]">Patient Recovery Trend</h3>
+                <div class="chart-container">
+                    <canvas id="recoveryTrendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card animate-on-scroll" style="transition-delay: 0.5s;">
+                <h3 class="text-lg font-semibold mb-4 text-[var(--color-text-light)]">Outcomes by Condition</h3>
+                <div class="chart-container">
+                    <canvas id="outcomesByConditionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card animate-on-scroll" style="transition-delay: 0.6s;">
+                <h3 class="text-lg font-semibold mb-4 text-[var(--color-text-light)]">Patient Demographics</h3>
+                <div class="chart-container">
+                    <canvas id="patientDemographicsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card animate-on-scroll" style="transition-delay: 0.7s;">
+                <h3 class="text-lg font-semibold mb-4 text-[var(--color-text-light)]">Average Length of Stay</h3>
+                <div class="chart-container">
+                    <canvas id="lengthOfStayChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Patient Activity Table -->
+        <div class="card animate-on-scroll" style="transition-delay: 0.8s;">
+            <h3 class="text-lg font-semibold mb-4 text-[var(--color-text-light)]">Recent Patient Activity</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-[var(--color-border-dark)]">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-muted)] uppercase tracking-wider">Patient ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-muted)] uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-muted)] uppercase tracking-wider">Condition</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-muted)] uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-muted)] uppercase tracking-wider">Last Update</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-muted)] uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--color-border-dark)]">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P001</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">Alice Johnson</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light-muted)]">Diabetes</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Recovered</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light-muted)]">2024-03-15</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-dark)]">View Details</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P002</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">Bob Williams</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light-muted)]">Hypertension</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Stable</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light-muted)]">2024-03-14</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-dark)]">View Details</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">P003</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light)]">Charlie Brown</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light-muted)]">Asthma</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Adverse Event</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-light-muted)]">2024-03-13</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-dark)]">View Details</button>
+                            </td>
+                        </tr>
+                        <!-- More rows as needed -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-bg-dark)] border-t border-[var(--color-border-dark)] py-6">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-[var(--color-text-light-muted)]">
+            © 2024 HealthData. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Chart Data and Configuration -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Theme Toggler
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIconDark = document.getElementById('theme-icon-dark');
+            const themeIconLight = document.getElementById('theme-icon-light');
+            const htmlElement = document.documentElement;
+
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    htmlElement.classList.add('dark');
+                    themeIconDark.classList.remove('hidden');
+                    themeIconLight.classList.add('hidden');
+                } else {
+                    htmlElement.classList.remove('dark');
+                    themeIconDark.classList.add('hidden');
+                    themeIconLight.classList.remove('hidden');
+                }
+            }
+
+            let currentTheme = localStorage.getItem('theme');
+            if (!currentTheme) {
+                currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            applyTheme(currentTheme);
+            themeToggle.addEventListener('click', () => {
+                const newTheme = htmlElement.classList.contains('dark') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+
+            // Mobile Menu
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Scroll Animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+
+            // Charts
+            const chartColors = {
+                primary: 'rgb(255, 101, 45)', // --color-accent
+                secondary: 'rgb(72, 216, 125)', // --color-green-400
+                tertiary: 'rgb(59, 130, 246)', // --color-blue-400
+                quaternary: 'rgb(239, 68, 68)', // --color-red-400
+                text: 'rgb(255, 255, 255)',
+                grid: 'rgba(255, 255, 255, 0.1)',
+            };
+
+            // Recovery Trend Chart
+            const recoveryTrendCtx = document.getElementById('recoveryTrendChart').getContext('2d');
+            const recoveryTrendChart = new Chart(recoveryTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Positive Recovery Rate (%)',
+                        data: [90, 91, 92, 91.5, 92.8, 93, 92.5],
+                        borderColor: chartColors.primary,
+                        backgroundColor: 'rgba(255, 101, 45, 0.2)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: chartColors.primary,
+                        pointBorderColor: chartColors.text,
+                        pointBorderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: chartColors.text,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: chartColors.bgDarkSecondary,
+                            titleColor: chartColors.text,
+                            bodyColor: chartColors.text,
+                            borderColor: chartColors.borderDark,
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: chartColors.grid
+                            },
+                            ticks: {
+                                color: chartColors.text
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            min: 85,
+                            max: 95,
+                            grid: {
+                                color: chartColors.grid
+                            },
+                            ticks: {
+                                color: chartColors.text,
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Outcomes by Condition Chart (Doughnut)
+            const outcomesByConditionCtx = document.getElementById('outcomesByConditionChart').getContext('2d');
+            const outcomesByConditionChart = new Chart(outcomesByConditionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Diabetes', 'Hypertension', 'Asthma', 'Heart Disease', 'Cancer'],
+                    datasets: [{
+                        label: 'Outcomes',
+                        data: [75, 88, 91, 82, 70], // Example positive recovery rates
+                        backgroundColor: [
+                            chartColors.primary,
+                            chartColors.secondary,
+                            chartColors.tertiary,
+                            chartColors.quaternary,
+                            'rgb(168, 85, 247)' // Indigo-400
+                        ],
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: chartColors.text,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: chartColors.bgDarkSecondary,
+                            titleColor: chartColors.text,
+                            bodyColor: chartColors.text,
+                            borderColor: chartColors.borderDark,
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed) {
+                                        label += context.parsed + '% Recovery';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Patient Demographics Chart (Bar)
+            const patientDemographicsCtx = document.getElementById('patientDemographicsChart').getContext('2d');
+            const patientDemographicsChart = new Chart(patientDemographicsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'],
+                    datasets: [{
+                        label: 'Number of Patients',
+                        data: [120, 250, 300, 280, 180, 90],
+                        backgroundColor: chartColors.primary,
+                        borderColor: chartColors.primary,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: chartColors.bgDarkSecondary,
+                            titleColor: chartColors.text,
+                            bodyColor: chartColors.text,
+                            borderColor: chartColors.borderDark,
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' Patients';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: chartColors.text
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: chartColors.grid
+                            },
+                            ticks: {
+                                color: chartColors.text
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Average Length of Stay Chart (Line)
+            const lengthOfStayCtx = document.getElementById('lengthOfStayChart').getContext('2d');
+            const lengthOfStayChart = new Chart(lengthOfStayCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Avg. Length of Stay (Days)',
+                        data: [5.2, 5.5, 5.0, 5.3, 4.8, 4.9, 5.1],
+                        borderColor: chartColors.tertiary,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: chartColors.tertiary,
+                        pointBorderColor: chartColors.text,
+                        pointBorderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: chartColors.text,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: chartColors.bgDarkSecondary,
+                            titleColor: chartColors.text,
+                            bodyColor: chartColors.text,
+                            borderColor: chartColors.borderDark,
+                            borderWidth: 1,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' Days';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: chartColors.grid
+                            },
+                            ticks: {
+                                color: chartColors.text
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            min: 4,
+                            max: 6,
+                            grid: {
+                                color: chartColors.grid
+                            },
+                            ticks: {
+                                color: chartColors.text
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Filter by Date (Placeholder for actual data fetching)
+            const filterByDate = document.getElementById('filter-by-date');
+            filterByDate.addEventListener('change', function() {
+                const selectedPeriod = this.value;
+                console.log(`Filtering data for: ${selectedPeriod}`);
+                // In a real application, you would fetch new data here and update charts
+                // Example: updateChart(recoveryTrendChart, newDataForRecovery);
+            });
+
+            // Export Data Button (Placeholder)
+            const exportDataBtn = document.getElementById('export-data-btn');
+            exportDataBtn.addEventListener('click', function() {
+                alert('Exporting data... (This is a placeholder action)');
+                // In a real application, you'd trigger a data export (e.g., CSV, PDF)
+            });
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

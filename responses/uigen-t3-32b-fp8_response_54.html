@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #3B82F6; /* Tailwind blue-500 */
+            --color-primary-dark: #2563EB; /* Tailwind blue-600 */
+            --color-text-base: #1F2937; /* Tailwind gray-800 */
+            --color-text-muted: #4B5563; /* Tailwind gray-600 */
+            --color-bg-light: #F9FAFB; /* Tailwind gray-50 */
+            --color-bg-medium: #E5E7EB; /* Tailwind gray-200 */
+            --color-bg-dark: #111827; /* Tailwind gray-900 */
+            --color-border-light: #D1D5DB; /* Tailwind gray-300 */
+            --color-chat-user: #E5E7EB; /* Tailwind gray-200 */
+            --color-chat-bot: #F3F4F6; /* Tailwind gray-100 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-base);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            height: 600px; /* Fixed height for the chat interface */
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid var(--color-border-light);
+        }
+
+        .chat-header {
+            background-color: var(--color-primary);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .chat-log {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: var(--color-bg-light);
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chat-message.user {
+            background-color: var(--color-chat-user);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.bot {
+            background-color: var(--color-chat-bot);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 16px;
+            background-color: white;
+            border-top: 1px solid var(--color-border-light);
+            border-bottom-right-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--color-border-light);
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease-in-out;
+        }
+
+        .chat-input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .send-button {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            margin-left: 12px;
+        }
+
+        .send-button:hover {
+            background-color: var(--color-primary-dark);
+        }
+
+        .chat-bubble-animation {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInSlide 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInSlide {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            Chatbot Assistant
+        </div>
+        <div id="chat-log" class="chat-log">
+            <!-- Initial bot message -->
+            <div class="chat-message bot chat-bubble-animation">
+                Hello! How can I assist you today?
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" class="chat-input" placeholder="Type your message...">
+            <button id="send-button" class="send-button" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        function appendMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', sender, 'chat-bubble-animation');
+            messageDiv.textContent = text;
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+        }
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                appendMessage(message, 'user');
+                userInput.value = ''; // Clear input field
+
+                // Simulate bot response
+                setTimeout(() => {
+                    const botResponse = `You said: "${message}". I'm a simple bot, but I'm here to help!`;
+                    appendMessage(botResponse, 'bot');
+                }, 500); // Delay for realistic bot response
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

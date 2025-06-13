@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Todo List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #0D0D0D;
+            --color-text-light: #FFFFFF;
+            --color-text-muted: rgba(255, 255, 255, 0.7);
+            --color-primary: #88C0D0; /* A nice blue for primary actions */
+            --color-primary-dark: #66A3B0;
+            --color-accent-orange: #F0A74F; /* For priority colors */
+            --color-accent-green: #68D391; /* For priority colors */
+            --color-accent-red: #D36868;   /* For priority colors */
+            --color-card-dark: #1A1A1A;
+            --color-border-dark: #2B2B2B;
+            --color-hover-bg: #2C2C2C;
+            --color-input-bg: #222222;
+            --color-input-border: #444444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .priority-high { background-color: var(--color-accent-red); }
+        .priority-medium { background-color: var(--color-accent-orange); }
+        .priority-low { background-color: var(--color-accent-green); }
+
+        .draggable-item {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: grab;
+        }
+        .draggable-item:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+        }
+
+        .dragging {
+            opacity: 0.6;
+            transform: scale(1.02);
+        }
+
+        .drag-over {
+            border-top: 2px solid var(--color-primary);
+            background-color: var(--color-hover-bg);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-2xl mx-auto bg-[var(--color-card-dark)] p-6 rounded-lg shadow-xl border border-[var(--color-border-dark)]">
+        <h1 class="text-3xl font-bold text-[var(--color-text-light)] mb-6 text-center">My Todo List</h1>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <input type="text" id="new-todo-input" placeholder="Add a new task..." 
+                   class="flex-grow p-3 rounded-md bg-[var(--color-input-bg)] border border-[var(--color-input-border)] text-[var(--color-text-light)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                   aria-label="New task input">
+            <select id="priority-select" 
+                    class="p-3 rounded-md bg-[var(--color-input-bg)] border border-[var(--color-input-border)] text-[var(--color-text-light)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    aria-label="Task priority">
+                <option value="high" class="priority-high">High (Red)</option>
+                <option value="medium" class="priority-medium">Medium (Orange)</option>
+                <option value="low" class="priority-low">Low (Green)</option>
+            </select>
+            <button id="add-todo-btn" 
+                    class="px-6 py-3 bg-[var(--color-primary)] text-[var(--color-bg-dark)] rounded-md font-semibold hover:bg-[var(--color-primary-dark)] transition-colors flex items-center justify-center w-full md:w-auto"
+                    aria-label="Add task">
+                <i class="fas fa-plus mr-2"></i> Add Task
+            </button>
+        </div>
+
+        <div id="todo-list" class="space-y-4">
+            <!-- Todo items will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        const newTodoInput = document.getElementById('new-todo-input');
+        const prioritySelect = document.getElementById('priority-select');
+        const addTodoBtn = document.getElementById('add-todo-btn');
+        const todoList = document.getElementById('todo-list');
+
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
+
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        function createTodoElement(task, index) {
+            const todoItem = document.createElement('div');
+            todoItem.id = `todo-${index}`;
+            todoItem.className = `draggable-item flex items-center justify-between p-4 rounded-md bg-[var(--color-card-dark)] border border-[var(--color-border-dark)] text-[var(--color-text-light)] relative group ${getPriorityClass(task.priority)}`;
+            todoItem.setAttribute('draggable', 'true');
+            todoItem.setAttribute('role', 'listitem');
+            todoItem.setAttribute('aria-grabbed', 'false'); // For accessibility
+
+            todoItem.innerHTML = `
+                <div class="flex items-start flex-grow min-w-0">
+                    <input type="checkbox" class="mr-3 w-5 h-5 accent-[var(--color-primary)]" ${task.completed ? 'checked' : ''}>
+                    <span class="${task.completed ? 'line-through text-[var(--color-text-muted)]' : ''} break-words">${task.text}</span>
+                </div>
+                <div class="flex items-center space-x-2 ml-4">
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${getPriorityClass(task.priority)}" aria-label="${task.priority} priority">${task.priority}</span>
+                    <button class="remove-todo-btn text-[var(--color-text-muted)] hover:text-red-400 transition-colors" aria-label="Remove task">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            return todoItem;
+        }
+
+        function getPriorityClass(priority) {
+            switch (priority) {
+                case 'high':
+                    return 'priority-high';
+                case 'medium':
+                    return 'priority-medium';
+                case 'low':
+                    return 'priority-low';
+                default:
+                    return ''; // Fallback
+            }
+        }
+
+        function renderTodos() {
+            todoList.innerHTML = '';
+            todos.forEach((task, index) => {
+                const todoItem = createTodoElement(task, index);
+                todoList.appendChild(todoItem);
+            });
+            addDragAndDropListeners();
+            addEventListenersForTodos();
+        }
+
+        function addEventListenersForTodos() {
+            document.querySelectorAll('.draggable-item input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const taskId = e.target.closest('.draggable-item').id;
+                    const taskIndex = todos.findIndex(t => t.id === taskId);
+                    if (taskIndex > -1) {
+                        todos[taskIndex].completed = e.target.checked;
+                        saveTodos();
+                        renderTodos(); // Re-render to apply line-through
+                    }
+                });
+            });
+
+            document.querySelectorAll('.remove-todo-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskId = e.target.closest('.draggable-item').id;
+                    todos = todos.filter(t => t.id !== taskId);
+                    saveTodos();
+                    renderTodos();
+                });
+            });
+        }
+
+        function addDragAndDropListeners() {
+            const draggableItems = document.querySelectorAll('.draggable-item');
+            let draggedItem = null;
+
+            draggableItems.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.id); // Set data for transfer
+                    item.classList.add('dragging');
+                    item.setAttribute('aria-grabbed', 'true');
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Allow drop
+                    const target = e.target.closest('.draggable-item');
+                    if (target && target !== draggedItem) {
+                        const rect = target.getBoundingClientRect();
+                        const middle = rect.y + (rect.height / 2);
+
+                        if (e.clientY < middle) {
+                            todoList.insertBefore(draggedItem, target);
+                        } else {
+                            todoList.insertBefore(draggedItem, target.nextSibling);
+                        }
+                        todoList.classList.add('drag-over');
+                    }
+                });
+
+                item.addEventListener('dragleave', () => {
+                    todoList.classList.remove('drag-over');
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    todoList.classList.remove('drag-over');
+                    // The reordering is already handled by the dragover listener
+                    // We just need to update the 'todos' array with the new order
+                    const newOrderIds = Array.from(todoList.children).map(item => item.id);
+                    todos = newOrderIds.map(id => todos.find(task => task.id === id));
+                    saveTodos();
+                    // Re-render to ensure all data is consistent and ARIA states are updated
+                    renderTodos(); 
+                });
+
+                item.addEventListener('dragend', () => {
+                    draggedItem = null;
+                    item.classList.remove('dragging');
+                    item.setAttribute('aria-grabbed', 'false');
+                });
+            });
+        }
+
+        addTodoBtn.addEventListener('click', () => {
+            const text = newTodoInput.value.trim();
+            const priority = prioritySelect.value;
+            if (text) {
+                const newTodo = {
+                    id: Date.now().toString(),
+                    text: text,
+                    completed: false,
+                    priority: priority
+                };
+                todos.push(newTodo);
+                newTodoInput.value = '';
+                saveTodos();
+                renderTodos();
+            }
+        });
+
+        newTodoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTodoBtn.click();
+            }
+        });
+
+        // Initial render
+        renderTodos();
+    </script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Timeline Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --twitter-blue: #1DA1F2;
+            --twitter-dark-blue: #1A91DA;
+            --twitter-light-gray: #E1E8ED;
+            --twitter-extra-light-gray: #F5F8FA;
+            --twitter-text-dark: #14171A;
+            --twitter-text-medium: #44474E;
+            --twitter-border: #DDE0E3;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--twitter-extra-light-gray);
+            color: var(--twitter-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .tweet-card {
+            background-color: white;
+            border-bottom: 1px solid var(--twitter-border);
+            padding: 16px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .tweet-card:hover {
+            background-color: #F7F8F9;
+        }
+
+        .media-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 75%; /* 4:3 Aspect Ratio */
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .media-wrapper img, .media-wrapper video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .like-button, .retweet-button, .reply-button {
+            color: var(--twitter-text-medium);
+            transition: color 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .like-button:hover, .retweet-button:hover, .reply-button:hover {
+            color: var(--twitter-blue);
+        }
+
+        .like-button.liked, .retweet-button.retweeted {
+            color: var(--twitter-blue);
+        }
+
+        .thread-indicator {
+            color: var(--twitter-text-medium);
+            font-size: 0.875rem; /* 14px */
+            margin-left: 4px;
+        }
+
+        .tweet-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .tweet-actions button {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--twitter-text-medium);
+            font-size: 0.875rem;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .tweet-actions button:hover {
+            color: var(--twitter-blue);
+        }
+
+        .tweet-actions button.liked, .tweet-actions button.retweeted {
+            color: var(--twitter-blue);
+        }
+
+        .profile-picture {
+            width: 48px;
+            height: 48px;
+            border-radius: 9999px;
+            object-fit: cover;
+            margin-right: 12px;
+        }
+
+        .tweet-content {
+            display: flex;
+            align-items: flex-start;
+            flex-grow: 1;
+        }
+
+        .tweet-meta {
+            font-size: 0.875rem;
+            color: var(--twitter-text-medium);
+            margin-right: 8px;
+        }
+
+        .reply-thread {
+            border-left: 2px solid var(--twitter-blue);
+            padding-left: 12px;
+            margin-left: 12px;
+            background-color: #F0F2F5; /* Lighter background for replies */
+        }
+
+        .reply-tweet {
+            margin-left: 12px;
+            border-bottom: 1px solid var(--twitter-border);
+            padding-bottom: 12px;
+        }
+
+        .reply-tweet:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .tweet-cta {
+            background-color: var(--twitter-blue);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .tweet-cta:hover {
+            background-color: var(--twitter-dark-blue);
+        }
+
+        .tweet-cta:focus {
+            outline: 2px solid var(--twitter-blue);
+            outline-offset: 2px;
+        }
+
+        .tweet-cta:active {
+            background-color: #1888C1; /* Darker blue on click */
+        }
+
+        .reply-input {
+            width: 100%;
+            border: 1px solid var(--twitter-border);
+            border-radius: 9999px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            resize: none; /* Prevent manual resizing */
+            overflow: hidden; /* Hide scrollbar */
+            min-height: 40px; /* Ensure a minimum height for the textarea */
+        }
+
+        .reply-button {
+            margin-top: 12px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <h1 class="text-2xl font-bold text-twitter-text-dark mb-6">Home</h1>
+
+        <div id="timeline" class="space-y-4">
+            <!-- Tweet 1: With Image -->
+            <div class="tweet-card">
+                <div class="flex items-start">
+                    <img src="https://placehold.co/48x48?text=U1" alt="User 1" class="profile-picture">
+                    <div class="tweet-content">
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-text-dark">John Doe</span>
+                            <span class="text-twitter-text-medium">· 2h</span>
+                        </div>
+                        <p class="text-twitter-text-dark">Just launched a new project! So excited to share the early results. Check it out! #WebDev #Innovation</p>
+                        <img src="https://placehold.co/600x337?text=Project+Launch" alt="Project Launch" class="w-full h-auto rounded-md mt-2">
+                    </div>
+                </div>
+                <div class="tweet-actions mt-4">
+                    <button class="like-button">
+                        <i class="far fa-heart"></i> 1.2K
+                    </button>
+                    <button class="retweet-button">
+                        <i class="fas fa-retweet"></i> 500
+                    </button>
+                    <button class="reply-button">
+                        <i class="far fa-comment"></i> 89
+                    </button>
+                    <button class="tweet-cta">Reply</button>
+                </div>
+            </div>
+
+            <!-- Tweet 2: With Video -->
+            <div class="tweet-card">
+                <div class="flex items-start">
+                    <img src="https://placehold.co/48x48?text=U2" alt="User 2" class="profile-picture">
+                    <div class="tweet-content">
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-text-dark">Jane Smith</span>
+                            <span class="text-twitter-text-medium">· 4h</span>
+                        </div>
+                        <p class="text-twitter-text-dark">Here's a quick video walkthrough of my latest article. It's all about the future of AI in design. Can't wait for your thoughts! #AIDesign #FutureTech</p>
+                        <div class="media-wrapper">
+                            <video src="https://www.w3schools.com/html/mov_bbb.mp4" controls class="w-full h-full"></video>
+                        </div>
+                    </div>
+                </div>
+                <div class="tweet-actions mt-4">
+                    <button class="like-button">
+                        <i class="far fa-heart"></i> 987
+                    </button>
+                    <button class="retweet-button">
+                        <i class="fas fa-retweet"></i> 345
+                    </button>
+                    <button class="reply-button">
+                        <i class="far fa-comment"></i> 210
+                    </button>
+                    <button class="tweet-cta">Reply</button>
+                </div>
+            </div>
+
+            <!-- Tweet 3: With Reply Thread -->
+            <div class="tweet-card">
+                <div class="flex items-start">
+                    <img src="https://placehold.co/48x48?text=U3" alt="User 3" class="profile-picture">
+                    <div class="tweet-content">
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-text-dark">Tech Enthusiast</span>
+                            <span class="text-twitter-text-medium">· 6h</span>
+                        </div>
+                        <p class="text-twitter-text-dark">This is a great insight into cloud computing. I agree, the transition is seamless!</p>
+                        <div class="tweet-cta">Reply</div>
+                    </div>
+                </div>
+                <div class="tweet-actions mt-4">
+                    <button class="like-button">
+                        <i class="far fa-heart"></i> 2.1K
+                    </button>
+                    <button class="retweet-button">
+                        <i class="fas fa-retweet"></i> 1.5K
+                    </button>
+                    <button class="reply-button">
+                        <i class="far fa-comment"></i> 450
+                    </button>
+                    <button class="tweet-cta">Reply</button>
+                </div>
+            </div>
+
+            <!-- Reply 1 to Tweet 3 -->
+            <div class="reply-thread">
+                <div class="tweet-card">
+                    <div class="flex items-start">
+                        <img src="https://placehold.co/48x48?text=U4" alt="User 4" class="profile-picture">
+                        <div class="tweet-content">
+                            <div class="flex items-center">
+                                <span class="font-bold text-twitter-text-dark">AI Innovator</span>
+                                <span class="text-twitter-text-medium">· 5h</span>
+                            </div>
+                            <p class="text-twitter-text-dark">Absolutely! The advancements are truly remarkable. Looking forward to more!</p>
+                        </div>
+                    </div>
+                    <div class="tweet-actions mt-4">
+                        <button class="like-button">
+                            <i class="far fa-heart"></i> 345
+                        </button>
+                        <button class="retweet-button">
+                            <i class="fas fa-retweet"></i> 120
+                        </button>
+                        <button class="reply-button">
+                            <i class="far fa-comment"></i> 70
+                        </button>
+                        <button class="tweet-cta">Reply</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reply 2 to Tweet 3 (nesting deeper, though not strictly required for "reply thread") -->
+            <div class="reply-thread">
+                <div class="tweet-card">
+                    <div class="flex items-start">
+                        <img src="https://placehold.co/48x48?text=U5" alt="User 5" class="profile-picture">
+                        <div class="tweet-content">
+                            <div class="flex items-center">
+                                <span class="font-bold text-twitter-text-dark">Data Pro</span>
+                                <span class="text-twitter-text-medium">· 4h</span>
+                            </div>
+                            <p class="text-twitter-text-dark">That's a valid point. The infrastructure is solid, allowing for robust applications.</p>
+                        </div>
+                    </div>
+                    <div class="tweet-actions mt-4">
+                        <button class="like-button">
+                            <i class="far fa-heart"></i> 150
+                        </button>
+                        <button class="retweet-button">
+                            <i class="fas fa-retweet"></i> 60
+                        </button>
+                        <button class="reply-button">
+                            <i class="far fa-comment"></i> 30
+                        </button>
+                        <button class="tweet-cta">Reply</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tweet 4: With Text Only -->
+            <div class="tweet-card">
+                <div class="flex items-start">
+                    <img src="https://placehold.co/48x48?text=U6" alt="User 6" class="profile-picture">
+                    <div class="tweet-content">
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-text-dark">Creative Mind</span>
+                            <span class="text-twitter-text-medium">· 1d</span>
+                        </div>
+                        <p class="text-twitter-text-dark">What are your thoughts on the new design trends in 2024? I'm always learning and experimenting with different styles. #Design #Trends</p>
+                    </div>
+                </div>
+                <div class="tweet-actions mt-4">
+                    <button class="like-button">
+                        <i class="far fa-heart"></i> 765
+                    </button>
+                    <button class="retweet-button">
+                        <i class="fas fa-retweet"></i> 310
+                    </button>
+                    <button class="reply-button">
+                        <i class="far fa-comment"></i> 180
+                    </button>
+                    <button class="tweet-cta">Reply</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reply Input Area -->
+        <div class="mt-8">
+            <div class="flex items-start">
+                <img src="https://placehold.co/48x48?text=You" alt="Your Profile" class="profile-picture">
+                <div class="w-full">
+                    <textarea class="reply-input" placeholder="What's happening?"></textarea>
+                    <button class="reply-button mt-2">Tweet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.like-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    button.classList.toggle('liked');
+                    const heartIcon = button.querySelector('i');
+                    if (button.classList.contains('liked')) {
+                        heartIcon.classList.remove('far');
+                        heartIcon.classList.add('fas');
+                        button.textContent = heartIcon.outerHTML; // Re-render for counter
+                    } else {
+                        heartIcon.classList.remove('fas');
+                        heartIcon.classList.add('far');
+                        button.textContent = heartIcon.outerHTML; // Re-render for counter
+                    }
+                });
+            });
+
+            document.querySelectorAll('.retweet-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    button.classList.toggle('retweeted');
+                    const retweetIcon = button.querySelector('i');
+                    if (button.classList.contains('retweeted')) {
+                        retweetIcon.classList.remove('far');
+                        retweetIcon.classList.add('fas');
+                        button.textContent = retweetIcon.outerHTML; // Re-render for counter
+                    } else {
+                        retweetIcon.classList.remove('fas');
+                        retweetIcon.classList.add('far');
+                        button.textContent = retweetIcon.outerHTML; // Re-render for counter
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

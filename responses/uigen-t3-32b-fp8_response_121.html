@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Product Catalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #004FFF; /* Deep Blue */
+            --color-primary-light: #DBEAFE; /* Light Blue */
+            --color-text-dark: #18181B; /* Almost Black */
+            --color-text-medium: #474747; /* Grey */
+            --color-bg-light: #F8F8F8; /* Off-White */
+            --color-border-light: #E4E4E4; /* Light Grey */
+            --color-white: #FFFFFF;
+
+            --font-inter: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-inter);
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-light);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #003BB5;
+        }
+
+        /* Quick View Modal specific styles */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--color-white);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .modal-content.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Product card hover effect */
+        .product-card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive grid adjustments */
+        @media (min-width: 768px) {
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .product-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-light)]">
+
+    <!-- Header / Navbar -->
+    <header class="bg-[var(--color-white)] shadow-sm py-4 fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-[var(--color-primary)]">Shopify</a>
+            <div class="flex items-center space-x-6">
+                <button class="text-[var(--color-text-medium)] hover:text-[var(--color-primary)] transition-colors">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                </button>
+                <button class="text-[var(--color-text-medium)] hover:text-[var(--color-primary)] transition-colors">
+                    <i class="fas fa-user-circle text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-20 pb-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-4xl font-bold text-[var(--color-text-dark)] mb-8">Our Products</h1>
+
+            <!-- Sorting and Search Controls -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 space-y-4 md:space-y-0 md:space-x-4">
+                <div class="relative flex-grow">
+                    <input type="text" id="product-search" placeholder="Search products..." class="w-full pl-10 pr-4 py-2 border border-[var(--color-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-medium)]"></i>
+                </div>
+                <div class="relative">
+                    <select id="sort-by" class="block appearance-none w-full bg-white border border-[var(--color-border-light)] text-[var(--color-text-dark)] py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+                        <option value="name-asc">Sort By Name (A-Z)</option>
+                        <option value="name-desc">Sort By Name (Z-A)</option>
+                        <option value="price-asc">Sort By Price (Low to High)</option>
+                        <option value="price-desc">Sort By Price (High to Low)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--color-text-medium)]">
+                        <i class="fas fa-sort-down text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8 product-grid">
+                <!-- Product Card 1 -->
+                <div class="product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]">
+                    <img src="https://placehold.co/400x300/E0E0E0/FFFFFF?text=Product+1" alt="Product 1" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">Minimalist Desk Lamp</h3>
+                        <p class="text-[var(--color-text-medium)] text-sm mb-3">A sleek and functional desk lamp for any workspace.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-[var(--color-primary)]">$49.99</span>
+                            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="1">
+                                Quick View <i class="fas fa-eye ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 2 -->
+                <div class="product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]">
+                    <img src="https://placehold.co/400x300/D0D0D0/FFFFFF?text=Product+2" alt="Product 2" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">Ergonomic Office Chair</h3>
+                        <p class="text-[var(--color-text-medium)] text-sm mb-3">Comfortable and supportive chair for long hours.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-[var(--color-primary)]">$199.99</span>
+                            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="2">
+                                Quick View <i class="fas fa-eye ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 3 -->
+                <div class="product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]">
+                    <img src="https://placehold.co/400x300/C0C0C0/FFFFFF?text=Product+3" alt="Product 3" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">Wireless Bluetooth Speaker</h3>
+                        <p class="text-[var(--color-text-medium)] text-sm mb-3">High-fidelity sound for your home or office.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-[var(--color-primary)]">$79.99</span>
+                            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="3">
+                                Quick View <i class="fas fa-eye ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 4 -->
+                <div class="product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]">
+                    <img src="https://placehold.co/400x300/B0B0B0/FFFFFF?text=Product+4" alt="Product 4" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">Smart Home Security Camera</h3>
+                        <p class="text-[var(--color-text-medium)] text-sm mb-3">Keep your home safe with 24/7 monitoring.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-[var(--color-primary)]">$149.99</span>
+                            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="4">
+                                Quick View <i class="fas fa-eye ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 5 -->
+                <div class="product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]">
+                    <img src="https://placehold.co/400x300/A0A0A0/FFFFFF?text=Product+5" alt="Product 5" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">Portable Power Bank</h3>
+                        <p class="text-[var(--color-text-medium)] text-sm mb-3">Never run out of battery with this compact power bank.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-[var(--color-primary)]">$29.99</span>
+                            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="5">
+                                Quick View <i class="fas fa-eye ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 6 -->
+                <div class="product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]">
+                    <img src="https://placehold.co/400x300/909090/FFFFFF?text=Product+6" alt="Product 6" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">E-Reader Device</h3>
+                        <p class="text-[var(--color-text-medium)] text-sm mb-3">Read your favorite books on the go with an e-reader.</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-bold text-[var(--color-primary)]">$129.99</span>
+                            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="6">
+                                Quick View <i class="fas fa-eye ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Quick View Modal -->
+    <div id="quick-view-modal" class="fixed inset-0 flex items-center justify-center p-4 modal-overlay hidden">
+        <div class="modal-content w-full max-w-2xl mx-auto rounded-lg overflow-hidden flex flex-col md:flex-row">
+            <!-- Product Image -->
+            <div class="md:w-1/2 p-4 flex justify-center items-center">
+                <img id="modal-product-image" src="" alt="Product" class="max-w-full max-h-[400px] object-contain">
+            </div>
+            <!-- Product Details -->
+            <div class="md:w-1/2 p-6 flex flex-col justify-between">
+                <div>
+                    <h2 id="modal-product-name" class="text-3xl font-bold text-[var(--color-text-dark)] mb-2"></h2>
+                    <p id="modal-product-description" class="text-[var(--color-text-medium)] text-base mb-4"></p>
+                    <p class="text-lg font-bold text-[var(--color-primary)] mb-4">$<span id="modal-product-price"></span></p>
+                </div>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button class="flex-1 bg-[var(--color-primary)] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003BB5] transition-colors">
+                        Add to Cart <i class="fas fa-shopping-cart ml-2"></i>
+                    </button>
+                    <button class="flex-1 bg-[var(--color-white)] border border-[var(--color-border-light)] text-[var(--color-text-dark)] px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition-colors">
+                        View Details <i class="fas fa-external-link-alt ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-text-dark)] text-[var(--color-white)] py-8 mt-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>&copy; 2024 Shopify Minimalist Catalog. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productCards = document.querySelectorAll('.product-card');
+            const quickViewModal = document.getElementById('quick-view-modal');
+            const modalProductImage = document.getElementById('modal-product-image');
+            const modalProductName = document.getElementById('modal-product-name');
+            const modalProductDescription = document.getElementById('modal-product-description');
+            const modalProductPrice = document.getElementById('modal-product-price');
+            const quickViewBtns = document.querySelectorAll('.quick-view-btn');
+            const sortBySelect = document.getElementById('sort-by');
+            const productGrid = document.getElementById('product-grid');
+            const productSearchInput = document.getElementById('product-search');
+
+            // Sample product data for quick view and sorting
+            const products = [
+                {
+                    id: 1,
+                    name: 'Minimalist Desk Lamp',
+                    description: 'A sleek and functional desk lamp for any workspace. Provides soft, adjustable lighting.',
+                    price: 49.99,
+                    image: 'https://placehold.co/400x300/E0E0E0/FFFFFF?text=Product+1'
+                },
+                {
+                    id: 2,
+                    name: 'Ergonomic Office Chair',
+                    description: 'Comfortable and supportive chair for long hours. Designed for optimal posture.',
+                    price: 199.99,
+                    image: 'https://placehold.co/400x300/D0D0D0/FFFFFF?text=Product+2'
+                },
+                {
+                    id: 3,
+                    name: 'Wireless Bluetooth Speaker',
+                    description: 'High-fidelity sound for your home or office. Compact and powerful.',
+                    price: 79.99,
+                    image: 'https://placehold.co/400x300/C0C0C0/FFFFFF?text=Product+3'
+                },
+                {
+                    id: 4,
+                    name: 'Smart Home Security Camera',
+                    description: 'Keep your home safe with 24/7 monitoring. Easy to install and use.',
+                    price: 149.99,
+                    image: 'https://placehold.co/400x300/B0B0B0/FFFFFF?text=Product+4'
+                },
+                {
+                    id: 5,
+                    name: 'Portable Power Bank',
+                    description: 'Never run out of battery with this compact power bank. Supports fast charging.',
+                    price: 29.99,
+                    image: 'https://placehold.co/400x300/A0A0A0/FFFFFF?text=Product+5'
+                },
+                {
+                    id: 6,
+                    name: 'E-Reader Device',
+                    description: 'Read your favorite books on the go with an e-reader. Long-lasting battery.',
+                    price: 129.99,
+                    image: 'https://placehold.co/400x300/909090/FFFFFF?text=Product+6'
+                }
+            ];
+
+            // Populate product cards initially
+            function populateProductGrid(productsToDisplay) {
+                productGrid.innerHTML = '';
+                productsToDisplay.forEach(product => {
+                    const productCard = document.createElement('div');
+                    productCard.className = 'product-card bg-[var(--color-white)] rounded-lg shadow-md overflow-hidden border border-[var(--color-border-light)]';
+                    productCard.innerHTML = `
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold text-[var(--color-text-dark)] mb-1">${product.name}</h3>
+                            <p class="text-[var(--color-text-medium)] text-sm mb-3">${product.description}</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-lg font-bold text-[var(--color-primary)]">$${product.price.toFixed(2)}</span>
+                                <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[#003BB5] transition-colors quick-view-btn" data-product-id="${product.id}">
+                                    Quick View <i class="fas fa-eye ml-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    productGrid.appendChild(productCard);
+                });
+            }
+
+            // Handle Quick View Modal
+            quickViewBtns.forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = parseInt(this.dataset.productId);
+                    const product = products.find(p => p.id === productId);
+
+                    if (product) {
+                        modalProductImage.src = product.image;
+                        modalProductImage.alt = product.name;
+                        modalProductName.textContent = product.name;
+                        modalProductDescription.textContent = product.description;
+                        modalProductPrice.textContent = product.price.toFixed(2);
+
+                        quickViewModal.classList.remove('hidden');
+                        setTimeout(() => {
+                            quickViewModal.classList.add('visible');
+                        }, 10);
+                    }
+                });
+            });
+
+            // Close Quick View Modal
+            quickViewModal.addEventListener('click', function(e) {
+                if (e.target === quickViewModal || e.target.closest('.modal-content')) {
+                    quickViewModal.classList.remove('visible');
+                    setTimeout(() => {
+                        quickViewModal.classList.add('hidden');
+                    }, 300); // Match CSS transition duration
+                }
+            });
+
+            // Handle Sorting
+            sortBySelect.addEventListener('change', function() {
+                const sortBy = this.value;
+                let sortedProducts = [...products];
+
+                if (sortBy === 'name-asc') {
+                    sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+                } else if (sortBy === 'name-desc') {
+                    sortedProducts.sort((a, b) => b.name.localeCompare(a.name));
+                } else if (sortBy === 'price-asc') {
+                    sortedProducts.sort((a, b) => a.price - b.price);
+                } else if (sortBy === 'price-desc') {
+                    sortedProducts.sort((a, b) => b.price - a.price);
+                }
+                populateProductGrid(sortedProducts);
+            });
+
+            // Handle Search
+            productSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const filteredProducts = products.filter(product =>
+                    product.name.toLowerCase().includes(searchTerm) ||
+                    product.description.toLowerCase().includes(searchTerm)
+                );
+                populateProductGrid(filteredProducts);
+            });
+
+            // Initial population of the product grid
+            populateProductGrid(products);
+        });
+    </script>
+</body>
+</html>

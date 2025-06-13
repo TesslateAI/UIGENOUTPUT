@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Project Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js for Gantt Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-primary-rgb: 59 130 246; /* Tailwind blue-500 */
+            --color-primary-dark-rgb: 37 99 235; /* Tailwind blue-600 */
+            --color-text-default-rgb: 17 24 39; /* Tailwind gray-900 */
+            --color-text-muted-rgb: 75 85 99; /* Tailwind gray-600 */
+            --color-bg-light-rgb: 255 255 255; /* Tailwind white */
+            --color-bg-alt-rgb: 249 250 251; /* Tailwind gray-50 */
+            --color-border-default-rgb: 229 231 235; /* Tailwind gray-200 */
+            --color-success-rgb: 34 197 94; /* Tailwind green-500 */
+            --color-danger-rgb: 239 68 68; /* Tailwind red-500 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: rgb(var(--color-text-default-rgb));
+            background-color: rgb(var(--color-bg-alt-rgb));
+        }
+
+        /* Custom scrollbar for kanban boards */
+        .kanban-board::-webkit-scrollbar {
+            height: 8px;
+        }
+        .kanban-board::-webkit-scrollbar-track {
+            background: rgb(var(--color-bg-alt-rgb));
+            border-radius: 10px;
+        }
+        .kanban-board::-webkit-scrollbar-thumb {
+            background: rgb(var(--color-border-default-rgb));
+            border-radius: 10px;
+        }
+        .kanban-board::-webkit-scrollbar-thumb:hover {
+            background: rgb(var(--color-text-muted-rgb));
+        }
+
+        /* Modal specific styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: rgb(var(--color-bg-light-rgb));
+            margin: auto;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            transform: scale(0.9);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .modal-content.show {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .close-button {
+            color: rgb(var(--color-text-muted-rgb));
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: rgb(var(--color-danger-rgb));
+            text-decoration: none;
+        }
+
+        /* Drag and Drop styles */
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed rgb(var(--color-primary-rgb));
+        }
+
+        /* Chart container to prevent overflow */
+        .chart-container {
+            position: relative;
+            height: 300px; /* Fixed height for the chart */
+            width: 100%;
+            max-width: 100%; /* Ensure it doesn't exceed parent width */
+            overflow: hidden; /* Hide any potential overflow */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm py-4 px-6 md:px-8 flex items-center justify-between z-10">
+        <div class="flex items-center space-x-4">
+            <a href="#" class="text-2xl font-bold text-[rgb(var(--color-primary-rgb))]">ProjectFlow</a>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium">
+                <a href="#" class="text-[rgb(var(--color-text-default-rgb))] hover:text-[rgb(var(--color-primary-rgb))]">Dashboard</a>
+                <a href="#" class="text-[rgb(var(--color-text-default-rgb))] hover:text-[rgb(var(--color-primary-rgb))]">Projects</a>
+                <a href="#" class="text-[rgb(var(--color-text-default-rgb))] hover:text-[rgb(var(--color-primary-rgb))]">Tasks</a>
+                <a href="#" class="text-[rgb(var(--color-text-default-rgb))] hover:text-[rgb(var(--color-primary-rgb))]">Reports</a>
+            </nav>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="text-[rgb(var(--color-text-default-rgb))] hover:text-[rgb(var(--color-primary-rgb))] text-lg">
+                <i class="fas fa-bell"></i>
+            </button>
+            <div class="relative group">
+                <img src="https://placehold.co/40x40/FF6347/FFFFFF/png?text=JD" alt="User Avatar" class="w-10 h-10 rounded-full cursor-pointer border-2 border-[rgb(var(--color-primary-rgb))]">
+                <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
+                    <a href="#" class="block px-4 py-2 text-sm text-[rgb(var(--color-text-default-rgb))] hover:bg-[rgb(var(--color-bg-alt-rgb))]">Profile</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-[rgb(var(--color-text-default-rgb))] hover:bg-[rgb(var(--color-bg-alt-rgb))]">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-[rgb(var(--color-text-default-rgb))] hover:bg-[rgb(var(--color-bg-alt-rgb))]">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Kanban Board Section -->
+            <section class="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-[rgb(var(--color-text-default-rgb))]">Kanban Boards</h2>
+                    <button class="bg-[rgb(var(--color-primary-rgb))] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-primary-dark-rgb))] transition-colors">
+                        <i class="fas fa-plus mr-2"></i>New Board
+                    </button>
+                </div>
+
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6 overflow-x-auto pb-4">
+                    <!-- Board 1: To Do -->
+                    <div class="kanban-board bg-[rgb(var(--color-bg-alt-rgb))] rounded-lg p-4 flex-shrink-0 w-full md:w-80">
+                        <h3 class="text-lg font-semibold text-[rgb(var(--color-text-default-rgb))] mb-4 flex justify-between items-center">
+                            To Do <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">(3)</span>
+                        </h3>
+                        <div id="todo-lane" class="space-y-3 min-h-[150px]">
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))] cursor-grab active:cursor-grabbing" draggable="true" data-task-id="1">
+                                <h4 class="font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Design Landing Page</h4>
+                                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))] mb-2">Create wireframes and mockups for the new landing page.</p>
+                                <div class="flex items-center justify-between text-xs text-[rgb(var(--color-text-muted-rgb))]">
+                                    <span class="text-[rgb(var(--color-danger-rgb))]">Due: Today</span>
+                                    <span class="text-[rgb(var(--color-success-rgb))]">High Priority</span>
+                                </div>
+                            </div>
+                            <div class="kanban-card bg-white p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))] cursor-grab active:cursor-grabbing" draggable="true" data-task-id="2">
+                                <h4 class="font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Set up Database</h4>
+                                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))] mb-2">Configure PostgreSQL and initial schema.</p>
+                                <div class="flex items-center justify-between text-xs text-[rgb(var(--color-text-muted-rgb))]">
+                                    <span class="text-[rgb(var(--color-text-muted-rgb))]">Due: 2024-07-20</span>
+                                    <span class="text-[rgb(var(--color-success-rgb))]">Medium Priority</span>
+                                </div>
+                            </div>
+                            <div class="kanban-card bg-white p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))] cursor-grab active:cursor-grabbing" draggable="true" data-task-id="3">
+                                <h4 class="font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Research Competitors</h4>
+                                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))] mb-2">Analyze features and pricing of similar SaaS products.</p>
+                                <div class="flex items-center justify-between text-xs text-[rgb(var(--color-text-muted-rgb))]">
+                                    <span class="text-[rgb(var(--color-text-muted-rgb))]">Due: 2024-07-25</span>
+                                    <span class="text-[rgb(var(--color-success-rgb))]">Low Priority</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 bg-[rgb(var(--color-bg-alt-rgb))] text-[rgb(var(--color-text-default-rgb))] px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-border-default-rgb))] transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add Task
+                        </button>
+                    </div>
+
+                    <!-- Board 2: In Progress -->
+                    <div class="kanban-board bg-[rgb(var(--color-bg-alt-rgb))] rounded-lg p-4 flex-shrink-0 w-full md:w-80">
+                        <h3 class="text-lg font-semibold text-[rgb(var(--color-text-default-rgb))] mb-4 flex justify-between items-center">
+                            In Progress <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">(2)</span>
+                        </h3>
+                        <div id="in-progress-lane" class="space-y-3 min-h-[150px]">
+                            <div class="kanban-card bg-white p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))] cursor-grab active:cursor-grabbing" draggable="true" data-task-id="4">
+                                <h4 class="font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Develop User Authentication</h4>
+                                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))] mb-2">Implement OAuth2 and JWT for secure login.</p>
+                                <div class="flex items-center justify-between text-xs text-[rgb(var(--color-text-muted-rgb))]">
+                                    <span class="text-[rgb(var(--color-text-muted-rgb))]">Due: 2024-07-28</span>
+                                    <span class="text-[rgb(var(--color-success-rgb))]">High Priority</span>
+                                </div>
+                            </div>
+                            <div class="kanban-card bg-white p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))] cursor-grab active:cursor-grabbing" draggable="true" data-task-id="5">
+                                <h4 class="font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Write API Documentation</h4>
+                                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))] mb-2">Draft comprehensive REST API documentation.</p>
+                                <div class="flex items-center justify-between text-xs text-[rgb(var(--color-text-muted-rgb))]">
+                                    <span class="text-[rgb(var(--color-text-muted-rgb))]">Due: 2024-07-30</span>
+                                    <span class="text-[rgb(var(--color-success-rgb))]">Medium Priority</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 bg-[rgb(var(--color-bg-alt-rgb))] text-[rgb(var(--color-text-default-rgb))] px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-border-default-rgb))] transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add Task
+                        </button>
+                    </div>
+
+                    <!-- Board 3: Done -->
+                    <div class="kanban-board bg-[rgb(var(--color-bg-alt-rgb))] rounded-lg p-4 flex-shrink-0 w-full md:w-80">
+                        <h3 class="text-lg font-semibold text-[rgb(var(--color-text-default-rgb))] mb-4 flex justify-between items-center">
+                            Done <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">(1)</span>
+                        </h3>
+                        <div id="done-lane" class="space-y-3 min-h-[150px]">
+                            <div class="kanban-card bg-white p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))] cursor-grab active:cursor-grabbing" draggable="true" data-task-id="6">
+                                <h4 class="font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Initial Project Setup</h4>
+                                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))] mb-2">Completed initial project structure and dependencies.</p>
+                                <div class="flex items-center justify-between text-xs text-[rgb(var(--color-text-muted-rgb))]">
+                                    <span class="text-[rgb(var(--color-text-muted-rgb))]">Completed: 2024-07-18</span>
+                                    <span class="text-[rgb(var(--color-success-rgb))]">Completed</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 bg-[rgb(var(--color-bg-alt-rgb))] text-[rgb(var(--color-text-default-rgb))] px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-border-default-rgb))] transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add Task
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gantt Chart Section -->
+            <section class="lg:col-span-1 bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-[rgb(var(--color-text-default-rgb))]">Gantt Chart</h2>
+                    <button class="bg-[rgb(var(--color-primary-rgb))] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-primary-dark-rgb))] transition-colors">
+                        <i class="fas fa-calendar-alt mr-2"></i>View All
+                    </button>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="ganttChart"></canvas>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Team Activity Feed Section -->
+        <section class="mt-6 bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-[rgb(var(--color-text-default-rgb))]">Team Activity Feed</h2>
+                <button class="bg-[rgb(var(--color-primary-rgb))] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-primary-dark-rgb))] transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Post Update
+                </button>
+            </div>
+
+            <div id="activity-feed" class="space-y-4">
+                <!-- Activity Item 1 -->
+                <div class="bg-[rgb(var(--color-bg-alt-rgb))] p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))]">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/4CAF50/FFFFFF/png?text=JD" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <p class="font-medium text-[rgb(var(--color-text-default-rgb))]">Jane Doe <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">updated task "Design Landing Page"</span></p>
+                            <p class="text-xs text-[rgb(var(--color-text-muted-rgb))]">2 hours ago</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-[rgb(var(--color-text-muted-rgb))]">Completed wireframes. Ready for review.</p>
+                </div>
+                <!-- Activity Item 2 -->
+                <div class="bg-[rgb(var(--color-bg-alt-rgb))] p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))]">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/2196F3/FFFFFF/png?text=JS" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <p class="font-medium text-[rgb(var(--color-text-default-rgb))]">John Smith <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">commented on task "Set up Database"</span></p>
+                            <p class="text-xs text-[rgb(var(--color-text-muted-rgb))]">Yesterday</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-[rgb(var(--color-text-muted-rgb))]">Need to discuss schema changes before proceeding.</p>
+                </div>
+                <!-- Activity Item 3 -->
+                <div class="bg-[rgb(var(--color-bg-alt-rgb))] p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))]">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/FFC107/FFFFFF/png?text=AL" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <p class="font-medium text-[rgb(var(--color-text-default-rgb))]">Alice Lee <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">assigned task "Research Competitors" to Bob"</span></p>
+                            <p class="text-xs text-[rgb(var(--color-text-muted-rgb))]">3 days ago</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-[rgb(var(--color-text-muted-rgb))]">Please take a look at the competitor analysis document.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('taskModal')">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Task Details</h3>
+            <form id="taskForm" class="space-y-4">
+                <div>
+                    <label for="taskTitle" class="block text-sm font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Task Title</label>
+                    <input type="text" id="taskTitle" class="w-full p-2 border border-[rgb(var(--color-border-default-rgb))] rounded-md focus:ring-primary focus:border-primary" required>
+                </div>
+                <div>
+                    <label for="taskDescription" class="block text-sm font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Description</label>
+                    <textarea id="taskDescription" rows="3" class="w-full p-2 border border-[rgb(var(--color-border-default-rgb))] rounded-md focus:ring-primary focus:border-primary"></textarea>
+                </div>
+                <div>
+                    <label for="taskDueDate" class="block text-sm font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Due Date</label>
+                    <input type="date" id="taskDueDate" class="w-full p-2 border border-[rgb(var(--color-border-default-rgb))] rounded-md focus:ring-primary focus:border-primary">
+                </div>
+                <div>
+                    <label for="taskPriority" class="block text-sm font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Priority</label>
+                    <select id="taskPriority" class="w-full p-2 border border-[rgb(var(--color-border-default-rgb))] rounded-md focus:ring-primary focus:border-primary">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="taskAssignee" class="block text-sm font-medium text-[rgb(var(--color-text-default-rgb))] mb-1">Assignee</label>
+                    <input type="text" id="taskAssignee" class="w-full p-2 border border-[rgb(var(--color-border-default-rgb))] rounded-md focus:ring-primary focus:border-primary">
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-[rgb(var(--color-primary-rgb))] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[rgb(var(--color-primary-dark-rgb))] transition-colors">
+                        Save Task
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Kanban Board Drag and Drop Logic
+        let draggedItem = null;
+
+        document.querySelectorAll('.kanban-card').forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                draggedItem = e.target;
+                setTimeout(() => {
+                    e.target.classList.add('dragging');
+                }, 0);
+            });
+
+            card.addEventListener('dragend', (e) => {
+                e.target.classList.remove('dragging');
+                draggedItem = null;
+            });
+        });
+
+        document.querySelectorAll('.kanban-board').forEach(board => {
+            board.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Allow drop
+                const afterElement = getDragAfterElement(board, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                if (draggable) {
+                    if (afterElement == null) {
+                        board.querySelector('.kanban-lane').appendChild(draggable);
+                    } else {
+                        board.querySelector('.kanban-lane').insertBefore(draggable, afterElement);
+                    }
+                }
+            });
+
+            board.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (draggedItem) {
+                    // In a real app, you'd update task status here (e.g., 'To Do', 'In Progress', 'Done')
+                    const currentLane = draggedItem.closest('.kanban-board').querySelector('.kanban-lane').id;
+                    console.log(`Task ${draggedItem.dataset.taskId} moved to ${currentLane}`);
+                    draggedItem.classList.remove('dragging');
+                }
+            });
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.kanban-card:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: -Infinity }).element;
+        }
+
+        // Modal Logic
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Task Form Submission
+        document.getElementById('taskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const taskTitle = document.getElementById('taskTitle').value;
+            const taskDescription = document.getElementById('taskDescription').value;
+            const taskDueDate = document.getElementById('taskDueDate').value;
+            const taskPriority = document.getElementById('taskPriority').value;
+            const taskAssignee = document.getElementById('taskAssignee').value;
+
+            console.log('Task Saved:', {
+                title: taskTitle,
+                description: taskDescription,
+                dueDate: taskDueDate,
+                priority: taskPriority,
+                assignee: taskAssignee
+            });
+
+            // In a real app, you'd send this data to a backend
+            alert('Task saved successfully!');
+            closeModal('taskModal');
+        });
+
+        // Gantt Chart Logic
+        const ctx = document.getElementById('ganttChart').getContext('2d');
+        const ganttChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Task A', 'Task B', 'Task C', 'Task D', 'Task E'],
+                datasets: [{
+                    label: 'Duration (Days)',
+                    data: [5, 8, 3, 10, 4],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)', // Blue
+                        'rgba(34, 197, 94, 0.7)', // Green
+                        'rgba(239, 68, 68, 0.7)', // Red
+                        'rgba(251, 191, 36, 0.7)', // Yellow
+                        'rgba(139, 92, 246, 0.7)'  // Purple
+                    ],
+                    borderColor: [
+                        'rgb(59, 130, 246)',
+                        'rgb(34, 197, 94)',
+                        'rgb(239, 68, 68)',
+                        'rgb(251, 191, 36)',
+                        'rgb(139, 92, 246)'
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Important for fixed height
+                indexAxis: 'y', // Horizontal bars
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Days'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw + ' days';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initial setup for activity feed (can be dynamic)
+        const activityFeed = document.getElementById('activity-feed');
+        const activities = [
+            { user: 'Jane Doe', action: 'updated task "Design Landing Page"', time: '2 hours ago', message: 'Completed wireframes. Ready for review.' },
+            { user: 'John Smith', action: 'commented on task "Set up Database"', time: 'Yesterday', message: 'Need to discuss schema changes before proceeding.' },
+            { user: 'Alice Lee', action: 'assigned task "Research Competitors" to Bob', time: '3 days ago', message: 'Please take a look at the competitor analysis document.' }
+        ];
+
+        activities.forEach(activity => {
+            const div = document.createElement('div');
+            div.className = 'bg-[rgb(var(--color-bg-alt-rgb))] p-4 rounded-md shadow-sm border border-[rgb(var(--color-border-default-rgb))]';
+            div.innerHTML = `
+                <div class="flex items-center mb-2">
+                    <img src="https://placehold.co/40x40/${Math.random().toString(16).substr(2, 6)}/FFFFFF/png?text=${activity.user.split(' ')[0].charAt(0)}${activity.user.split(' ')[1].charAt(0)}" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                    <div>
+                        <p class="font-medium text-[rgb(var(--color-text-default-rgb))]">${activity.user} <span class="text-sm text-[rgb(var(--color-text-muted-rgb))]">${activity.action}</span></p>
+                        <p class="text-xs text-[rgb(var(--color-text-muted-rgb))]">${activity.time}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-[rgb(var(--color-text-muted-rgb))]">${activity.message}</p>
+            `;
+            activityFeed.prepend(div); // Add new activities to the top
+        });
+    </script>
+</body>
+</html>

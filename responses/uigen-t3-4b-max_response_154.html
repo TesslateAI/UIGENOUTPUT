@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --token-white: rgb(255, 255, 255);
+            --token-bg-dark: rgb(13, 13, 13);
+            --token-text-light: rgb(255, 255, 255);
+            --token-border-light: rgb(34, 34, 34);
+            --token-text-dark: rgb(20, 20, 20);
+            --token-accent: rgb(19, 191, 191);
+            --token-accent-darker: rgb(4, 128, 4);
+            --token-bg-dark-secondary: rgb(27, 27, 27);
+            --token-error-red: rgb(255, 99, 132);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-bg-dark);
+            color: var(--token-text-light);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            background-color: var(--token-bg-dark-secondary);
+            padding: 1.5rem;
+            border-right: 1px solid var(--token-border-light);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .card {
+            background-color: var(--token-bg-dark);
+            border: 1px solid var(--token-border-light);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px; /* Fixed height for charts */
+            width: 100%;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--token-border-light);
+            border-radius: 0.5rem;
+            background-color: var(--token-bg-dark-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th, .table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--token-border-light);
+        }
+
+        .table th {
+            background-color: var(--token-bg-dark-secondary);
+            font-weight: 600;
+            color: var(--token-text-light);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .table td:last-child {
+            border-bottom: none;
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-bar select, .filter-bar input {
+            background-color: var(--token-bg-dark-secondary);
+            border: 1px solid var(--token-border-light);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            color: var(--token-text-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-[var(--token-accent)]">BizData</h1>
+            </div>
+            <nav class="flex-grow">
+                <ul>
+                    <li class="mb-3">
+                        <a href="#" class="flex items-center text-[var(--token-text-light)] hover:text-[var(--token-accent)] transition-colors">
+                            <i class="fas fa-home mr-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" class="flex items-center text-[var(--token-text-light)] hover:text-[var(--token-accent)] transition-colors">
+                            <i class="fas fa-chart-line mr-3"></i> Sales
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" class="flex items-center text-[var(--token-text-light)] hover:text-[var(--token-accent)] transition-colors">
+                            <i class="fas fa-users mr-3"></i> Customers
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" class="flex items-center text-[var(--token-text-light)] hover:text-[var(--token-accent)] transition-colors">
+                            <i class="fas fa-cog mr-3"></i> Settings
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="mt-auto pt-6 border-t border-[var(--token-border-light)]">
+                <a href="#" class="flex items-center text-[var(--token-text-light)] hover:text-[var(--token-accent)] transition-colors">
+                    <i class="fas fa-sign-out-alt mr-3"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="flex items-center justify-between mb-6">
+                <h2 class="text-3xl font-bold">Sales Overview</h2>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <select class="filter-bar">
+                            <option value="last7days">Last 7 Days</option>
+                            <option value="last30days">Last 30 Days</option>
+                            <option value="thisquarter">This Quarter</option>
+                            <option value="thisyear">This Year</option>
+                        </select>
+                    </div>
+                    <div class="relative">
+                        <input type="date" class="filter-bar">
+                    </div>
+                    <button class="bg-[var(--token-accent)] text-[var(--token-text-dark)] px-5 py-2 rounded-full text-sm font-medium hover:bg-[var(--token-accent-darker)] transition-colors">
+                        <i class="fas fa-download mr-2"></i> Export
+                    </button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1: Total Sales -->
+                <div class="card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-[var(--token-text-light)] opacity-70">Total Sales</p>
+                        <h3 class="text-2xl font-bold text-[var(--token-text-light)]">$1,234,567</h3>
+                    </div>
+                    <i class="fas fa-dollar-sign text-3xl text-[var(--token-accent)]"></i>
+                </div>
+
+                <!-- Card 2: New Customers -->
+                <div class="card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-[var(--token-text-light)] opacity-70">New Customers</p>
+                        <h3 class="text-2xl font-bold text-[var(--token-text-light)]">8,765</h3>
+                    </div>
+                    <i class="fas fa-user-plus text-3xl text-[var(--token-accent)]"></i>
+                </div>
+
+                <!-- Card 3: Conversion Rate -->
+                <div class="card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-[var(--token-text-light)] opacity-70">Conversion Rate</p>
+                        <h3 class="text-2xl font-bold text-[var(--token-text-light)]">4.5%</h3>
+                    </div>
+                    <i class="fas fa-percentage text-3xl text-[var(--token-accent)]"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Sales Trend Chart -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">Sales Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Products Chart -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">Top 5 Products</h3>
+                    <div class="chart-container">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Recent Orders Table -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">Recent Orders</h3>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#1001</td>
+                                    <td>Alice Smith</td>
+                                    <td>2023-10-26</td>
+                                    <td>$120.50</td>
+                                    <td><span class="bg-green-600 text-white text-xs px-2 py-1 rounded-full">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#1002</td>
+                                    <td>Bob Johnson</td>
+                                    <td>2023-10-25</td>
+                                    <td>$75.00</td>
+                                    <td><span class="bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">Pending</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#1003</td>
+                                    <td>Charlie Brown</td>
+                                    <td>2023-10-24</td>
+                                    <td>$300.00</td>
+                                    <td><span class="bg-green-600 text-white text-xs px-2 py-1 rounded-full">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#1004</td>
+                                    <td>Diana Prince</td>
+                                    <td>2023-10-23</td>
+                                    <td>$99.99</td>
+                                    <td><span class="bg-green-600 text-white text-xs px-2 py-1 rounded-full">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#1005</td>
+                                    <td>Eve Adams</td>
+                                    <td>2023-10-22</td>
+                                    <td>$150.00</td>
+                                    <td><span class="bg-red-600 text-white text-xs px-2 py-1 rounded-full">Cancelled</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customer Demographics Table -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold mb-4">Customer Demographics</h3>
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Age Group</th>
+                                    <th>Male</th>
+                                    <th>Female</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>18-24</td>
+                                    <td>150</td>
+                                    <td>200</td>
+                                </tr>
+                                <tr>
+                                    <td>25-34</td>
+                                    <td>300</td>
+                                    <td>450</td>
+                                </tr>
+                                <tr>
+                                    <td>35-44</td>
+                                    <td>250</td>
+                                    <td>350</td>
+                                </tr>
+                                <tr>
+                                    <td>45-54</td>
+                                    <td>120</td>
+                                    <td>180</td>
+                                </tr>
+                                <tr>
+                                    <td>55+</td>
+                                    <td>80</td>
+                                    <td>120</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Sales Trend Chart
+        const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
+        new Chart(salesTrendCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                datasets: [{
+                    label: 'Sales ($)',
+                    data: [120000, 150000, 130000, 180000, 160000, 200000, 190000],
+                    borderColor: 'rgb(19, 191, 191)',
+                    backgroundColor: 'rgba(19, 191, 191, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'var(--token-text-light)'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'var(--token-text-light)'
+                        },
+                        grid: {
+                            color: 'var(--token-border-light)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'var(--token-text-light)'
+                        },
+                        grid: {
+                            color: 'var(--token-border-light)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Top Products Chart
+        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+        new Chart(topProductsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+                datasets: [{
+                    label: 'Units Sold',
+                    data: [1200, 950, 800, 650, 500],
+                    backgroundColor: [
+                        'rgba(19, 191, 191, 0.7)',
+                        'rgba(19, 191, 191, 0.6)',
+                        'rgba(19, 191, 191, 0.5)',
+                        'rgba(19, 191, 191, 0.4)',
+                        'rgba(19, 191, 191, 0.3)'
+                    ],
+                    borderColor: 'rgb(19, 191, 191)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: 'var(--token-text-light)'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'var(--token-text-light)'
+                        },
+                        grid: {
+                            color: 'var(--token-border-light)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'var(--token-text-light)'
+                        },
+                        grid: {
+                            color: 'var(--token-border-light)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

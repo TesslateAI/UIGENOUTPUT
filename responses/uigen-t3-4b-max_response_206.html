@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectBoard - Jira-like</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #1A1A1A;
+            --color-bg-medium: #2A2A2A;
+            --color-bg-light: #3A3A3A;
+            --color-text-light: #FFFFFF;
+            --color-text-dark: #1A1A1A;
+            --color-accent: #6C5CE7; /* A vibrant purple for CTA */
+            --color-accent-light: #D3C5FF; /* Lighter shade for hover */
+            --color-border: #444444;
+            --color-success: #22C55E; /* Green for completed */
+            --color-error: #EF4444; /* Red for issues */
+        }
+
+        body {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr)); /* Default to one column */
+            gap: 1.5rem;
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 4rem); /* Adjust based on header/footer */
+            align-items: start;
+        }
+
+        @media (min-width: 768px) { /* Medium screens and up */
+            .board-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 columns */
+            }
+        }
+
+        @media (min-width: 1024px) { /* Large screens and up */
+            .board-container {
+                grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 columns */
+            }
+        }
+
+        .board-column {
+            background-color: var(--color-bg-medium);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 100px; /* Ensure columns have some height */
+        }
+
+        .board-column.drag-over {
+            border: 2px dashed var(--color-accent);
+            background-color: var(--color-bg-light);
+        }
+
+        .task-card {
+            background-color: var(--color-bg-light);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            cursor: grab;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .task-card:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+            box-shadow: 0 0 10px rgba(108, 92, 231, 0.3);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .task-card .priority-dot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .priority-high { background-color: #EF4444; } /* Red */
+        .priority-medium { background-color: #F97316; } /* Orange */
+        .priority-low { background-color: #10B981; } /* Green */
+
+        .task-card .task-title {
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        .task-card .task-details {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+            flex-shrink: 0;
+        }
+
+        .task-card .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .task-card .task-actions button {
+            background: none;
+            border: none;
+            color: var(--color-text-light);
+            cursor: pointer;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .task-card .task-actions button:hover {
+            color: var(--color-accent);
+        }
+
+        .task-card .task-actions .delete-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            color: var(--color-error);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+
+        .task-card .task-actions .delete-btn:hover {
+            background-color: var(--color-error);
+            color: white;
+        }
+
+        .epic-card, .sprint-card {
+            background-color: var(--color-bg-light);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, border 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .epic-card:hover, .sprint-card:hover {
+            background-color: var(--color-bg-medium);
+            border: 1px solid var(--color-accent);
+        }
+
+        .epic-card .epic-title {
+            font-weight: 600;
+            flex-grow: 1;
+        }
+
+        .epic-card .epic-status, .sprint-card .sprint-status {
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            margin-left: 0.5rem;
+            color: var(--color-text-light);
+        }
+
+        .epic-card .epic-status.completed { background-color: var(--color-success); color: white; }
+        .sprint-card .sprint-status.in-progress { background-color: var(--color-accent); color: white; }
+        .sprint-card .sprint-status.completed { background-color: var(--color-success); color: white; }
+        .sprint-card .sprint-status.tbd { background-color: var(--color-text-light); color: var(--color-bg-dark); border: 1px solid var(--color-border); }
+
+        .backlog-header, .sprint-header, .epic-header {
+            background-color: var(--color-bg-medium);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .backlog-header .status-tag, .sprint-header .status-tag, .epic-header .status-tag {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .backlog-header .status-tag.completed { background-color: var(--color-success); color: white; }
+        .sprint-header .status-tag.in-progress { background-color: var(--color-accent); color: white; }
+        .sprint-header .status-tag.completed { background-color: var(--color-success); color: white; }
+        .sprint-header .status-tag.tbd { background-color: var(--color-text-light); color: var(--color-bg-dark); border: 1px solid var(--color-border); }
+
+        .backlog-list, .sprint-list, .epic-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem; /* For scrollbar */
+        }
+
+        .backlog-list::-webkit-scrollbar, .sprint-list::-webkit-scrollbar, .epic-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .backlog-list::-webkit-scrollbar-track, .sprint-list::-webkit-scrollbar-track, .epic-list::-webkit-scrollbar-track {
+            background: var(--color-bg-dark);
+        }
+
+        .backlog-list::-webkit-scrollbar-thumb, .sprint-list::-webkit-scrollbar-thumb, .epic-list::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        .backlog-list::-webkit-scrollbar-thumb:hover, .sprint-list::-webkit-scrollbar-thumb:hover, .epic-list::-webkit-scrollbar-thumb:hover {
+            background: var(--color-accent);
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 767px) {
+            .board-container {
+                grid-template-columns: 1fr; /* One column on small screens */
+            }
+            .board-column {
+                padding: 0.75rem;
+            }
+            .task-card {
+                padding: 0.5rem 0.75rem;
+            }
+            .epic-card, .sprint-card {
+                padding: 0.75rem 1rem;
+            }
+            .backlog-header, .sprint-header, .epic-header {
+                padding: 0.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-dark)] text-[var(--color-text-light)]">
+
+    <div class="flex flex-col h-screen">
+        <!-- Header (simplified for this component, but would be a full header) -->
+        <header class="flex items-center justify-between p-4 bg-[var(--color-bg-dark)] border-b border-[var(--color-border)] sticky top-0 z-10">
+            <h1 class="text-2xl font-bold">ProjectBoard</h1>
+            <div class="flex items-center space-x-4">
+                <button class="flex items-center text-[var(--color-text-light)] hover:text-[var(--color-accent)]">
+                    <i class="fas fa-bell mr-2"></i> Notifications
+                </button>
+                <div class="relative">
+                    <button class="flex items-center text-[var(--color-text-light)] hover:text-[var(--color-accent)]">
+                        <img src="https://placehold.co/32x32/6C5CE7/FFFFFF?text=U" alt="User Avatar" class="rounded-full mr-2">
+                        <span class="font-medium">John Doe</span>
+                        <i class="fas fa-chevron-down ml-2 text-sm"></i>
+                    </button>
+                    <!-- Dropdown would go here -->
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-6">
+            <div class="board-container">
+                <!-- Epics Column -->
+                <div class="board-column" id="epics-column">
+                    <div class="backlog-header">
+                        <h3 class="text-lg">Epics</h3>
+                        <div class="status-tag tbd">To Do</div>
+                    </div>
+                    <div id="epics-list" class="backlog-list">
+                        <!-- Epics will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Backlog Column -->
+                <div class="board-column" id="backlog-column">
+                    <div class="backlog-header">
+                        <h3 class="text-lg">Backlog</h3>
+                        <div class="status-tag completed">Completed</div>
+                    </div>
+                    <div id="backlog-list" class="backlog-list">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Sprint Column (In Progress) -->
+                <div class="board-column" id="sprint-column">
+                    <div class="sprint-header">
+                        <h3 class="text-lg">Sprint 1 (In Progress)</h3>
+                        <div class="status-tag in-progress">In Progress</div>
+                    </div>
+                    <div id="sprint-list" class="sprint-list">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Sprint Column (Completed) -->
+                <div class="board-column" id="completed-sprint-column">
+                    <div class="sprint-header">
+                        <h3 class="text-lg">Sprint 1 (Completed)</h3>
+                        <div class="status-tag completed">Completed</div>
+                    </div>
+                    <div id="completed-sprint-list" class="sprint-list">
+                        <!-- Tasks will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const epicsColumn = document.getElementById('epics-column');
+            const backlogColumn = document.getElementById('backlog-column');
+            const sprintColumn = document.getElementById('sprint-column');
+            const completedSprintColumn = document.getElementById('completed-sprint-column');
+            const epicsList = document.getElementById('epics-list');
+            const backlogList = document.getElementById('backlog-list');
+            const sprintList = document.getElementById('sprint-list');
+            const completedSprintList = document.getElementById('completed-sprint-list');
+
+            let draggedItem = null;
+
+            // Function to create a task card
+            function createTaskCard(task) {
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                card.setAttribute('draggable', 'true');
+                card.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="priority-dot ${task.priority === 'high' ? 'priority-high' : task.priority === 'medium' ? 'priority-medium' : 'priority-low'}"></div>
+                        <span class="task-title">${task.title}</span>
+                    </div>
+                    <div class="task-details">${task.description || 'No description'}</div>
+                    <div class="task-actions">
+                        <button class="delete-btn"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                `;
+                return card;
+            }
+
+            // Function to create an epic card
+            function createEpicCard(epic) {
+                const card = document.createElement('div');
+                card.className = 'epic-card';
+                card.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="epic-title">${epic.title}</span>
+                        <div class="epic-status">${epic.status}</div>
+                    </div>
+                `;
+                return card;
+            }
+
+            // Function to create a sprint card
+            function createSprintCard(sprint) {
+                const card = document.createElement('div');
+                card.className = 'sprint-card';
+                card.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="sprint-title">${sprint.title}</span>
+                        <div class="sprint-status">${sprint.status}</div>
+                    </div>
+                `;
+                return card;
+            }
+
+            // Simulate initial data
+            const initialTasks = [
+                { id: 1, title: 'Implement User Authentication', description: 'Develop login, signup, and password reset features.', priority: 'high', status: 'To Do' },
+                { id: 2, title: 'Refactor API Endpoints', description: 'Optimize and clean up existing REST API calls.', priority: 'medium', status: 'To Do' },
+                { id: 3, title: 'Design Mobile UI', description: 'Create wireframes and mockups for mobile application.', priority: 'high', status: 'In Progress' },
+                { id: 4, title: 'Set up CI/CD Pipeline', description: 'Configure automated testing and deployment.', priority: 'low', status: 'To Do' },
+                { id: 5, title: 'Write API Documentation', description: 'Document all new and updated API endpoints.', priority: 'low', status: 'To Do' },
+                { id: 6, title: 'Review Code for Bug Fixes', description: 'Perform code reviews for critical issues.', priority: 'medium', status: 'In Progress' },
+            ];
+
+            const initialEpics = [
+                { id: 101, title: 'Core Platform Development', status: 'In Progress' },
+                { id: 102, title: 'Mobile App Redesign', status: 'To Do' },
+            ];
+
+            const initialSprints = [
+                { id: 201, title: 'Sprint 1: Q1 2024', status: 'In Progress' },
+                { id: 202, title: 'Sprint 2: Q1 2024', status: 'Completed' },
+            ];
+
+            // Populate initial data
+            initialTasks.forEach(task => epicsList.appendChild(createTaskCard(task)));
+            initialEpics.forEach(epic => epicsColumn.appendChild(createEpicCard(epic)));
+            initialSprints.forEach(sprint => sprintColumn.appendChild(createSprintCard(sprint)));
+
+            // Drag and Drop Logic
+            function handleDragStart(e) {
+                draggedItem = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.id); // Store ID for data transfer
+                this.classList.add('dragging');
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                if (this.classList.contains('board-column')) {
+                    this.classList.add('drag-over');
+                }
+            }
+
+            function handleDragLeave(e) {
+                if (this.classList.contains('board-column')) {
+                    this.classList.remove('drag-over');
+                }
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                if (this.classList.contains('board-column')) {
+                    this.classList.remove('drag-over');
+                }
+
+                if (draggedItem) {
+                    const targetColumn = this;
+                    const targetList = targetColumn.querySelector('.backlog-list, .sprint-list, .epic-list');
+
+                    if (targetList && draggedItem.classList.contains('task-card')) {
+                        targetList.appendChild(draggedItem);
+                    }
+                }
+            }
+
+            function handleDragEnd(e) {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                }
+            }
+
+            // Event Listeners for Drag and Drop
+            document.querySelectorAll('.board-column').forEach(column => {
+                column.addEventListener('dragover', handleDragOver);
+                column.addEventListener('dragleave', handleDragLeave);
+                column.addEventListener('drop', handleDrop);
+            });
+
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+            });
+
+            // Handle task deletion
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    if (confirm('Are you sure you want to delete this task?')) {
+                        e.target.closest('.task-card').remove();
+                    }
+                });
+            });
+
+            // Add new task to backlog
+            const addTaskBtn = document.createElement('button');
+            addTaskBtn.className = 'mt-4 px-4 py-2 bg-[var(--color-accent)] text-white rounded-md hover:bg-[var(--color-accent-light)] transition-colors';
+            addTaskBtn.textContent = 'Add New Task';
+            addTaskBtn.addEventListener('click', () => {
+                const newTaskId = initialTasks.length + 1;
+                const newTask = {
+                    id: newTaskId,
+                    title: `New Task ${newTaskId}`,
+                    description: `This is a newly added task for the backlog.`,
+                    priority: 'medium', // Default priority
+                    status: 'To Do' // Default status
+                };
+                backlogList.appendChild(createTaskCard(newTask));
+            });
+            backlogColumn.appendChild(addTaskBtn);
+        });
+    </script>
+</body>
+</html>

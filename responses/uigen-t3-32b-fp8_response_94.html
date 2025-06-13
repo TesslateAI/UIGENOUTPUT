@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Sports Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-background-primary: #F9FAFB;
+            --color-surface-card: #FFFFFF;
+            --color-text-primary: #1F2937;
+            --color-text-secondary: #4B5563;
+            --color-text-muted: #6B7280;
+            --color-accent: #FF5500;
+            --color-border-light: #E5E7EB;
+            --color-border-medium: #D1D5DB;
+            --color-success: #22C55E;
+            --color-warning: #F59E0B;
+            --color-danger: #EF4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-border-light);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-accent);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FF661A;
+        }
+
+        .appear-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .appear-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .bg-accent { background-color: var(--color-accent); }
+        .text-accent { color: var(--color-accent); }
+        .border-accent { border-color: var(--color-accent); }
+        .bg-surface-card { background-color: var(--color-surface-card); }
+        .text-primary { color: var(--color-text-primary); }
+        .text-secondary { color: var(--color-text-secondary); }
+        .text-muted { color: var(--color-text-muted); }
+        .border-light { border-color: var(--color-border-light); }
+        .border-medium { border-color: var(--color-border-medium); }
+
+        /* Specific styles for player stats table */
+        .player-stats-table th, .player-stats-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+        .player-stats-table th {
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            font-size: 0.875rem;
+        }
+        .player-stats-table tr:last-child td {
+            border-bottom: none;
+        }
+        .player-stats-table .player-name {
+            font-weight: 500;
+        }
+        .player-stats-table .player-position {
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+        .player-stats-table .player-image {
+            width: 32px;
+            height: 32px;
+            object-fit: cover;
+            border-radius: 9999px;
+        }
+
+        /* Specific styles for team rankings */
+        .team-ranking-card {
+            border: 1px solid var(--color-border-light);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .team-ranking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .team-ranking-card .rank-indicator {
+            font-weight: 700;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+        .rank-1 { color: #EF4444; } /* red-500 */
+        .rank-2 { color: #22C55E; } /* green-500 */
+        .rank-3 { color: #3B82F6; } /* blue-500 */
+        .rank-4 { color: var(--color-text-primary); }
+    </style>
+</head>
+<body class="bg-background-primary text-primary">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm py-4 px-6 md:px-8">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-accent">FantasyPro</a>
+            <div class="flex items-center space-x-4">
+                <button class="text-primary hover:text-accent transition-colors">
+                    <i class="fas fa-bell text-lg"></i>
+                </button>
+                <button class="text-primary hover:text-accent transition-colors">
+                    <i class="fas fa-cog text-lg"></i>
+                </button>
+                <div class="relative group">
+                    <button class="flex items-center space-x-2 text-primary hover:text-accent transition-colors">
+                        <img src="https://placehold.co/32x32" alt="User Avatar" class="rounded-full">
+                        <span class="hidden md:inline">John Doe</span>
+                        <i class="fas fa-chevron-down text-sm"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="py-8 px-6 md:px-8">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl md:text-4xl font-bold text-primary mb-6 appear-animate">Dashboard</h1>
+
+            <!-- Overview Section -->
+            <section class="bg-surface-card rounded-xl shadow-lg p-6 mb-8 appear-animate" style="transition-delay: 0.1s;">
+                <h2 class="text-2xl font-semibold mb-4">Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-lg border border-light flex items-center justify-between">
+                        <div>
+                            <p class="text-muted text-sm">Total Points</p>
+                            <p class="text-2xl font-bold text-primary">12,345</p>
+                        </div>
+                        <i class="fas fa-chart-line text-accent text-3xl"></i>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-light flex items-center justify-between">
+                        <div>
+                            <p class="text-muted text-sm">Team Rank</p>
+                            <p class="text-2xl font-bold text-primary">5th</p>
+                        </div>
+                        <i class="fas fa-medal text-accent text-3xl"></i>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-light flex items-center justify-between">
+                        <div>
+                            <p class="text-muted text-sm">Players Active</p>
+                            <p class="text-2xl font-bold text-primary">15</p>
+                        </div>
+                        <i class="fas fa-users text-accent text-3xl"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Player Stats Section -->
+            <section class="bg-surface-card rounded-xl shadow-lg p-6 mb-8 appear-animate" style="transition-delay: 0.2s;">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold">Player Stats</h2>
+                    <div class="flex space-x-2">
+                        <button class="bg-accent text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors flex items-center">
+                            <i class="fas fa-plus mr-2"></i> Add Player
+                        </button>
+                        <div class="relative">
+                            <button class="bg-white border border-light px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center">
+                                <i class="fas fa-filter mr-2"></i> Filter
+                            </button>
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">By Position</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">By Team</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">By Stat</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button class="filter-button bg-accent text-white px-4 py-2 rounded-full text-sm hover:bg-orange-600 transition-colors active-filter">All</button>
+                    <button class="filter-button bg-white border border-light text-primary px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition-colors">QB</button>
+                    <button class="filter-button bg-white border border-light text-primary px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition-colors">RB</button>
+                    <button class="filter-button bg-white border border-light text-primary px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition-colors">WR</button>
+                    <button class="filter-button bg-white border border-light text-primary px-4 py-2 rounded-full text-sm hover:bg-gray-100 transition-colors">TE</button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="player-stats-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Team</th>
+                                <th>Position</th>
+                                <th>Points</th>
+                                <th>Opponent</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="flex items-center space-x-3">
+                                    <img src="https://placehold.co/32x32" alt="Player Avatar" class="player-image">
+                                    <span class="player-name">John Smith</span>
+                                </td>
+                                <td>NE</td>
+                                <td class="player-position">QB</td>
+                                <td class="font-semibold text-primary">250</td>
+                                <td>LAR</td>
+                                <td><span class="bg-success text-white text-xs px-2 py-1 rounded-full">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="flex items-center space-x-3">
+                                    <img src="https://placehold.co/32x32" alt="Player Avatar" class="player-image">
+                                    <span class="player-name">Jane Doe</span>
+                                </td>
+                                <td>LAR</td>
+                                <td class="player-position">RB</td>
+                                <td class="font-semibold text-primary">180</td>
+                                <td>NE</td>
+                                <td><span class="bg-success text-white text-xs px-2 py-1 rounded-full">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="flex items-center space-x-3">
+                                    <img src="https://placehold.co/32x32" alt="Player Avatar" class="player-image">
+                                    <span class="player-name">Mike Johnson</span>
+                                </td>
+                                <td>CHI</td>
+                                <td class="player-position">WR</td>
+                                <td class="font-semibold text-primary">150</td>
+                                <td>SEA</td>
+                                <td><span class="bg-danger text-white text-xs px-2 py-1 rounded-full">Injured</span></td>
+                            </tr>
+                            <tr>
+                                <td class="flex items-center space-x-3">
+                                    <img src="https://placehold.co/32x32" alt="Player Avatar" class="player-image">
+                                    <span class="player-name">Sarah Lee</span>
+                                </td>
+                                <td>SEA</td>
+                                <td class="player-position">TE</td>
+                                <td class="font-semibold text-primary">120</td>
+                                <td>CHI</td>
+                                <td><span class="bg-success text-white text-xs px-2 py-1 rounded-full">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="flex items-center space-x-3">
+                                    <img src="https://placehold.co/32x32" alt="Player Avatar" class="player-image">
+                                    <span class="player-name">Alex Kim</span>
+                                </td>
+                                <td>SEA</td>
+                                <td class="player-position">QB</td>
+                                <td class="font-semibold text-primary">200</td>
+                                <td>LAR</td>
+                                <td><span class="bg-success text-white text-xs px-2 py-1 rounded-full">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="flex items-center space-x-3">
+                                    <img src="https://placehold.co/32x32" alt="Player Avatar" class="player-image">
+                                    <span class="player-name">David Chen</span>
+                                </td>
+                                <td>NE</td>
+                                <td class="player-position">RB</td>
+                                <td class="font-semibold text-primary">170</td>
+                                <td>LAR</td>
+                                <td><span class="bg-success text-white text-xs px-2 py-1 rounded-full">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Team Rankings Section -->
+            <section class="bg-surface-card rounded-xl shadow-lg p-6 appear-animate" style="transition-delay: 0.3s;">
+                <h2 class="text-2xl font-semibold mb-4">Team Rankings</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Top 3 Teams -->
+                    <div class="space-y-4">
+                        <div class="team-ranking-card p-4 rounded-xl">
+                            <div class="flex items-center space-x-4">
+                                <span class="rank-indicator rank-1">1</span>
+                                <img src="https://placehold.co/40x40" alt="Team Avatar" class="rounded-full">
+                                <div>
+                                    <h3 class="font-semibold text-primary">The Dream Team</h3>
+                                    <p class="text-sm text-secondary">Points: 15,500</p>
+                                </div>
+                            </div>
+                            <button class="mt-3 w-full bg-accent text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors">View Team</button>
+                        </div>
+                        <div class="team-ranking-card p-4 rounded-xl">
+                            <div class="flex items-center space-x-4">
+                                <span class="rank-indicator rank-2">2</span>
+                                <img src="https://placehold.co/40x40" alt="Team Avatar" class="rounded-full">
+                                <div>
+                                    <h3 class="font-semibold text-primary">Fantasy Titans</h3>
+                                    <p class="text-sm text-secondary">Points: 14,800</p>
+                                </div>
+                            </div>
+                            <button class="mt-3 w-full bg-accent text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors">View Team</button>
+                        </div>
+                        <div class="team-ranking-card p-4 rounded-xl">
+                            <div class="flex items-center space-x-4">
+                                <span class="rank-indicator rank-3">3</span>
+                                <img src="https://placehold.co/40x40" alt="Team Avatar" class="rounded-full">
+                                <div>
+                                    <h3 class="font-semibold text-primary">Pro Punters</h3>
+                                    <p class="text-sm text-secondary">Points: 14,200</p>
+                                </div>
+                            </div>
+                            <button class="mt-3 w-full bg-accent text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors">View Team</button>
+                        </div>
+                    </div>
+
+                    <!-- Other Teams (Scrollable) -->
+                    <div class="bg-white rounded-xl p-4 border border-light">
+                        <h3 class="font-semibold text-primary mb-3">Other Teams</h3>
+                        <div class="overflow-y-auto max-h-80 pr-2"> <!-- Adjust max-h as needed -->
+                            <div class="space-y-3">
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">4</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">Champs Inc.</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">13,900</span>
+                                    </div>
+                                </div>
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">5</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">Gridiron Gurus</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">13,500</span>
+                                    </div>
+                                </div>
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">6</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">The Fantasy Pros</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">13,100</span>
+                                    </div>
+                                </div>
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">7</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">Dreamers United</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">12,800</span>
+                                    </div>
+                                </div>
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">8</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">Fantasy Legends</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">12,400</span>
+                                    </div>
+                                </div>
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">9</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">Gridiron Grinders</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">12,000</span>
+                                    </div>
+                                </div>
+                                <div class="team-ranking-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="rank-indicator rank-4">10</span>
+                                            <img src="https://placehold.co/32x32" alt="Team Avatar" class="rounded-full">
+                                            <span class="font-medium">The Fantasy Elite</span>
+                                        </div>
+                                        <span class="text-sm text-secondary">11,700</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white py-6 px-6 md:px-8 border-t border-light">
+        <div class="max-w-7xl mx-auto text-center text-sm text-muted">
+            © 2024 FantasyPro. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Modals (Example for Team Rankings) -->
+    <div id="team-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-primary">The Dream Team</h3>
+                <button class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('team-modal').classList.add('hidden')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <p class="text-secondary mb-4">Points: 15,500</p>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="font-medium">QB: John Smith</span>
+                    <span class="text-primary">250 pts</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="font-medium">RB: Jane Doe</span>
+                    <span class="text-primary">180 pts</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="font-medium">WR: Mike Johnson</span>
+                    <span class="text-primary">150 pts</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="font-medium">TE: Sarah Lee</span>
+                    <span class="text-primary">120 pts</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="font-medium">DEF: LAR</span>
+                    <span class="text-primary">100 pts</span>
+                </div>
+            </div>
+            <button class="mt-6 w-full bg-accent text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition-colors">Manage Team</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Appear on scroll animations
+            const animatedElements = document.querySelectorAll('.appear-animate');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+
+            // Player stats filter
+            const filterButtons = document.querySelectorAll('.filter-button');
+            const playerRows = document.querySelectorAll('.player-stats-table tbody tr');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    filterButtons.forEach(btn => btn.classList.remove('bg-accent', 'text-white'));
+                    filterButtons.forEach(btn => btn.classList.add('bg-white', 'border', 'border-light', 'text-primary'));
+                    button.classList.add('bg-accent', 'text-white');
+                    button.classList.remove('bg-white', 'border', 'border-light', 'text-primary');
+
+                    const filter = button.textContent.trim().toLowerCase();
+                    playerRows.forEach(row => {
+                        const position = row.querySelector('.player-position').textContent.trim().toLowerCase();
+                        if (filter === 'all' || position === filter) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            // Team ranking modal
+            const teamRankingCards = document.querySelectorAll('.team-ranking-card');
+            const teamModal = document.getElementById('team-modal');
+
+            teamRankingCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    // In a real app, you'd fetch team details based on the clicked card
+                    teamModal.classList.remove('hidden');
+                });
+            });
+
+            // Close modal
+            teamModal.querySelector('button').addEventListener('click', () => {
+                teamModal.classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

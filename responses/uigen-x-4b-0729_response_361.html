@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Studio | Audio Production Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'studio-primary': '#2563eb',
+                        'studio-primary-dark': '#1d4ed8',
+                        'studio-secondary': '#0ea5e9',
+                        'studio-accent': '#8b5cf6',
+                        'studio-bg-main': '#f8fafc',
+                        'studio-bg-card': '#ffffff',
+                        'studio-text-dark': '#0f172a',
+                        'studio-text-medium': '#334155',
+                        'studio-text-light': '#64748b',
+                        'studio-border': '#e2e8f0',
+                        'studio-success': '#10b981',
+                        'studio-warning': '#f59e0b',
+                        'studio-error': '#ef4444',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'mono': ['Fira Code', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+        
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+        
+        .waveform-container {
+            background: linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 100% 10px;
+        }
+        
+        .waveform-bar {
+            background: linear-gradient(to bottom, #2563eb, #0ea5e9);
+            border-radius: 3px;
+        }
+        
+        .mix-track {
+            background: linear-gradient(to bottom, #f1f5f9, #e2e8f0);
+            border-left: 3px solid #2563eb;
+        }
+        
+        .mix-track.active {
+            border-left: 3px solid #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+        }
+        
+        .publish-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .publish-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glow {
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .tab-active {
+            border-bottom: 3px solid #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .waveform-cursor {
+            position: absolute;
+            width: 8px;
+            height: 100%;
+            background: #8b5cf6;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="font-sans bg-studio-bg-main">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-studio-primary flex items-center justify-center">
+                    <i class="fas fa-microphone-alt text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-studio-text-dark">Podcast Studio</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="text-studio-text-medium hover:text-studio-primary transition-colors">Dashboard</a>
+                <a href="#" class="text-studio-text-medium hover:text-studio-primary transition-colors">Projects</a>
+                <a href="#" class="text-studio-text-medium hover:text-studio-primary transition-colors">Library</a>
+                <a href="#" class="text-studio-text-medium hover:text-studio-primary transition-colors">Analytics</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-studio-bg-main">
+                    <i class="fas fa-cog text-studio-text-medium"></i>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-studio-bg-main flex items-center justify-center">
+                    <i class="fas fa-user text-studio-text-medium"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-24 pb-16">
+        <div class="container mx-auto px-4">
+            <!-- Studio Header -->
+            <div class="mb-10 animate-on-scroll">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h2 class="text-3xl md:text-4xl font-bold text-studio-text-dark">Create New Episode</h2>
+                        <p class="text-studio-text-light mt-2">Record, edit, and publish your podcast in one place</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="px-6 py-3 bg-studio-bg-main border border-studio-border rounded-lg text-studio-text-medium hover:bg-studio-bg-card transition-colors">
+                            <i class="fas fa-folder-plus mr-2"></i> New Project
+                        </button>
+                        <button class="px-6 py-3 bg-studio-primary text-white rounded-lg hover:bg-studio-primary-dark transition-colors">
+                            <i class="fas fa-upload mr-2"></i> Publish
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Panel - Audio Editor -->
+                <div class="lg:col-span-2">
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 mb-6 animate-on-scroll">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-studio-text-dark">Audio Editor</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                                <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Waveform Editor -->
+                        <div class="waveform-container rounded-lg p-4 mb-6">
+                            <div class="waveform-bar" style="height: 40px; background: linear-gradient(to bottom, #2563eb, #0ea5e9);"></div>
+                            <div class="waveform-bar" style="height: 30px; background: linear-gradient(to bottom, #0ea5e9, #8b5cf6); margin-top: 10px;"></div>
+                            <div class="waveform-bar" style="height: 20px; background: linear-gradient(to bottom, #8b5cf6, #ec4899); margin-top: 20px;"></div>
+                            <div class="waveform-bar" style="height: 35px; background: linear-gradient(to bottom, #ec4899, #f97316); margin-top: 15px;"></div>
+                            <div class="waveform-bar" style="height: 25px; background: linear-gradient(to bottom, #f97316, #eab308); margin-top: 25px;"></div>
+                            <div class="waveform-bar" style="height: 45px; background: linear-gradient(to bottom, #eab308, #10b981); margin-top: 5px;"></div>
+                            
+                            <!-- Cursor Position -->
+                            <div class="waveform-cursor" style="top: 30px; left: 20%;"></div>
+                            <div class="waveform-cursor" style="top: 45px; left: 60%;"></div>
+                            <div class="waveform-cursor" style="top: 20px; left: 80%;"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm text-studio-text-light">
+                            <div class="flex items-center">
+                                <i class="fas fa-clock mr-2"></i>
+                                <span>00:00:00</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span>00:02:15</span>
+                                <i class="fas fa-clock ml-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Track Mixer -->
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-studio-text-dark">Track Mixer</h3>
+                            <div class="flex space-x-2">
+                                <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="mix-track rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Intro Music</h4>
+                                        <p class="text-xs text-studio-text-light">Track 1</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-12 h-12 bg-studio-bg-main rounded mr-3"></div>
+                                        <span class="text-xs text-studio-text-light">0:45</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <input type="range" min="0" max="100" value="80" class="w-full h-1 bg-studio-border rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <div class="mix-track active rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Main Content</h4>
+                                        <p class="text-xs text-studio-text-light">Track 2</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-12 h-12 bg-studio-bg-main rounded mr-3"></div>
+                                        <span class="text-xs text-studio-text-light">1:22</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <input type="range" min="0" max="100" value="100" class="w-full h-1 bg-studio-border rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <div class="mix-track rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Outro Music</h4>
+                                        <p class="text-xs text-studio-text-light">Track 3</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-12 h-12 bg-studio-bg-main rounded mr-3"></div>
+                                        <span class="text-xs text-studio-text-light">0:30</span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <input type="range" min="0" max="100" value="60" class="w-full h-1 bg-studio-border rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Panel - Publishing & Settings -->
+                <div>
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 mb-6 animate-on-scroll" style="transition-delay: 0.2s;">
+                        <h3 class="text-xl font-semibold text-studio-text-dark mb-6">Publishing Options</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="publish-card bg-white rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Episode Title</h4>
+                                        <p class="text-studio-text-light text-sm">Your episode title here</p>
+                                    </div>
+                                    <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="publish-card bg-white rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Episode Description</h4>
+                                        <p class="text-studio-text-light text-sm">Brief description of your episode</p>
+                                    </div>
+                                    <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="publish-card bg-white rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Featured Image</h4>
+                                        <p class="text-studio-text-light text-sm">Upload a cover image</p>
+                                    </div>
+                                    <div class="w-16 h-16 bg-studio-bg-main rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-cloud-upload-alt text-studio-text-light"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="publish-card bg-white rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium text-studio-text-dark">Publish Date</h4>
+                                        <p class="text-studio-text-light text-sm">Set when your episode goes live</p>
+                                    </div>
+                                    <button class="p-2 rounded-lg hover:bg-studio-bg-main">
+                                        <i class="fas fa-calendar"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 animate-on-scroll" style="transition-delay: 0.3s;">
+                        <h3 class="text-xl font-semibold text-studio-text-dark mb-6">Audio Settings</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-studio-text-medium text-sm mb-2">Bitrate</label>
+                                <select class="w-full p-3 border border-studio-border rounded-lg bg-studio-bg-main">
+                                    <option>128 kbps (Standard)</option>
+                                    <option>320 kbps (High Quality)</option>
+                                    <option>64 kbps (Low Bandwidth)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-studio-text-medium text-sm mb-2">Sample Rate</label>
+                                <select class="w-full p-3 border border-studio-border rounded-lg bg-studio-bg-main">
+                                    <option>44.1 kHz (CD Quality)</option>
+                                    <option>48 kHz (Professional)</option>
+                                    <option>22.05 kHz (Mobile)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-studio-text-medium text-sm mb-2">Normalization</label>
+                                <div class="flex space-x-4">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="normalization" class="mr-2" checked>
+                                        <span>Enabled</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="normalization" class="mr-2">
+                                        <span>Disabled</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full py-3 bg-studio-primary text-white rounded-lg hover:bg-studio-primary-dark transition-colors">
+                                <i class="fas fa-save mr-2"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Projects -->
+            <div class="mt-10 animate-on-scroll" style="transition-delay: 0.4s;">
+                <h3 class="text-2xl font-bold text-studio-text-dark mb-6">Recent Projects</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 border border-studio-border">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-studio-text-dark">Tech Talk Episode 5</h4>
+                                <p class="text-studio-text-light text-sm">Published 2 days ago</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-microphone text-studio-primary"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-studio-text-light text-sm">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span>00:45:22</span>
+                            <i class="fas fa-file-audio ml-4 mr-2"></i>
+                            <span>128 kbps</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 border border-studio-border">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-studio-text-dark">Interview with Alex</h4>
+                                <p class="text-studio-text-light text-sm">Scheduled for tomorrow</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-user text-studio-accent"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-studio-text-light text-sm">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span>01:12:05</span>
+                            <i class="fas fa-file-audio ml-4 mr-2"></i>
+                            <span>320 kbps</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-studio-bg-card rounded-xl shadow-sm p-6 border border-studio-border">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-studio-text-dark">Podcast Episode 12</h4>
+                                <p class="text-studio-text-light text-sm">Draft - Not published</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-edit text-studio-warning"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center text-studio-text-light text-sm">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span>00:58:33</span>
+                            <i class="fas fa-file-audio ml-4 mr-2"></i>
+                            <span>128 kbps</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-studio-border py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-lg bg-studio-primary flex items-center justify-center">
+                        <i class="fas fa-microphone-alt text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-studio-text-dark">Podcast Studio</h2>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-studio-text-light hover:text-studio-primary">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-studio-text-light hover:text-studio-primary">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-studio-text-light hover:text-studio-primary">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="text-studio-text-light hover:text-studio-primary">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                
+                <p class="mt-4 md:mt-0 text-studio-text-light text-sm">
+                    © 2023 Podcast Studio. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animation on scroll
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Tab switching
+            const tabs = document.querySelectorAll('[data-tab]');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const target = this.getAttribute('data-tab');
+                    
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('tab-active'));
+                    this.classList.add('tab-active');
+                    
+                    // Show target content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.querySelector(`.tab-content-${target}`).classList.add('active');
+                });
+            });
+            
+            // Waveform cursor movement
+            const waveform = document.querySelector('.waveform-container');
+            waveform.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const width = rect.width;
+                const percent = (x / width) * 100;
+                
+                // Update all cursors to this position
+                document.querySelectorAll('.waveform-cursor').forEach(cursor => {
+                    cursor.style.left = `${percent}%`;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

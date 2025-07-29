@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookReader - Modern E-Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --accent-color: #0d9488;
+            --progress-color: #14b8a6;
+            --chapter-active: #e0f2fe;
+        }
+
+        .dark {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --accent-color: #2dd4bf;
+            --progress-color: #2dd4bf;
+            --chapter-active: #0c4a6e;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .book-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background-color: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--progress-color);
+            width: 30%;
+            transition: width 0.3s ease;
+        }
+
+        .chapter-item {
+            transition: all 0.2s ease;
+        }
+
+        .chapter-item:hover {
+            background-color: var(--chapter-active);
+        }
+
+        .chapter-item.active {
+            background-color: var(--chapter-active);
+            font-weight: 600;
+        }
+
+        .book-content {
+            line-height: 1.7;
+            font-size: 1.1rem;
+        }
+
+        .book-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .book-content h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.8rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .book-content h3 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .book-content blockquote {
+            border-left: 4px solid var(--accent-color);
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        .font-sans {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .dark-mode-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .dark-mode-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .dark-mode-toggle .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .dark-mode-toggle .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .font-selector {
+            position: relative;
+            display: inline-block;
+            width: 120px;
+            height: 30px;
+            background-color: var(--border-color);
+            border-radius: 15px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        .font-selector:after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .font-selector:hover:after {
+            transform: translateX(100%);
+        }
+
+        .chapter-nav {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .chapter-nav {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-[var(--bg-secondary)] border-b border-[var(--border-color)] py-4 px-6">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-lg bg-[var(--accent-color)] flex items-center justify-center text-white font-bold mr-3">BR</div>
+                <h1 class="font-display text-xl font-bold">BookReader</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <span class="mr-2 text-sm text-[var(--text-muted)]">Dark Mode</span>
+                    <label class="dark-mode-toggle">
+                        <input type="checkbox" id="darkModeToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="flex items-center">
+                    <span class="mr-2 text-sm text-[var(--text-muted)]">Font</span>
+                    <div class="font-selector">
+                        <div class="font-sans-option absolute top-0 left-0 w-full text-center text-xs py-1">Sans</div>
+                        <div class="font-serif-option absolute top-0 left-0 w-full text-center text-xs py-1">Serif</div>
+                        <div class="font-display-option absolute top-0 left-0 w-full text-center text-xs py-1">Display</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="book-container py-8 px-4">
+        <!-- Book Header -->
+        <div class="text-center mb-8">
+            <div class="flex justify-center mb-4">
+                <div class="w-48 h-64 bg-gradient-to-br from-[var(--accent-color)] to-[#0d9488] rounded-xl flex items-center justify-center">
+                    <div class="text-white text-center p-4">
+                        <div class="text-5xl font-bold mb-2">The Silent Sea</div>
+                        <div class="text-xl">by Alex Morgan</div>
+                    </div>
+                </div>
+            </div>
+            
+            <h2 class="font-display text-3xl md:text-4xl font-bold mb-2">The Silent Sea</h2>
+            <p class="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">A deep-sea explorer discovers a lost civilization beneath the waves, but must navigate the dangers of the ocean to bring its secrets to light.</p>
+        </div>
+        
+        <!-- Progress Section -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-[var(--text-secondary)]">Reading Progress</span>
+                <span class="text-sm font-medium text-[var(--text-secondary)]">30%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Chapter Navigation -->
+            <div class="w-full lg:w-1/4">
+                <div class="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] p-4 mb-6">
+                    <h3 class="font-display font-semibold text-lg mb-4">Chapter Navigation</h3>
+                    <div class="chapter-nav space-y-2">
+                        <div class="chapter-item active p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 1: The Descent</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 1-15</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 2: Deep Blue</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 16-30</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 3: The Wreck</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 31-45</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 4: Echoes</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 46-60</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 5: The City</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 61-75</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 6: Secrets</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 76-90</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 7: The Escape</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 91-105</div>
+                        </div>
+                        <div class="chapter-item p-3 rounded-lg cursor-pointer">
+                            <div class="font-medium">Chapter 8: Home</div>
+                            <div class="text-xs text-[var(--text-muted)]">Page 106-120</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] p-4">
+                    <h3 class="font-display font-semibold text-lg mb-4">Reading Settings</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Text Size</label>
+                            <div class="flex items-center space-x-2">
+                                <button class="text-2xl">-</button>
+                                <span class="text-lg font-medium">Medium</span>
+                                <button class="text-2xl">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1">Reading Speed</label>
+                            <div class="flex items-center space-x-2">
+                                <button class="text-lg">-</button>
+                                <span class="text-xl font-medium">1.0x</span>
+                                <button class="text-lg">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Book Content -->
+            <div class="w-full lg:w-3/4">
+                <div class="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="text-sm font-medium text-[var(--text-muted)]">Chapter 1: The Descent</div>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-lg hover:bg-[var(--border-color)]">
+                                <i class="fas fa-bookmark text-[var(--text-secondary)]"></i>
+                            </button>
+                            <button class="p-2 rounded-lg hover:bg-[var(--border-color)]">
+                                <i class="fas fa-share-alt text-[var(--text-secondary)]"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="book-content">
+                        <p class="mb-4">The ocean was a different world at midnight. Without the constant hum of engines or the intrusion of daylight, the deep sea revealed its ancient secrets. Dr. Elena Reyes adjusted the controls on her submersible, her heart racing with anticipation.</p>
+                        
+                        <p class="mb-4">"We're at 3,200 meters," she murmured, eyes fixed on the sonar display. "Pressure's holding steady. The water's clear enough to see the wreck."</p>
+                        
+                        <h3>The Wreck</h3>
+                        
+                        <p class="mb-4">The ruins lay in a perfect oval, partially covered by sediment that had settled like a shroud over time. At the center, a massive bronze sphere glowed faintly, its surface covered in intricate patterns that seemed to shift as the water moved around it.</p>
+                        
+                        <p class="mb-4">"This is it," Elena whispered, her voice echoing in the confined space. "The Heart of Atlantis."</p>
+                        
+                        <blockquote>
+                            "In the silence of the deep, where light cannot reach, the secrets of the ancients rest undisturbed. We are the first to disturb them since the last sailor who dared to explore these waters."
+                        </blockquote>
+                        
+                        <p class="mb-4">As Elena maneuvered her submersible closer, the sphere began to pulse with a soft blue light. It wasn't just the water movement causing the effect - something inside was responding. She activated the external lights, and for the first time in centuries, the ruins were illuminated.</p>
+                        
+                        <h3>First Contact</h3>
+                        
+                        <p class="mb-4">The ancient mechanisms, covered in barnacles and coral, began to rattle as the sphere's light intensified. Strange symbols carved into the stone walls seemed to glow in response. Elena recorded everything, her voice steady despite the growing tension.</p>
+                        
+                        <p class="mb-4">"We are not the first to find this place," she murmured. "But we are the first to understand what we've found."</p>
+                        
+                        <p class="mb-4">As she reached out to touch the sphere, a deep rumble echoed through the ruins. The water around them stirred, and for a moment, the entire submersible seemed to be held in place. Then, as quickly as it had begun, the stillness passed.</p>
+                        
+                        <p class="mb-4">Elena turned back to the sphere, her mind racing. This was it - the key to understanding a civilization lost to time. But as she reached out, a shadow moved at the edge of the sphere's light.</p>
+                        
+                        <p>What she saw would change everything she knew about the deep sea.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-12 py-6 border-t border-[var(--border-color)] text-center text-sm text-[var(--text-muted)]">
+        <div class="container mx-auto">
+            <p>BookReader &copy; 2023 - Modern E-Reading Experience</p>
+            <p class="mt-2">Your journey through literature begins here</p>
+        </div>
+    </footer>
+
+    <script>
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const darkModeIcon = darkModeToggle.nextElementSibling;
+        
+        darkModeToggle.addEventListener('change', () => {
+            document.body.classList.toggle('dark', darkModeToggle.checked);
+            
+            // Update icon
+            if (darkModeToggle.checked) {
+                darkModeIcon.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                darkModeIcon.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        });
+        
+        // Font selector
+        const fontSelector = document.querySelector('.font-selector');
+        const fontOptions = [
+            { value: 'sans', label: 'Sans' },
+            { value: 'serif', label: 'Serif' },
+            { value: 'display', label: 'Display' }
+        ];
+        
+        fontOptions.forEach((option, index) => {
+            const optionEl = document.createElement('div');
+            optionEl.className = `font-${option.value}-option`;
+            optionEl.textContent = option.label;
+            optionEl.style.left = `${index * 100 / (fontOptions.length - 1)}%`;
+            fontSelector.appendChild(optionEl);
+        });
+        
+        fontSelector.addEventListener('click', (e) => {
+            // Remove active class from all options
+            document.querySelectorAll('.font-selector > div').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Add active class to clicked option
+            const activeOption = e.target;
+            activeOption.classList.add('active');
+            
+            // Update body font
+            const body = document.body;
+            const currentFont = body.classList.contains('font-sans') ? 'sans' : 
+                               body.classList.contains('font-serif') ? 'serif' : 'display';
+            
+            if (activeOption.textContent === 'Sans') {
+                body.classList.remove('font-serif', 'font-display');
+                body.classList.add('font-sans');
+            } else if (activeOption.textContent === 'Serif') {
+                body.classList.remove('font-sans', 'font-display');
+                body.classList.add('font-serif');
+            } else {
+                body.classList.remove('font-sans', 'font-serif');
+                body.classList.add('font-display');
+            }
+        });
+        
+        // Chapter navigation
+        const chapterItems = document.querySelectorAll('.chapter-item');
+        chapterItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove active class from all items
+                chapterItems.forEach(i => i.classList.remove('active'));
+                
+                // Add active class to clicked item
+                item.classList.add('active');
+                
+                // Update content (simulated)
+                const chapterTitle = item.textContent.split('.')[0];
+                document.querySelector('.book-content h2').textContent = chapterTitle;
+            });
+        });
+        
+        // Simulate progress bar update
+        setInterval(() => {
+            const progressFill = document.querySelector('.progress-fill');
+            const currentWidth = parseInt(progressFill.style.width) || 30;
+            const newWidth = Math.min(currentWidth + 1, 100);
+            progressFill.style.width = `${newWidth}%`;
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnHub - Interactive Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8faf9fa',
+                            100: '#e9ecef',
+                            200: '#dee2e6',
+                            300: '#ced4da',
+                            400: '#adb5bd',
+                            500: '#6c757d',
+                            600: '#495057',
+                            700: '#343a40',
+                            800: '#212529',
+                            900: '#121416',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        .quiz-container {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .option-card {
+            transition: all 0.3s ease;
+            border: 2px solid #334155;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-3px);
+            border-color: #0ea5e9;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .option-card.selected {
+            border-color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.1);
+        }
+        
+        .option-card.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .option-card.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.4);
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid #334155;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(14, 165, 233, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="quiz-container w-full max-w-2xl bg-gradient-to-br from-slate-900 to-slate-800">
+        <div class="p-6 md:p-8">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-800 mb-4">
+                    <i class="fas fa-graduation-cap text-primary-300 text-2xl"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Python Fundamentals Quiz</h1>
+                <p class="text-slate-400">Test your knowledge with 10 challenging questions</p>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mb-8">
+                <div class="flex justify-between text-sm text-slate-400 mb-2">
+                    <span>Progress</span>
+                    <span id="progress-text">0%</span>
+                </div>
+                <div class="w-full bg-slate-700 rounded-full h-2.5">
+                    <div id="progress-bar" class="progress-bar bg-primary-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <!-- Quiz Content -->
+            <div id="quiz-content" class="fade-in">
+                <!-- Question 1 -->
+                <div class="question-container">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-full bg-primary-800 flex items-center justify-center mr-3">
+                            <span class="text-primary-300 font-bold">1</span>
+                        </div>
+                        <h2 class="text-xl font-semibold text-white">What is the output of print(3 * 'abc') in Python?</h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                        <div class="option-card p-4 rounded-xl cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full border-2 border-slate-600 mr-3 flex items-center justify-center">
+                                    <span class="text-sm text-white">A</span>
+                                </div>
+                                <span class="text-slate-200">abcabcabc</span>
+                            </div>
+                        </div>
+                        
+                        <div class="option-card p-4 rounded-xl cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full border-2 border-slate-600 mr-3 flex items-center justify-center">
+                                    <span class="text-sm text-white">B</span>
+                                </div>
+                                <span class="text-slate-200">3abc</span>
+                            </div>
+                        </div>
+                        
+                        <div class="option-card p-4 rounded-xl cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full border-2 border-slate-600 mr-3 flex items-center justify-center">
+                                    <span class="text-sm text-white">C</span>
+                                </div>
+                                <span class="text-slate-200">abc3</span>
+                            </div>
+                        </div>
+                        
+                        <div class="option-card p-4 rounded-xl cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full border-2 border-slate-600 mr-3 flex items-center justify-center">
+                                    <span class="text-sm text-white">D</span>
+                                </div>
+                                <span class="text-slate-200">TypeError</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-primary w-full py-3 rounded-xl text-white font-medium flex items-center justify-center">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit Answer
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Results Screen (Hidden by default) -->
+            <div id="results-screen" class="hidden fade-in">
+                <div class="text-center py-8">
+                    <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-accent-800 mb-6">
+                        <i class="fas fa-trophy text-accent-300 text-4xl"></i>
+                    </div>
+                    
+                    <h2 class="text-3xl font-bold text-white mb-4">Quiz Completed!</h2>
+                    <p class="text-slate-300 mb-8">You've tested your Python knowledge</p>
+                    
+                    <div class="result-card p-6 rounded-xl w-full max-w-md mx-auto mb-8">
+                        <div class="flex justify-between mb-4">
+                            <span class="text-slate-400">Your Score:</span>
+                            <span class="text-2xl font-bold text-white" id="score">0</span>
+                        </div>
+                        <div class="flex justify-between mb-4">
+                            <span class="text-slate-400">Correct Answers:</span>
+                            <span class="text-2xl font-bold text-white" id="correct-count">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Total Questions:</span>
+                            <span class="text-2xl font-bold text-white">10</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button id="restart-btn" class="btn-primary px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center">
+                            <i class="fas fa-redo mr-2"></i> Restart Quiz
+                        </button>
+                        <button class="px-6 py-3 rounded-xl text-white font-medium border border-slate-600 hover:bg-slate-800 transition-colors">
+                            View Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="mt-8 text-center text-slate-500 text-sm">
+                <p>LearnHub E-Learning Platform • Built with Tailwind CSS</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Quiz data
+            const quizData = [
+                {
+                    question: "What is the output of print(3 * 'abc') in Python?",
+                    options: ["abcabcabc", "3abc", "abc3", "TypeError"],
+                    correctAnswer: "abcabcabc"
+                },
+                {
+                    question: "Which of these is a mutable data type in Python?",
+                    options: ["Tuple", "String", "List", "Integer"],
+                    correctAnswer: "List"
+                },
+                {
+                    question: "What does the 'self' keyword represent in Python classes?",
+                    options: [
+                        "The class itself",
+                        "The parent class",
+                        "The instance of the class",
+                        "A static method"
+                    ],
+                    correctAnswer: "The instance of the class"
+                },
+                {
+                    question: "Which method is used to add an element to the end of a list?",
+                    options: ["append()", "insert()", "add()", "extend()"],
+                    correctAnswer: "append()"
+                },
+                {
+                    question: "What is the purpose of the __init__ method in Python classes?",
+                    options: [
+                        "To initialize the class",
+                        "To terminate the class",
+                        "To inherit from a parent class",
+                        "To override a method"
+                    ],
+                    correctAnswer: "To initialize the class"
+                },
+                {
+                    question: "Which of these is NOT a Python data type?",
+                    options: ["Array", "Dictionary", "Tuple", "Set"],
+                    correctAnswer: "Array"
+                },
+                {
+                    question: "What does the 'yield' keyword do in Python?",
+                    options: [
+                        "Returns a value from a function",
+                        "Pauses a function and returns a value",
+                        "Terminates a function",
+                        "Imports a module"
+                    ],
+                    correctAnswer: "Pauses a function and returns a value"
+                },
+                {
+                    question: "Which module is used for working with dates and times in Python?",
+                    options: ["datetime", "time", "calendar", "all of the above"],
+                    correctAnswer: "all of the above"
+                },
+                {
+                    question: "What is the output of range(5) in Python?",
+                    options: ["0 to 4", "1 to 5", "0 to 5", "5 to 0"],
+                    correctAnswer: "0 to 4"
+                },
+                {
+                    question: "Which of these is a valid way to create a virtual environment?",
+                    options: [
+                        "python -m venv myenv",
+                        "virtualenv myenv",
+                        "conda create --name myenv",
+                        "all of the above"
+                    ],
+                    correctAnswer: "all of the above"
+                }
+            ];
+            
+            // DOM Elements
+            const quizContainer = document.querySelector('.quiz-container');
+            const quizContent = document.getElementById('quiz-content');
+            const resultsScreen = document.getElementById('results-screen');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const questionElements = document.querySelectorAll('.question-container');
+            const optionCards = document.querySelectorAll('.option-card');
+            const submitButton = document.querySelector('.btn-primary');
+            const scoreElement = document.getElementById('score');
+            const correctCountElement = document.getElementById('correct-count');
+            const restartButton = document.getElementById('restart-btn');
+            
+            // Quiz state
+            let currentQuestion = 0;
+            let score = 0;
+            let userAnswers = [];
+            let selectedOption = null;
+            
+            // Initialize quiz
+            function initQuiz() {
+                currentQuestion = 0;
+                score = 0;
+                userAnswers = [];
+                selectedOption = null;
+                updateQuestion();
+            }
+            
+            // Update question display
+            function updateQuestion() {
+                const question = quizData[currentQuestion];
+                const questionNumber = currentQuestion + 1;
+                
+                // Update question text
+                const questionTitle = document.querySelector('.question-container h2');
+                questionTitle.textContent = question.question;
+                
+                // Update progress
+                const progress = ((currentQuestion) / quizData.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                progressText.textContent = `${Math.round(progress)}%`;
+                
+                // Update question number badge
+                const questionBadge = document.querySelector('.question-container .text-primary-300');
+                if (questionBadge) {
+                    questionBadge.textContent = questionNumber;
+                }
+                
+                // Reset option cards
+                optionCards.forEach((card, index) => {
+                    card.classList.remove('selected', 'correct', 'incorrect');
+                    const optionText = card.querySelector('span:last-child');
+                    optionText.textContent = question.options[index];
+                });
+                
+                // Add event listeners to options
+                optionCards.forEach((card, index) => {
+                    card.addEventListener('click', () => {
+                        // Remove selected class from all options
+                        optionCards.forEach(c => c.classList.remove('selected'));
+                        
+                        // Add selected class to clicked option
+                        card.classList.add('selected');
+                        selectedOption = index;
+                        
+                        // Enable submit button
+                        submitButton.disabled = false;
+                    });
+                });
+                
+                // Hide results screen
+                resultsScreen.classList.add('hidden');
+                
+                // Show question
+                quizContent.classList.remove('hidden');
+            }
+            
+            // Submit answer
+            function submitAnswer() {
+                if (selectedOption === null) return;
+                
+                const question = quizData[currentQuestion];
+                const selectedAnswer = question.options[selectedOption];
+                
+                // Check if answer is correct
+                if (selectedAnswer === question.correctAnswer) {
+                    score++;
+                    scoreElement.textContent = score;
+                    
+                    // Highlight correct answer
+                    optionCards[selectedOption].classList.add('correct');
+                } else {
+                    // Highlight incorrect answer
+                    optionCards[selectedOption].classList.add('incorrect');
+                    
+                    // Highlight correct answer
+                    const correctIndex = question.options.indexOf(question.correctAnswer);
+                    optionCards[correctIndex].classList.add('correct');
+                }
+                
+                // Store user answer
+                userAnswers.push({
+                    question: question.question,
+                    selected: selectedAnswer,
+                    correct: selectedAnswer === question.correctAnswer
+                });
+                
+                // Move to next question or show results
+                if (currentQuestion < quizData.length - 1) {
+                    currentQuestion++;
+                    updateQuestion();
+                } else {
+                    showResults();
+                }
+                
+                // Hide submit button on next question
+                submitButton.disabled = true;
+            }
+            
+            // Show results
+            function showResults() {
+                const percentage = Math.round((score / quizData.length) * 100);
+                let message = '';
+                let color = '';
+                
+                if (percentage >= 80) {
+                    message = 'Excellent! You have a strong understanding of Python.';
+                    color = 'text-green-400';
+                } else if (percentage >= 60) {
+                    message = 'Good job! You have a solid foundation in Python.';
+                    color = 'text-blue-400';
+                } else if (percentage >= 40) {
+                    message = 'Not bad! Keep learning and you will master Python.';
+                    color = 'text-yellow-400';
+                } else {
+                    message = 'Keep practicing! Python can be challenging but rewarding.';
+                    color = 'text-orange-400';
+                }
+                
+                // Update results screen
+                scoreElement.textContent = score;
+                correctCountElement.textContent = `${score}/${quizData.length}`;
+                
+                // Update message
+                const messageElement = document.createElement('div');
+                messageElement.className = `text-xl font-medium mb-6 ${color}`;
+                messageElement.textContent = message;
+                document.getElementById('results-screen').innerHTML = `
+                    ${document.querySelector('#results-screen').innerHTML.replace(
+                        '<h2 class="text-3xl font-bold text-white mb-4">Quiz Completed!</h2>', 
+                        `<h2 class="text-3xl font-bold text-white mb-4">Your Results</h2>`
+                    )}
+                    ${messageElement.outerHTML}
+                    <div class="result-card p-6 rounded-xl w-full max-w-md mx-auto mb-8">
+                        <div class="flex justify-between mb-4">
+                            <span class="text-slate-400">Your Score:</span>
+                            <span class="text-2xl font-bold text-white" id="score">${score}</span>
+                        </div>
+                        <div class="flex justify-between mb-4">
+                            <span class="text-slate-400">Correct Answers:</span>
+                            <span class="text-2xl font-bold text-white" id="correct-count">${score}/${quizData.length}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Total Questions:</span>
+                            <span class="text-2xl font-bold text-white">${quizData.length}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button id="restart-btn" class="btn-primary px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center pulse">
+                            <i class="fas fa-redo mr-2"></i> Restart Quiz
+                        </button>
+                        <button class="px-6 py-3 rounded-xl text-white font-medium border border-slate-600 hover:bg-slate-800 transition-colors">
+                            View Detailed Results
+                        </button>
+                    </div>
+                `;
+                
+                // Show results screen
+                quizContent.classList.add('hidden');
+                resultsScreen.classList.remove('hidden');
+                
+                // Add animation to restart button
+                restartButton.classList.add('pulse');
+                
+                // Add event listener to restart button
+                restartButton.addEventListener('click', initQuiz);
+            }
+            
+            // Event listeners
+            submitButton.addEventListener('click', submitAnswer);
+            
+            // Initialize the quiz
+            initQuiz();
+        });
+    </script>
+</body>
+</html>

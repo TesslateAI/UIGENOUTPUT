@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8faf9',
+                            100: '#f1f2f6',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8faf9;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .status-pending {
+            background-color: #fffbeb;
+            color: #d97706;
+        }
+        
+        .status-canceled {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        
+        .cancellation-modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .cancellation-modal.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.3s ease forwards;
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(10px); }
+        }
+        
+        .tab-button {
+            position: relative;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-button.active {
+            background-color: #e0f2fe;
+            color: #0ea5e9;
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #0ea5e9;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-primary-500 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold">S</div>
+                        <span class="ml-2 text-xl font-bold text-gray-900">SubManager</span>
+                    </div>
+                    <nav class="ml-10 flex space-x-8">
+                        <a href="#" class="text-primary-600 border-b-2 border-primary-500 px-1 pt-1 text-sm font-medium">Subscriptions</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Billing</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Settings</a>
+                    </nav>
+                </div>
+                <div class="flex items-center">
+                    <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">
+                        <i class="fas fa-bell h-6 w-6"></i>
+                    </button>
+                    <div class="ml-3 relative">
+                        <div>
+                            <button class="flex text-sm rounded-full focus:outline-none">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User profile">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Subscription Management</h1>
+                <p class="mt-1 text-gray-500">Manage your active subscriptions and billing information</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Subscription
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-200 mb-8">
+            <button class="tab-button active">All Subscriptions</button>
+            <button class="tab-button">Active</button>
+            <button class="tab-button">Cancelled</button>
+            <button class="tab-button">Upcoming Renewals</button>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="bg-primary-100 p-3 rounded-lg">
+                        <i class="fas fa-credit-card text-primary-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Total Subscriptions</p>
+                        <p class="text-2xl font-bold text-gray-900">12</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-lg">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Active</p>
+                        <p class="text-2xl font-bold text-gray-900">8</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="bg-yellow-100 p-3 rounded-lg">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Pending Renewal</p>
+                        <p class="text-2xl font-bold text-gray-900">3</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="bg-red-100 p-3 rounded-lg">
+                        <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Cancelled</p>
+                        <p class="text-2xl font-bold text-gray-900">1</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription List -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Subscription 1 -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-cloud text-blue-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">Cloud Storage</div>
+                                        <div class="text-sm text-gray-500">Google</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Pro Plan</div>
+                                <div class="text-sm text-gray-500">1TB Storage</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">$12.99</div>
+                                <div class="text-sm text-gray-500">per month</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div>June 15, 2023</div>
+                                <div class="text-xs text-gray-500">Next billing</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge status-active">Active</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-red-600 hover:text-red-900 flex items-center">
+                                    <i class="fas fa-trash mr-1"></i> Cancel
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Subscription 2 -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i class="fab fa-spotify text-purple-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">Music Streaming</div>
+                                        <div class="text-sm text-gray-500">Apple</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Premium</div>
+                                <div class="text-sm text-gray-500">Unlimited Songs</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">$9.99</div>
+                                <div class="text-sm text-gray-500">per month</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div>July 2, 2023</div>
+                                <div class="text-xs text-gray-500">Next billing</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge status-active">Active</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-red-600 hover:text-red-900 flex items-center">
+                                    <i class="fas fa-trash mr-1"></i> Cancel
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Subscription 3 -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-gamepad text-green-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">Gaming</div>
+                                        <div class="text-sm text-gray-500">Xbox</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Elite</div>
+                                <div class="text-sm text-gray-500">12000 XP</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">$14.99</div>
+                                <div class="text-sm text-gray-500">per month</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div>June 28, 2023</div>
+                                <div class="text-xs text-gray-500">Next billing</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge status-pending">Pending Renewal</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-red-600 hover:text-red-900 flex items-center">
+                                    <i class="fas fa-trash mr-1"></i> Cancel
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Subscription 4 -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                        <i class="fab fa-netflix text-yellow-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">Streaming</div>
+                                        <div class="text-sm text-gray-500">Netflix</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Premium</div>
+                                <div class="text-sm text-gray-500">4K UHD</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">$15.99</div>
+                                <div class="text-sm text-gray-500">per month</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div>July 10, 2023</div>
+                                <div class="text-xs text-gray-500">Next billing</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge status-active">Active</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-red-600 hover:text-red-900 flex items-center">
+                                    <i class="fas fa-trash mr-1"></i> Cancel
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Subscription 5 -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-rocket text-red-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">Web Hosting</div>
+                                        <div class="text-sm text-gray-500">DigitalOcean</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Business</div>
+                                <div class="text-sm text-gray-500">100GB Storage</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="font-medium text-gray-900">$29.99</div>
+                                <div class="text-sm text-gray-500">per month</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div>June 5, 2023</div>
+                                <div class="text-xs text-gray-500">Next billing</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge status-canceled">Cancelled</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-red-600 hover:text-red-900 flex items-center">
+                                    <i class="fas fa-redo mr-1"></i> Reactivate
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-6 flex items-center justify-between border-t border-gray-200 pt-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+                <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">1</span> to <span class="font-medium">5</span> of <span class="font-medium">12</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Previous</span>
+                            <i class="fas fa-chevron-left h-4 w-4"></i>
+                        </a>
+                        <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">1</a>
+                        <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">2</a>
+                        <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">3</a>
+                        <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">4</a>
+                        <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Next</span>
+                            <i class="fas fa-chevron-right h-4 w-4"></i>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Cancellation Modal -->
+    <div id="cancellationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Cancel Subscription</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600">
+                    Are you sure you want to cancel your <span class="font-semibold text-primary-600">Cloud Storage</span> subscription? 
+                    This action cannot be undone. You'll lose access to premium features immediately.
+                </p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelAction" class="px-4 py-2 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100">
+                    Cancel
+                </button>
+                <button id="confirmCancel" class="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700">
+                    Confirm Cancellation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('cancellationModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelAction = document.getElementById('cancelAction');
+            const confirmCancel = document.getElementById('confirmCancel');
+            
+            // Open modal
+            document.querySelectorAll('button.text-red-600').forEach(button => {
+                button.addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                });
+            });
+            
+            // Close modal
+            closeModal.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            cancelAction.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            // Confirm cancellation
+            confirmCancel.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                // Show confirmation message
+                const row = modal.querySelector('p').previousElementSibling;
+                row.classList.add('text-red-600', 'font-medium');
+                row.innerHTML = 'Subscription cancelled successfully!';
+                row.classList.remove('text-gray-600');
+                
+                // Reset button to cancel text
+                confirmCancel.textContent = 'Cancel';
+                confirmCancel.classList.remove('bg-red-600', 'hover:bg-red-700');
+                confirmCancel.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                
+                // Reset after 3 seconds
+                setTimeout(() => {
+                    row.classList.remove('text-red-600', 'font-medium');
+                    row.classList.add('text-gray-600');
+                    confirmCancel.textContent = 'Confirm Cancellation';
+                    confirmCancel.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                    confirmCancel.classList.add('bg-red-600', 'hover:bg-red-700');
+                }, 3000);
+            });
+            
+            // Tab switching
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

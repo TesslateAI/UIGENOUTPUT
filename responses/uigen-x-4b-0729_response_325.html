@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechEvents | Emerging Technology Events</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0a0a0a',
+                        secondary: '#0d0d0d',
+                        tertiary: '#111111',
+                        accent: '#3b82f6',
+                        accent: '#8b5cf6',
+                        text: '#f5f5f5',
+                        muted: '#a3a3a3'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            background-color: #1a1a1a;
+        }
+        
+        .calendar-day.today {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .calendar-day.selected {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        
+        .event-card {
+            background: linear-gradient(145deg, #0d0d0d, #0b0b0b);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        .rsvp-btn {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+        }
+        
+        .rsvp-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        .tech-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .calendar-header {
+            position: relative;
+        }
+        
+        .calendar-nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .calendar-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .event-tag {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+        
+        .event-tag.tech {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+        
+        .event-tag.design {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+        
+        .event-tag.business {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body class="bg-primary min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-secondary/90 backdrop-blur-md border-b border-tertiary">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="tech-icon">
+                    <i class="fas fa-microchip text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">TechEvents</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="text-muted hover:text-text transition-colors">Discover</a>
+                <a href="#" class="text-muted hover:text-text transition-colors">Calendar</a>
+                <a href="#" class="text-muted hover:text-text transition-colors">Saved</a>
+                <a href="#" class="text-muted hover:text-text transition-colors">Profile</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="bg-tertiary hover:bg-accent text-text px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i> New Event
+                </button>
+                <button class="bg-accent text-white p-2 rounded-lg">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="bg-accent text-white p-2 rounded-lg">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-16 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Emerging Tech Events</h1>
+            <p class="text-muted text-lg max-w-2xl mx-auto mb-8">
+                Discover the latest events in AI, blockchain, quantum computing, and more. 
+                Never miss an important tech conference again.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <div class="relative flex-1 max-w-md">
+                    <input 
+                        type="text" 
+                        placeholder="Search events, locations, technologies..." 
+                        class="w-full bg-tertiary border border-tertiary rounded-lg py-3 px-4 pl-12 text-text focus:outline-none focus:ring-2 focus:ring-accent"
+                    >
+                    <i class="fas fa-search absolute left-4 top-3.5 text-muted"></i>
+                </div>
+                <button class="bg-accent text-white py-3 px-6 rounded-lg font-medium hover:bg-accent/90 transition-colors">
+                    Search
+                </button>
+            </div>
+        </section>
+
+        <!-- Calendar Section -->
+        <section class="mb-16">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Event Calendar</h2>
+                <div class="flex items-center space-x-4">
+                    <button class="calendar-nav-btn p-2 rounded-lg">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="text-lg font-medium">October 2023</span>
+                    <button class="calendar-nav-btn p-2 rounded-lg">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Calendar Grid -->
+            <div class="bg-secondary rounded-xl p-4 mb-6">
+                <!-- Weekday Headers -->
+                <div class="calendar-grid mb-2">
+                    <div class="text-center text-muted text-sm py-2">Sun</div>
+                    <div class="text-center text-muted text-sm py-2">Mon</div>
+                    <div class="text-center text-muted text-sm py-2">Tue</div>
+                    <div class="text-center text-muted text-sm py-2">Wed</div>
+                    <div class="text-center text-muted text-sm py-2">Thu</div>
+                    <div class="text-center text-muted text-sm py-2">Fri</div>
+                    <div class="text-center text-muted text-sm py-2">Sat</div>
+                </div>
+                
+                <!-- Calendar Days -->
+                <div class="calendar-grid">
+                    <!-- Empty days -->
+                    <div class="calendar-day"></div>
+                    <div class="calendar-day"></div>
+                    <div class="calendar-day"></div>
+                    <div class="calendar-day"></div>
+                    <div class="calendar-day"></div>
+                    
+                    <!-- October 1-31 -->
+                    <div class="calendar-day">1</div>
+                    <div class="calendar-day">2</div>
+                    <div class="calendar-day">3</div>
+                    <div class="calendar-day">4</div>
+                    <div class="calendar-day">5</div>
+                    <div class="calendar-day">6</div>
+                    <div class="calendar-day">7</div>
+                    <div class="calendar-day">8</div>
+                    <div class="calendar-day">9</div>
+                    <div class="calendar-day">10</div>
+                    <div class="calendar-day">11</div>
+                    <div class="calendar-day">12</div>
+                    <div class="calendar-day">13</div>
+                    <div class="calendar-day">14</div>
+                    <div class="calendar-day">15</div>
+                    <div class="calendar-day">16</div>
+                    <div class="calendar-day">17</div>
+                    <div class="calendar-day">18</div>
+                    <div class="calendar-day">19</div>
+                    <div class="calendar-day">20</div>
+                    <div class="calendar-day">21</div>
+                    <div class="calendar-day">22</div>
+                    <div class="calendar-day">23</div>
+                    <div class="calendar-day">24</div>
+                    <div class="calendar-day">25</div>
+                    <div class="calendar-day">26</div>
+                    <div class="calendar-day">27</div>
+                    <div class="calendar-day">28</div>
+                    <div class="calendar-day">29</div>
+                    <div class="calendar-day">30</div>
+                    <div class="calendar-day">31</div>
+                    
+                    <!-- Today and selected day -->
+                    <div class="calendar-day today">Today</div>
+                    <div class="calendar-day selected">Oct 15</div>
+                    <div class="calendar-day">17</div>
+                    <div class="calendar-day">19</div>
+                    <div class="calendar-day">22</div>
+                    <div class="calendar-day">25</div>
+                    <div class="calendar-day">28</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Events Section -->
+        <section>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Events for October 15</h2>
+                <div class="flex items-center space-x-2">
+                    <span class="text-muted">Sort by:</span>
+                    <select class="bg-tertiary border border-tertiary rounded-lg py-2 px-3 text-text focus:outline-none">
+                        <option>Date</option>
+                        <option>Popularity</option>
+                        <option>Technology</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Events Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Event Card 1 -->
+                <div class="event-card rounded-xl overflow-hidden fade-in">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="tech-icon">
+                                <i class="fas fa-brain text-xl"></i>
+                            </div>
+                            <span class="event-tag tech text-xs font-medium px-3 py-1 rounded-full">AI/ML</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-2">AI Ethics & Governance Summit</h3>
+                        <p class="text-muted text-sm mb-4">Exploring the ethical implications and governance frameworks for advanced AI systems.</p>
+                        
+                        <div class="flex items-center text-sm text-muted mb-4">
+                            <i class="far fa-clock mr-2"></i>
+                            <span>10:00 AM - 4:00 PM</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-muted mb-6">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>Tech Hub, San Francisco</span>
+                        </div>
+                        
+                        <button class="w-full rsvp-btn text-white py-3 rounded-lg font-medium">
+                            RSVP Now
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Event Card 2 -->
+                <div class="event-card rounded-xl overflow-hidden fade-in">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="tech-icon">
+                                <i class="fas fa-link text-xl"></i>
+                            </div>
+                            <span class="event-tag tech text-xs font-medium px-3 py-1 rounded-full">Blockchain</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-2">Web3 Infrastructure Workshop</h3>
+                        <p class="text-muted text-sm mb-4">Hands-on session building decentralized applications with emerging blockchain technologies.</p>
+                        
+                        <div class="flex items-center text-sm text-muted mb-4">
+                            <i class="far fa-clock mr-2"></i>
+                            <span>2:00 PM - 5:00 PM</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-muted mb-6">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>Digital Campus, Remote</span>
+                        </div>
+                        
+                        <button class="w-full rsvp-btn text-white py-3 rounded-lg font-medium">
+                            RSVP Now
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Event Card 3 -->
+                <div class="event-card rounded-xl overflow-hidden fade-in">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="tech-icon">
+                                <i class="fas fa-atom text-xl"></i>
+                            </div>
+                            <span class="event-tag tech text-xs font-medium px-3 py-1 rounded-full">Quantum</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-2">Quantum Computing Breakthroughs</h3>
+                        <p class="text-muted text-sm mb-4">Latest advancements in quantum computing and its potential to revolutionize industries.</p>
+                        
+                        <div class="flex items-center text-sm text-muted mb-4">
+                            <i class="far fa-clock mr-2"></i>
+                            <span>9:30 AM - 12:30 PM</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-muted mb-6">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>Innovation Center, Boston</span>
+                        </div>
+                        
+                        <button class="w-full rsvp-btn text-white py-3 rounded-lg font-medium">
+                            RSVP Now
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Event Card 4 -->
+                <div class="event-card rounded-xl overflow-hidden fade-in">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="tech-icon">
+                                <i class="fas fa-vr-cardboard text-xl"></i>
+                            </div>
+                            <span class="event-tag design text-xs font-medium px-3 py-1 rounded-full">AR/VR</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-2">Extended Reality Experiences</h3>
+                        <p class="text-muted text-sm mb-4">Creating immersive experiences with AR, VR, and mixed reality technologies.</p>
+                        
+                        <div class="flex items-center text-sm text-muted mb-4">
+                            <i class="far fa-clock mr-2"></i>
+                            <span>11:00 AM - 3:00 PM</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-muted mb-6">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>Creative Space, New York</span>
+                        </div>
+                        
+                        <button class="w-full rsvp-btn text-white py-3 rounded-lg font-medium">
+                            RSVP Now
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Event Card 5 -->
+                <div class="event-card rounded-xl overflow-hidden fade-in">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="tech-icon">
+                                <i class="fas fa-dna text-xl"></i>
+                            </div>
+                            <span class="event-tag tech text-xs font-medium px-3 py-1 rounded-full">Biotech</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-2">BioTech Innovations Conference</h3>
+                        <p class="text-muted text-sm mb-4">Emerging technologies in biotechnology and their impact on healthcare.</p>
+                        
+                        <div class="flex items-center text-sm text-muted mb-4">
+                            <i class="far fa-clock mr-2"></i>
+                            <span>1:00 PM - 6:00 PM</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-muted mb-6">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>Science Park, London</span>
+                        </div>
+                        
+                        <button class="w-full rsvp-btn text-white py-3 rounded-lg font-medium">
+                            RSVP Now
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Event Card 6 -->
+                <div class="event-card rounded-xl overflow-hidden fade-in">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="tech-icon">
+                                <i class="fas fa-cloud text-xl"></i>
+                            </div>
+                            <span class="event-tag business text-xs font-medium px-3 py-1 rounded-full">Cloud</span>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-2">Cloud Native Architecture</h3>
+                        <p class="text-muted text-sm mb-4">Building scalable cloud-native applications with Kubernetes and serverless technologies.</p>
+                        
+                        <div class="flex items-center text-sm text-muted mb-4">
+                            <i class="far fa-clock mr-2"></i>
+                            <span>3:30 PM - 6:30 PM</span>
+                        </div>
+                        
+                        <div class="flex items-center text-sm text-muted mb-6">
+                            <i class="fas fa-map-marker-alt mr-2"></i>
+                            <span>Tech Campus, Remote</span>
+                        </div>
+                        
+                        <button class="w-full rsvp-btn text-white py-3 rounded-lg font-medium">
+                            RSVP Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-secondary border-t border-tertiary mt-16 py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="tech-icon">
+                            <i class="fas fa-microchip text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">TechEvents</h3>
+                    </div>
+                    <p class="text-muted text-sm mb-4">
+                        Discover and connect with the most important events in emerging technologies.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-muted hover:text-text transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-muted hover:text-text transition-colors">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="text-muted hover:text-text transition-colors">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-muted hover:text-text transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Categories</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Artificial Intelligence</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Blockchain</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Quantum Computing</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">AR/VR</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Biotechnology</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Event Guidelines</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Tech Glossary</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Speaker Resources</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">Code of Conduct</a></li>
+                        <li><a href="#" class="text-muted hover:text-text transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Subscribe</h4>
+                    <p class="text-muted text-sm mb-4">
+                        Get the latest event updates and tech insights delivered to your inbox.
+                    </p>
+                    <div class="flex">
+                        <input 
+                            type="email" 
+                            placeholder="Your email" 
+                            class="bg-tertiary border border-tertiary rounded-l-lg py-2 px-4 text-text focus:outline-none w-full"
+                        >
+                        <button class="bg-accent text-white py-2 px-4 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-tertiary mt-8 pt-8 text-center text-muted text-sm">
+                <p>© 2023 TechEvents. All rights reserved. Designed for the future.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple calendar navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const prevBtn = document.querySelector('.calendar-nav-btn:first-child');
+            const nextBtn = document.querySelector('.calendar-nav-btn:last-child');
+            const monthYear = document.querySelector('span.text-lg.font-medium');
+            
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            
+            let currentMonth = 9; // October (0-indexed)
+            let currentYear = 2023;
+            
+            function updateCalendar() {
+                monthYear.textContent = `${months[currentMonth]} ${currentYear}`;
+            }
+            
+            prevBtn.addEventListener('click', function() {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                updateCalendar();
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                updateCalendar();
+            });
+            
+            updateCalendar();
+            
+            // Event card hover effect
+            const eventCards = document.querySelectorAll('.event-card');
+            eventCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

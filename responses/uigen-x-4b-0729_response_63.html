@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmony Studio - Music Composition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066CC',
+                        secondary: '#00CC66',
+                        accent: '#FF6633',
+                        dark: '#121212',
+                        surface: '#1E1E1E',
+                        light: '#F5F5F5',
+                        muted: '#B0B0B0',
+                        track1: '#FF6B6B',
+                        track2: '#4ECDC4',
+                        track3: '#FFD166',
+                        track4: '#6A0572'
+                    },
+                    fontFamily: {
+                        heading: ['Playfair Display', 'serif'],
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #0066CC;
+            --color-secondary: #00CC66;
+            --color-accent: #FF6633;
+            --color-dark: #121212;
+            --color-surface: #1E1E1E;
+            --color-light: #F5F5F5;
+            --color-muted: #B0B0B0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-dark);
+            color: var(--color-light);
+            overflow-x: hidden;
+        }
+        
+        .font-heading {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .track-bar {
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-track1), var(--color-track2), var(--color-track3), var(--color-track4));
+        }
+        
+        .track-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+        
+        .collaborator-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+        }
+        
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 4px;
+        }
+        
+        .timeline-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(to bottom, transparent, var(--color-surface));
+            z-index: 10;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: var(--color-primary);
+            border-radius: 50%;
+            z-index: 20;
+        }
+        
+        .track-strip {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: var(--color-track1);
+            z-index: 30;
+        }
+        
+        .track-strip.active {
+            background-color: var(--color-secondary);
+        }
+        
+        .waveform {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: linear-gradient(to top, var(--color-track1), transparent);
+            border-radius: 4px;
+            z-index: 40;
+        }
+        
+        .waveform-visual {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, var(--color-track1), transparent);
+            border-radius: 4px;
+            z-index: 50;
+            opacity: 0.3;
+        }
+        
+        .glow {
+            box-shadow: 0 0 15px rgba(0, 102, 204, 0.5);
+        }
+        
+        .tool-button {
+            transition: all 0.2s ease;
+        }
+        
+        .tool-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .active-track {
+            border-left: 3px solid var(--color-secondary);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-md border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
+                            <i class="fas fa-music text-white"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-heading font-bold">Harmony Studio</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium bg-primary text-white">Home</a>
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-light">Library</a>
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-light">Collaborate</a>
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-muted hover:text-light">Settings</a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="relative mr-4">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="fas fa-search text-muted"></i>
+                        </div>
+                        <input type="text" class="block w-full pl-10 pr-3 py-2 bg-surface border border-gray-700 rounded-md text-sm text-light placeholder-muted focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search...">
+                    </div>
+                    
+                    <div class="relative ml-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">JD</div>
+                                <div class="absolute bottom-0 right-0 w-3 h-3 bg-secondary rounded-full border-2 border-surface"></div>
+                            </div>
+                            <span class="text-sm font-medium hidden md:block">John Doe</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Left Sidebar - Track List -->
+                <div class="lg:w-1/4">
+                    <div class="bg-surface rounded-xl p-4 shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-heading font-semibold">Tracks</h2>
+                            <button class="text-primary hover:text-secondary">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <div class="track-item active-track flex items-center p-2 rounded-lg bg-primary/10">
+                                <div class="track-indicator mr-3"></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium truncate">Main Melody</div>
+                                    <div class="text-xs text-muted">MIDI: 0:00 - 1:45</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <button class="text-muted hover:text-light mr-2">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <button class="text-muted hover:text-light">
+                                        <i class="fas fa-mute"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="track-item flex items-center p-2 rounded-lg hover:bg-surface/50">
+                                <div class="track-indicator mr-3 bg-track2"></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium truncate">Harmony Part</div>
+                                    <div class="text-xs text-muted">MIDI: 0:00 - 1:45</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <button class="text-muted hover:text-light mr-2">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <button class="text-muted hover:text-light">
+                                        <i class="fas fa-mute"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="track-item flex items-center p-2 rounded-lg hover:bg-surface/50">
+                                <div class="track-indicator mr-3 bg-track3"></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium truncate">Bass Line</div>
+                                    <div class="text-xs text-muted">MIDI: 0:00 - 1:45</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <button class="text-muted hover:text-light mr-2">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <button class="text-muted hover:text-light">
+                                        <i class="fas fa-mute"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="track-item flex items-center p-2 rounded-lg hover:bg-surface/50">
+                                <div class="track-indicator mr-3 bg-track4"></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium truncate">Drum Pattern</div>
+                                    <div class="text-xs text-muted">MIDI: 0:00 - 1:45</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <button class="text-muted hover:text-light mr-2">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <button class="text-muted hover:text-light">
+                                        <i class="fas fa-mute"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="track-item flex items-center p-2 rounded-lg hover:bg-surface/50">
+                                <div class="track-indicator mr-3 bg-accent"></div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium truncate">Sound Effect</div>
+                                    <div class="text-xs text-muted">MIDI: 0:00 - 1:45</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <button class="text-muted hover:text-light mr-2">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                    <button class="text-muted hover:text-light">
+                                        <i class="fas fa-mute"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="text-sm font-medium text-muted uppercase tracking-wider mb-2">Collaborators</h3>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <div class="collaborator-avatar bg-blue-500">AS</div>
+                                    <div class="ml-2 flex-1">
+                                        <div class="text-sm font-medium">Alex Smith</div>
+                                        <div class="text-xs text-muted">Editing Melody</div>
+                                    </div>
+                                    <div class="text-xs text-muted">2:15</div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <div class="collaborator-avatar bg-green-500">MJ</div>
+                                    <div class="ml-2 flex-1">
+                                        <div class="text-sm font-medium">Maria Johnson</div>
+                                        <div class="text-xs text-muted">Editing Bass</div>
+                                    </div>
+                                    <div class="text-xs text-muted">1:42</div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <div class="collaborator-avatar bg-purple-500">RT</div>
+                                    <div class="ml-2 flex-1">
+                                        <div class="text-sm font-medium">Robert Taylor</div>
+                                        <div class="text-xs text-muted">Adding Drums</div>
+                                    </div>
+                                    <div class="text-xs text-muted">0:58</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Content - Timeline -->
+                <div class="lg:w-3/4">
+                    <div class="bg-surface rounded-xl p-4 shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-lg font-heading font-semibold">Composition</h2>
+                                <div class="text-sm text-muted">Project: "Summer Vibes" • 1:45:22</div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="px-4 py-2 bg-primary text-white rounded-lg flex items-center hover:bg-primary/90">
+                                    <i class="fas fa-save mr-2"></i> Save
+                                </button>
+                                <button class="px-4 py-2 bg-secondary text-white rounded-lg flex items-center hover:bg-secondary/90">
+                                    <i class="fas fa-share-alt mr-2"></i> Share
+                                </button>
+                                <button class="px-4 py-2 bg-primary/10 text-primary rounded-lg flex items-center hover:bg-primary/20">
+                                    <i class="fas fa-cloud-upload-alt mr-2"></i> Export
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="relative h-96">
+                            <!-- Timeline Header -->
+                            <div class="flex items-center mb-2">
+                                <div class="flex items-center">
+                                    <div class="w-16 text-sm text-muted">0:00</div>
+                                    <div class="flex-1 relative h-1 bg-surface rounded-full">
+                                        <div class="timeline-line"></div>
+                                        <div class="timeline-marker" style="left: 0%;"></div>
+                                        <div class="timeline-marker" style="left: 25%;"></div>
+                                        <div class="timeline-marker" style="left: 50%;"></div>
+                                        <div class="timeline-marker" style="left: 75%;"></div>
+                                        <div class="timeline-marker" style="left: 100%;"></div>
+                                    </div>
+                                    <div class="w-16 text-sm text-muted">1:00</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Track Strips -->
+                            <div class="track-strip" style="top: 20px; left: 25%;"></div>
+                            <div class="track-strip active" style="top: 20px; left: 50%;"></div>
+                            <div class="track-strip" style="top: 20px; left: 75%;"></div>
+                            
+                            <!-- Waveforms -->
+                            <div class="waveform-visual" style="top: 30px; left: 25%;"></div>
+                            <div class="waveform-visual active" style="top: 30px; left: 50%;"></div>
+                            <div class="waveform-visual" style="top: 30px; left: 75%;"></div>
+                            
+                            <!-- Waveform Visualization -->
+                            <div class="waveform" style="top: 30px; left: 25%; width: 70%; height: 30%;"></div>
+                            <div class="waveform" style="top: 30px; left: 50%; width: 70%; height: 30%;"></div>
+                            <div class="waveform" style="top: 30px; left: 75%; width: 70%; height: 30%;"></div>
+                            
+                            <!-- Playhead -->
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-accent rounded-full glow pulse"></div>
+                            
+                            <!-- Track Controls -->
+                            <div class="absolute bottom-2 left-0 right-0 flex justify-between px-4">
+                                <div class="flex space-x-2">
+                                    <button class="w-8 h-8 rounded-md bg-surface flex items-center justify-center text-muted hover:text-light">
+                                        <i class="fas fa-record-vinyl"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-md bg-surface flex items-center justify-center text-muted hover:text-light">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-md bg-surface flex items-center justify-center text-muted hover:text-light">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="w-8 h-8 rounded-md bg-surface flex items-center justify-center text-muted hover:text-light">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-md bg-surface flex items-center justify-center text-muted hover:text-light">
+                                        <i class="fas fa-step-backward"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-md bg-surface flex items-center justify-center text-muted hover:text-light">
+                                        <i class="fas fa-step-forward"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tools Panel -->
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <button class="tool-button flex items-center px-4 py-2 bg-primary/10 text-primary rounded-lg">
+                                <i class="fas fa-music text-lg mr-2"></i>
+                                <span>Instrument</span>
+                            </button>
+                            <button class="tool-button flex items-center px-4 py-2 bg-primary/10 text-primary rounded-lg">
+                                <i class="fas fa-edit text-lg mr-2"></i>
+                                <span>Edit</span>
+                            </button>
+                            <button class="tool-button flex items-center px-4 py-2 bg-primary/10 text-primary rounded-lg">
+                                <i class="fas fa-microphone text-lg mr-2"></i>
+                                <span>Record</span>
+                            </button>
+                            <button class="tool-button flex items-center px-4 py-2 bg-primary/10 text-primary rounded-lg">
+                                <i class="fas fa-sliders-h text-lg mr-2"></i>
+                                <span>Effects</span>
+                            </button>
+                            <button class="tool-button flex items-center px-4 py-2 bg-primary/10 text-primary rounded-lg">
+                                <i class="fas fa-paint-brush text-lg mr-2"></i>
+                                <span>Visualizer</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Projects -->
+            <div class="mt-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-heading font-semibold">Recent Projects</h2>
+                    <button class="text-primary hover:text-secondary">
+                        <i class="fas fa-plus"></i> New Project
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-surface rounded-xl p-4 shadow-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-medium">Summer Vibes</h3>
+                                <div class="text-sm text-muted">1:45:22</div>
+                            </div>
+                            <div class="text-sm text-muted">3 collaborators</div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="track-bar mb-2"></div>
+                            <div class="text-xs text-muted">Last saved: 10:42 AM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-surface rounded-xl p-4 shadow-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-medium">Jazz Improv</h3>
+                                <div class="text-sm text-muted">4:22:15</div>
+                            </div>
+                            <div class="text-sm text-muted">2 collaborators</div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="track-bar mb-2"></div>
+                            <div class="text-xs text-muted">Last saved: Yesterday</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-surface rounded-xl p-4 shadow-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-medium">Electronic Mix</h3>
+                                <div class="text-sm text-muted">3:15:48</div>
+                            </div>
+                            <div class="text-sm text-muted">1 collaborators</div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="track-bar mb-2"></div>
+                            <div class="text-xs text-muted">Last saved: 2 days ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-6 right-6">
+        <button class="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white shadow-lg hover:bg-primary/90 transition">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+    </div>
+    
+    <script>
+        // Simple interactivity for the demo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle track visibility
+            const trackItems = document.querySelectorAll('.track-item');
+            trackItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    trackItems.forEach(i => i.classList.remove('active-track'));
+                    this.classList.add('active-track');
+                });
+            });
+            
+            // Playhead animation
+            const playhead = document.querySelector('.pulse');
+            setInterval(() => {
+                playhead.classList.toggle('pulse');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

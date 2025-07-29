@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Hole Explorer | Interactive Physics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cosmic: {
+                            50: '#f0f8ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        nebula: {
+                            50: '#f0f2f5',
+                            100: '#d1d5db',
+                            200: '#9ca3af',
+                            300: '#6b7280',
+                            400: '#4b5563',
+                            500: '#374151',
+                            600: '#1f2937',
+                            700: '#111827',
+                            800: '#0c1220',
+                            900: '#070c14',
+                        },
+                        stardust: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: radial-gradient(circle at 10% 20%, rgba(224, 242, 254, 0.3) 0%, rgba(240, 248, 255, 0) 50%),
+                        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.2) 0%, rgba(240, 248, 255, 0) 50%);
+            min-height: 100vh;
+        }
+        
+        .black-hole {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .event-horizon {
+            position: absolute;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            animation: pulse 4s infinite;
+        }
+        
+        .orbit {
+            position: absolute;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+        }
+        
+        .planet {
+            position: absolute;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+        }
+        
+        .star {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #f59e0b;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+        
+        .text-shadow {
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glow {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 0.3; }
+        }
+        
+        .slider-container {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .slider-track {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .slider-thumb {
+            width: 24px;
+            height: 24px;
+            background: #4f46e5;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .slider-thumb:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.5);
+        }
+        
+        .slider-thumb:active {
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+        
+        .info-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .grid-pattern {
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .appear {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .appear.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .delay-100 { transition-delay: 0.1s; }
+        .delay-200 { transition-delay: 0.2s; }
+        .delay-300 { transition-delay: 0.3s; }
+        .delay-400 { transition-delay: 0.4s; }
+    </style>
+</head>
+<body class="font-body text-stardust-800">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 py-4 bg-white/80 backdrop-blur-md border-b border-stardust-100">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-cosmic-600 flex items-center justify-center text-white font-bold mr-3">BH</div>
+                <h1 class="text-2xl font-heading font-bold text-stardust-900">Black Hole Explorer</h1>
+            </div>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#intro" class="text-stardust-600 hover:text-cosmic-700 transition-colors">Introduction</a>
+                <a href="#physics" class="text-stardust-600 hover:text-cosmic-700 transition-colors">Physics</a>
+                <a href="#interactive" class="text-stardust-600 hover:text-cosmic-700 transition-colors">Interactive</a>
+                <a href="#facts" class="text-stardust-600 hover:text-cosmic-700 transition-colors">Facts</a>
+            </nav>
+            <button class="md:hidden text-stardust-700">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="intro" class="pt-32 pb-20 px-4 relative overflow-hidden">
+        <div class="absolute inset-0 grid-pattern z-0"></div>
+        <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-cosmic-200 rounded-full filter blur-[100px] opacity-30"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-stardust-200 rounded-full filter blur-[120px] opacity-30"></div>
+        
+        <div class="container mx-auto relative z-10">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-block px-4 py-1 bg-cosmic-100 text-cosmic-700 rounded-full text-sm font-medium mb-6 appear">
+                    Explore the mysteries of space and time
+                </div>
+                <h1 class="text-5xl md:text-7xl font-heading font-bold text-stardust-900 mb-6 text-shadow appear delay-100">
+                    Black Holes: <span class="text-cosmic-600">Space's Greatest Mystery</span>
+                </h1>
+                <p class="text-xl text-stardust-600 max-w-2xl mx-auto mb-10 appear delay-200">
+                    Discover how these cosmic giants warp spacetime, trap light, and challenge our understanding of physics.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 appear delay-300">
+                    <a href="#interactive" class="px-8 py-3 bg-cosmic-600 text-white rounded-lg font-medium hover:bg-cosmic-700 transition-colors shadow-lg">
+                        Explore Now
+                    </a>
+                    <a href="#physics" class="px-8 py-3 bg-white text-stardust-700 rounded-lg font-medium border border-stardust-200 hover:bg-stardust-50 transition-colors">
+                        Learn Physics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Physics Explanation -->
+    <section id="physics" class="py-20 bg-white px-4">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-heading font-bold text-stardust-900 mb-4 appear">The Physics of Black Holes</h2>
+                <p class="text-xl text-stardust-600 max-w-3xl mx-auto appear delay-100">
+                    Understanding the forces that create and shape these cosmic objects
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="info-card bg-stardust-50 p-6 rounded-xl border-l-4 border-cosmic-500 appear">
+                    <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-3">Einstein's Prediction</h3>
+                    <p class="text-stardust-600 mb-4">
+                        In 1915, Albert Einstein's theory of general relativity predicted that massive objects like stars warp the fabric of spacetime. 
+                        When a star collapses under its own gravity, it can create a region where escape velocity exceeds the speed of light.
+                    </p>
+                    <div class="flex items-center text-stardust-600">
+                        <i class="fas fa-quote-left text-2xl mr-3 text-cosmic-500"></i>
+                        <p class="italic">"Space and time are not independent, but are interwoven into a single continuum."</p>
+                    </div>
+                </div>
+                
+                <div class="info-card bg-stardust-50 p-6 rounded-xl border-l-4 border-stardust-500 appear delay-100">
+                    <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-3">Event Horizon</h3>
+                    <p class="text-stardust-600 mb-4">
+                        The event horizon is the boundary around a black hole beyond which nothing can escape, not even light. 
+                        Its radius depends on the black hole's mass and is calculated by the Schwarzschild radius.
+                    </p>
+                    <div class="flex items-center text-stardust-600">
+                        <i class="fas fa-quote-left text-2xl mr-3 text-cosmic-500"></i>
+                        <p class="italic">"The point of no return... where the escape velocity equals the speed of light."</p>
+                    </div>
+                </div>
+                
+                <div class="info-card bg-stardust-50 p-6 rounded-xl border-l-4 border-cosmic-500 appear delay-200">
+                    <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-3">Singularity</h3>
+                    <p class="text-stardust-600 mb-4">
+                        At the center of a black hole lies a singularity - a point of infinite density and zero volume. 
+                        Our understanding of physics breaks down here, as quantum mechanics and general relativity cannot be reconciled.
+                    </p>
+                    <div class="flex items-center text-stardust-600">
+                        <i class="fas fa-quote-left text-2xl mr-3 text-cosmic-500"></i>
+                        <p class="italic">"A point of zero volume containing all the mass of the star, where known laws of physics cease to apply."</p>
+                    </div>
+                </div>
+                
+                <div class="info-card bg-stardust-50 p-6 rounded-xl border-l-4 border-stardust-500 appear delay-300">
+                    <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-3">Types of Black Holes</h3>
+                    <p class="text-stardust-600 mb-4">
+                        Black holes come in different masses: stellar-mass (10-100 solar masses), 
+                        supermassive (millions to billions of solar masses), and intermediate. 
+                        The most massive are found at the centers of galaxies.
+                    </p>
+                    <div class="flex items-center text-stardust-600">
+                        <i class="fas fa-quote-left text-2xl mr-3 text-cosmic-500"></i>
+                        <p class="italic">"From primordial seeds to supergiants, black holes come in many sizes and masses."</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Section -->
+    <section id="interactive" class="py-20 px-4 bg-stardust-50">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-heading font-bold text-stardust-900 mb-4 appear">Interactive Black Hole Explorer</h2>
+                <p class="text-xl text-stardust-600 max-w-3xl mx-auto appear delay-100">
+                    Adjust parameters to see how they affect the black hole's properties and surrounding space
+                </p>
+            </div>
+            
+            <div class="slider-container max-w-6xl mx-auto appear">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Mass Slider -->
+                    <div class="lg:col-span-1">
+                        <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-4">Mass</h3>
+                        <div class="mb-6">
+                            <div class="flex justify-between text-sm text-stardust-600 mb-2">
+                                <span>1 solar mass</span>
+                                <span>100 solar masses</span>
+                            </div>
+                            <input type="range" min="1" max="100" value="10" class="w-full h-2 bg-stardust-200 rounded-lg appearance-none cursor-pointer" id="massSlider">
+                            <div class="flex justify-between text-sm mt-1">
+                                <span class="text-cosmic-600">M = 10 M☉</span>
+                                <span class="text-stardust-400">M = 10 M☉</span>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-4">Distance from Event Horizon</h3>
+                        <div class="mb-6">
+                            <div class="flex justify-between text-sm text-stardust-600 mb-2">
+                                <span>0.1 AU</span>
+                                <span>10 AU</span>
+                            </div>
+                            <input type="range" min="0.1" max="10" step="0.1" value="1" class="w-full h-2 bg-stardust-200 rounded-lg appearance-none cursor-pointer" id="distanceSlider">
+                            <div class="flex justify-between text-sm mt-1">
+                                <span class="text-cosmic-600">r = 1 AU</span>
+                                <span class="text-stardust-400">r = 1 AU</span>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-2xl font-heading font-bold text-stardust-800 mb-4">Orbital Speed</h3>
+                        <div class="mb-6">
+                            <div class="flex justify-between text-sm text-stardust-600 mb-2">
+                                <span>0.1c</span>
+                                <span>0.9c</span>
+                            </div>
+                            <input type="range" min="0.1" max="0.9" step="0.05" value="0.3" class="w-full h-2 bg-stardust-200 rounded-lg appearance-none cursor-pointer" id="speedSlider">
+                            <div class="flex justify-between text-sm mt-1">
+                                <span class="text-cosmic-600">v = 0.3c</span>
+                                <span class="text-stardust-400">v = 0.3c</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visualization -->
+                    <div class="lg:col-span-2">
+                        <div class="black-hole relative h-96 rounded-xl overflow-hidden bg-gradient-to-br from-cosmic-50 to-stardust-50 border border-stardust-200">
+                            <!-- Background stars -->
+                            <div class="absolute inset-0">
+                                <div class="star" style="top: 20%; left: 15%;"></div>
+                                <div class="star" style="top: 40%; left: 25%;"></div>
+                                <div class="star" style="top: 60%; left: 35%;"></div>
+                                <div class="star" style="top: 30%; left: 50%;"></div>
+                                <div class="star" style="top: 70%; left: 40%;"></div>
+                                <div class="star" style="top: 15%; left: 60%;"></div>
+                                <div class="star" style="top: 50%; left: 70%;"></div>
+                                <div class="star" style="top: 20%; left: 80%;"></div>
+                            </div>
+                            
+                            <!-- Black hole -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="event-horizon w-40 h-40" id="eventHorizon"></div>
+                                <div class="absolute w-32 h-32 bg-stardust-800 rounded-full border-2 border-stardust-600" id="blackHole"></div>
+                            </div>
+                            
+                            <!-- Planet -->
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <div class="planet w-16 h-16 bg-cosmic-500 rounded-full border-2 border-cosmic-400" id="planet"></div>
+                            </div>
+                            
+                            <!-- Orbit -->
+                            <div class="orbit w-full h-1 bg-cosmic-200" id="orbit"></div>
+                            
+                            <!-- Light rays -->
+                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <div class="absolute w-8 h-1 bg-cosmic-200" style="top: -4px; transform: rotate(-15deg);"></div>
+                                <div class="absolute w-8 h-1 bg-cosmic-200" style="top: -4px; transform: rotate(0deg);"></div>
+                                <div class="absolute w-8 h-1 bg-cosmic-200" style="top: -4px; transform: rotate(15deg);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facts Section -->
+    <section id="facts" class="py-20 px-4">
+        <div class="container mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-heading font-bold text-stardust-900 mb-4 appear">Black Hole Facts</h2>
+                <p class="text-xl text-stardust-600 max-w-3xl mx-auto appear delay-100">
+                    Amazing discoveries about these cosmic enigmas
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-stardust-100 appear">
+                    <div class="w-14 h-14 rounded-full bg-cosmic-100 flex items-center justify-center text-cosmic-600 text-2xl mb-4">
+                        <i class="fas fa-planet-ringed"></i>
+                    </div>
+                    <h3 class="text-xl font-heading font-bold text-stardust-800 mb-2">First Observed</h3>
+                    <p class="text-stardust-600">The first black hole was inferred in 1972 in the binary system Cygnus X-1.</p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border border-stardust-100 appear delay-100">
+                    <div class="w-14 h-14 rounded-full bg-stardust-100 flex items-center justify-center text-stardust-600 text-2xl mb-4">
+                        <i class="fas fa-globe-americas"></i>
+                    </div>
+                    <h3 class="text-xl font-heading font-bold text-stardust-800 mb-2">Supermassive</h3>
+                    <p class="text-stardust-600">The Milky Way's supermassive black hole, Sagittarius A*, has a mass of 4.3 million solar masses.</p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border border-stardust-100 appear delay-200">
+                    <div class="w-14 h-14 rounded-full bg-cosmic-100 flex items-center justify-center text-cosmic-600 text-2xl mb-4">
+                        <i class="fas fa-infinity"></i>
+                    </div>
+                    <h3 class="text-xl font-heading font-bold text-stardust-800 mb-2">Event Horizon</h3>
+                    <p class="text-stardust-600">The event horizon is the point of no return, with escape velocity exceeding the speed of light.</p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border border-stardust-100 appear delay-300">
+                    <div class="w-14 h-14 rounded-full bg-stardust-100 flex items-center justify-center text-stardust-600 text-2xl mb-4">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="text-xl font-heading font-bold text-stardust-800 mb-2">Powerful Jets</h3>
+                    <p class="text-stardust-600">Black holes can power jets of particles moving at near-light speeds, extending millions of light-years.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-4 bg-stardust-900 text-stardust-200">
+        <div class="container mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-cosmic-600 flex items-center justify-center text-white font-bold mr-3">BH</div>
+                        <h3 class="text-xl font-heading font-bold text-white">Black Hole Explorer</h3>
+                    </div>
+                    <p class="text-stardust-400 mb-4">
+                        Interactive educational platform exploring the mysteries of black holes and spacetime.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-stardust-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-stardust-400 hover:text-white transition-colors">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-stardust-400 hover:text-white transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-heading font-bold text-white mb-4">Explore</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#intro" class="text-stardust-400 hover:text-white transition-colors">Introduction</a></li>
+                        <li><a href="#physics" class="text-stardust-400 hover:text-white transition-colors">Physics</a></li>
+                        <li><a href="#interactive" class="text-stardust-400 hover:text-white transition-colors">Interactive</a></li>
+                        <li><a href="#facts" class="text-stardust-400 hover:text-white transition-colors">Facts</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-heading font-bold text-white mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-stardust-400 hover:text-white transition-colors">NASA Black Hole Resources</a></li>
+                        <li><a href="#" class="text-stardust-400 hover:text-white transition-colors">Einstein's Theory of Relativity</a></li>
+                        <li><a href="#" class="text-stardust-400 hover:text-white transition-colors">Spacetime Curvature Explained</a></li>
+                        <li><a href="#" class="text-stardust-400 hover:text-white transition-colors">Black Hole Event Horizon</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-heading font-bold text-white mb-4">Stay Updated</h4>
+                    <p class="text-stardust-400 mb-4">
+                        Subscribe to our newsletter for the latest discoveries and educational content.
+                    </p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-stardust-900 focus:outline-none">
+                        <button class="bg-cosmic-600 hover:bg-cosmic-700 px-4 py-2 rounded-r-lg text-white">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-stardust-800 mt-12 pt-8 text-center text-stardust-500">
+                <p>© 2023 Black Hole Explorer. All rights reserved. | Designed with <i class="fas fa-heart text-cosmic-500"></i> for space enthusiasts</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Appear animations
+            const appearElements = document.querySelectorAll('.appear');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            appearElements.forEach(el => observer.observe(el));
+            
+            // Slider interactions
+            const massSlider = document.getElementById('massSlider');
+            const distanceSlider = document.getElementById('distanceSlider');
+            const speedSlider = document.getElementById('speedSlider');
+            
+            const eventHorizon = document.getElementById('eventHorizon');
+            const blackHole = document.getElementById('blackHole');
+            const planet = document.getElementById('planet');
+            const orbit = document.getElementById('orbit');
+            
+            // Update visualizations
+            function updateVisualization() {
+                const mass = parseInt(massSlider.value);
+                const distance = parseFloat(distanceSlider.value);
+                const speed = parseFloat(speedSlider.value);
+                
+                // Update black hole size (smaller for more massive)
+                const radius = 10 * (1 - distance / 10);
+                blackHole.style.width = `${radius * 2}px`;
+                blackHole.style.height = `${radius * 2}px`;
+                
+                // Update event horizon (larger for more massive)
+                eventHorizon.style.width = `${radius * 3}px`;
+                eventHorizon.style.height = `${radius * 3}px`;
+                
+                // Update planet position and orbit
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                const planetX = centerX - (distance * 50);
+                const planetY = centerY - (distance * 30);
+                
+                planet.style.left = `${planetX}px`;
+                planet.style.top = `${planetY}px`;
+                
+                // Calculate orbit radius
+                const orbitRadius = distance * 50;
+                orbit.style.width = `${orbitRadius * 2}px`;
+                orbit.style.height = `${orbitRadius * 2}px`;
+                orbit.style.top = `${centerY - orbitRadius}px`;
+                orbit.style.left = `${centerX - orbitRadius}px`;
+                
+                // Update light rays based on speed
+                const angle = Math.asin(speed);
+                const rayLength = 100;
+                const ray1 = document.querySelector('.absolute:nth-child(1)');
+                const ray2 = document.querySelector('.absolute:nth-child(2)');
+                const ray3 = document.querySelector('.absolute:nth-child(3)');
+                
+                ray1.style.transform = `rotate(${angle}deg)`;
+                ray2.style.transform = `rotate(0deg)`;
+                ray3.style.transform = `rotate(${-angle}deg)`;
+            }
+            
+            // Add event listeners
+            massSlider.addEventListener('input', updateVisualization);
+            distanceSlider.addEventListener('input', updateVisualization);
+            speedSlider.addEventListener('input', updateVisualization);
+            
+            // Initial update
+            updateVisualization();
+            
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        window.scrollTo({
+                            top: target.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

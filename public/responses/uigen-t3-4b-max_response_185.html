@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-text-base: #333333;
+            --color-bg-light: #FFFFFF;
+            --color-bg-dark: #1A1A1A;
+            --color-text-light: #FFFFFF;
+            --color-bg-medium: #F5F5F5;
+            --color-accent-blue: #007BFF;
+            --color-accent-blue-light: #0088CC;
+            --color-border-light: #E0E0E0;
+            --color-border-medium: #D0D0D0;
+            --font-primary: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--color-text-base);
+            background-color: var(--color-bg-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .password-generator-card {
+            background-color: var(--color-bg-light);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            max-width: 400px;
+            width: 100%;
+            padding: 2.5rem;
+            text-align: center;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .password-generator-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .password-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-accent-blue);
+            margin-bottom: 1rem;
+            white-space: nowrap;
+            overflow-x: auto; /* For very long passwords */
+            -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+        }
+
+        .password-display::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .password-display::-webkit-scrollbar-track {
+            background: var(--color-bg-medium);
+            border-radius: 4px;
+        }
+
+        .password-display::-webkit-scrollbar-thumb {
+            background: var(--color-accent-blue);
+            border-radius: 4px;
+        }
+
+        .password-display::-webkit-scrollbar-thumb:hover {
+            background: var(--color-accent-blue-light);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-button {
+            background-color: var(--color-bg-medium);
+            color: var(--color-text-base);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--color-border-medium);
+        }
+
+        .option-button:hover {
+            background-color: var(--color-border-light);
+            transform: translateY(-2px);
+        }
+
+        .option-button:active {
+            transform: translateY(0);
+        }
+
+        .option-button.selected {
+            background-color: var(--color-accent-blue);
+            color: var(--color-text-light);
+            border-color: var(--color-accent-blue);
+        }
+
+        .copy-button {
+            background-color: var(--color-accent-blue);
+            color: var(--color-text-light);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid var(--color-accent-blue);
+        }
+
+        .copy-button:hover {
+            background-color: var(--color-accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .copy-button:active {
+            transform: translateY(0);
+        }
+
+        .copy-button i {
+            margin-left: 0.5rem;
+        }
+
+        .copy-status {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            display: none; /* Hidden by default */
+        }
+
+        .copy-status.show {
+            display: block;
+        }
+
+        .copy-status.success {
+            color: #28a745; /* Green */
+        }
+
+        .copy-status.error {
+            color: #dc3545; /* Red */
+        }
+    </style>
+</head>
+<body>
+    <div class="password-generator-card">
+        <h1 class="text-3xl font-bold text-[var(--color-text-base)] mb-6">
+            <i class="fas fa-lock text-[var(--color-accent-blue)] mr-2"></i>Password Generator
+        </h1>
+
+        <div class="password-display" id="password-display"></div>
+
+        <div class="options-grid" id="options-grid">
+            <button class="option-button" data-option="length">Length: <span id="length-value">12</span></button>
+            <button class="option-button" data-option="lowercase">Lowercase (a-z)</button>
+            <button class="option-button" data-option="uppercase">Uppercase (A-Z)</button>
+            <button class="option-button" data-option="numbers">Numbers (0-9)</button>
+            <button class="option-button" data-option="symbols">Symbols (!@#$%^&*)</button>
+            <button class="option-button" data-option="special">Special Characters</button>
+            <button class="option-button" data-option="include-letters">Include Letters</button>
+        </div>
+
+        <button id="copy-button" class="copy-button">
+            <i class="fas fa-copy"></i> Copy Password
+        </button>
+
+        <div id="copy-status" class="copy-status"></div>
+    </div>
+
+    <script>
+        const passwordDisplay = document.getElementById('password-display');
+        const optionsGrid = document.getElementById('options-grid');
+        const copyButton = document.getElementById('copy-button');
+        const copyStatus = document.getElementById('copy-status');
+
+        let currentPassword = '';
+        let options = {
+            length: 12,
+            lowercase: true,
+            uppercase: true,
+            numbers: true,
+            symbols: true,
+            special: false, // For symbols
+            includeLetters: true // For lowercase/uppercase
+        };
+
+        const allowedChars = {
+            lowercase: 'abcdefghijklmnopqrstuvwxyz',
+            uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            numbers: '0123456789',
+            symbols: '!@#$%^&*()_+[]{}|;:,.<>?/`~' // Common symbols
+        };
+
+        function generatePassword() {
+            let generatedPassword = '';
+            const totalChars = 0; // This will be calculated based on active options
+
+            const activeOptions = {
+                lowercase: options.includeLetters && options.lowercase,
+                uppercase: options.includeLetters && options.uppercase,
+                numbers: options.numbers,
+                symbols: options.symbols || (options.special && !options.symbols) // Handle both 'symbols' and 'special' for symbols
+            };
+
+            if (activeOptions.lowercase || activeOptions.uppercase) {
+                const chars = activeOptions.lowercase ? allowedChars.lowercase : '';
+                const chars2 = activeOptions.uppercase ? allowedChars.uppercase : '';
+                generatedPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+                generatedPassword += chars2.charAt(Math.floor(Math.random() * chars2.length));
+            } else if (activeOptions.symbols) {
+                generatedPassword += allowedChars.symbols.charAt(Math.floor(Math.random() * allowedChars.symbols.length));
+            }
+
+            for (let i = 0; i < (options.length - 1); i++) {
+                const randomOption = Math.random();
+                if (randomOption < 0.2) { // 20% for lowercase
+                    if (activeOptions.lowercase) generatedPassword += allowedChars.lowercase.charAt(Math.floor(Math.random() * allowedChars.lowercase.length));
+                } else if (randomOption < 0.4) { // 20% for uppercase
+                    if (activeOptions.uppercase) generatedPassword += allowedChars.uppercase.charAt(Math.floor(Math.random() * allowedChars.uppercase.length));
+                } else if (randomOption < 0.6) { // 20% for numbers
+                    if (activeOptions.numbers) generatedPassword += allowedChars.numbers.charAt(Math.floor(Math.random() * allowedChars.numbers.length));
+                } else { // 40% for symbols
+                    if (activeOptions.symbols) generatedPassword += allowedChars.symbols.charAt(Math.floor(Math.random() * allowedChars.symbols.length));
+                }
+            }
+
+            // Ensure the total length is at least the initial base
+            if (generatedPassword.length < (activeOptions.lowercase || activeOptions.uppercase ? 2 : 1)) {
+                // If only symbols are active, add one
+                if (activeOptions.symbols) generatedPassword += allowedChars.symbols.charAt(Math.floor(Math.random() * allowedChars.symbols.length));
+            }
+
+            // If only numbers are active, add one
+            if (activeOptions.numbers && !activeOptions.lowercase && !activeOptions.uppercase && !activeOptions.symbols) {
+                generatedPassword += allowedChars.numbers.charAt(Math.floor(Math.random() * allowedChars.numbers.length));
+            }
+
+            // If only letters are active, add one
+            if (activeOptions.lowercase && activeOptions.uppercase && !activeOptions.numbers && !activeOptions.symbols) {
+                generatedPassword += allowedChars.lowercase.charAt(Math.floor(Math.random() * allowedChars.lowercase.length));
+                generatedPassword += allowedChars.uppercase.charAt(Math.floor(Math.random() * allowedChars.uppercase.length));
+            }
+
+            currentPassword = generatedPassword;
+            passwordDisplay.textContent = currentPassword;
+            updateOptionButtons();
+        }
+
+        function updateOptionButtons() {
+            optionsGrid.querySelectorAll('.option-button').forEach(button => {
+                button.classList.remove('selected');
+            });
+
+            const lengthButton = document.querySelector('[data-option="length"]');
+            const lengthValueSpan = document.getElementById('length-value');
+            if (lengthButton) {
+                lengthButton.classList.toggle('selected', options.length === 12);
+                if (lengthButton.classList.contains('selected')) {
+                    lengthValueSpan.textContent = options.length;
+                } else {
+                    lengthValueSpan.textContent = '12'; // Reset to default if not selected
+                }
+            }
+
+            const lowercaseButton = document.querySelector('[data-option="lowercase"]');
+            if (lowercaseButton) lowercaseButton.classList.toggle('selected', options.lowercase);
+            const uppercaseButton = document.querySelector('[data-option="uppercase"]');
+            if (uppercaseButton) uppercaseButton.classList.toggle('selected', options.uppercase);
+            const numbersButton = document.querySelector('[data-option="numbers"]');
+            if (numbersButton) numbersButton.classList.toggle('selected', options.numbers);
+            const symbolsButton = document.querySelector('[data-option="symbols"]');
+            if (symbolsButton) symbolsButton.classList.toggle('selected', options.symbols);
+            const specialButton = document.querySelector('[data-option="special"]');
+            if (specialButton) specialButton.classList.toggle('selected', options.special);
+            const includeLettersButton = document.querySelector('[data-option="include-letters"]');
+            if (includeLettersButton) includeLettersButton.classList.toggle('selected', options.includeLetters);
+        }
+
+        function applyOptions() {
+            const lengthButton = document.querySelector('[data-option="length"]');
+            const lengthValueSpan = document.getElementById('length-value');
+            const lowercaseButton = document.querySelector('[data-option="lowercase"]');
+            const uppercaseButton = document.querySelector('[data-option="uppercase"]');
+            const numbersButton = document.querySelector('[data-option="numbers"]');
+            const symbolsButton = document.querySelector('[data-option="symbols"]');
+            const specialButton = document.querySelector('[data-option="special"]');
+            const includeLettersButton = document.querySelector('[data-option="include-letters"]');
+
+            if (lengthButton) {
+                options.length = parseInt(lengthValueSpan.textContent);
+            }
+
+            if (lowercaseButton) options.lowercase = lowercaseButton.classList.contains('selected');
+            if (uppercaseButton) options.uppercase = uppercaseButton.classList.contains('selected');
+            if (numbersButton) options.numbers = numbersButton.classList.contains('selected');
+            if (symbolsButton) options.symbols = symbolsButton.classList.contains('selected');
+            if (specialButton) options.special = specialButton.classList.contains('selected');
+            if (includeLettersButton) options.includeLetters = includeLettersButton.classList.contains('selected');
+
+            generatePassword();
+        }
+
+        function copyPassword() {
+            navigator.clipboard.writeText(currentPassword)
+                .then(() => {
+                    copyStatus.textContent = 'Password copied to clipboard!';
+                    copyStatus.className = 'copy-status show copy-status-success';
+                    setTimeout(() => {
+                        copyStatus.textContent = '';
+                        copyStatus.className = 'copy-status show'; // Reset to empty state
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy password: ', err);
+                    copyStatus.textContent = 'Failed to copy password. Please try again.';
+                    copyStatus.className = 'copy-status show copy-status-error';
+                    setTimeout(() => {
+                        copyStatus.textContent = '';
+                        copyStatus.className = 'copy-status show'; // Reset to empty state
+                    }, 2000);
+                });
+        }
+
+        // Event Listeners
+        optionsGrid.addEventListener('click', (event) => {
+            if (event.target.tagName === 'BUTTON') {
+                applyOptions();
+            }
+        });
+
+        copyButton.addEventListener('click', copyPassword);
+
+        // Initial setup
+        generatePassword();
+        updateOptionButtons(); // Ensure initial selection for length
+    </script>
+</body>
+</html>

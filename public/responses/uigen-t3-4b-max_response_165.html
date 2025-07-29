@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Billing Dashboard - Revenue Trends</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --token-white: rgb(255, 255, 255);
+            --token-black: rgb(0, 0, 0);
+            --token-accent-red: rgb(255, 0, 60);
+            --token-text-gray-dark: rgb(102, 102, 102);
+            --token-text-gray-medium: rgb(179, 179, 179);
+            --token-border-gray: rgb(230, 230, 230);
+            --token-bg-gray-light: rgb(246, 246, 246);
+            --token-primary-blue: #3B82F6; /* A nice blue for primary actions */
+            --token-secondary-green: #10B981; /* For positive trends */
+            --token-danger-red: #EF4444; /* For negative trends or issues */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-white);
+            color: var(--token-black);
+        }
+
+        .font-manrope {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        .btn-primary {
+            background-color: var(--token-primary-blue);
+            color: var(--token-white);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #2563EB;
+            transform: translateY(-2px);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px; /* Fixed height for the chart to prevent excessive growth */
+            width: 100%;
+        }
+
+        /* Responsive grid for charts */
+        @media (min-width: 1024px) {
+            .chart-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'token-white': 'var(--token-white)',
+                        'token-black': 'var(--token-black)',
+                        'token-accent-red': 'var(--token-accent-red)',
+                        'token-text-gray-dark': 'var(--token-text-gray-dark)',
+                        'token-text-gray-medium': 'var(--token-text-gray-medium)',
+                        'token-border-gray': 'var(--token-border-gray)',
+                        'token-bg-gray-light': 'var(--token-bg-gray-light)',
+                        'token-primary-blue': 'var(--token-primary-blue)',
+                        'token-secondary-green': 'var(--token-secondary-green)',
+                        'token-danger-red': 'var(--token-danger-red)',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                        manrope: ['Manrope', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-token-white text-token-black antialiased">
+
+    <!-- Header (simplified for dashboard context) -->
+    <header class="bg-token-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-2xl font-manrope font-bold text-token-primary-blue">Revenue Dashboard</h1>
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-chart-line text-token-text-gray-medium"></i>
+                <span class="text-sm text-token-text-gray-dark">Monthly Trends</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="text-token-text-gray-dark hover:text-token-primary-blue transition-colors">
+                <i class="fas fa-bell text-lg"></i>
+            </button>
+            <div class="w-10 h-10 rounded-full bg-token-border-gray flex items-center justify-center text-sm font-semibold text-token-text-gray-dark">
+                <img src="https://placehold.co/40x40/cccccc/ffffff?text=JD" alt="User Avatar" class="rounded-full">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-4 py-8 md:px-8 lg:px-16 max-w-7xl">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Revenue Overview Card -->
+            <div class="bg-token-bg-gray-light p-6 rounded-2xl shadow-md flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-token-text-gray-medium">Total Revenue</p>
+                    <h2 class="text-3xl font-bold text-token-black mt-1">$1,250,000</h2>
+                </div>
+                <div class="p-3 bg-token-primary-blue text-token-white rounded-full text-xl">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+
+            <!-- Monthly Revenue Chart (Line Chart) -->
+            <div class="lg:col-span-2">
+                <div class="bg-token-white p-6 rounded-2xl shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-manrope font-semibold">Monthly Revenue Trends</h3>
+                        <div class="flex space-x-2">
+                            <select id="time-filter" class="p-2 border border-token-border-gray rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-token-primary-blue">
+                                <option value="last-12-months">Last 12 Months</option>
+                                <option value="last-6-months">Last 6 Months</option>
+                                <option value="last-3-months">Last 3 Months</option>
+                                <option value="this-quarter">This Quarter</option>
+                            </select>
+                            <select id="chart-type" class="p-2 border border-token-border-gray rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-token-primary-blue">
+                                <option value="line">Line Chart</option>
+                                <option value="bar">Bar Chart</option>
+                                <option value="area">Area Chart</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Breakdown by Source (Doughnut Chart) -->
+            <div class="bg-token-bg-gray-light p-6 rounded-2xl shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-manrope font-semibold">Revenue Breakdown</h3>
+                    <div class="flex space-x-2">
+                        <select id="source-filter" class="p-2 border border-token-border-gray rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-token-primary-blue">
+                            <option value="all">All Sources</option>
+                            <option value="new-accounts">New Accounts</option>
+                            <option value="renewals">Renewals</option>
+                            <option value="upgrades">Upgrades</option>
+                        </select>
+                        <button class="btn-primary text-sm">Export Data</button>
+                    </div>
+                </div>
+                <div class="chart-container flex justify-center items-center">
+                    <canvas id="revenueSourceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Transactions (Table) -->
+            <div class="lg:col-span-2">
+                <div class="bg-token-white p-6 rounded-2xl shadow-md">
+                    <h3 class="text-xl font-manrope font-semibold mb-4">Recent Transactions</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-token-border-gray">
+                            <thead class="bg-token-bg-gray-light">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-token-text-gray-dark uppercase tracking-wider">Transaction ID</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-token-text-gray-dark uppercase tracking-wider">Customer</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-token-text-gray-dark uppercase tracking-wider">Amount</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-token-text-gray-dark uppercase tracking-wider">Status</th>
+                                    <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-token-text-gray-dark uppercase tracking-wider">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-token-border-gray">
+                                <!-- Example Rows -->
+                                <tr class="hover:bg-token-bg-gray-light transition-colors">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-black">TXN-2023-001</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-black">Acme Corp</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-primary-blue">$5,000.00</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-token-secondary-green/20 text-token-secondary-green">
+                                            Success
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-text-gray-dark">2023-10-26</td>
+                                </tr>
+                                <tr class="hover:bg-token-bg-gray-light transition-colors">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-black">TXN-2023-002</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-black">Globex Inc.</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-primary-blue">$1,200.00</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-token-danger-red/20 text-token-danger-red">
+                                            Failed
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-text-gray-dark">2023-10-25</td>
+                                </tr>
+                                <tr class="hover:bg-token-bg-gray-light transition-colors">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-black">TXN-2023-003</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-black">Innovate Ltd.</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-primary-blue">$1,800.00</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-token-secondary-green/20 text-token-secondary-green">
+                                            Success
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-token-text-gray-dark">2023-10-24</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <button class="text-token-primary-blue hover:underline text-sm">View All Transactions</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer (simplified for dashboard context) -->
+    <footer class="bg-token-bg-gray-light text-token-text-gray-medium p-4 text-center text-sm">
+        <p>&copy; 2023 SaaS Billing. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Data for the charts
+        const revenueData = {
+            'last-12-months': {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                values: [50000, 55000, 62000, 58000, 65000, 70000, 75000, 80000, 78000, 85000, 90000, 95000]
+            },
+            'last-6-months': {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                values: [55000, 62000, 58000, 65000, 70000, 75000]
+            },
+            'last-3-months': {
+                labels: ['Jan', 'Feb', 'Mar'],
+                values: [62000, 58000, 65000]
+            },
+            'this-quarter': {
+                labels: ['Jan', 'Feb', 'Mar'],
+                values: [58000, 65000, 70000]
+            }
+        };
+
+        const revenueSourceBreakdown = {
+            'new-accounts': { 'New': 40000, 'Renewals': 30000, 'Upgrades': 25000, 'Others': 30000 },
+            'renewals': { 'New': 15000, 'Renewals': 50000, 'Upgrades': 30000, 'Others': 30000 },
+            'upgrades': { 'New': 30000, 'Renewals': 35000, 'Upgrades': 40000, 'Others': 20000 },
+            'all': { 'New': 40000, 'Renewals': 50000, 'Upgrades': 45000, 'Others': 30000 }
+        };
+
+        let revenueChart, revenueSourceChart;
+
+        function updateRevenueChart(type, period) {
+            const data = revenueData[period];
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+
+            if (revenueChart) {
+                revenueChart.destroy();
+            }
+
+            revenueChart = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Monthly Revenue',
+                        data: data.values,
+                        borderColor: 'var(--token-primary-blue)',
+                        backgroundColor: 'var(--token-primary-blue)',
+                        fill: type === 'line' ? true : false, // Fill under line for line, not for bar/area
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: 'var(--token-white)',
+                        pointBorderColor: 'var(--token-primary-blue)',
+                        pointHoverBackgroundColor: 'var(--token-primary-blue)',
+                        pointHoverBorderColor: 'var(--token-white)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Important for fixed height
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: 'var(--token-text-gray-dark)'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'var(--token-border-gray)'
+                            },
+                            ticks: {
+                                color: 'var(--token-text-gray-medium)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'var(--token-border-gray)'
+                            },
+                            ticks: {
+                                color: 'var(--token-text-gray-medium)',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateRevenueSourceChart(filter) {
+            const data = revenueSourceBreakdown[filter];
+            const ctx = document.getElementById('revenueSourceChart').getContext('2d');
+
+            if (revenueSourceChart) {
+                revenueSourceChart.destroy();
+            }
+
+            revenueSourceChart = new Chart(ctx, {
+                type: 'doughnut', // Doughnut chart
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: [
+                            'var(--token-primary-blue)',
+                            'var(--token-secondary-green)',
+                            'var(--token-danger-red)',
+                            'var(--token-accent-red)'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Important for fixed height
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: 'var(--token-text-gray-dark)'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += '$' + context.parsed.toLocaleString();
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Event Listeners for Filter Options
+        document.getElementById('time-filter').addEventListener('change', function() {
+            updateRevenueChart(this.value, this.value); // Pass the period to the function
+        });
+
+        document.getElementById('chart-type').addEventListener('change', function() {
+            updateRevenueChart(this.value, document.getElementById('time-filter').value);
+        });
+
+        document.getElementById('source-filter').addEventListener('change', function() {
+            updateRevenueSourceChart(this.value);
+        });
+
+        // Initial chart load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateRevenueChart('line', 'last-12-months'); // Default to 12 months, line chart
+            updateRevenueSourceChart('all'); // Default to all sources
+        });
+    </script>
+</body>
+</html>

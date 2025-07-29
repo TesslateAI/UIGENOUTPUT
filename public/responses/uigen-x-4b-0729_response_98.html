@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Interactive Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #4f46e5;
+            --color-primary-light: #818cf8;
+            --color-primary-dark: #3730a3;
+            --color-secondary: #0ea5e9;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-bg-light: #f8fafc;
+            --color-bg-card: #ffffff;
+            --color-text-dark: #1e293b;
+            --color-text-medium: #64748b;
+            --color-border: #e2e8f0;
+            --color-accent: #f97316;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .kanban-column {
+            min-width: 300px;
+            background: var(--color-bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .kanban-column:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .kanban-card {
+            transition: all 0.2s ease;
+            cursor: grab;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .kanban-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .kanban-card.drag-over {
+            background-color: rgba(79, 70, 229, 0.05);
+            border-left: 4px solid var(--color-primary-light);
+        }
+
+        .add-card-btn {
+            transition: all 0.2s ease;
+        }
+
+        .add-card-btn:hover {
+            background-color: var(--color-primary-light);
+            transform: translateY(-2px);
+        }
+
+        .priority-high {
+            border-left-color: var(--color-danger);
+        }
+
+        .priority-medium {
+            border-left-color: var(--color-warning);
+        }
+
+        .priority-low {
+            border-left-color: var(--color-success);
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .column-header {
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .column-count {
+            background-color: var(--color-primary-light);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-indigo-500 w-8 h-8 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-tasks text-white"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold text-gray-800">TaskFlow</span>
+                    </div>
+                    <nav class="ml-10 flex space-x-8">
+                        <a href="#" class="text-indigo-600 border-b-2 border-indigo-500 px-1 pt-1 text-sm font-medium">Dashboard</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Projects</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Teams</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Calendar</a>
+                    </nav>
+                </div>
+                <div class="flex items-center">
+                    <div class="relative ml-3">
+                        <div class="flex items-center space-x-4">
+                            <button class="bg-gray-100 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">
+                                <i class="fas fa-bell text-gray-500"></i>
+                            </button>
+                            <div class="relative">
+                                <button class="flex text-sm rounded-full focus:outline-none">
+                                    <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User profile">
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Project Dashboard</h1>
+                <p class="mt-1 text-gray-600">Manage your tasks with our interactive Kanban board</p>
+            </div>
+            <div class="flex space-x-3">
+                <button class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                    <i class="fas fa-plus mr-2"></i> New Task
+                </button>
+                <button class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none">
+                    <i class="fas fa-cog mr-2"></i> Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Kanban Board -->
+        <div class="flex overflow-x-auto pb-6 -mx-2 px-2">
+            <!-- To Do Column -->
+            <div class="kanban-column flex-shrink-0 w-80 mx-2">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
+                            <h2 class="font-semibold text-gray-800">To Do</h2>
+                            <span class="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full">4</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Card 1 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-high" draggable="true" id="card1">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">Design new dashboard layout</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Create wireframes and mockups for the new dashboard interface</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-indigo-100 text-indigo-800">JD</div>
+                                        <div class="user-avatar bg-blue-100 text-blue-800">MP</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Due: Tomorrow</span>
+                                </div>
+                                <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">High</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 2 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-medium" draggable="true" id="card2">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">Research competitors</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Analyze competitor products and identify key features</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-green-100 text-green-800">TS</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Due: 2 days</span>
+                                </div>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Medium</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="add-card-btn w-full mt-4 py-2 text-gray-500 hover:text-indigo-600 flex items-center justify-center rounded-lg border border-dashed border-gray-300">
+                        <i class="fas fa-plus mr-2"></i> Add Task
+                    </button>
+                </div>
+            </div>
+            
+            <!-- In Progress Column -->
+            <div class="kanban-column flex-shrink-0 w-80 mx-2">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                            <h2 class="font-semibold text-gray-800">In Progress</h2>
+                            <span class="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full">3</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Card 3 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-high" draggable="true" id="card3">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">Implement authentication</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Create secure login and registration system with JWT</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-purple-100 text-purple-800">AR</div>
+                                        <div class="user-avatar bg-pink-100 text-pink-800">KL</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Due: Today</span>
+                                </div>
+                                <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">High</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 4 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-low" draggable="true" id="card4">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">Update documentation</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Add new API endpoints to developer documentation</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-teal-100 text-teal-800">MJ</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Due: 3 days</span>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Low</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="add-card-btn w-full mt-4 py-2 text-gray-500 hover:text-indigo-600 flex items-center justify-center rounded-lg border border-dashed border-gray-300">
+                        <i class="fas fa-plus mr-2"></i> Add Task
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Review Column -->
+            <div class="kanban-column flex-shrink-0 w-80 mx-2">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                            <h2 class="font-semibold text-gray-800">Review</h2>
+                            <span class="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full">2</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Card 5 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-medium" draggable="true" id="card5">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">API performance testing</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Run load tests on the new API endpoints</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-yellow-100 text-yellow-800">PD</div>
+                                        <div class="user-avatar bg-red-100 text-red-800">RS</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Due: Tomorrow</span>
+                                </div>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Medium</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="add-card-btn w-full mt-4 py-2 text-gray-500 hover:text-indigo-600 flex items-center justify-center rounded-lg border border-dashed border-gray-300">
+                        <i class="fas fa-plus mr-2"></i> Add Task
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Done Column -->
+            <div class="kanban-column flex-shrink-0 w-80 mx-2">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                            <h2 class="font-semibold text-gray-800">Done</h2>
+                            <span class="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full">5</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Card 6 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-low" draggable="true" id="card6">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">Setup CI/CD pipeline</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Configure automated deployment process</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-indigo-100 text-indigo-800">JD</div>
+                                        <div class="user-avatar bg-purple-100 text-purple-800">AR</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Completed</span>
+                                </div>
+                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Low</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 7 -->
+                        <div class="kanban-card bg-white rounded-lg p-4 shadow-sm priority-medium" draggable="true" id="card7">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-gray-800">Database schema design</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600">Design and implement the database structure</p>
+                            <div class="mt-4 flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="user-avatar bg-blue-100 text-blue-800">MP</div>
+                                    </div>
+                                    <span class="ml-2 text-xs text-gray-500">Completed</span>
+                                </div>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Medium</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="add-card-btn w-full mt-4 py-2 text-gray-500 hover:text-indigo-600 flex items-center justify-center rounded-lg border border-dashed border-gray-300">
+                        <i class="fas fa-plus mr-2"></i> Add Task
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Drag and drop functionality
+            const cards = document.querySelectorAll('.kanban-card');
+            const columns = document.querySelectorAll('.kanban-column');
+            
+            // Add event listeners to cards for dragstart
+            cards.forEach(card => {
+                card.addEventListener('dragstart', () => {
+                    card.classList.add('dragging');
+                });
+                
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+            });
+            
+            // Add event listeners to columns for dragover and drop
+            columns.forEach(column => {
+                column.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(column, e.clientY);
+                    const draggable = document.querySelector('.dragging');
+                    if (afterElement == null) {
+                        column.querySelector('.space-y-4').appendChild(draggable);
+                    } else {
+                        column.querySelector('.space-y-4').insertBefore(draggable, afterElement);
+                    }
+                });
+                
+                column.addEventListener('dragenter', () => {
+                    column.classList.add('drag-over');
+                });
+                
+                column.addEventListener('dragleave', () => {
+                    column.classList.remove('drag-over');
+                });
+                
+                column.addEventListener('drop', () => {
+                    column.classList.remove('drag-over');
+                });
+            });
+            
+            // Helper function to determine where to insert the dragged element
+            function getDragAfterElement(column, y) {
+                const draggableElements = [...column.querySelectorAll('.kanban-card:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // Add card functionality
+            const addCardButtons = document.querySelectorAll('.add-card-btn');
+            addCardButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const column = this.closest('.kanban-column');
+                    const cardsContainer = column.querySelector('.space-y-4');
+                    
+                    const newCard = document.createElement('div');
+                    newCard.className = 'kanban-card bg-white rounded-lg p-4 shadow-sm priority-medium';
+                    newCard.draggable = true;
+                    newCard.id = `card${Date.now()}`;
+                    
+                    newCard.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-medium text-gray-800">New Task</h3>
+                            <div class="flex space-x-2">
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-600">Click to edit this task description</p>
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="user-avatar bg-gray-100 text-gray-800">U</div>
+                                </div>
+                                <span class="ml-2 text-xs text-gray-500">Due: Soon</span>
+                            </div>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Medium</span>
+                        </div>
+                    `;
+                    
+                    // Add drag events to the new card
+                    newCard.addEventListener('dragstart', () => {
+                        newCard.classList.add('dragging');
+                    });
+                    
+                    newCard.addEventListener('dragend', () => {
+                        newCard.classList.remove('dragging');
+                    });
+                    
+                    // Add animation
+                    newCard.classList.add('animate-fade-in');
+                    
+                    cardsContainer.appendChild(newCard);
+                    
+                    // Re-initialize drag events for existing cards
+                    cards.forEach(card => {
+                        card.addEventListener('dragstart', () => {
+                            card.classList.add('dragging');
+                        });
+                        
+                        card.addEventListener('dragend', () => {
+                            card.classList.remove('dragging');
+                        });
+                    });
+                });
+            });
+            
+            // Task completion toggle
+            const completeButtons = document.querySelectorAll('.kanban-card .fa-check-circle');
+            completeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const card = this.closest('.kanban-card');
+                    card.classList.toggle('opacity-75');
+                    this.classList.toggle('text-green-500');
+                    this.classList.toggle('text-gray-400');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

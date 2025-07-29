@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Editor Pro</title>
+    <meta name="description" content="A modern, integrated code editor with syntax highlighting, tabs, file explorer, and Git integration.">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter (for general text) & Poppins (for headings, more modern feel) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome for Icons (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Monokai Pro Theme (CSS) - A dark, vibrant theme for code -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-mono-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+
+    <style>
+        :root {
+            --token-white: rgb(255, 255, 255);
+            --token-light-gray: rgb(247, 247, 247);
+            --token-medium-gray: rgb(223, 223, 223);
+            --token-dark-gray: rgb(171, 171, 171);
+            --token-black: rgb(0, 0, 0);
+            --token-primary-blue: rgb(46, 204, 120); /* Primary accent for buttons, highlights */
+            --token-primary-blue-darker: rgb(33, 158, 101);
+            --token-text-dark: rgb(38, 38, 38);
+            --token-white-alpha-70: rgba(255, 255, 255, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-black);
+            color: var(--token-white);
+            overflow: hidden; /* Prevent body scroll, content will scroll within panels */
+        }
+
+        .editor-content {
+            background-color: var(--token-black);
+            color: var(--token-white);
+            font-family: 'Roboto Mono', monospace;
+            white-space: pre-wrap; /* For syntax highlighting */
+            word-wrap: break-word;
+            overflow: auto; /* For scrollbars within the editor */
+            line-height: 1.5;
+            padding: 1rem;
+        }
+
+        .file-explorer {
+            background-color: var(--token-black);
+            border-right: 1px solid var(--token-dark-gray);
+            overflow-y: auto;
+        }
+
+        .git-panel {
+            background-color: var(--token-black);
+            border-left: 1px solid var(--token-dark-gray);
+            overflow-y: auto;
+            max-height: 400px; /* Limit height for Git panel */
+            overflow: hidden; /* Hide overflow for the max-height */
+        }
+
+        .git-log {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: auto;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem; /* text-sm */
+        }
+
+        .git-status {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--token-dark-gray);
+        }
+
+        .git-status .file-icon {
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+
+        .git-status .file-name {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .git-status .file-status {
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+            color: var(--token-dark-gray);
+        }
+
+        .git-status .add { color: #a78bfa; } /* Purple-500 */
+        .git-status .modified { color: #ef4444; } /* Red-500 */
+        .git-status .deleted { color: #22c55e; } /* Green-500 */
+        .git-status .renamed { color: #3b82f6; } /* Blue-500 */
+        .git-status .untracked { color: #6b7280; } /* Gray-500 */
+        .git-status .conflicted { color: #f97316; } /* Orange-500 */
+
+        .git-commands {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid var(--token-dark-gray);
+        }
+
+        .git-command-btn {
+            background-color: var(--token-dark-gray);
+            color: var(--token-white);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .git-command-btn:hover {
+            background-color: var(--token-black);
+            color: var(--token-primary-blue);
+        }
+
+        .git-command-btn:active {
+            background-color: var(--token-black);
+            color: var(--token-primary-blue-darker);
+        }
+
+        .git-commit-btn {
+            background-color: var(--token-primary-blue);
+            color: var(--token-white);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .git-commit-btn:hover {
+            background-color: var(--token-primary-blue-darker);
+            color: var(--token-white);
+        }
+
+        .git-commit-btn:active {
+            background-color: var(--token-primary-blue);
+            color: var(--token-white-darker);
+        }
+
+        .tab-active {
+            background-color: var(--token-dark-gray);
+            color: var(--token-white);
+            border-bottom: 2px solid var(--token-primary-blue);
+        }
+
+        .tab-inactive {
+            background-color: var(--token-black);
+            color: var(--token-dark-gray);
+        }
+
+        .tab-close-btn {
+            color: var(--token-dark-gray);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .tab-close-btn:hover {
+            color: var(--token-white);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'token-white': 'var(--token-white)',
+                        'token-light-gray': 'var(--token-light-gray)',
+                        'token-medium-gray': 'var(--token-medium-gray)',
+                        'token-dark-gray': 'var(--token-dark-gray)',
+                        'token-black': 'var(--token-black)',
+                        'token-primary-blue': 'var(--token-primary-blue)',
+                        'token-primary-blue-darker': 'var(--token-primary-blue-darker)',
+                        'token-text-dark': 'var(--token-text-dark)',
+                        'token-white-alpha-70': 'var(--token-white-alpha-70)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Roboto Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex h-screen">
+
+    <!-- Left Panel: File Explorer -->
+    <div class="file-explorer w-64 flex-shrink-0 p-4 overflow-y-auto">
+        <h2 class="text-lg font-bold mb-4 text-token-white">File Explorer</h2>
+        <div class="space-y-1">
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-folder text-token-dark-gray mr-2"></i>
+                <span>src/</span>
+            </div>
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-file-code text-token-dark-gray mr-2"></i>
+                <span>main.js</span>
+            </div>
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-file-code text-token-dark-gray mr-2"></i>
+                <span>index.html</span>
+            </div>
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-folder text-token-dark-gray mr-2"></i>
+                <span>components/</span>
+            </div>
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-file-code text-token-dark-gray mr-2"></i>
+                <span>Button.js</span>
+            </div>
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-folder text-token-dark-gray mr-2"></i>
+                <span>styles/</span>
+            </div>
+            <div class="flex items-center text-token-white text-sm">
+                <i class="fas fa-file-code text-token-dark-gray mr-2"></i>
+                <span>style.scss</span>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button class="w-full text-token-primary-blue text-sm py-2 rounded-md hover:bg-token-dark-gray transition-colors">
+                <i class="fas fa-plus mr-2"></i> New File
+            </button>
+            <button class="w-full text-token-primary-blue text-sm py-2 rounded-md hover:bg-token-dark-gray transition-colors">
+                <i class="fas fa-folder-plus mr-2"></i> New Folder
+            </button>
+            <button class="w-full text-token-primary-blue text-sm py-2 rounded-md hover:bg-token-dark-gray transition-colors">
+                <i class="fas fa-trash-alt mr-2"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Editor Area: Tabs and Code Editor -->
+    <div class="flex flex-col flex-1">
+        <!-- Tabs Bar -->
+        <div class="flex-shrink-0 flex border-b border-token-dark-gray bg-token-black">
+            <div id="tab-container" class="flex flex-1 overflow-x-auto whitespace-nowrap">
+                <!-- Tabs will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Code Editor Content -->
+        <div class="flex-1 overflow-hidden">
+            <div id="editor-content" class="editor-content flex-1">
+                <!-- Syntax highlighted code will go here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Git Integration -->
+    <div class="git-panel w-80 flex-shrink-0 p-4 overflow-y-auto">
+        <h2 class="text-lg font-bold mb-4 text-token-white">Git</h2>
+
+        <!-- Git Status -->
+        <div class="git-status">
+            <i class="fas fa-code-branch text-token-dark-gray"></i>
+            <span>main</span>
+            <span class="ml-4 text-token-white-alpha-70">Changes: 3</span>
+        </div>
+
+        <!-- Git Commit Log -->
+        <div class="git-log">
+            <div>Initial commit - 2024-07-20 10:30:00</div>
+            <div>Added basic structure for the project - 2024-07-20 10:31:15</div>
+            <div>Refactored components - 2024-07-20 11:00:00</div>
+            <div>Fixed syntax error in main.js - 2024-07-20 11:15:30</div>
+            <div>Added new feature: dark mode - 2024-07-20 14:00:00</div>
+            <div>Updated dependencies - 2024-07-20 14:30:00</div>
+            <div>Refactored styling for components - 2024-07-20 15:00:00</div>
+            <div>Fixed responsive issues on mobile - 2024-07-20 15:30:00</div>
+            <div>Added unit tests - 2024-07-20 16:00:00</div>
+            <div>Improved user interface - 2024-07-20 16:45:00</div>
+            <div>Added new feature: real-time collaboration - 2024-07-20 17:00:00</div>
+        </div>
+
+        <!-- Git Commands -->
+        <div class="git-commands mt-4">
+            <button class="git-command-btn"><i class="fas fa-undo mr-2"></i> Reset</button>
+            <button class="git-command-btn"><i class="fas fa-undo-alt mr-2"></i> Revert</button>
+            <button class="git-command-btn"><i class="fas fa-code-branch mr-2"></i> Branch</button>
+            <button class="git-command-btn"><i class="fas fa-sync-alt mr-2"></i> Pull</button>
+            <button class="git-command-btn"><i class="fas fa-upload mr-2"></i> Push</button>
+            <button class="git-command-btn"><i class="fas fa-file-import mr-2"></i> Stash</button>
+            <button class="git-command-btn"><i class="fas fa-check-circle mr-2"></i> Commit</button>
+        </div>
+
+        <!-- Commit Form (example) -->
+        <div class="mt-4 p-4 bg-token-dark-gray rounded-md">
+            <h3 class="text-md font-semibold mb-2 text-token-white">Commit Message</h3>
+            <textarea class="w-full p-2 bg-token-black border border-token-dark-gray rounded-md text-token-white focus:outline-none focus:border-token-primary-blue" rows="3" placeholder="Enter your commit message..."></textarea>
+            <div class="flex justify-end mt-2">
+                <button class="git-commit-btn">Commit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-languages.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-arduino.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-scss.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const editorContent = document.getElementById('editor-content');
+            const tabContainer = document.getElementById('tab-container');
+
+            // Simulate a file content
+            const fileContents = {
+                'src/index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Awesome Page</title>
+    <link rel="stylesheet" href="src/styles/style.scss">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #2a2a2a;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 800px;
+            width: 90%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Editor!</h1>
+        <p>This is a dynamically loaded HTML file.</p>
+    </div>
+    <script src="src/main.js"></script>
+</body>
+</html>`,
+                'src/main.js': `// main.js
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.querySelector('.container');
+    const h1 = document.querySelector('h1');
+
+    h1.textContent = 'Code Editor in Action!';
+    h1.style.color = 'var(--token-primary-blue)'; // Example of inline styling
+
+    container.style.backgroundColor = 'var(--token-primary-blue)';
+    container.style.color = 'var(--token-white)';
+
+    console.log('Editor loaded!');
+    // Simulate a small JavaScript feature
+    if (window.innerWidth < 768) { // Responsive check
+        console.log('Mobile view detected!');
+        h1.classList.add('text-lg');
+    } else {
+        console.log('Desktop view detected!');
+        h1.classList.remove('text-lg');
+    }
+});
+
+// Function to highlight text
+function highlightText(text, highlightWord) {
+    return text.replace(new RegExp(`(${highlightWord})`, 'g'), `<span class="text-token-primary-blue">${highlightWord}</span>`);
+}
+
+// Example usage
+const paragraph = document.createElement('p');
+paragraph.textContent = "This is a paragraph of text. The word 'editor' appears here, and it also appears in the next sentence: 'The editor is powerful.'";
+document.body.appendChild(paragraph);
+highlightText(paragraph.textContent, 'editor');
+}`,
+                'src/styles/style.scss': `/* style.scss */
+$body-bg: #1a1a1a;
+$body-text: #ffffff;
+
+.container {
+    background-color: $body-bg;
+    color: $body-text;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    max-width: 800px;
+    width: 90%;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: $body-text;
+}
+
+p {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: $body-text;
+    margin-bottom: 1.5rem;
+}
+`,
+                'src/components/Button.js': `// Button.js
+class Button {
+    constructor(text, className = '') {
+        this.text = text;
+        this.className = className;
+    }
+
+    render() {
+        const button = document.createElement('button');
+        button.textContent = this.text;
+        button.classList.add('p-2', 'rounded', 'bg-token-primary-blue', 'text-token-white', 'hover:bg-token-primary-blue-darker', 'transition-colors', this.className);
+        return button;
+    }
+}
+
+// Usage
+const myButton = new Button('Click Me');
+document.body.appendChild(myButton.render());
+`
+            };
+
+            // Function to render a tab
+            const renderTab = (fileName, content, lineNumber = 0) => {
+                const tab = document.createElement('div');
+                tab.classList.add('tab', 'flex-shrink-0', 'flex', 'items-center', 'p-2', 'cursor-pointer', 'tab-active');
+                tab.setAttribute('data-file', fileName);
+                tab.setAttribute('data-line', lineNumber); // Store current line for quick jump
+
+                tab.innerHTML = `
+                    <span class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-token-white">${fileName}</span>
+                    <button class="tab-close-btn ml-2" data-file="${fileName}" aria-label="Close tab">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                return tab;
+            };
+
+            // Function to update the editor content
+            const updateEditorContent = (fileName, lineNumber = 0) => {
+                const content = fileContents[fileName];
+                if (!content) {
+                    editorContent.innerHTML = `<p class="text-token-dark-gray">File not found.</p>`;
+                    return;
+                }
+
+                // Split content into lines for quick jump
+                const lines = content.split('\n');
+                if (lineNumber >= 0 && lineNumber < lines.length) {
+                    editorContent.innerHTML = `<pre>${lines[lineNumber]}</pre>`;
+                } else {
+                    editorContent.innerHTML = `<pre>${content}</pre>`;
+                }
+            };
+
+            // Simulate tab switching
+            tabContainer.addEventListener('click', (event) => {
+                if (event.target.closest('.tab-close-btn')) {
+                    const fileName = event.target.closest('.tab').getAttribute('data-file');
+                    tabContainer.querySelectorAll('.tab').forEach(tab => {
+                        if (tab.getAttribute('data-file') === fileName) {
+                            tab.remove();
+                        }
+                    });
+                    if (tabContainer.children.length === 0) {
+                        editorContent.innerHTML = '<p class="text-token-dark-gray">No open files.</p>';
+                    }
+                    // If the closed tab was active, switch to the first one
+                    if (fileName === tabContainer.querySelector('.tab-active')?.getAttribute('data-file')) {
+                        if (tabContainer.children.length > 0) {
+                            tabContainer.querySelector('.tab').classList.add('tab-active');
+                            tabContainer.querySelector('.tab').classList.remove('tab-inactive');
+                            updateEditorContent(tabContainer.querySelector('.tab').getAttribute('data-file'));
+                        }
+                    }
+                    return;
+                }
+
+                if (event.target.closest('.tab')) {
+                    tabContainer.querySelectorAll('.tab').forEach(tab => {
+                        tab.classList.remove('tab-active');
+                        tab.classList.add('tab-inactive');
+                    });
+                    event.target.closest('.tab').classList.add('tab-active');
+                    event.target.closest('.tab').classList.remove('tab-inactive');
+                    const fileName = event.target.closest('.tab').getAttribute('data-file');
+                    updateEditorContent(fileName, event.target.closest('.tab').getAttribute('data-line'));
+                }
+            });
+
+            // Initial load: open index.html
+            const initialTab = renderTab('src/index.html', fileContents['src/index.html'], 0);
+            tabContainer.appendChild(initialTab);
+            updateEditorContent('src/index.html', 0);
+
+            // Highlighting with Prism (requires correct language detection)
+            // This is a simplified approach; for dynamic content, you'd need more robust language guessing
+            // or allow the user to select a language.
+            // For now, we'll just apply a generic 'language-javascript' class.
+            // A better solution would involve a language detection library or a way to dynamically
+            // determine the file's extension and apply the correct language.
+            const prismCodeElements = document.querySelectorAll('pre code');
+            prismCodeElements.forEach(codeElement => {
+                if (codeElement.textContent.includes('class') && codeElement.textContent.includes('extends')) {
+                    codeElement.classList.add('language-javascript');
+                } else if (codeElement.textContent.includes('h1') && codeElement.textContent.includes('text-2xl')) {
+                    codeElement.classList.add('language-html');
+                } else if (codeElement.textContent.includes('h1') && codeElement.textContent.includes('text-700')) {
+                    codeElement.classList.add('language-css');
+                } else if (codeElement.textContent.includes('class') && codeElement.textContent.includes('render')) {
+                    codeElement.classList.add('language-javascript');
+                } else if (codeElement.textContent.includes('import')) {
+                    codeElement.classList.add('language-javascript');
+                } else if (codeElement.textContent.includes('body') && codeElement.textContent.includes('background-color')) {
+                    codeElement.classList.add('language-css');
+                }
+            });
+            prism.highlightAll(); // Apply Prism highlighting to all code elements
+
+            // Add a new file button (placeholder for a real UI)
+            document.querySelector('.file-explorer > .space-y-1 > .flex:nth-of-type(3)').nextElementSibling.addEventListener('click', () => {
+                const newFileName = prompt('Enter new file name (e.g., new.js, new.html):');
+                if (newFileName) {
+                    const newTab = renderTab(newFileName, '', 0);
+                    tabContainer.appendChild(newTab);
+                    updateEditorContent(newFileName);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-main: #f8f8f8;
+            --color-bg-alt: #e0e0e0;
+            --color-text-dark: #1a1a1a;
+            --color-text-light: #ffffff;
+            --color-accent: #3b82f6; /* Tailwind blue-500 */
+            --color-success: #10b981; /* Tailwind green-500 */
+            --color-danger: #ef4444; /* Tailwind red-500 */
+            --color-border-light: #d1d5db; /* Tailwind gray-300 */
+            --color-card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .card {
+            background-color: var(--color-card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            border: 1px solid var(--color-border-light);
+        }
+
+        .btn-primary {
+            background-color: var(--color-accent);
+            color: var(--color-text-light);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* blue-600 */
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--color-text-dark);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            border: 1px solid var(--color-border-light);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-bg-alt);
+            border-color: var(--color-accent);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--color-border-light);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* blue-500 with transparency */
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--color-card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .modal-content.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive table */
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table-responsive {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table-responsive th, .table-responsive td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+        .table-responsive th {
+            background-color: var(--color-bg-alt);
+            font-weight: 600;
+        }
+        .table-responsive tr:hover {
+            background-color: #f1f1f1;
+        }
+        @media (max-width: 768px) {
+            .table-responsive thead {
+                display: none;
+            }
+            .table-responsive tr {
+                display: block;
+                margin-bottom: 0.5rem;
+                border: 1px solid var(--color-border-light);
+                border-radius: 8px;
+                padding: 0.75rem;
+            }
+            .table-responsive td {
+                display: block;
+                text-align: right;
+                border-bottom: none;
+            }
+            .table-responsive td:last-child {
+                border-bottom: 1px solid var(--color-border-light);
+            }
+            .table-responsive td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: bold;
+                text-transform: uppercase;
+                color: var(--color-text-dark);
+                margin-right: 0.5rem;
+                clear: both;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-main)] text-[var(--color-text-dark)]">
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Header / Navbar -->
+        <header class="bg-[var(--color-card-bg)] shadow-sm py-4">
+            <div class="container mx-auto px-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-[var(--color-text-dark)]">Employee Management</h1>
+                <nav>
+                    <button id="addEmployeeBtn" class="btn-primary flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Employee
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="card mb-8">
+                <h2 class="text-xl font-semibold mb-4">Employee List</h2>
+                <div class="table-container">
+                    <table class="table-responsive">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th>Department</th>
+                                <th>Salary</th>
+                                <th>Join Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeList">
+                            <!-- Employee rows will be injected here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-[var(--color-card-bg)] py-4 text-center text-sm text-gray-500">
+            <p>&copy; 2024 Employee Management System</p>
+        </footer>
+    </div>
+
+    <!-- Add/Edit Employee Modal -->
+    <div id="employeeModal" class="fixed inset-0 hidden items-center justify-center p-4 modal-overlay">
+        <div class="modal-content w-full max-w-md mx-auto fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitle" class="text-xl font-semibold text-[var(--color-text-dark)]">Add New Employee</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="employeeForm" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input type="text" id="name" name="name" class="input-field" required>
+                </div>
+                <div>
+                    <label for="position" class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+                    <input type="text" id="position" name="position" class="input-field" required>
+                </div>
+                <div>
+                    <label for="department" class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input type="text" id="department" name="department" class="input-field" required>
+                </div>
+                <div>
+                    <label for="salary" class="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                    <input type="number" id="salary" name="salary" class="input-field" step="0.01" required>
+                </div>
+                <div>
+                    <label for="join_date" class="block text-sm font-medium text-gray-700 mb-1">Join Date</label>
+                    <input type="date" id="join_date" name="join_date" class="input-field" required>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="deleteEmployeeBtn" class="btn-secondary text-[var(--color-danger)] hover:bg-red-50 hover:border-red-500 hidden">
+                        <i class="fas fa-trash-alt mr-2"></i> Delete
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save mr-2"></i> Save Employee
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const employeeList = document.getElementById('employeeList');
+            const addEmployeeBtn = document.getElementById('addEmployeeBtn');
+            const employeeModal = document.getElementById('employeeModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const employeeForm = document.getElementById('employeeForm');
+            const modalTitle = document.getElementById('modalTitle');
+            const deleteEmployeeBtn = document.getElementById('deleteEmployeeBtn');
+
+            let employees = JSON.parse(localStorage.getItem('employees')) || [];
+            let currentEditId = null; // To store the ID of the employee being edited
+
+            // Function to render employees
+            function renderEmployees() {
+                employeeList.innerHTML = '';
+                if (employees.length === 0) {
+                    employeeList.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-8">No employees found. Please add one!</td></tr>';
+                    return;
+                }
+                employees.forEach(emp => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${emp.name}</td>
+                        <td>${emp.position}</td>
+                        <td>${emp.department}</td>
+                        <td>$${emp.salary.toFixed(2)}</td>
+                        <td>${emp.join_date}</td>
+                        <td class="flex justify-center gap-2">
+                            <button class="btn-secondary text-blue-600 hover:bg-blue-50 hover:border-blue-500 edit-btn" data-id="${emp.id}">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-500 delete-btn" data-id="${emp.id}">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    employeeList.appendChild(row);
+                });
+            }
+
+            // Function to open modal for add/edit
+            function openModal(isEdit = false, employee = null) {
+                employeeForm.reset();
+                currentEditId = isEdit ? employee.id : null;
+                modalTitle.textContent = isEdit ? 'Edit Employee' : 'Add New Employee';
+                deleteEmployeeBtn.classList.add('hidden'); // Hide delete button by default
+
+                if (isEdit) {
+                    document.getElementById('name').value = employee.name;
+                    document.getElementById('position').value = employee.position;
+                    document.getElementById('department').value = employee.department;
+                    document.getElementById('salary').value = employee.salary;
+                    document.getElementById('join_date').value = employee.join_date;
+                    deleteEmployeeBtn.classList.remove('hidden'); // Show delete button for edit
+                }
+
+                employeeModal.classList.remove('hidden');
+                setTimeout(() => {
+                    employeeModal.querySelector('.modal-content').classList.add('visible');
+                }, 10);
+            }
+
+            // Function to close modal
+            function closeModal() {
+                employeeModal.classList.add('hidden');
+                employeeModal.querySelector('.modal-content').classList.remove('visible');
+                // Clear form after a short delay to allow animation
+                setTimeout(() => {
+                    employeeForm.reset();
+                    currentEditId = null;
+                }, 300); 
+            }
+
+            // Event listener for Add Employee button
+            addEmployeeBtn.addEventListener('click', () => openModal());
+
+            // Event listener for Close Modal button
+            closeModalBtn.addEventListener('click', closeModal);
+
+            // Event listener for Modal Close on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !employeeModal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+
+            // Event listener for Modal Close on click outside
+            employeeModal.addEventListener('click', (e) => {
+                if (e.target === employeeModal) {
+                    closeModal();
+                }
+            });
+
+            // Event listener for form submission
+            employeeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('name').value;
+                const position = document.getElementById('position').value;
+                const department = document.getElementById('department').value;
+                const salary = parseFloat(document.getElementById('salary').value);
+                const join_date = document.getElementById('join_date').value;
+
+                if (isNaN(salary)) {
+                    alert('Please enter a valid salary.');
+                    return;
+                }
+
+                if (currentEditId) {
+                    // Update existing employee
+                    const index = employees.findIndex(emp => emp.id === currentEditId);
+                    if (index !== -1) {
+                        employees[index] = { ...employees[index], name, position, department, salary, join_date };
+                        alert('Employee updated successfully!');
+                    }
+                } else {
+                    // Add new employee
+                    const newEmployee = {
+                        id: Date.now(), // Simple unique ID
+                        name,
+                        position,
+                        department,
+                        salary,
+                        join_date
+                    };
+                    employees.push(newEmployee);
+                    alert('Employee added successfully!');
+                }
+                
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                closeModal();
+            });
+
+            // Event listener for Edit and Delete buttons
+            employeeList.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target) return;
+
+                const employeeId = parseInt(target.dataset.id);
+                const employee = employees.find(emp => emp.id === employeeId);
+
+                if (target.classList.contains('edit-btn')) {
+                    openModal(true, employee);
+                } else if (target.classList.contains('delete-btn')) {
+                    if (confirm('Are you sure you want to delete this employee?')) {
+                        employees = employees.filter(emp => emp.id !== employeeId);
+                        localStorage.setItem('employees', JSON.stringify(employees));
+                        renderEmployees();
+                        alert('Employee deleted successfully!');
+                    }
+                }
+            });
+
+            // Event listener for Delete button in modal
+            deleteEmployeeBtn.addEventListener('click', () => {
+                if (currentEditId && confirm('Are you sure you want to delete this employee?')) {
+                    employees = employees.filter(emp => emp.id !== currentEditId);
+                    localStorage.setItem('employees', JSON.stringify(employees));
+                    renderEmployees();
+                    closeModal();
+                    alert('Employee deleted successfully!');
+                }
+            });
+
+            // Initial render
+            renderEmployees();
+        });
+    </script>
+</body>
+</html>

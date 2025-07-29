@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My To-Do List Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: #0F0F0F; /* Dark background */
+            --color-text-primary: #FFFFFF; /* White text */
+            --color-text-secondary: #A1A1A1; /* Lighter gray for secondary text */
+            --color-accent: #E879F9; /* Purple accent */
+            --color-border: #252525; /* Darker gray border */
+            --color-card-bg: #141414; /* Slightly lighter dark for cards */
+            --color-task-high: #EF4444; /* Red for high priority */
+            --color-task-medium: #F59E0B; /* Amber for medium priority */
+            --color-task-low: #3B82F6; /* Blue for low priority */
+            --color-task-done: #10B981; /* Green for done tasks */
+            --color-progress-bar-bg: #252525;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .text-gradient-accent {
+            background-image: linear-gradient(90deg, var(--color-accent) 0%, #FF77BB 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .btn-primary {
+            background: linear-gradient(180deg, var(--color-accent) 0%, #FF77BB 100%);
+            border: 1px solid var(--color-accent);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(180deg, #FF77BB 0%, #E879F9 100%);
+        }
+        .progress-bar {
+            background-color: var(--color-progress-bar-bg);
+            border-radius: 9999px; /* Full rounded */
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            background-color: var(--color-accent);
+            height: 100%;
+            width: 0%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+        }
+        .task-card {
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+        }
+        .task-card:hover {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 15px rgba(232, 121, 249, 0.2);
+        }
+        .priority-label {
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .priority-high { background-color: var(--color-task-high); color: white; }
+        .priority-medium { background-color: var(--color-task-medium); color: white; }
+        .priority-low { background-color: var(--color-task-low); color: white; }
+        .task-done { background-color: var(--color-task-done); color: white; }
+
+        /* Responsive grid adjustments */
+        @media (max-width: 768px) {
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold mb-4 sm:mb-0 text-gradient-accent">
+                My To-Do Dashboard
+            </h1>
+            <div class="flex items-center space-x-3">
+                <button id="add-task-btn" class="btn-primary text-white px-5 py-2.5 rounded-full text-sm font-medium flex items-center space-x-2 shadow-lg">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Task</span>
+                </button>
+                <div class="relative">
+                    <button id="user-menu-btn" class="flex items-center space-x-2 text-white/80 hover:text-white transition-colors">
+                        <img src="https://placehold.co/40x40/FF77BB/FFFFFF/png?text=JD" alt="User Avatar" class="rounded-full">
+                        <span class="hidden sm:inline font-medium">Jane Doe</span>
+                        <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </button>
+                    <!-- User Menu Dropdown -->
+                    <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-[var(--color-card-bg)] rounded-lg shadow-xl border border-[var(--color-border)] py-1 z-10">
+                        <a href="#" class="block px-4 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-accent)]/10">Profile</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-accent)]/10">Settings</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-accent)]/10">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Task Creation Card -->
+            <div class="lg:col-span-1 p-6 rounded-xl task-card shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Create New Task</h2>
+                <form id="task-form" class="space-y-4">
+                    <div>
+                        <label for="task-title" class="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Task Title</label>
+                        <input type="text" id="task-title" placeholder="e.g., Design landing page" class="w-full p-3 rounded-md bg-[var(--color-bg-main)] border border-[var(--color-border)] text-white placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-accent)]">
+                    </div>
+                    <div>
+                        <label for="task-description" class="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Description (Optional)</label>
+                        <textarea id="task-description" rows="3" placeholder="Add more details here..." class="w-full p-3 rounded-md bg-[var(--color-bg-main)] border border-[var(--color-border)] text-white placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-accent)]"></textarea>
+                    </div>
+                    <div>
+                        <label for="task-priority" class="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Priority</label>
+                        <select id="task-priority" class="w-full p-3 rounded-md bg-[var(--color-bg-main)] border border-[var(--color-border)] text-white focus:outline-none focus:border-[var(--color-accent)]">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="task-due-date" class="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Due Date (Optional)</label>
+                        <input type="date" id="task-due-date" class="w-full p-3 rounded-md bg-[var(--color-bg-main)] border border-[var(--color-border)] text-white focus:outline-none focus:border-[var(--color-accent)]">
+                    </div>
+                    <button type="submit" class="w-full btn-primary text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-lg">
+                        Create Task
+                    </button>
+                </form>
+            </div>
+
+            <!-- Progress Tracking & Statistics -->
+            <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 rounded-xl task-card shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Overall Progress</h2>
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm text-[var(--color-text-secondary)]">Tasks Completed</span>
+                            <span id="total-completed-tasks" class="font-bold text-white">0</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+                        <p class="text-xs text-[var(--color-text-secondary)] mt-1">0% of tasks completed</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <p class="text-2xl font-bold text-[var(--color-accent)]" id="total-tasks-count">0</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Total Tasks</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-[var(--color-task-high)]" id="pending-tasks-count">0</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Pending Tasks</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 rounded-xl task-card shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Tasks by Priority</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="priority-label priority-high">High Priority</span>
+                            <span id="high-priority-count" class="font-medium text-white">0</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="priority-label priority-medium">Medium Priority</span>
+                            <span id="medium-priority-count" class="font-medium text-white">0</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="priority-label priority-low">Low Priority</span>
+                            <span id="low-priority-count" class="font-medium text-white">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Task List -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-6">All Tasks</h2>
+            <div id="task-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Task cards will be injected here by JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let nextTaskId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+
+        const taskForm = document.getElementById('task-form');
+        const taskTitleInput = document.getElementById('task-title');
+        const taskDescriptionInput = document.getElementById('task-description');
+        const taskPrioritySelect = document.getElementById('task-priority');
+        const taskDueDateInput = document.getElementById('task-due-date');
+        const taskListContainer = document.getElementById('task-list');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const totalCompletedTasksSpan = document.getElementById('total-completed-tasks');
+        const totalTasksCountSpan = document.getElementById('total-tasks-count');
+        const pendingTasksCountSpan = document.getElementById('pending-tasks-count');
+        const highPriorityCountSpan = document.getElementById('high-priority-count');
+        const mediumPriorityCountSpan = document.getElementById('medium-priority-count');
+        const lowPriorityCountSpan = document.getElementById('low-priority-count');
+
+        const userMenuBtn = document.getElementById('user-menu-btn');
+        const userMenu = document.getElementById('user-menu');
+
+        // --- Task Management Functions ---
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function renderTasks() {
+            taskListContainer.innerHTML = '';
+            tasks.forEach(task => {
+                const taskCard = createTaskCard(task);
+                taskListContainer.appendChild(taskCard);
+            });
+            updateStatistics();
+        }
+
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'task-card p-6 rounded-xl shadow-lg flex flex-col';
+            card.dataset.id = task.id;
+
+            const priorityClass = `priority-${task.priority}`;
+            const doneClass = task.done ? 'task-done' : '';
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-lg font-semibold text-white">${task.title}</h3>
+                    <span class="priority-label ${priorityClass}">${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>
+                </div>
+                ${task.description ? `<p class="text-sm text-[var(--color-text-secondary)] mb-3 flex-grow">${task.description}</p>` : ''}
+                ${task.dueDate ? `<p class="text-xs text-[var(--color-text-secondary)] mb-3">Due: ${task.dueDate}</p>` : ''}
+                <div class="flex justify-between items-center mt-auto">
+                    <button class="toggle-done-btn ${task.done ? 'text-[var(--color-task-done)]' : 'text-[var(--color-accent)]'} hover:opacity-80 transition-opacity" data-id="${task.id}">
+                        ${task.done ? '<i class="fas fa-check"></i> Done' : '<i class="fas fa-play"></i> Start'}
+                    </button>
+                    <button class="delete-task-btn text-red-500 hover:text-red-400 transition-colors" data-id="${task.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            // Add event listeners for buttons
+            card.querySelector('.toggle-done-btn').addEventListener('click', () => toggleTaskDone(task.id));
+            card.querySelector('.delete-task-btn').addEventListener('click', () => deleteTask(task.id));
+
+            return card;
+        }
+
+        function addTask(e) {
+            e.preventDefault();
+            const title = taskTitleInput.value.trim();
+            if (!title) {
+                alert('Task title cannot be empty!');
+                return;
+            }
+
+            const newTask = {
+                id: nextTaskId++,
+                title: title,
+                description: taskDescriptionInput.value.trim(),
+                priority: taskPrioritySelect.value,
+                dueDate: taskDueDateInput.value,
+                done: false
+            };
+
+            tasks.push(newTask);
+            saveTasks();
+            renderTasks();
+            taskForm.reset();
+        }
+
+        function toggleTaskDone(id) {
+            const taskIndex = tasks.findIndex(t => t.id === id);
+            if (taskIndex > -1) {
+                tasks[taskIndex].done = !tasks[taskIndex].done;
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            if (confirm('Are you sure you want to delete this task?')) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function updateStatistics() {
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(t => t.done).length;
+            const pendingTasks = totalTasks - completedTasks;
+
+            const highPriority = tasks.filter(t => t.priority === 'high').length;
+            const mediumPriority = tasks.filter(t => t.priority === 'medium').length;
+            const lowPriority = tasks.filter(t => t.priority === 'low').length;
+
+            totalCompletedTasksSpan.textContent = completedTasks;
+            totalTasksCountSpan.textContent = totalTasks;
+            pendingTasksCountSpan.textContent = pendingTasks;
+
+            highPriorityCountSpan.textContent = highPriority;
+            mediumPriorityCountSpan.textContent = mediumPriority;
+            lowPriorityCountSpan.textContent = lowPriority;
+
+            if (totalTasks > 0) {
+                const progressPercentage = (completedTasks / totalTasks) * 100;
+                progressBarFill.style.width = `${progressPercentage}%`;
+                progressBarFill.previousElementSibling.querySelector('p').textContent = `${progressPercentage.toFixed(0)}% of tasks completed`;
+            } else {
+                progressBarFill.style.width = '0%';
+                progressBarFill.previousElementSibling.querySelector('p').textContent = '0% of tasks completed';
+            }
+        }
+
+        // --- Event Listeners ---
+        taskForm.addEventListener('submit', addTask);
+
+        // User menu toggle
+        userMenuBtn.addEventListener('click', () => {
+            userMenu.classList.toggle('hidden');
+        });
+
+        // Close user menu if clicked outside
+        document.addEventListener('click', (event) => {
+            if (!userMenuBtn.contains(event.target) && !userMenu.contains(event.target)) {
+                userMenu.classList.add('hidden');
+            }
+        });
+
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>

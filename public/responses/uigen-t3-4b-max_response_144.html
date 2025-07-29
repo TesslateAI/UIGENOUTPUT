@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: rgb(24, 24, 24);
+            --color-text-primary: rgb(255, 255, 255);
+            --color-text-secondary: rgb(179, 179, 179);
+            --color-card-bg: rgb(36, 36, 36);
+            --color-border-faint: rgba(255, 255, 255, 0.1);
+            --color-accent: rgb(0, 122, 255); /* Blue for primary actions */
+            --color-priority-high: #ef4444; /* Red-500 */
+            --color-priority-medium: #f97316; /* Orange-500 */
+            --color-priority-low: #22c55e; /* Green-500 */
+        }
+
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to the top */
+            min-height: 100vh;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+
+        .card {
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border-faint);
+            border-radius: 0.75rem; /* 12px */
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .task-item {
+            background-color: var(--color-bg-main);
+            border: 1px solid var(--color-border-faint);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .task-item.completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+
+        .priority-high { background-color: var(--color-priority-high); color: white; }
+        .priority-medium { background-color: var(--color-priority-medium); color: white; }
+        .priority-low { background-color: var(--color-priority-low); color: white; }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--color-border-faint);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--color-accent);
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px; /* Fixed height to prevent overflow */
+            margin-top: 1.5rem;
+            overflow: hidden; /* Important for preventing chart from extending */
+        }
+
+        .chart-bar {
+            background-color: var(--color-accent);
+            height: 100%;
+            width: 20%; /* Each bar for a day */
+            transition: height 0.5s ease-out;
+            position: absolute;
+            left: 0; /* Will be calculated by JS */
+            top: 0; /* Will be calculated by JS */
+            border-radius: 2px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .card {
+                padding: 1rem;
+            }
+            .progress-bar-container {
+                height: 6px;
+            }
+            .chart-bar {
+                width: 15%; /* Smaller bars for mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-grid grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-6xl">
+
+        <!-- Task Creation Section -->
+        <div class="card col-span-1 md:col-span-2">
+            <h2 class="text-2xl font-bold mb-4">My To-Do List</h2>
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                <input type="text" id="new-task-input" placeholder="Add a new task..." 
+                       class="flex-grow p-3 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border-faint)] text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]">
+                <select id="priority-select" class="p-3 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border-faint)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+                <button id="add-task-btn" class="px-5 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+
+            <div id="task-list" class="space-y-3">
+                <!-- Task items will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Progress Tracking Section (Daily Task Completion) -->
+        <div class="card col-span-1 md:col-span-1">
+            <h2 class="text-2xl font-bold mb-4">Daily Progress</h2>
+            <div id="daily-progress-chart" class="chart-container">
+                <!-- Chart bars will be dynamically added here -->
+            </div>
+        </div>
+
+        <!-- Overall Progress Section (Total Tasks & Completed) -->
+        <div class="card col-span-1 md:col-span-2">
+            <h2 class="text-2xl font-bold mb-4">Overall Progress</h2>
+            <div class="flex flex-col items-center">
+                <div class="w-full max-w-sm">
+                    <div class="progress-bar-container">
+                        <div id="overall-progress-bar" class="progress-bar" style="width: 0%;"></div>
+                    </div>
+                    <p id="overall-progress-text" class="text-sm text-[var(--color-text-secondary)] mt-2">0% Complete</p>
+                </div>
+                <p id="task-count" class="text-4xl font-bold mt-4">0 Tasks</p>
+                <p id="completed-count" class="text-4xl font-bold text-[var(--color-accent)]">0 Completed</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const taskList = document.getElementById('task-list');
+        const newTaskInput = document.getElementById('new-task-input');
+        const prioritySelect = document.getElementById('priority-select');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const overallProgressBar = document.getElementById('overall-progress-bar');
+        const overallProgressText = document.getElementById('overall-progress-text');
+        const taskCount = document.getElementById('task-count');
+        const completedCount = document.getElementById('completed-count');
+        const dailyProgressChart = document.getElementById('daily-progress-chart');
+
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let dailyProgressData = JSON.parse(localStorage.getItem('dailyProgress')) || Array(7).fill(0); // 7 days of 0
+
+        const priorityColors = {
+            high: 'priority-high',
+            medium: 'priority-medium',
+            low: 'priority-low'
+        };
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            taskCount.textContent = tasks.length;
+            completedCount.textContent = tasks.filter(task => task.completed).length;
+
+            let totalProgress = 0;
+            if (tasks.length > 0) {
+                totalProgress = (tasks.filter(task => task.completed).length / tasks.length) * 100;
+            }
+            overallProgressBar.style.width = `${totalProgress}%`;
+            overallProgressText.textContent = `${Math.round(totalProgress)}% Complete`;
+
+            tasks.forEach((task, index) => {
+                const taskItem = document.createElement('div');
+                taskItem.className = `task-item ${task.completed ? 'completed' : ''}`;
+                taskItem.setAttribute('draggable', true);
+                taskItem.dataset.id = task.id;
+
+                taskItem.innerHTML = `
+                    <div class="flex items-center">
+                        <input type="checkbox" class="task-checkbox h-5 w-5 text-[var(--color-accent)] border-gray-600 rounded focus:ring-[var(--color-accent)] ${task.completed ? 'checked' : ''}" data-task-id="${task.id}">
+                        <span class="ml-3 text-base ${priorityColors[task.priority]} text-xs px-2 py-1 rounded-full">${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>
+                        <span class="ml-4 text-lg flex-grow truncate">${task.text}</span>
+                    </div>
+                    <button class="delete-task-btn text-red-400 hover:text-red-500 transition-colors" aria-label="Delete task">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+
+                taskList.appendChild(taskItem);
+            });
+            updateDailyProgressChart();
+        }
+
+        function addTask() {
+            const text = newTaskInput.value.trim();
+            const priority = prioritySelect.value;
+
+            if (text) {
+                const newTask = {
+                    id: Date.now(),
+                    text: text,
+                    completed: false,
+                    priority: priority
+                };
+                tasks.push(newTask);
+                newTaskInput.value = '';
+                prioritySelect.value = 'low'; // Reset priority
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            saveTasks();
+            renderTasks();
+        }
+
+        function toggleCompleteTask(id) {
+            tasks = tasks.map(task =>
+                task.id === id ? { ...task, completed: !task.completed } : task
+            );
+            saveTasks();
+            renderTasks();
+        }
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            localStorage.setItem('dailyProgress', JSON.stringify(dailyProgressData));
+        }
+
+        function updateDailyProgressChart() {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay()); // Get Monday
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6); // Get Sunday
+
+            const daysOfWeek = [];
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startOfWeek);
+                day.setDate(startOfWeek.getDate() + i);
+                daysOfWeek.push(day);
+            }
+
+            dailyProgressData = Array(7).fill(0); // Reset to 0 for each day
+
+            tasks.forEach(task => {
+                const taskDate = new Date(task.completed ? task.completed : task.id); // Use task.id for simplicity
+                taskDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+                for (let i = 0; i < 7; i++) {
+                    const day = daysOfWeek[i];
+                    if (taskDate.toDateString() === day.toDateString()) {
+                        dailyProgressData[i]++;
+                        break;
+                    }
+                }
+            });
+
+            // Re-render chart to apply new data
+            dailyProgressChart.innerHTML = '';
+            daysOfWeek.forEach((day, index) => {
+                const dayIndex = index; // 0 for Monday, 1 for Tuesday, etc.
+                const completedTasksForDay = dailyProgressData[dayIndex];
+
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.width = `${(completedTasksForDay / (daysOfWeek.length - 1)) * 100}%`; // Max 100% if all 7 days are completed
+                bar.style.left = `${(dayIndex / 7) * 100}%`;
+                bar.style.top = `0%`; // Bars start at 0 for simplicity, they will fill based on completion
+                dailyProgressChart.appendChild(bar);
+            });
+            localStorage.setItem('dailyProgress', JSON.stringify(dailyProgressData));
+        }
+
+        addTaskBtn.addEventListener('click', addTask);
+        newTaskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+
+        taskList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('task-checkbox')) {
+                toggleCompleteTask(parseInt(e.target.dataset.taskId));
+            } else if (e.target.classList.contains('delete-task-btn')) {
+                deleteTask(parseInt(e.target.closest('.task-item').dataset.id));
+            }
+        });
+
+        // Drag and Drop for reordering tasks
+        let draggedTask = null;
+
+        taskList.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('task-item')) {
+                draggedTask = e.target;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', e.target.dataset.id);
+                e.target.classList.add('border-dashed', 'border-2', 'border-[var(--color-accent)]');
+            }
+        });
+
+        taskList.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (e.target.closest('.task-item') && e.target.closest('.task-item') !== draggedTask) {
+                const targetItem = e.target.closest('.task-item');
+                const bounding = targetItem.getBoundingClientRect();
+                const offset = bounding.y + (bounding.height / 2);
+
+                if (e.clientY > offset) {
+                    taskList.insertBefore(draggedTask, targetItem.nextSibling);
+                } else {
+                    taskList.insertBefore(draggedTask, targetItem);
+                }
+            }
+        });
+
+        taskList.addEventListener('dragend', (e) => {
+            if (draggedTask) {
+                draggedTask.classList.remove('border-dashed', 'border-2', 'border-[var(--color-accent)]');
+                draggedTask = null;
+            }
+        });
+
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>

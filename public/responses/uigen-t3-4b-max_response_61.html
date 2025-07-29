@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Storage Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --token-primary-500: rgb(31, 81, 79);
+            --token-primary-400: rgb(51, 123, 117);
+            --token-primary-300: rgb(204, 231, 227);
+            --token-primary-200: rgb(229, 243, 242);
+            --token-primary-100: rgb(239, 247, 246);
+            --token-white: rgb(255, 255, 255);
+            --token-black: rgb(0, 0, 0);
+            --token-gray-50: rgb(245, 246, 247);
+            --token-gray-100: rgb(237, 238, 239);
+            --token-gray-200: rgb(222, 224, 226);
+            --token-gray-300: rgb(193, 197, 201);
+            --token-gray-400: rgb(138, 142, 147);
+            --token-gray-500: rgb(102, 106, 110);
+            --token-gray-600: rgb(82, 86, 90);
+            --token-gray-700: rgb(61, 65, 70);
+            --token-gray-800: rgb(46, 50, 54);
+            --token-gray-900: rgb(27, 31, 35);
+            --token-blue-50: rgb(220, 230, 250);
+            --token-indigo-50: rgb(210, 218, 250);
+            --token-purple-50: rgb(190, 210, 250);
+            --token-pink-50: rgb(210, 200, 250);
+            --token-red-50: rgb(250, 220, 220);
+            --token-green-50: rgb(180, 250, 220);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-white);
+            color: var(--token-black);
+            overflow-x: hidden;
+        }
+        .file-item {
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .file-item:hover {
+            transform: translateY(-2px);
+            background-color: var(--token-gray-100);
+        }
+        .folder-item {
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+        }
+        .folder-item:hover {
+            transform: translateY(-2px);
+            background-color: var(--token-gray-100);
+        }
+        .file-item.selected, .folder-item.selected {
+            background-color: var(--token-primary-500);
+            color: var(--token-white);
+            border-color: var(--token-primary-500);
+        }
+        .file-item.selected:hover, .folder-item.selected:hover {
+            background-color: var(--token-primary-600); /* A slightly darker shade for selected */
+        }
+        .file-item:active, .folder-item:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header (Navigation) -->
+    <header class="bg-[var(--token-white)] shadow-sm p-4 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-2xl font-bold text-[var(--token-black)]">CloudDrive</h1>
+            <div class="hidden md:flex items-center space-x-2">
+                <span class="text-[var(--token-gray-500)]">My Files</span>
+                <span class="text-[var(--token-gray-500)]">Photos</span>
+                <span class="text-[var(--token-gray-500)]">Documents</span>
+            </div>
+        </div>
+        <nav class="flex items-center space-x-4">
+            <button class="text-[var(--token-gray-600)] hover:text-[var(--token-black)]">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="text-[var(--token-gray-600)] hover:text-[var(--token-black)]">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div class="w-8 h-8 bg-[var(--token-gray-300)] rounded-full flex items-center justify-center text-sm font-semibold text-[var(--token-gray-700)]">
+                <img src="https://placehold.co/32x32/cccccc/ffffff?text=JD" alt="User Avatar" class="rounded-full">
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Area (File Browser) -->
+    <main class="flex-1 p-4 overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Left Sidebar: File/Folder Structure -->
+            <div class="bg-[var(--token-gray-50)] rounded-lg p-3 flex flex-col space-y-2 overflow-y-auto max-h-[calc(100vh-12rem)] lg:max-h-full">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-semibold text-[var(--token-black)]">Folders</h2>
+                    <button class="text-[var(--token-gray-600)] hover:text-[var(--token-black)]" aria-label="New Folder">
+                        <i class="fas fa-plus-circle"></i>
+                    </button>
+                </div>
+                <div class="space-y-1">
+                    <div class="folder-item p-2 rounded-md cursor-pointer flex items-center justify-between text-[var(--token-black)] hover:bg-[var(--token-gray-100)]" data-folder-path="/">
+                        <span class="flex items-center">
+                            <i class="fas fa-folder text-[var(--token-primary-500)] mr-2"></i>
+                            <span>My Drive</span>
+                        </span>
+                        <i class="fas fa-chevron-right text-[var(--token-gray-400)] text-sm"></i>
+                    </div>
+                    <div class="folder-item p-2 rounded-md cursor-pointer flex items-center justify-between text-[var(--token-black)] hover:bg-[var(--token-gray-100)]" data-folder-path="/Photos">
+                        <span class="flex items-center">
+                            <i class="fas fa-folder text-[var(--token-primary-500)] mr-2"></i>
+                            <span>Photos</span>
+                        </span>
+                        <i class="fas fa-chevron-right text-[var(--token-gray-400)] text-sm"></i>
+                    </div>
+                    <div class="folder-item p-2 rounded-md cursor-pointer flex items-center justify-between text-[var(--token-black)] hover:bg-[var(--token-gray-100)]" data-folder-path="/Documents">
+                        <span class="flex items-center">
+                            <i class="fas fa-folder text-[var(--token-primary-500)] mr-2"></i>
+                            <span>Documents</span>
+                        </span>
+                        <i class="fas fa-chevron-right text-[var(--token-gray-400)] text-sm"></i>
+                    </div>
+                    <div class="folder-item p-2 rounded-md cursor-pointer flex items-center justify-between text-[var(--token-black)] hover:bg-[var(--token-gray-100)]" data-folder-path="/Videos">
+                        <span class="flex items-center">
+                            <i class="fas fa-folder text-[var(--token-primary-500)] mr-2"></i>
+                            <span>Videos</span>
+                        </span>
+                        <i class="fas fa-chevron-right text-[var(--token-gray-400)] text-sm"></i>
+                    </div>
+                    <div class="folder-item p-2 rounded-md cursor-pointer flex items-center justify-between text-[var(--token-black)] hover:bg-[var(--token-gray-100)]" data-folder-path="/Music">
+                        <span class="flex items-center">
+                            <i class="fas fa-folder text-[var(--token-primary-500)] mr-2"></i>
+                            <span>Music</span>
+                        </span>
+                        <i class="fas fa-chevron-right text-[var(--token-gray-400)] text-sm"></i>
+                    </div>
+                    <div class="folder-item p-2 rounded-md cursor-pointer flex items-center justify-between text-[var(--token-black)] hover:bg-[var(--token-gray-100)]" data-folder-path="/Downloads">
+                        <span class="flex items-center">
+                            <i class="fas fa-folder text-[var(--token-primary-500)] mr-2"></i>
+                            <span>Downloads</span>
+                        </span>
+                        <i class="fas fa-chevron-right text-[var(--token-gray-400)] text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Area: File List with Previews -->
+            <div class="flex-1 bg-[var(--token-white)] rounded-lg shadow-md p-4 overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-[var(--token-black)]">Photos</h2>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" placeholder="Search files..." class="flex-1 p-2 border border-[var(--token-gray-300)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--token-primary-500)] text-[var(--token-black)]">
+                        <button class="bg-[var(--token-primary-500)] text-[var(--token-white)] px-4 py-2 rounded-md hover:bg-[var(--token-primary-600)] transition-colors flex items-center">
+                            <i class="fas fa-upload mr-2"></i> Upload
+                        </button>
+                    </div>
+                </div>
+
+                <div id="file-list" class="space-y-3">
+                    <!-- Example File Items -->
+                    <div class="file-item flex items-center p-3 rounded-md cursor-pointer border border-transparent hover:border-[var(--token-gray-300)]" data-file-type="image" data-file-path="/Photos/landscape.jpg" data-file-name="landscape.jpg" data-file-size="5.2 MB">
+                        <div class="w-12 h-12 flex-shrink-0 bg-[var(--token-gray-200)] rounded-md flex items-center justify-center overflow-hidden mr-3">
+                            <img src="https://placehold.co/96x96/cccccc/ffffff?text=Photo" alt="Landscape" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-[var(--token-black)]">landscape.jpg</p>
+                            <p class="text-sm text-[var(--token-gray-600)]">5.2 MB</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2">
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Download landscape.jpg">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Share landscape.jpg">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="file-item flex items-center p-3 rounded-md cursor-pointer border border-transparent hover:border-[var(--token-gray-300)]" data-file-type="image" data-file-path="/Photos/portrait.png" data-file-name="portrait.png" data-file-size="2.8 MB">
+                        <div class="w-12 h-12 flex-shrink-0 bg-[var(--token-gray-200)] rounded-md flex items-center justify-center overflow-hidden mr-3">
+                            <img src="https://placehold.co/96x96/cccccc/ffffff?text=Portrait" alt="Portrait" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-[var(--token-black)]">portrait.png</p>
+                            <p class="text-sm text-[var(--token-gray-600)]">2.8 MB</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2">
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Download portrait.png">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Share portrait.png">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="file-item flex items-center p-3 rounded-md cursor-pointer border border-transparent hover:border-[var(--token-gray-300)]" data-file-type="document" data-file-path="/Documents/report.pdf" data-file-name="report.pdf" data-file-size="1.5 MB">
+                        <div class="w-12 h-12 flex-shrink-0 bg-[var(--token-gray-200)] rounded-md flex items-center justify-center text-[var(--token-gray-600)] font-bold text-2xl mr-3">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-[var(--token-black)]">report.pdf</p>
+                            <p class="text-sm text-[var(--token-gray-600)]">1.5 MB</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2">
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Download report.pdf">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Share report.pdf">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="file-item flex items-center p-3 rounded-md cursor-pointer border border-transparent hover:border-[var(--token-gray-300)]" data-file-type="image" data-file-path="/Photos/abstract.jpg" data-file-name="abstract.jpg" data-file-size="4.1 MB">
+                        <div class="w-12 h-12 flex-shrink-0 bg-[var(--token-gray-200)] rounded-md flex items-center justify-center overflow-hidden mr-3">
+                            <img src="https://placehold.co/96x96/cccccc/ffffff?text=Abstract" alt="Abstract" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-[var(--token-black)]">abstract.jpg</p>
+                            <p class="text-sm text-[var(--token-gray-600)]">4.1 MB</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2">
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Download abstract.jpg">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Share abstract.jpg">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="file-item flex items-center p-3 rounded-md cursor-pointer border border-transparent hover:border-[var(--token-gray-300)]" data-file-type="video" data-file-path="/Videos/demo.mp4" data-file-name="demo.mp4" data-file-size="12.5 MB">
+                        <div class="w-12 h-12 flex-shrink-0 bg-[var(--token-gray-200)] rounded-md flex items-center justify-center text-[var(--token-gray-600)] font-bold text-2xl mr-3">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-[var(--token-black)]">demo.mp4</p>
+                            <p class="text-sm text-[var(--token-gray-600)]">12.5 MB</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2">
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Download demo.mp4">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="text-[var(--token-gray-500)] hover:text-[var(--token-primary-500)]" aria-label="Share demo.mp4">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar: File Previews (Hidden by default, can be toggled) -->
+            <div id="file-preview-sidebar" class="hidden bg-[var(--token-white)] rounded-lg p-4 shadow-md flex-shrink-0 w-full lg:w-96">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-[var(--token-black)]">Preview</h2>
+                    <button id="close-preview-sidebar" class="text-[var(--token-gray-500)] hover:text-[var(--token-black)]" aria-label="Close preview">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="preview-content" class="text-center text-[var(--token-gray-500)]">
+                    Select a file to preview.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer (Optional, for larger apps) -->
+    <footer class="bg-[var(--token-gray-50)] text-[var(--token-gray-700)] p-4 text-center text-sm">
+        &copy; 2023 CloudDrive. All rights reserved.
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const filePreviewSidebar = document.getElementById('file-preview-sidebar');
+            const closePreviewSidebar = document.getElementById('close-preview-sidebar');
+            const fileList = document.getElementById('file-list');
+            const previewContent = document.getElementById('preview-content');
+
+            let activeFilePreview = null;
+
+            // Function to update the preview
+            const updatePreview = (filePath, fileName, fileType) => {
+                previewContent.innerHTML = '';
+                activeFilePreview = { filePath, fileName, fileType };
+
+                if (fileType === 'image') {
+                    const img = document.createElement('img');
+                    img.src = filePath.replace('/Photos', 'https://placehold.co/600x400/cccccc/ffffff?text=Image'); // Placeholder for actual image
+                    img.alt = fileName;
+                    img.classList.add('w-full', 'max-h-96', 'object-contain', 'rounded-md');
+                    previewContent.appendChild(img);
+                } else if (fileType === 'video') {
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.src = filePath.replace('/Videos', 'https://www.w3schools.com/html/mov_bbb.mp4'); // Placeholder for actual video
+                    video.classList.add('w-full', 'max-h-96', 'rounded-md');
+                    previewContent.appendChild(video);
+                } else {
+                    previewContent.innerHTML = `<p class="text-[var(--token-gray-500)]">Preview not available for ${fileType} files.</p>`;
+                }
+            };
+
+            // Event listener for clicking on a file
+            fileList.addEventListener('click', (event) => {
+                const target = event.target.closest('.file-item');
+                if (target) {
+                    // Remove 'selected' from all items
+                    document.querySelectorAll('.file-item, .folder-item').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+
+                    // Add 'selected' to the clicked item
+                    target.classList.add('selected');
+
+                    // Show preview sidebar
+                    filePreviewSidebar.classList.remove('hidden');
+                    // Update preview content
+                    updatePreview(target.dataset.filePath, target.dataset.fileName, target.dataset.fileType);
+                }
+            });
+
+            // Event listener for clicking on the close button
+            closePreviewSidebar.addEventListener('click', () => {
+                filePreviewSidebar.classList.add('hidden');
+                if (activeFilePreview) {
+                    // Clear preview when closing
+                    previewContent.innerHTML = '';
+                    activeFilePreview = null;
+                }
+            });
+
+            // Event listener for clicking outside the preview sidebar (to close it)
+            document.addEventListener('click', (event) => {
+                if (!filePreviewSidebar.contains(event.target) && !closePreviewSidebar.contains(event.target)) {
+                    filePreviewSidebar.classList.add('hidden');
+                    if (activeFilePreview) {
+                        previewContent.innerHTML = '';
+                        activeFilePreview = null;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

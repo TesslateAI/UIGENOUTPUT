@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f5f2; /* Lighter background for the board */
+            color: #181818;
+        }
+        .kanban-column {
+            min-width: 280px;
+            max-width: 320px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+        }
+        .kanban-column:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .kanban-card {
+            background-color: #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: grab;
+            transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .kanban-card:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        .kanban-card.dragging {
+            opacity: 0.6;
+            transform: scale(0.98);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+        .kanban-column .drop-target {
+            height: 20px;
+            background-color: rgba(76, 175, 80, 0.3); /* Light green for drop target */
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .add-card-button {
+            background-color: #4CAF50; /* Green for add button */
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .add-card-button:hover {
+            background-color: #43a047;
+        }
+        .add-column-button {
+            background-color: #181818;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .add-column-button:hover {
+            background-color: #333333;
+        }
+        .modal {
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-content input, .modal-content textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .modal-content button {
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .modal-content .cancel-btn {
+            background-color: #ccc;
+            color: #333;
+        }
+        .modal-content .cancel-btn:hover {
+            background-color: #bbb;
+        }
+        .modal-content .save-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .modal-content .save-btn:hover {
+            background-color: #43a047;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <header class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">My Kanban Board</h1>
+        <button id="add-column-btn" class="add-column-button">
+            <i class="fas fa-plus"></i> Add Column
+        </button>
+    </header>
+
+    <main id="kanban-board" class="flex flex-wrap gap-6 justify-center md:justify-start">
+        <!-- Kanban Columns will be injected here by JavaScript -->
+    </main>
+
+    <!-- Add Card Modal -->
+    <div id="add-card-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Add New Card</h3>
+            <input type="text" id="new-card-title" placeholder="Card Title" class="mb-2">
+            <textarea id="new-card-description" rows="3" placeholder="Card Description (optional)"></textarea>
+            <div class="flex justify-end gap-3">
+                <button id="cancel-add-card" class="cancel-btn">Cancel</button>
+                <button id="save-add-card" class="save-btn">Add Card</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Column Modal -->
+    <div id="add-column-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4">Add New Column</h3>
+            <input type="text" id="new-column-title" placeholder="Column Title" class="mb-2">
+            <div class="flex justify-end gap-3">
+                <button id="cancel-add-column" class="cancel-btn">Cancel</button>
+                <button id="save-add-column" class="save-btn">Add Column</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const kanbanBoard = document.getElementById('kanban-board');
+        const addCardModal = document.getElementById('add-card-modal');
+        const cancelAddCardBtn = document.getElementById('cancel-add-card');
+        const saveAddCardBtn = document.getElementById('save-add-card');
+        const newCardTitleInput = document.getElementById('new-card-title');
+        const newCardDescriptionInput = document.getElementById('new-card-description');
+
+        const addColumnBtn = document.getElementById('add-column-btn');
+        const addColumnModal = document.getElementById('add-column-modal');
+        const cancelAddColumnBtn = document.getElementById('cancel-add-column');
+        const saveAddColumnBtn = document.getElementById('save-add-column');
+        const newColumnTitleInput = document.getElementById('new-column-title');
+
+        let draggedCard = null;
+        let currentColumnId = null; // To store the column ID where the card was dragged from
+
+        // Initial Kanban board data
+        let columns = [
+            { id: 'todo', title: 'To Do', cards: [
+                { id: 'card1', title: 'Design Kanban Board UI', description: 'Create the visual layout for the Kanban board.' },
+                { id: 'card2', title: 'Implement Drag & Drop', description: 'Make cards draggable between columns.' }
+            ]},
+            { id: 'in-progress', title: 'In Progress', cards: [
+                { id: 'card3', title: 'Set up Tailwind CSS', description: 'Integrate Tailwind CSS for styling.' }
+            ]},
+            { id: 'done', title: 'Done', cards: [
+                { id: 'card4', title: 'Plan Project Structure', description: 'Outline the HTML, CSS, and JS structure.' }
+            ]}
+        ];
+
+        // --- Utility Functions ---
+        function generateUniqueId() {
+            return 'id-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function createCardElement(card) {
+            const cardEl = document.createElement('div');
+            cardEl.classList.add('kanban-card', 'draggable', 'p-4', 'rounded-lg', 'cursor-grab', 'shadow-sm');
+            cardEl.dataset.cardId = card.id;
+            cardEl.innerHTML = `
+                <h4 class="font-semibold text-lg mb-2">${card.title}</h4>
+                ${card.description ? `<p class="text-sm text-gray-600">${card.description}</p>` : ''}
+            `;
+            return cardEl;
+        }
+
+        function createColumnElement(column) {
+            const columnEl = document.createElement('div');
+            columnEl.classList.add('kanban-column', 'flex-shrink-0', 'flex', 'flex-col', 'gap-3', 'p-4', 'rounded-lg', 'shadow-md');
+            columnEl.dataset.columnId = column.id;
+            columnEl.innerHTML = `
+                <h3 class="text-xl font-bold text-gray-800 mb-4">${column.title}</h3>
+                <div class="flex-grow space-y-3" id="${column.id}-cards">
+                    <!-- Cards will be injected here -->
+                </div>
+                <button class="add-card-button w-full mt-4 text-sm">
+                    <i class="fas fa-plus mr-2"></i> Add Card
+                </button>
+            `;
+
+            const cardsContainer = columnEl.querySelector(`#${column.id}-cards`);
+            column.cards.forEach(card => {
+                cardsContainer.appendChild(createCardElement(card));
+            });
+
+            // Add event listeners for drag and drop
+            columnEl.addEventListener('dragover', handleDragOver);
+            columnEl.addEventListener('drop', handleDrop);
+
+            return columnEl;
+        }
+
+        // --- Event Handlers ---
+        function handleDragStart(e) {
+            draggedCard = e.target;
+            currentColumnId = draggedCard.closest('.kanban-column').dataset.columnId;
+            setTimeout(() => {
+                draggedCard.classList.add('dragging');
+            }, 0);
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedCard.dataset.cardId);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); // Necessary to allow dropping
+            const targetColumn = e.currentTarget;
+            const dropTarget = targetColumn.querySelector('.drop-target');
+            const cardsContainer = targetColumn.querySelector(`[id="${targetColumn.dataset.columnId}-cards"]`);
+
+            if (!dropTarget) {
+                const newDropTarget = document.createElement('div');
+                newDropTarget.classList.add('drop-target');
+                cardsContainer.appendChild(newDropTarget);
+            }
+
+            const rect = cardsContainer.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const cards = Array.from(cardsContainer.children).filter(el => el.classList.contains('kanban-card'));
+
+            let insertBefore = null;
+            if (cards.length === 0) {
+                insertBefore = cardsContainer;
+            } else {
+                for (let i = 0; i < cards.length; i++) {
+                    const cardRect = cards[i].getBoundingClientRect();
+                    if (y < cardRect.top + cardRect.height / 2) {
+                        insertBefore = cards[i];
+                        break;
+                    }
+                }
+                if (!insertBefore && cards.length > 0) {
+                    insertBefore = cards[cards.length - 1].nextElementSibling; // Append to the end
+                }
+            }
+
+            if (insertBefore) {
+                cardsContainer.insertBefore(draggedCard, insertBefore);
+            }
+        }
+
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetColumn = e.currentTarget;
+            const targetColumnId = targetColumn.dataset.columnId;
+
+            // Remove the drop target if it exists
+            const dropTarget = targetColumn.querySelector('.drop-target');
+            if (dropTarget) {
+                dropTarget.remove();
+            }
+
+            if (draggedCard && draggedCard.closest('.kanban-column').dataset.columnId !== targetColumnId) {
+                // Move card between columns
+                const cardId = draggedCard.dataset.cardId;
+                const sourceColumnData = columns.find(col => col.id === currentColumnId);
+                const targetColumnData = columns.find(col => col.id === targetColumnId);
+
+                if (sourceColumnData) {
+                    const cardIndex = sourceColumnData.cards.findIndex(card => card.id === cardId);
+                    if (cardIndex > -1) {
+                        const [movedCard] = sourceColumnData.cards.splice(cardIndex, 1);
+                        const targetCardsContainer = targetColumn.querySelector(`#${targetColumnId}-cards`);
+                        const cards = Array.from(targetCardsContainer.children).filter(el => el.classList.contains('kanban-card'));
+                        const dropPosition = Array.from(targetCardsContainer.children).indexOf(draggedCard);
+
+                        if (dropPosition > -1) {
+                            // Reorder within the new column
+                            targetColumnData.cards.splice(dropPosition, 0, movedCard);
+                        } else {
+                            // If draggedCard is not found (e.g., if it was already moved), append
+                            targetColumnData.cards.push(movedCard);
+                        }
+                    }
+                }
+            } else {
+                // Reorder within the same column
+                const cardId = draggedCard.dataset.cardId;
+                const columnData = columns.find(col => col.id === currentColumnId);
+                const cardsContainer = targetColumn.querySelector(`#${targetColumnId}-cards`);
+                const cards = Array.from(cardsContainer.children).filter(el => el.classList.contains('kanban-card'));
+                const cardIndex = cards.indexOf(draggedCard);
+
+                if (cardIndex > -1) {
+                    const [movedCard] = columnData.cards.splice(cardIndex, 1);
+                    const dropPosition = Array.from(cardsContainer.children).indexOf(draggedCard);
+
+                    if (dropPosition > -1) {
+                        columnData.cards.splice(dropPosition, 0, movedCard);
+                    } else {
+                        columnData.cards.push(movedCard);
+                    }
+                }
+            }
+
+            renderBoard();
+            draggedCard.classList.remove('dragging');
+            draggedCard = null;
+            currentColumnId = null;
+        }
+
+        function handleDragEnd() {
+            if (draggedCard) {
+                draggedCard.classList.remove('dragging');
+                draggedCard = null;
+            }
+        }
+
+        function handleCardClick(e) {
+            // This is a placeholder for card click functionality (e.g., opening a detail modal)
+            console.log('Card clicked:', e.target.closest('.kanban-card').dataset.cardId);
+        }
+
+        function handleAddCard(e) {
+            e.preventDefault();
+            const columnId = e.target.closest('.kanban-column').dataset.columnId;
+            const columnData = columns.find(col => col.id === columnId);
+
+            const newCard = {
+                id: generateUniqueId(),
+                title: newCardTitleInput.value,
+                description: newCardDescriptionInput.value
+            };
+
+            if (newCard.title) {
+                columnData.cards.push(newCard);
+                newCardTitleInput.value = '';
+                newCardDescriptionInput.value = '';
+                addCardModal.classList.add('hidden');
+                renderBoard();
+            }
+        }
+
+        function handleAddColumn(e) {
+            e.preventDefault();
+            const newColumn = {
+                id: generateUniqueId(),
+                title: newColumnTitleInput.value,
+                cards: []
+            };
+
+            if (newColumn.title) {
+                columns.push(newColumn);
+                newColumnTitleInput.value = '';
+                addColumnModal.classList.add('hidden');
+                renderBoard();
+            }
+        }
+
+        function renderBoard() {
+            kanbanBoard.innerHTML = ''; // Clear existing columns
+            columns.forEach(column => {
+                const columnEl = createColumnElement(column);
+                kanbanBoard.appendChild(columnEl);
+
+                // Add event listeners for cards
+                columnEl.querySelectorAll('.kanban-card').forEach(cardEl => {
+                    cardEl.addEventListener('dragstart', handleDragStart);
+                    cardEl.addEventListener('dragend', handleDragEnd);
+                    cardEl.addEventListener('click', handleCardClick); // For future card details
+                });
+
+                // Add event listener for "Add Card" button in the column
+                const addCardButton = columnEl.querySelector('.add-card-button');
+                addCardButton.addEventListener('click', () => {
+                    addCardModal.classList.remove('hidden');
+                    currentColumnId = column.id; // Store the column ID for adding the new card
+                });
+            });
+        }
+
+        // --- Modal Logic ---
+        cancelAddCardBtn.addEventListener('click', () => {
+            addCardModal.classList.add('hidden');
+            newCardTitleInput.value = '';
+            newCardDescriptionInput.value = '';
+        });
+
+        saveAddCardBtn.addEventListener('click', handleAddCard);
+
+        addColumnBtn.addEventListener('click', () => {
+            addColumnModal.classList.remove('hidden');
+        });
+
+        cancelAddColumnBtn.addEventListener('click', () => {
+            addColumnModal.classList.add('hidden');
+            newColumnTitleInput.value = '';
+        });
+
+        saveAddColumnBtn.addEventListener('click', handleAddColumn);
+
+        // Initial render
+        renderBoard();
+    </script>
+</body>
+</html>

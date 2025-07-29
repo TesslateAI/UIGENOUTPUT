@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icon Library CDN (Font Awesome for simplicity) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary-bg: #0A0A0A;
+            --color-secondary-bg: #1A1A1A;
+            --color-text-light: #E0E0E0;
+            --color-text-muted: #A0A0A0;
+            --color-accent: #6366F1; /* Indigo 500 */
+            --color-highlight: #8B5CF6; /* Violet 500 */
+            --color-border: #2A2A2A;
+            --font-main: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--color-primary-bg);
+            color: var(--color-text-light);
+            font-family: var(--font-main);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px; /* Visual grid lines */
+            background-color: var(--color-border); /* Grid line color */
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .day-cell {
+            background-color: var(--color-secondary-bg);
+            min-height: 80px; /* Base height for desktop */
+            display: flex;
+            flex-direction: column;
+            padding: 0.5rem;
+            position: relative;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .day-cell.current-month {
+            background-color: var(--color-secondary-bg);
+        }
+
+        .day-cell.other-month {
+            background-color: var(--color-primary-bg);
+            color: var(--color-text-muted);
+        }
+
+        .day-cell.today {
+            background-color: var(--color-highlight);
+            color: var(--color-text-light);
+            font-weight: 600;
+        }
+
+        .day-cell:hover {
+            background-color: var(--color-highlight);
+        }
+
+        .day-number {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            text-align: right;
+            padding-right: 0.25rem;
+        }
+
+        .event {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .event:hover {
+            transform: translateY(-2px);
+            background-color: #4F46E5; /* Indigo 600 */
+        }
+
+        /* Weekly View Specifics */
+        .weekly-view .day-cell {
+            min-height: 150px; /* Taller cells for weekly view */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 0.5px; /* Slightly smaller gap on smaller screens */
+            }
+            .day-cell {
+                min-height: 60px; /* Smaller height for mobile */
+                padding: 0.25rem;
+            }
+            .day-number {
+                font-size: 0.8rem;
+                margin-bottom: 0.1rem;
+            }
+            .event {
+                padding: 0.1rem 0.3rem;
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-[var(--color-secondary-bg)] rounded-xl shadow-lg p-6 md:p-8">
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h2 class="text-2xl md:text-3xl font-bold text-[var(--color-text-light)] mb-4 sm:mb-0" id="current-month-year"></h2>
+            <div class="flex space-x-2">
+                <button id="prev-month" class="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors" aria-label="Previous Month">
+                    <i class="fas fa-chevron-left text-[var(--color-text-light)]"></i>
+                </button>
+                <button id="next-month" class="p-2 rounded-full hover:bg-[var(--color-border)] transition-colors" aria-label="Next Month">
+                    <i class="fas fa-chevron-right text-[var(--color-text-light)]"></i>
+                </button>
+            </div>
+            <div class="flex space-x-2 mt-4 sm:mt-0">
+                <button id="view-monthly" class="px-4 py-2 rounded-lg bg-[var(--color-highlight)] text-white font-medium transition-colors" aria-label="Switch to Monthly View">
+                    Monthly
+                </button>
+                <button id="view-weekly" class="px-4 py-2 rounded-lg bg-[var(--color-secondary-bg)] text-[var(--color-text-light)] hover:bg-[var(--color-border)] transition-colors" aria-label="Switch to Weekly View">
+                    Weekly
+                </button>
+            </div>
+        </div>
+
+        <div class="calendar-grid">
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Sun</div>
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Mon</div>
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Tue</div>
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Wed</div>
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Thu</div>
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Fri</div>
+            <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Sat</div>
+            <!-- Calendar days will be rendered here by JavaScript -->
+        </div>
+
+        <div id="event-details-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-[var(--color-secondary-bg)] rounded-lg p-6 w-full max-w-md shadow-xl">
+                <h3 class="text-xl font-bold mb-4" id="modal-event-title"></h3>
+                <p class="text-[var(--color-text-muted)] mb-2" id="modal-event-date"></p>
+                <p class="text-[var(--color-text-light)] mb-4" id="modal-event-description"></p>
+                <button id="close-modal" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">Close</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const calendarGrid = document.querySelector('.calendar-grid');
+        const currentMonthYearEl = document.getElementById('current-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const viewMonthlyBtn = document.getElementById('view-monthly');
+        const viewWeeklyBtn = document.getElementById('view-weekly');
+        const eventDetailsModal = document.getElementById('event-details-modal');
+        const modalEventTitle = document.getElementById('modal-event-title');
+        const modalEventDate = document.getElementById('modal-event-date');
+        const modalEventDescription = document.getElementById('modal-event-description');
+        const closeModalBtn = document.getElementById('close-modal');
+
+        let currentDate = new Date();
+        let currentView = 'monthly'; // 'monthly' or 'weekly'
+
+        // Sample events data
+        const events = [
+            { id: 'e1', title: 'Team Meeting', date: '2024-07-10', description: 'Discuss Q3 goals and project updates.' },
+            { id: 'e2', title: 'Client Demo', date: '2024-07-15', description: 'Present new features to Acme Corp.' },
+            { id: 'e3', title: 'Birthday Party', date: '2024-07-20', description: 'Celebrate Sarah\'s birthday at the park.' },
+            { id: 'e4', title: 'Dentist Appointment', date: '2024-07-25', description: 'Routine check-up.' },
+            { id: 'e5', title: 'Project Deadline', date: '2024-07-28', description: 'Submit final report for Project Alpha.' },
+            { id: 'e6', title: 'Weekend Getaway', date: '2024-08-03', description: 'Road trip to the mountains.' },
+            { id: 'e7', title: 'Yoga Class', date: '2024-07-05', description: 'Morning yoga session at the studio.' },
+            { id: 'e8', title: 'Grocery Shopping', date: '2024-07-12', description: 'Weekly shopping for groceries.' },
+            { id: 'e9', title: 'Doctor\'s Visit', date: '2024-07-18', description: 'Annual physical examination.' },
+            { id: 'e10', title: 'Coding Workshop', date: '2024-07-22', description: 'Learn advanced JavaScript concepts.' },
+            { id: 'e11', title: 'Dinner with Friends', date: '2024-07-27', description: 'Informal dinner at the new Italian place.' },
+            { id: 'e12', title: 'Vacation Planning', date: '2024-08-10', description: 'Plan our next family vacation.' },
+        ];
+
+        function renderCalendar() {
+            calendarGrid.innerHTML = `
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Sun</div>
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Mon</div>
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Tue</div>
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Wed</div>
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Thu</div>
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Fri</div>
+                <div class="day-header text-center text-sm md:text-base font-semibold text-[var(--color-text-muted)]">Sat</div>
+            `; // Reset grid headers
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            currentMonthYearEl.textContent = new Date(year, month).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+            const startDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+
+            // Add empty cells for days before the 1st of the month
+            for (let i = 0; i < startDay; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add('day-cell', 'other-month');
+                calendarGrid.appendChild(dayCell);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add('day-cell', 'current-month');
+                const date = new Date(year, month, day);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Normalize today's date for comparison
+
+                if (date.toDateString() === today.toDateString()) {
+                    dayCell.classList.add('today');
+                }
+
+                const dayNumber = document.createElement('span');
+                dayNumber.classList.add('day-number');
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+
+                const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                const dayEvents = events.filter(event => event.date === formattedDate);
+
+                dayEvents.forEach(event => {
+                    const eventEl = document.createElement('div');
+                    eventEl.classList.add('event');
+                    eventEl.textContent = event.title;
+                    eventEl.setAttribute('data-event-id', event.id);
+                    eventEl.setAttribute('data-event-title', event.title);
+                    eventEl.setAttribute('data-event-description', event.description);
+                    eventEl.setAttribute('data-event-date', event.date);
+                    eventEl.addEventListener('click', () => openEventModal(event));
+                    dayCell.appendChild(eventEl);
+                });
+
+                calendarGrid.appendChild(dayCell);
+            }
+
+            // Add empty cells for days after the last day of the month
+            const totalCells = startDay + daysInMonth;
+            const remainingCells = (7 - (totalCells % 7)) % 7; // Ensure full weeks
+            for (let i = 0; i < remainingCells; i++) {
+                const dayCell = document.createElement('div');
+                dayCell.classList.add('day-cell', 'other-month');
+                calendarGrid.appendChild(dayCell);
+            }
+        }
+
+        function openEventModal(event) {
+            modalEventTitle.textContent = event.title;
+            modalEventDate.textContent = new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            modalEventDescription.textContent = event.description;
+            eventDetailsModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+
+        function closeEventModal() {
+            eventDetailsModal.classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+
+        prevMonthBtn.addEventListener('click', () => {
+            if (currentView === 'monthly') {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+            } else { // Weekly view
+                currentDate.setDate(currentDate.getDate() - 7);
+            }
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            if (currentView === 'monthly') {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            } else { // Weekly view
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+            renderCalendar();
+        });
+
+        viewMonthlyBtn.addEventListener('click', () => {
+            currentView = 'monthly';
+            viewMonthlyBtn.classList.add('bg-[var(--color-highlight)]', 'text-white');
+            viewMonthlyBtn.classList.remove('bg-[var(--color-secondary-bg)]', 'text-[var(--color-text-light)]', 'hover:bg-[var(--color-border)]');
+            viewWeeklyBtn.classList.remove('bg-[var(--color-highlight)]', 'text-white');
+            viewWeeklyBtn.classList.add('bg-[var(--color-secondary-bg)]', 'text-[var(--color-text-light)]', 'hover:bg-[var(--color-border)]');
+            renderCalendar();
+        });
+
+        viewWeeklyBtn.addEventListener('click', () => {
+            currentView = 'weekly';
+            viewWeeklyBtn.classList.add('bg-[var(--color-highlight)]', 'text-white');
+            viewWeeklyBtn.classList.remove('bg-[var(--color-secondary-bg)]', 'text-[var(--color-text-light)]', 'hover:bg-[var(--color-border)]');
+            viewMonthlyBtn.classList.remove('bg-[var(--color-highlight)]', 'text-white');
+            viewMonthlyBtn.classList.add('bg-[var(--color-secondary-bg)]', 'text-[var(--color-text-light)]', 'hover:bg-[var(--color-border)]');
+            renderCalendar();
+        });
+
+        closeModalBtn.addEventListener('click', closeEventModal);
+        eventDetailsModal.addEventListener('click', (e) => {
+            if (e.target === eventDetailsModal) {
+                closeEventModal();
+            }
+        });
+
+        // Initial render
+        renderCalendar();
+    </script>
+</body>
+</html>

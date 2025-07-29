@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vintage Photo Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f5f0; /* Light sepia background */
+            font-family: 'Georgia', serif;
+            color: #332b24; /* Darker text for vintage feel */
+            overflow: hidden; /* Prevent scrollbars from the fixed header */
+        }
+
+        .vintage-container {
+            background-color: #fff5ee; /* Off-white, slightly sepia */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .vintage-header {
+            background-color: #d3c8b6; /* Lighter sepia for header */
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid #b0a590; /* Darker border */
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-align: center;
+            color: #332b24;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+
+        .vintage-content {
+            padding: 2rem;
+            max-width: 900px;
+            width: 90%;
+            text-align: center;
+            position: relative; /* For the sepia overlay */
+            z-index: 1;
+        }
+
+        .vintage-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 100%);
+            filter: sepia(0.5); /* Sepia tone */
+            z-index: 0; /* Behind content */
+        }
+
+        .vintage-button {
+            background-color: #8a4325; /* Darker brown for buttons */
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #7a3d20; /* Darker border for a more defined look */
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .vintage-button:hover {
+            background-color: #6a3a1a; /* Slightly lighter brown on hover */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .vintage-slider {
+            background-color: #c2a893; /* Lighter brown for the slider track */
+            height: 12px;
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            margin: 0.5rem 0;
+            border: 1px solid #9a6e5b; /* Darker border for the track */
+            transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+        }
+
+        .vintage-slider:hover {
+            background-color: #a2836b;
+            border-color: #82604b;
+        }
+
+        .vintage-slider-thumb {
+            width: 20px;
+            height: 20px;
+            background-color: #8a4325; /* Dark brown for the thumb */
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 0; /* Will be updated by JS */
+            transform: translate(-50%, -50%);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        .vintage-slider-label {
+            font-size: 0.875rem;
+            color: #5a463a; /* Darker text for labels */
+            margin-top: 0.25rem;
+        }
+
+        .vintage-preview {
+            max-width: 400px;
+            max-height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 2rem 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            position: relative;
+            background-color: #d3c8b6; /* Light sepia for the preview area */
+            border: 1px solid #c2a893;
+        }
+
+        .vintage-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 8px;
+        }
+
+        .vintage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 100%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .vintage-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .vintage-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .vintage-overlay::before, .vintage-overlay::after {
+            -webkit-mask-image: linear-gradient(90deg, black 50%, transparent 100%);
+            mask-image: linear-gradient(90deg, black 50%, transparent 100%);
+            -webkit-mask-size: 50% 50%;
+            mask-size: 50% 50%;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: 50% 50%;
+            mask-position: 50% 50%;
+            -webkit-mask-origin: border-box;
+            mask-origin: border-box;
+        }
+
+        .vintage-overlay::before {
+            -webkit-mask-size: 50% 50%;
+            mask-size: 50% 50%;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: 50% 50%;
+            mask-position: 50% 50%;
+            -webkit-mask-origin: border-box;
+            mask-origin: border-box;
+        }
+
+        .vintage-overlay::after {
+            -webkit-mask-size: 50% 50%;
+            mask-size: 50% 50%;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: 50% 50%;
+            mask-position: 50% 50%;
+            -webkit-mask-origin: border-box;
+            mask-origin: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="vintage-container">
+        <header class="vintage-header">
+            <h1>Old-Fashioned Editor</h1>
+        </header>
+
+        <main class="vintage-content">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Adjust the Vintage Touch</h2>
+            <p class="text-gray-600 mb-8">
+                Bring your photographs back to life with classic adjustments. Play with the sliders to see the sepia tone shift.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Adjustment 1: Contrast -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-300">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Contrast</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-600">Low</span>
+                        <div class="w-32 h-4 vintage-slider" id="contrast-slider">
+                            <div class="vintage-slider-thumb" style="left: 0%;"></div>
+                        </div>
+                        <span class="text-sm text-gray-600">High</span>
+                    </div>
+                    <p class="text-sm text-gray-500 vintage-slider-label" id="contrast-value">0%</p>
+                </div>
+
+                <!-- Adjustment 2: Brightness -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-300">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Brightness</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-600">Dark</span>
+                        <div class="w-32 h-4 vintage-slider" id="brightness-slider">
+                            <div class="vintage-slider-thumb" style="left: 0%;"></div>
+                        </div>
+                        <span class="text-sm text-gray-600">Light</span>
+                    </div>
+                    <p class="text-sm text-gray-500 vintage-slider-label" id="brightness-value">0%</p>
+                </div>
+
+                <!-- Adjustment 3: Sepia Tone -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-300">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Sepia Tone</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-600">None</span>
+                        <div class="w-32 h-4 vintage-slider" id="sepia-slider">
+                            <div class="vintage-slider-thumb" style="left: 0%;"></div>
+                        </div>
+                        <span class="text-sm text-gray-600">Full</span>
+                    </div>
+                    <p class="text-sm text-gray-500 vintage-slider-label" id="sepia-value">0%</p>
+                </div>
+
+                <!-- Adjustment 4: Grain (Noise) -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-300">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Grain (Noise)</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-600">None</span>
+                        <div class="w-32 h-4 vintage-slider" id="grain-slider">
+                            <div class="vintage-slider-thumb" style="left: 0%;"></div>
+                        </div>
+                        <span class="text-sm text-gray-600">Heavy</span>
+                    </div>
+                    <p class="text-sm text-gray-500 vintage-slider-label" id="grain-value">0%</p>
+                </div>
+            </div>
+
+            <div class="mt-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Preview Your Image</h3>
+                <div class="vintage-preview">
+                    <img id="photo-preview" src="https://placehold.co/400x400/8a4325/fff5ee?text=Old+Photo" alt="Image Preview">
+                    <div class="vintage-overlay"></div>
+                </div>
+            </div>
+        </main>
+
+        <div class="flex justify-center mt-12">
+            <button class="vintage-button">Save & Print</button>
+        </div>
+    </div>
+
+    <script>
+        const sliders = document.querySelectorAll('.vintage-slider');
+        const previewImg = document.getElementById('photo-preview');
+        const contrastSlider = document.getElementById('contrast-slider');
+        const brightnessSlider = document.getElementById('brightness-slider');
+        const sepiaSlider = document.getElementById('sepia-slider');
+        const grainSlider = document.getElementById('grain-slider');
+
+        let contrastValue = 0;
+        let brightnessValue = 0;
+        let sepiaValue = 0;
+        let grainValue = 0;
+
+        function updateSliderValue(slider, value, label) {
+            const percentage = (value / 100);
+            const labelElement = document.getElementById(label + '-value');
+            labelElement.textContent = `${value}%`;
+
+            // Update thumb position
+            const thumb = slider.querySelector('.vintage-slider-thumb');
+            thumb.style.left = `${percentage * 100}%`;
+
+            // Apply filters to the image (simplified for demo)
+            if (label === 'contrast') {
+                previewImg.style.filter = `contrast(${percentage * 120 + 100}%)`;
+            } else if (label === 'brightness') {
+                previewImg.style.filter = `brightness(${percentage * 120 + 100}%)`;
+            } else if (label === 'sepia') {
+                previewImg.style.filter = `sepia(${percentage * 100}%)`;
+            } else if (label === 'grain') {
+                // Simulating grain with a more complex filter or overlay, for simplicity
+                // A simple filter for grain is not directly achievable with CSS, so we'll use a more abstract approach.
+                // For true grain, a canvas or more advanced image processing would be needed.
+                // For this demo, we'll just visually indicate the grain level.
+                const grainLevel = 0.5 + (grainValue / 100) * 5; // 0.5 to 5
+                if (grainLevel > 0.5) { // Only apply if grain > 0
+                    previewImg.style.filter = `sepia(${percentage * 100}%) brightness(${percentage * 120 + 100}%) contrast(${percentage * 120 + 100}%)`;
+                } else {
+                    previewImg.style.filter = `sepia(${percentage * 100}%) brightness(${percentage * 120 + 100}%) contrast(${percentage * 120 + 100}%)`;
+                }
+            }
+        }
+
+        sliders.forEach(slider => {
+            const label = slider.id.replace('-slider', '');
+            const thumb = slider.querySelector('.vintage-slider-thumb');
+            const range = slider.querySelector('input[type="range"]');
+            range.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                updateSliderValue(slider, value, label);
+            });
+
+            thumb.addEventListener('mousedown', (e) => {
+                let initialX = e.clientX;
+                let initialVal = parseInt(range.value);
+
+                function onMouseMove(movement) {
+                    let newX = initialX + movement.clientX - e.clientX;
+                    let newValue = initialVal + Math.round(newX / (window.innerWidth / 100)); // Adjust sensitivity
+                    newValue = Math.max(0, Math.min(100, newValue)); // Clamp between 0 and 100
+                    range.value = newValue;
+                    updateSliderValue(slider, newValue, label);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                });
+            });
+        });
+
+        // Initial load: update the labels
+        document.getElementById('contrast-value').textContent = `${contrastValue}%`;
+        document.getElementById('brightness-value').textContent = `${brightnessValue}%`;
+        document.getElementById('sepia-value').textContent = `${sepiaValue}%`;
+        document.getElementById('grain-value').textContent = `${grainValue}%`;
+    </script>
+</body>
+</html>

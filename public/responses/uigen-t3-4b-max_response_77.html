@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: #262626;
+            --color-text-secondary: #575757;
+            --color-bg-primary: #FFFFFF;
+            --color-accent: #FF5400;
+            --color-border-light: #E6E6E6;
+            --color-bg-dark: #1A1A1A; /* For dark mode elements if any */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            overflow: hidden; /* Prevent body scroll when content overflows */
+        }
+
+        .comic-reader-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 100vh; /* Full viewport height for full screen */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-bg-primary);
+        }
+
+        .comic-page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0; /* Placeholder for comic content */
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+            user-select: none;
+            -webkit-user-drag: none; /* Prevents drag from browser */
+            -ms-user-drag: none;
+            cursor: grab;
+        }
+
+        .comic-page.grabbing {
+            cursor: grabbing;
+        }
+
+        .comic-page-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #e0e0e0; /* Placeholder for actual comic image */
+            overflow: hidden; /* Prevents image overflow during zoom */
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .zoom-controls button {
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--color-border-light);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .zoom-controls button:hover {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .zoom-controls .zoom-in { background-color: var(--color-accent); }
+        .zoom-controls .zoom-out { background-color: var(--color-accent); }
+
+        .zoom-controls .zoom-level {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border-light);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+
+        .zoom-controls .zoom-level span {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .zoom-controls .zoom-level span::before {
+            content: 'x';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            color: white;
+        }
+
+        /* Full Screen Overlay */
+        .full-screen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none; /* Allows clicks to pass through when hidden */
+        }
+
+        .full-screen-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .full-screen-overlay .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--color-border-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .full-screen-overlay .close-btn:hover {
+            background-color: var(--color-accent);
+        }
+
+        .full-screen-overlay .page-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .full-screen-overlay .page-controls button {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .full-screen-overlay .page-controls button:hover {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .full-screen-overlay .current-page, .full-screen-overlay .prev-page, .full-screen-overlay .next-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .full-screen-overlay .current-page span,
+        .full-screen-overlay .prev-page span,
+        .full-screen-overlay .next-page span {
+            font-weight: 600;
+        }
+
+        .full-screen-overlay .current-page .current-page-number,
+        .full-screen-overlay .prev-page .page-number,
+        .full-screen-overlay .next-page .page-number {
+            color: var(--color-accent);
+        }
+
+        .full-screen-overlay .prev-page i,
+        .full-screen-overlay .next-page i {
+            color: var(--color-text-secondary);
+        }
+
+        .full-screen-overlay .page-count span {
+            color: var(--color-text-secondary);
+        }
+
+        .full-screen-overlay .controls-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .full-screen-overlay .controls-buttons button {
+            background-color: var(--color-bg-primary);
+            border: 1px solid var(--color-border-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .full-screen-overlay .controls-buttons button:hover {
+            background-color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .full-screen-overlay .controls-buttons .prev-page, .full-screen-overlay .controls-buttons .next-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .full-screen-overlay .controls-buttons .prev-page i, .full-screen-overlay .controls-buttons .next-page i {
+            color: var(--color-text-secondary);
+        }
+
+        .full-screen-overlay .controls-buttons .prev-page .page-number, .full-screen-overlay .controls-buttons .next-page .page-number {
+            color: var(--color-accent);
+        }
+
+        .full-screen-overlay .controls-buttons .page-count span {
+            color: var(--color-text-secondary);
+        }
+
+        /* Responsive adjustments for controls */
+        @media (max-width: 768px) {
+            .zoom-controls {
+                flex-direction: column;
+                gap: 1rem;
+                top: 1rem;
+                left: 1rem;
+                right: 1rem;
+                transform: none;
+            }
+
+            .zoom-controls button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+
+            .zoom-controls .zoom-level {
+                width: 50px;
+                height: 50px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="comic-reader-container" id="comic-reader-container">
+        <!-- Comic Page (will be dynamically loaded) -->
+        <div class="comic-page" id="comic-page">
+            <div class="comic-page-content">
+                <!-- Placeholder for comic image -->
+                <img id="comic-image" src="https://placehold.co/1200x1600/FF5400/FFFFFF?text=Comic+Page" alt="Comic Page" class="w-full h-full object-contain">
+            </div>
+        </div>
+
+        <!-- Zoom Controls (positioned absolutely within the container) -->
+        <div class="zoom-controls" id="zoom-controls">
+            <button class="zoom-out" aria-label="Zoom Out" id="zoom-out-btn">
+                <i class="fas fa-minus"></i>
+            </button>
+            <div class="zoom-level" id="zoom-level">
+                <span id="zoom-level-display">1.0x</span>
+            </div>
+            <button class="zoom-in" aria-label="Zoom In" id="zoom-in-btn">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+
+        <!-- Full Screen Overlay -->
+        <div class="full-screen-overlay" id="full-screen-overlay">
+            <button class="close-btn" id="close-fullscreen-btn" aria-label="Close Fullscreen">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="page-controls">
+                <button class="prev-page" id="prev-page-btn" aria-label="Previous Page">
+                    <i class="fas fa-chevron-left"></i>
+                    <span class="page-number" id="prev-page-num">1</span>
+                </button>
+                <span class="current-page" id="current-page-num">1</span>
+                <span class="page-count" id="total-pages">1</span>
+                <button class="next-page" id="next-page-btn" aria-label="Next Page">
+                    <span class="page-number" id="next-page-num">2</span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="controls-buttons">
+                <button class="prev-page" id="full-screen-prev-btn" aria-label="Previous Page">
+                    <i class="fas fa-chevron-left"></i>
+                    <span class="page-number" id="full-screen-prev-page-num">1</span>
+                </button>
+                <span class="current-page" id="full-screen-current-page-num">1</span>
+                <span class="page-count" id="full-screen-total-pages">1</span>
+                <button class="next-page" id="full-screen-next-btn" aria-label="Next Page">
+                    <span class="page-number" id="full-screen-next-page-num">2</span>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const comicReaderContainer = document.getElementById('comic-reader-container');
+        const comicPage = document.getElementById('comic-page');
+        const comicImage = document.getElementById('comic-image');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomLevelDisplay = document.getElementById('zoom-level-display');
+        const fullScreenOverlay = document.getElementById('full-screen-overlay');
+        const closeFullscreenBtn = document.getElementById('close-fullscreen-btn');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const prevPageBtnFullscreen = document.getElementById('full-screen-prev-btn');
+        const nextPageBtnFullscreen = document.getElementById('full-screen-next-btn');
+        const currentPageNum = document.getElementById('current-page-num');
+        const prevPageNum = document.getElementById('prev-page-num');
+        const nextPageNum = document.getElementById('next-page-num');
+        const totalPagesSpan = document.getElementById('total-pages');
+        const fullScreenCurrentPageNum = document.getElementById('full-screen-current-page-num');
+        const fullScreenTotalPagesSpan = document.getElementById('full-screen-total-pages');
+        const fullScreenPrevPageNum = document.getElementById('full-screen-prev-page-num');
+        const fullScreenNextPageNum = document.getElementById('full-screen-next-page-num');
+
+        let currentPage = 1;
+        let totalPages = 5; // Example total pages
+        let zoomLevel = 1.0;
+        let isDragging = false;
+        let startX, startY;
+        let initialPageX, initialPageY;
+        let initialTransformX, initialTransformY;
+
+        // Set initial zoom level
+        zoomLevel = 1.0; // Default zoom level
+        zoomLevelDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
+        comicImage.style.transform = `scale(${zoomLevel})`;
+
+        // Function to update zoom level display
+        function updateZoomDisplay() {
+            zoomLevelDisplay.textContent = `${zoomLevel.toFixed(1)}x`;
+        }
+
+        // Zoom functionality
+        zoomOutBtn.addEventListener('click', () => {
+            zoomLevel = Math.max(0.5, zoomLevel - 0.1);
+            updateZoomDisplay();
+            comicImage.style.transform = `scale(${zoomLevel})`;
+        });
+
+        zoomInBtn.addEventListener('click', () => {
+            zoomLevel = Math.min(3.0, zoomLevel + 0.1);
+            updateZoomDisplay();
+            comicImage.style.transform = `scale(${zoomLevel})`;
+        });
+
+        // Page navigation
+        prevPageBtn.addEventListener('click', () => {
+            currentPage = Math.max(1, currentPage - 1);
+            updatePageDisplay();
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            currentPage = Math.min(totalPages, currentPage + 1);
+            updatePageDisplay();
+        });
+
+        prevPageBtnFullscreen.addEventListener('click', () => {
+            currentPage = Math.max(1, currentPage - 1);
+            updatePageDisplay();
+        });
+
+        nextPageBtnFullscreen.addEventListener('click', () => {
+            currentPage = Math.min(totalPages, currentPage + 1);
+            updatePageDisplay();
+        });
+
+        function updatePageDisplay() {
+            currentPageNum.textContent = currentPage;
+            prevPageNum.textContent = Math.min(currentPage - 1, 1);
+            nextPageNum.textContent = Math.min(currentPage + 1, totalPages);
+
+            totalPagesSpan.textContent = totalPages;
+            fullScreenCurrentPageNum.textContent = currentPage;
+            fullScreenPrevPageNum.textContent = Math.min(currentPage - 1, 1);
+            fullScreenNextPageNum.textContent = Math.min(currentPage + 1, totalPages);
+
+            // In a real app, you'd load the actual image here
+            // For this example, we'll just update the placeholder
+            const newImageSrc = `https://placehold.co/1200x1600/FF5400/FFFFFF?text=Comic+Page+${currentPage}`;
+            comicImage.src = newImageSrc;
+        }
+
+        // Full screen functionality
+        comicReaderContainer.addEventListener('click', () => {
+            if (!fullScreenOverlay.classList.contains('active')) {
+                fullScreenOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling when full screen
+            }
+        });
+
+        closeFullscreenBtn.addEventListener('click', () => {
+            fullScreenOverlay.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
+        });
+
+        // Drag and pan functionality
+        comicPage.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            comicPage.classList.add('grabbing');
+            startX = e.clientX;
+            startY = e.clientY;
+            initialPageX = comicPage.offsetLeft;
+            initialPageY = comicPage.offsetTop;
+            initialTransformX = comicImage.offsetLeft;
+            initialTransformY = comicImage.offsetTop;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            comicPage.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            // Adjust the initial position based on the current transform
+            initialPageX = comicPage.offsetLeft - dx;
+            initialPageY = comicPage.offsetTop - dy;
+            initialTransformX = comicImage.offsetLeft - dx;
+            initialTransformY = comicImage.offsetTop - dy;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            comicPage.classList.remove('grabbing');
+        });
+
+        // Keyboard navigation (for accessibility)
+        document.addEventListener('keydown', (e) => {
+            if (e.target === comicImage) return; // Don't navigate if focusing on the image itself
+
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentPage = Math.max(1, currentPage - 1);
+                updatePageDisplay();
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentPage = Math.min(totalPages, currentPage + 1);
+                updatePageDisplay();
+            } else if (e.key === 'Escape') {
+                if (fullScreenOverlay.classList.contains('active')) {
+                    fullScreenOverlay.classList.remove('active');
+                    document.body.style.overflow = ''; // Restore scrolling
+                }
+            }
+        });
+
+        // Initialize page display
+        updatePageDisplay();
+    </script>
+</body>
+</html>

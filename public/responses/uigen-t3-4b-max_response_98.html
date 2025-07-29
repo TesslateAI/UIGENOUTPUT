@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Collaboration Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #2563eb; /* A vibrant blue for primary actions */
+            --color-primary-hover: #1d4ed8;
+            --color-secondary: #3b82f6; /* A lighter blue for secondary actions */
+            --color-text-dark: #1f2937;
+            --color-text-light: #f9fafb;
+            --color-bg-light: #ffffff;
+            --color-bg-dark: #111827; /* Darker background for sections */
+            --color-border: #e5e7eb;
+            --color-success: #10b981; /* Green for success */
+            --color-error: #ef4444; /* Red for error */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            overflow-x: hidden;
+        }
+
+        .nav-link-active {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .chat-message-self {
+            background-color: var(--color-primary);
+            color: var(--color-text-light);
+            border-radius: 0.75rem 0.75rem 0.25rem 0.75rem;
+            padding: 0.75rem 1rem;
+            max-width: 75%;
+        }
+
+        .chat-message-other {
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            border-radius: 0.75rem 0.7: 0.75rem 0.75rem;
+            padding: 0.75rem 1rem;
+            max-width: 75%;
+        }
+
+        .video-call-active {
+            border: 2px solid var(--color-primary);
+        }
+
+        .document-active {
+            background-color: var(--color-primary);
+            color: var(--color-text-light);
+        }
+
+        /* Responsive adjustments for chat and document view */
+        @media (max-width: 768px) {
+            .chat-sidebar, .document-sidebar {
+                display: none; /* Hide by default, show on click */
+            }
+            .chat-sidebar.active, .document-sidebar.active {
+                display: block;
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 80%;
+                max-width: 400px;
+                z-index: 1000;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- Left Sidebar: Navigation -->
+    <aside class="w-64 bg-gray-800 text-white p-4 flex flex-col justify-between hidden md:flex">
+        <div>
+            <h1 class="text-2xl font-bold mb-8">CollabHub</h1>
+            <nav>
+                <ul class="space-y-3">
+                    <li>
+                        <a href="#" class="nav-link-active flex items-center p-3 rounded-lg text-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-home mr-3"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-file-alt mr-3"></i> Shared Documents
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-video mr-3"></i> Video Conferencing
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-comments mr-3"></i> Group Chat
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg text-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-users mr-3"></i> Teams
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <div class="flex items-center p-3 rounded-lg bg-gray-700 text-sm">
+            <img src="https://placehold.co/32x32/cccccc/ffffff?text=U" alt="User Avatar" class="rounded-full mr-3">
+            <span>John Doe</span>
+            <i class="fas fa-cog ml-auto text-gray-400 hover:text-white cursor-pointer"></i>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col">
+        <!-- Top Bar: Project/Team Name, Search, Notifications -->
+        <header class="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-20">
+            <div class="flex items-center">
+                <h2 class="text-xl font-semibold mr-4">Project Alpha</h2>
+                <div class="relative">
+                    <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-bell text-xl"></i></button>
+                <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-user-circle text-xl"></i></button>
+            </div>
+        </header>
+
+        <!-- Content Tabs: Documents, Video, Chat -->
+        <div class="flex-1 p-6 overflow-hidden">
+            <div class="flex border-b border-gray-200">
+                <button id="tab-documents" class="flex-1 py-3 text-lg font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-500 transition-colors active-tab">
+                    <i class="fas fa-file-alt mr-2"></i> Documents
+                </button>
+                <button id="tab-video" class="flex-1 py-3 text-lg font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-500 transition-colors">
+                    <i class="fas fa-video mr-2"></i> Video
+                </button>
+                <button id="tab-chat" class="flex-1 py-3 text-lg font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-500 transition-colors">
+                    <i class="fas fa-comments mr-2"></i> Chat
+                </button>
+            </div>
+
+            <!-- Documents Tab Content -->
+            <div id="content-documents" class="tab-content">
+                <h3 class="text-2xl font-bold mb-6">Shared Documents</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">Project Plan.pdf</h4>
+                            <p class="text-sm text-gray-500">Last updated: 2 hours ago</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-download"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">Meeting Notes.docx</h4>
+                            <p class="text-sm text-gray-500">Last updated: 1 day ago</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-download"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">Q3 Budget.xlsx</h4>
+                            <p class="text-sm text-gray-500">Last updated: 3 days ago</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-download"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                    <!-- More documents can be added here -->
+                </div>
+            </div>
+
+            <!-- Video Conferencing Tab Content -->
+            <div id="content-video" class="tab-content hidden">
+                <h3 class="text-2xl font-bold mb-6">Video Conferences</h3>
+                <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-semibold text-lg">Project Brainstorm</h4>
+                        <p class="text-sm text-gray-500">Host: Alice Johnson (2024-10-26 10:00 AM)</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            <i class="fas fa-play mr-2"></i> Join
+                        </button>
+                        <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                        <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between mt-6">
+                    <div>
+                        <h4 class="font-semibold text-lg">Team Sync (Daily)</h4>
+                        <p class="text-sm text-gray-500">Host: Bob Smith (2024-10-27 09:30 AM)</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                            <i class="fas fa-play mr-2"></i> Join
+                        </button>
+                        <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                        <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Group Chat Tab Content -->
+            <div id="content-chat" class="tab-content hidden">
+                <h3 class="text-2xl font-bold mb-6">Group Chat</h3>
+                <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 h-96 overflow-y-auto flex flex-col">
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=A" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Alice Johnson</p>
+                            <p class="text-sm text-gray-700">Hey everyone, good morning! Ready for our brainstorm?</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:05 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=B" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Bob Smith</p>
+                            <p class="text-sm text-gray-700">Yes, I'm in! What's the topic?</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:06 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=C" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Charlie Brown</p>
+                            <p class="text-sm text-gray-700">It's about the new marketing strategy! Let's get some ideas flowing.</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:07 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3 chat-message-self">
+                        <div>
+                            <p class="font-semibold text-sm">You</p>
+                            <p class="text-sm">Sounds good! I'll share some initial thoughts in the document.</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:08 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=A" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Alice Johnson</p>
+                            <p class="text-sm text-gray-700">Perfect! Looking forward to it.</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:09 AM</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 flex">
+                    <input type="text" placeholder="Type your message..." class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="bg-blue-500 text-white p-3 rounded-r-lg hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Right Sidebar: Chat/Document View (Toggleable) -->
+    <aside id="right-sidebar" class="w-80 bg-white p-6 shadow-lg flex flex-col hidden md:flex">
+        <div class="flex justify-between items-center mb-6">
+            <h3 id="sidebar-title" class="text-xl font-semibold">Group Chat</h3>
+            <button id="close-sidebar" class="text-gray-600 hover:text-gray-900">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        <!-- Dynamic content for chat or documents will go here -->
+        <div id="sidebar-content" class="flex-1 overflow-y-auto">
+            <!-- Chat messages will be loaded here -->
+        </div>
+    </aside>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabButtons = document.querySelectorAll('.border-b-2');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const rightSidebar = document.getElementById('right-sidebar');
+            const closeSidebarBtn = document.getElementById('close-sidebar');
+            const sidebarTitle = document.getElementById('sidebar-title');
+            const sidebarContent = document.getElementById('sidebar-content');
+
+            // Tab switching logic
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Deactivate all tabs and contents
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('border-blue-500', 'text-blue-500', 'active-tab');
+                        btn.classList.add('border-transparent', 'text-gray-600');
+                    });
+                    tabContents.forEach(content => content.classList.add('hidden'));
+
+                    // Activate clicked tab and corresponding content
+                    button.classList.add('border-blue-500', 'text-blue-500', 'active-tab');
+                    button.classList.remove('border-transparent', 'text-gray-600');
+                    document.getElementById(`content-${button.id.replace('tab-', '')}`).classList.remove('hidden');
+                });
+            });
+
+            // Right Sidebar Toggle Logic
+            const openSidebar = (title, content) => {
+                rightSidebar.classList.remove('hidden');
+                sidebarTitle.textContent = title;
+                sidebarContent.innerHTML = content; // Clear and set dynamic content
+                document.body.classList.add('overflow-hidden'); // Prevent body scroll when sidebar is open
+            };
+
+            const closeSidebar = () => {
+                rightSidebar.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            };
+
+            // Example: Open chat sidebar
+            const chatContent = `
+                <h3 class="text-2xl font-bold mb-6">Group Chat</h3>
+                <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 h-96 overflow-y-auto flex flex-col">
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=A" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Alice Johnson</p>
+                            <p class="text-sm text-gray-700">Hey everyone, good morning! Ready for our brainstorm?</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:05 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=B" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Bob Smith</p>
+                            <p class="text-sm text-gray-700">Yes, I'm in! What's the topic?</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:06 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=C" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Charlie Brown</p>
+                            <p class="text-sm text-gray-700">It's about the new marketing strategy! Let's get some ideas flowing.</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:07 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3 chat-message-self">
+                        <div>
+                            <p class="font-semibold text-sm">You</p>
+                            <p class="text-sm">Sounds good! I'll share some initial thoughts in the document.</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:08 AM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start mb-3">
+                        <img src="https://placehold.co/32x32/cccccc/ffffff?text=A" alt="Avatar" class="rounded-full mr-3">
+                        <div>
+                            <p class="font-semibold text-sm">Alice Johnson</p>
+                            <p class="text-sm text-gray-700">Perfect! Looking forward to it.</p>
+                            <span class="text-xs text-gray-500 block mt-1">10:09 AM</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 flex">
+                    <input type="text" placeholder="Type your message..." class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="bg-blue-500 text-white p-3 rounded-r-lg hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            `;
+            const documentsContent = `
+                <h3 class="text-2xl font-bold mb-6">Shared Documents</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">Project Plan.pdf</h4>
+                            <p class="text-sm text-gray-500">Last updated: 2 hours ago</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-download"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">Meeting Notes.docx</h4>
+                            <p class="text-sm text-gray-500">Last updated: 1 day ago</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-download"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">Q3 Budget.xlsx</h4>
+                            <p class="text-sm text-gray-500">Last updated: 3 days ago</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-download"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-eye"></i></button>
+                            <button class="text-gray-600 hover:text-blue-500"><i class="fas fa-share-alt"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Example of how to open a sidebar (e.g., from a document detail page)
+            // This would typically be triggered by an "Open in Chat" or "View in Chat" button
+            // For this example, let's just show how to dynamically load content
+            const openChatSidebar = () => {
+                openSidebar('Group Chat', chatContent);
+            };
+
+            const openDocumentsSidebar = () => {
+                openSidebar('Shared Documents', documentsContent);
+            };
+
+            // Simulate a document being clicked to open in chat
+            const documentElements = document.querySelectorAll('.border-gray-200');
+            documentElements.forEach(doc => {
+                doc.addEventListener('click', (event) => {
+                    // Prevent default if it's a link or button
+                    if (event.target.tagName === 'A' || event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+                        event.preventDefault();
+                    }
+                    // In a real app, you'd fetch the document content here
+                    const docTitle = doc.querySelector('h4').textContent;
+                    const docContent = `<p class="text-gray-700">This is the content of the document: <strong>${docTitle}</strong>. You can add more details here, like a preview or a summary.</p>`;
+                    openSidebar('Document: ' + docTitle, docContent);
+                });
+            });
+
+            // Close button for the right sidebar
+            closeSidebarBtn.addEventListener('click', closeSidebar);
+        });
+    </script>
+</body>
+</html>

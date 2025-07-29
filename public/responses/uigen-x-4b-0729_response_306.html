@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Thermostat Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF',
+                        secondary: '#3B82F6',
+                        accent: '#10B981',
+                        background: '#F3F4F6',
+                        surface: '#FFFFFF',
+                        text: '#111827',
+                        textSecondary: '#6B7280',
+                        heat: '#EF4444',
+                        cool: '#10B981',
+                        auto: '#3B82F6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6;
+            color: #111827;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .thermostat-display {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .mode-button {
+            transition: all 0.2s ease;
+            border: 2px solid #E5E7EB;
+        }
+        
+        .mode-button.active {
+            background-color: #1E40AF;
+            color: white;
+            border-color: #1E40AF;
+        }
+        
+        .schedule-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #1E40AF;
+        }
+        
+        .schedule-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .temp-slider {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #E5E7EB;
+            outline: none;
+        }
+        
+        .temp-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1E40AF;
+            cursor: pointer;
+        }
+        
+        .temp-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1E40AF;
+            cursor: pointer;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .thermostat-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .thermostat-icon.active {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-2xl bg-surface rounded-2xl shadow-xl overflow-hidden">
+        <!-- Thermostat Header -->
+        <div class="bg-primary p-6 text-white">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-semibold">Smart Thermostat</h1>
+                    <p class="text-sm opacity-80">Model: Nexus Thermostat Pro</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i class="fas fa-wifi text-sm"></i>
+                    </div>
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i class="fas fa-sync-alt text-sm"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Thermostat Display -->
+        <div class="p-8">
+            <div class="flex flex-col items-center mb-8">
+                <div class="thermostat-icon active text-6xl text-primary mb-4">
+                    <i class="fas fa-thermometer-half"></i>
+                </div>
+                <div class="thermostat-display text-center mb-2 text-text">72°F</div>
+                <p class="text-textSecondary text-sm">Feels like 74°F</p>
+            </div>
+            
+            <!-- Mode Selection -->
+            <div class="mb-8">
+                <h2 class="text-lg font-semibold mb-4 text-center">Select Mode</h2>
+                <div class="flex justify-center space-x-6">
+                    <button class="mode-button flex flex-col items-center py-4 px-6 rounded-xl bg-surface active">
+                        <div class="w-12 h-12 rounded-full bg-heat flex items-center justify-center mb-2">
+                            <i class="fas fa-fire text-white"></i>
+                        </div>
+                        <span class="text-sm font-medium">Heat</span>
+                    </button>
+                    <button class="mode-button flex flex-col items-center py-4 px-6 rounded-xl bg-surface">
+                        <div class="w-12 h-12 rounded-full bg-cool flex items-center justify-center mb-2">
+                            <i class="fas fa-snowflake text-white"></i>
+                        </div>
+                        <span class="text-sm font-medium">Cool</span>
+                    </button>
+                    <button class="mode-button flex flex-col items-center py-4 px-6 rounded-xl bg-surface">
+                        <div class="w-12 h-12 rounded-full bg-auto flex items-center justify-center mb-2">
+                            <i class="fas fa-leaf text-white"></i>
+                        </div>
+                        <span class="text-sm font-medium">Auto</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Temperature Control -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Set Temperature</h2>
+                    <span class="text-textSecondary text-sm">Current: 72°F</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <input type="range" min="50" max="80" value="72" class="temp-slider w-full">
+                    </div>
+                    <div class="text-center w-16">
+                        <span class="text-2xl font-bold">72</span>
+                        <span class="text-textSecondary text-sm">°F</span>
+                    </div>
+                    <div class="flex-1">
+                        <button class="w-full py-2 bg-background rounded-lg font-medium text-text hover:bg-gray-200 transition-colors">
+                            Set
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Schedule Settings -->
+            <div class="mb-8">
+                <button id="scheduleToggle" class="w-full py-3 bg-primary text-white rounded-lg font-medium flex items-center justify-center">
+                    <i class="fas fa-calendar-alt mr-2"></i> Schedule Settings
+                </button>
+                
+                <div id="scheduleSettings" class="mt-4 hidden">
+                    <div class="space-y-4">
+                        <div class="schedule-card bg-surface p-4 rounded-xl">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold">Monday</h3>
+                                <span class="text-textSecondary text-sm">Off</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">Start</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>7:00 AM</option>
+                                        <option>8:00 AM</option>
+                                        <option>9:00 AM</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">End</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>6:00 PM</option>
+                                        <option>7:00 PM</option>
+                                        <option>8:00 PM</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">Temp</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>65°F</option>
+                                        <option>68°F</option>
+                                        <option>72°F</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="schedule-card bg-surface p-4 rounded-xl">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold">Tuesday</h3>
+                                <span class="text-textSecondary text-sm">Off</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">Start</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>7:00 AM</option>
+                                        <option>8:00 AM</option>
+                                        <option>9:00 AM</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">End</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>6:00 PM</option>
+                                        <option>7:00 PM</option>
+                                        <option>8:00 PM</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">Temp</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>65°F</option>
+                                        <option>68°F</option>
+                                        <option>72°F</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="schedule-card bg-surface p-4 rounded-xl">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold">Wednesday</h3>
+                                <span class="text-textSecondary text-sm">Off</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">Start</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>7:00 AM</option>
+                                        <option>8:00 AM</option>
+                                        <option>9:00 AM</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">End</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>6:00 PM</option>
+                                        <option>7:00 PM</option>
+                                        <option>8:00 PM</option>
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm text-textSecondary mb-1">Temp</label>
+                                    <select class="w-full py-1.5 bg-background border border-gray-200 rounded-md text-sm">
+                                        <option>65°F</option>
+                                        <option>68°F</option>
+                                        <option>72°F</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Settings -->
+            <div>
+                <h2 class="text-lg font-semibold mb-4">Current Settings</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-background p-4 rounded-xl">
+                        <p class="text-textSecondary text-sm">Current Mode</p>
+                        <p class="font-medium">Heat</p>
+                    </div>
+                    <div class="bg-background p-4 rounded-xl">
+                        <p class="text-textSecondary text-sm">Current Temp</p>
+                        <p class="font-medium">72°F</p>
+                    </div>
+                    <div class="bg-background p-4 rounded-xl">
+                        <p class="text-textSecondary text-sm">Last Updated</p>
+                        <p class="font-medium">Just now</p>
+                    </div>
+                    <div class="bg-background p-4 rounded-xl">
+                        <p class="text-textSecondary text-sm">Energy Usage</p>
+                        <p class="font-medium">4.2 kWh</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Thermostat Footer -->
+        <div class="bg-background p-4 text-center">
+            <p class="text-textSecondary text-sm">Nexus Thermostat Pro • Smart Home Integration</p>
+        </div>
+    </div>
+
+    <script>
+        // Toggle schedule settings
+        const scheduleToggle = document.getElementById('scheduleToggle');
+        const scheduleSettings = document.getElementById('scheduleSettings');
+        
+        scheduleToggle.addEventListener('click', () => {
+            scheduleSettings.classList.toggle('hidden');
+        });
+        
+        // Mode selection
+        const modeButtons = document.querySelectorAll('.mode-button');
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                modeButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+            });
+        });
+        
+        // Temperature slider
+        const tempSlider = document.querySelector('.temp-slider');
+        const tempDisplay = document.querySelector('.text-2xl');
+        
+        tempSlider.addEventListener('input', () => {
+            tempDisplay.textContent = tempSlider.value;
+        });
+        
+        // Simulate thermostat icon animation
+        const thermostatIcon = document.querySelector('.thermostat-icon');
+        setInterval(() => {
+            thermostatIcon.classList.toggle('active');
+        }, 3000);
+    </script>
+</body>
+</html>

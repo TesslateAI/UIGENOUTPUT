@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameDev UI: Level Editor & Asset Library</title>
+    <meta name="description" content="A game development UI featuring a level editor and asset library for intuitive game creation.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: rgb(28, 28, 28);
+            --color-text-primary-muted: rgba(28, 28, 28, 0.6);
+            --color-background-page: rgb(255, 255, 255);
+            --color-background-card: rgb(245, 245, 245);
+            --color-border-light: rgb(229, 229, 229);
+            --color-accent-blue: #007bff; /* A bright blue for primary actions */
+            --color-accent-green: #28a745; /* For success/positive actions */
+            --color-accent-red: #dc3545; /* For warnings/danger actions */
+            --color-accent-orange: #ffc107; /* For secondary actions/highlights */
+            --font-primary: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--color-text-primary);
+            background-color: var(--color-background-page);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden; /* Prevent body scroll, content will scroll within panels */
+        }
+
+        .panel {
+            background-color: var(--color-background-card);
+            border: 1px solid var(--color-border-light);
+            border-radius: 0.75rem; /* Equivalent to rounded-lg */
+            overflow: hidden;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.25rem; /* Equivalent to px-5 py-3 */
+            font-weight: 500; /* font-medium */
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .tab-button.active {
+            border-bottom-color: var(--color-accent-blue);
+            color: var(--color-accent-blue);
+        }
+
+        .tab-button:hover:not(.active) {
+            background-color: rgba(0, 123, 255, 0.1); /* Light blue hover */
+        }
+
+        .asset-item {
+            cursor: pointer;
+            transition: transform 0.15s ease-in-out, background-color 0.15s ease-in-out;
+        }
+
+        .asset-item:hover {
+            transform: translateY(-2px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .asset-item.selected {
+            border: 1px solid var(--color-accent-blue);
+            background-color: rgba(0, 123, 255, 0.08); /* Light blue background for selected */
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+            overflow-y: auto; /* Allow scrolling for the grid */
+        }
+
+        .editor-cell {
+            background-color: #e0e0e0; /* Default cell color */
+            border: 1px solid var(--color-border-light);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            aspect-ratio: 1 / 1; /* Make cells square */
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+
+        .editor-cell:hover {
+            background-color: #f0f0f0;
+            border-color: var(--color-accent-blue);
+        }
+
+        .editor-cell.selected {
+            background-color: var(--color-accent-blue);
+            border-color: var(--color-accent-blue);
+            color: white;
+        }
+
+        .editor-cell .cell-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.875rem;
+            color: var(--color-text-primary-muted);
+            z-index: 1;
+        }
+
+        .editor-cell .cell-content span {
+            font-weight: 600;
+        }
+
+        .editor-cell .cell-content i {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            color: var(--color-text-primary-muted);
+        }
+
+        .editor-cell .cell-content .grid-line {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: var(--color-border-light);
+            z-index: 2;
+        }
+
+        .editor-cell .cell-content .grid-line.x {
+            width: 2px;
+            height: 100%;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.y {
+            width: 100%;
+            height: 2px;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.x-outer {
+            top: 0;
+            height: 100%;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.y-outer {
+            left: 0;
+            width: 100%;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.x-outer-outer {
+            top: 0;
+            height: 100%;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.y-outer-outer {
+            left: 0;
+            width: 100%;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.x-outer-outer-outer {
+            top: 0;
+            height: 100%;
+            background-color: var(--color-border-light);
+        }
+
+        .editor-cell .cell-content .grid-line.y-outer-outer-outer {
+            left: 0;
+            width: 100%;
+            background-color: var(--color-border-light);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'text-primary': 'var(--color-text-primary)',
+                        'text-primary-muted': 'var(--color-text-primary-muted)',
+                        'background-page': 'var(--color-background-page)',
+                        'background-card': 'var(--color-background-card)',
+                        'border-light': 'var(--color-border-light)',
+                        'accent-blue': 'var(--color-accent-blue)',
+                        'accent-green': 'var(--color-accent-green)',
+                        'accent-red': 'var(--color-accent-red)',
+                        'accent-orange': 'var(--color-accent-orange)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Top Bar: Project Name, Save, Load, Export -->
+    <header class="flex items-center justify-between p-4 bg-background-page border-b border-border-light shadow-sm z-10">
+        <h1 class="text-xl font-bold text-text-primary">GameDev Studio</h1>
+        <div class="flex items-center space-x-4">
+            <button class="flex items-center text-text-primary-muted hover:text-accent-blue transition-colors text-sm">
+                <i class="fas fa-save mr-2"></i> Save
+            </button>
+            <button class="flex items-center text-text-primary-muted hover:text-accent-blue transition-colors text-sm">
+                <i class="fas fa-load mr-2"></i> Load
+            </button>
+            <button class="flex items-center text-text-primary-muted hover:text-accent-blue transition-colors text-sm">
+                <i class="fas fa-upload mr-2"></i> Export
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area: Level Editor & Asset Library -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Left Panel: Asset Library -->
+        <aside class="w-64 panel flex-shrink-0 p-4 overflow-y-auto">
+            <h2 class="text-lg font-semibold text-text-primary mb-4">Asset Library</h2>
+            <div class="mb-4">
+                <h3 class="text-sm font-medium text-text-primary-muted mb-2">Models</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="model" data-asset-name="Player">
+                        <i class="fas fa-cube text-2xl mb-1 text-accent-blue"></i>
+                        <span>Player</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="model" data-asset-name="Enemy">
+                        <i class="fas fa-skull text-2xl mb-1 text-accent-red"></i>
+                        <span>Enemy</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="model" data-asset-name="Door">
+                        <i class="fas fa-door-closed text-2xl mb-1 text-accent-orange"></i>
+                        <span>Door</span>
+                    </div>
+                    <!-- More models -->
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="model" data-asset-name="Tree">
+                        <i class="fas fa-tree text-2xl mb-1 text-green-500"></i>
+                        <span>Tree</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="model" data-asset-name="Stone">
+                        <i class="fas fa-rock text-2xl mb-1 text-gray-600"></i>
+                        <span>Stone</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="model" data-asset-name="Ladder">
+                        <i class="fas fa-ruler-combined text-2xl mb-1 text-blue-500"></i>
+                        <span>Ladder</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-text-primary-muted mb-2">Textures</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="texture" data-asset-name="Grass">
+                        <i class="fas fa-seedling text-2xl mb-1 text-green-400"></i>
+                        <span>Grass</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="texture" data-asset-name="Wood">
+                        <i class="fas fa-tree text-2xl mb-1 text-brown-500"></i>
+                        <span>Wood</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="texture" data-asset-name="Stone">
+                        <i class="fas fa-rock text-2xl mb-1 text-gray-600"></i>
+                        <span>Stone</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-text-primary-muted mb-2">Sounds</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="sound" data-asset-name="Jump">
+                        <i class="fas fa-volume-up text-2xl mb-1 text-yellow-400"></i>
+                        <span>Jump</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="sound" data-asset-name="Attack">
+                        <i class="fas fa-fist-raised text-2xl mb-1 text-red-400"></i>
+                        <span>Attack</span>
+                    </div>
+                    <div class="asset-item p-2 border rounded-md text-center text-sm flex flex-col items-center justify-center" data-asset-type="sound" data-asset-name="Ambient">
+                        <i class="fas fa-leaf text-2xl mb-1 text-green-400"></i>
+                        <span>Ambient</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Panel: Level Editor -->
+        <main class="flex-1 flex flex-col bg-background-page overflow-hidden">
+            <!-- Editor Tabs -->
+            <div class="flex border-b border-border-light">
+                <button class="tab-button active" data-tab="editor">
+                    <i class="fas fa-edit mr-2"></i> Editor
+                </button>
+                <button class="tab-button" data-tab="properties">
+                    <i class="fas fa-cog mr-2"></i> Properties
+                </button>
+                <button class="tab-button" data-tab="grid">
+                    <i class="fas fa-grip-lines mr-2"></i> Grid
+                </button>
+            </div>
+
+            <!-- Editor Content (Level Editor) -->
+            <div id="editor-content" class="flex-1 p-4 overflow-y-auto">
+                <h2 class="text-2xl font-bold text-text-primary mb-6">Level Editor</h2>
+                <div class="editor-grid">
+                    <!-- Level Editor Cells will be dynamically generated here -->
+                </div>
+            </div>
+
+            <!-- Properties Panel (Initially hidden, shown when an asset is selected) -->
+            <div id="properties-content" class="panel flex-shrink-0 p-4 hidden overflow-y-auto">
+                <h2 class="text-lg font-semibold text-text-primary mb-4">Object Properties</h2>
+                <div id="properties-fields">
+                    <!-- Dynamic fields will be loaded here based on selected asset -->
+                    <p class="text-text-primary-muted text-sm">Select an object to edit its properties.</p>
+                </div>
+            </div>
+
+            <!-- Grid Panel (Initially hidden, shown when grid mode is active) -->
+            <div id="grid-content" class="panel flex-shrink-0 p-4 hidden overflow-y-auto">
+                <h2 class="text-lg font-semibold text-text-primary mb-4">Level Grid</h2>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm text-text-primary-muted">
+                    <span>Col 1</span>
+                    <span>Col 2</span>
+                    <span>Col 3</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm text-text-primary-muted">
+                    <span>Row 1</span>
+                    <span>Row 2</span>
+                    <span>Row 3</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm text-text-primary-muted">
+                    <span>Cell (0,0)</span>
+                    <span>Cell (0,1)</span>
+                    <span>Cell (0,2)</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm text-text-primary-muted">
+                    <span>Cell (1,0)</span>
+                    <span>Cell (1,1)</span>
+                    <span>Cell (1,2)</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm text-text-primary-muted">
+                    <span>Cell (2,0)</span>
+                    <span>Cell (2,1)</span>
+                    <span>Cell (2,2)</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const assetLibrary = document.querySelector('.asset-library');
+            const levelEditor = document.querySelector('#editor-content');
+            const propertiesPanel = document.getElementById('properties-content');
+            const gridPanel = document.getElementById('grid-content');
+            const tabButtons = document.querySelectorAll('.tab-button');
+
+            let selectedAsset = null;
+            let selectedCell = null;
+            let cellCount = 3; // Default 3x3 grid
+
+            const generateEditorGrid = (rows, cols) => {
+                levelEditor.innerHTML = ''; // Clear existing grid
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('editor-cell');
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+                        cell.innerHTML = `
+                            <div class="cell-content">
+                                <span>Cell (${r}, ${c})</span>
+                                <i class="fas fa-grip-lines"></i>
+                            </div>
+                        `;
+                        levelEditor.appendChild(cell);
+                    }
+                }
+            };
+
+            const updateTabActiveState = (activeTab) => {
+                tabButtons.forEach(button => {
+                    if (button.dataset.tab === activeTab) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+            };
+
+            const showPanel = (panelId, hideOtherPanels = true) => {
+                if (hideOtherPanels) {
+                    propertiesPanel.classList.add('hidden');
+                    gridPanel.classList.add('hidden');
+                }
+                document.getElementById(panelId).classList.remove('hidden');
+            };
+
+            const hidePanel = (panelId) => {
+                document.getElementById(panelId).classList.add('hidden');
+            };
+
+            const selectAsset = (assetElement) => {
+                assetLibrary.querySelectorAll('.asset-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                assetElement.classList.add('selected');
+                selectedAsset = assetElement;
+                showPanel('properties-content');
+            };
+
+            const selectCell = (cellElement) => {
+                if (selectedCell) {
+                    selectedCell.classList.remove('selected');
+                }
+                selectedCell = cellElement;
+                selectedCell.classList.add('selected');
+                // Simulate object selection when a cell is clicked
+                if (selectedAsset) {
+                    // In a real game, this would set the selected object in the editor
+                    console.log(`Selected asset: ${selectedAsset.dataset.assetName} in cell (${selectedCell.dataset.row}, ${selectedCell.dataset.col})`);
+                }
+            };
+
+            // Event Listeners for Asset Library
+            assetLibrary.querySelectorAll('.asset-item').forEach(asset => {
+                asset.addEventListener('click', () => selectAsset(asset));
+            });
+
+            // Event Listeners for Level Editor
+            levelEditor.addEventListener('click', (event) => {
+                const target = event.target.closest('.editor-cell');
+                if (target) {
+                    selectCell(target);
+                }
+            });
+
+            // Event Listeners for Tab Switching
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const activeTab = button.dataset.tab;
+                    updateTabActiveState(activeTab);
+
+                    if (activeTab === 'editor') {
+                        showPanel('editor-content');
+                    } else if (activeTab === 'properties') {
+                        showPanel('properties-content');
+                    } else if (activeTab === 'grid') {
+                        showPanel('grid-content');
+                    }
+                });
+            });
+
+            // Initialize the level editor
+            generateEditorGrid(cellCount, cellCount);
+        });
+    </script>
+</body>
+</html>

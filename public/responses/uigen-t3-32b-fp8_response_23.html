@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Modal Dialog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-text-primary: 26, 26, 26;
+            --color-text-secondary: 85, 85, 85;
+            --color-bg-primary: 242, 242, 242;
+            --color-accent-primary: 113, 46, 236;
+            --color-accent-secondary: 167, 139, 250;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: rgb(var(--color-bg-primary));
+            color: rgb(var(--color-text-primary));
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 480px; /* Adjusted max-width for better readability */
+            width: 90%;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            position: relative;
+        }
+
+        .modal-overlay.open .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .modal-close-button {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: rgb(var(--color-text-secondary));
+            padding: 0.25rem;
+            line-height: 1;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .modal-close-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="p-8 flex items-center justify-center min-h-screen">
+
+    <button id="openModalBtn" class="bg-[rgb(var(--color-accent-primary))] text-white px-6 py-3 rounded-md font-semibold hover:bg-[rgb(var(--color-accent-secondary))] transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-accent-primary))]">
+        Open Modal
+    </button>
+
+    <div id="myModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+        <div class="modal-content" tabindex="-1" role="document">
+            <button id="closeModalBtn" class="modal-close-button" aria-label="Close modal">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 id="modalTitle" class="text-2xl font-bold mb-4 text-[rgb(var(--color-text-primary))]">Modal Title</h3>
+            <p id="modalDescription" class="text-[rgb(var(--color-text-secondary))] mb-6">
+                This is a short description of the modal content. It provides context for what the user is about to see or do.
+            </p>
+            <div class="mb-4">
+                <label for="modalInput" class="block text-sm font-medium text-[rgb(var(--color-text-primary))] mb-2">Input Field:</label>
+                <input type="text" id="modalInput" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-accent-primary))] text-[rgb(var(--color-text-primary))] placeholder-gray-400" placeholder="Enter something...">
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button id="cancelModalBtn" class="px-5 py-2.5 rounded-md border border-[rgb(var(--color-text-secondary))] text-[rgb(var(--color-text-secondary))] hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancel
+                </button>
+                <button id="confirmModalBtn" class="px-5 py-2.5 rounded-md bg-[rgb(var(--color-accent-primary))] text-white hover:bg-[rgb(var(--color-accent-secondary))] transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-accent-primary))]">
+                    Confirm <i class="fas fa-check-circle ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelModalBtn = document.getElementById('cancelModalBtn');
+        const confirmModalBtn = document.getElementById('confirmModalBtn');
+        const myModal = document.getElementById('myModal');
+        const modalContent = myModal.querySelector('.modal-content');
+
+        // Function to open the modal
+        function openModal() {
+            myModal.classList.add('open');
+            modalContent.setAttribute('aria-hidden', 'false');
+            // Trap focus inside the modal
+            trapFocus(modalContent);
+        }
+
+        // Function to close the modal
+        function closeModal() {
+            myModal.classList.remove('open');
+            modalContent.setAttribute('aria-hidden', 'true');
+            // Restore focus to the element that opened the modal
+            openModalBtn.focus();
+        }
+
+        // Focus trapping logic
+        function trapFocus(element) {
+            const focusableElements = element.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            const firstFocusableElement = focusableElements[0];
+            const lastFocusableElement = focusableElements[focusableElements.length - 1];
+
+            firstFocusableElement.focus(); // Set focus to the first element
+
+            element.addEventListener('keydown', function(e) {
+                let isTabPressed = (e.key === 'Tab' || e.keyCode === 9);
+
+                if (!isTabPressed) {
+                    return;
+                }
+
+                if (e.shiftKey) { // if shift key pressed for shift + tab
+                    if (document.activeElement === firstFocusableElement) {
+                        lastFocusableElement.focus(); // go to the last focusable element
+                        e.preventDefault();
+                    }
+                } else { // if tab key pressed
+                    if (document.activeElement === lastFocusableElement) {
+                        firstFocusableElement.focus(); // go to the first focusable element
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        openModalBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelModalBtn.addEventListener('click', closeModal);
+        confirmModalBtn.addEventListener('click', () => {
+            alert('Modal confirmed!');
+            closeModal();
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && myModal.classList.contains('open')) {
+                closeModal();
+            }
+        });
+
+        // Close modal when clicking outside the content
+        myModal.addEventListener('click', (e) => {
+            if (e.target === myModal) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

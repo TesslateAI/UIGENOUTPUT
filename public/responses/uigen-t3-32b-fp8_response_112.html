@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Whiteboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary-blue: #007bff;
+            --color-secondary-gray: #f0f2f5;
+            --color-text-dark: #333333;
+            --color-text-light: #ffffff;
+            --color-border-light: #e0e0e0;
+            --color-bg-light: #ffffff;
+            --color-bg-subtle: #f8f8f8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-secondary-gray);
+            color: var(--color-text-dark);
+        }
+
+        .whiteboard-container {
+            background-color: var(--color-bg-light);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .drawing-canvas {
+            background-color: #fff; /* White canvas background */
+            cursor: crosshair;
+        }
+
+        .tool-button {
+            @apply flex items-center justify-center w-12 h-12 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200;
+        }
+        .tool-button.selected {
+            @apply bg-blue-500 text-white;
+        }
+
+        .color-picker-item {
+            @apply w-8 h-8 rounded-full border border-gray-300 cursor-pointer;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .tools-sidebar {
+                transform: translateX(-100%);
+                opacity: 0;
+                transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            }
+            .tools-sidebar.open {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header / Top Bar -->
+    <header class="bg-white shadow-sm py-4 px-6 flex items-center justify-between z-10">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-2xl font-bold text-gray-800">Collaborative Whiteboard</h1>
+            <span class="text-gray-500 text-sm">Active Users: <span id="active-users">1</span></span>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-share-alt"></i>
+                <span>Share</span>
+            </button>
+            <button id="export-button" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+            </button>
+            <button id="clear-button" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-eraser"></i>
+                <span>Clear</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Whiteboard Area -->
+    <main class="flex-grow flex flex-col p-4">
+        <div class="whiteboard-container flex-grow flex flex-col">
+            <!-- Drawing Tools Sidebar -->
+            <div class="tools-sidebar fixed top-1/2 left-0 -translate-y-1/2 bg-white p-4 shadow-lg z-20 transform -translate-x-full transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex md:flex-col md:w-20 md:h-full md:top-0 md:left-0 md:shadow-none md:bg-gray-100 md:border-r md:border-gray-200">
+                <button id="toggle-tools" class="md:hidden absolute top-3 right-3 p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex flex-col space-y-4 md:space-y-0 md:items-center md:justify-center md:flex-grow">
+                    <button id="tool-pen" class="tool-button selected" aria-label="Pen Tool">
+                        <i class="fas fa-pencil-alt text-xl"></i>
+                    </button>
+                    <button id="tool-eraser" class="tool-button" aria-label="Eraser Tool">
+                        <i class="fas fa-eraser text-xl"></i>
+                    </button>
+                    <button id="tool-rectangle" class="tool-button" aria-label="Rectangle Tool">
+                        <i class="fas fa-square text-xl"></i>
+                    </button>
+                    <button id="tool-circle" class="tool-button" aria-label="Circle Tool">
+                        <i class="fas fa-circle text-xl"></i>
+                    </button>
+                    <button id="tool-text" class="tool-button" aria-label="Text Tool">
+                        <i class="fas fa-font text-xl"></i>
+                    </button>
+                    <button id="tool-sticker" class="tool-button" aria-label="Sticker Tool">
+                        <i class="fas fa-sticky-note text-xl"></i>
+                    </button>
+                </div>
+                <div class="mt-6 md:mt-0 md:pt-6 border-t md:border-t-0 border-gray-200 pt-4 md:pt-0">
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2 hidden md:block">Colors</h3>
+                    <div class="flex flex-wrap justify-center gap-2 md:gap-3 md:justify-start">
+                        <div class="color-picker-item bg-black" data-color="#000000"></div>
+                        <div class="color-picker-item bg-red-500" data-color="#ef4444"></div>
+                        <div class="color-picker-item bg-blue-500" data-color="#3b82f6"></div>
+                        <div class="color-picker-item bg-green-500" data-color="#22c55e"></div>
+                        <div class="color-picker-item bg-yellow-500" data-color="#facc15"></div>
+                        <div class="color-picker-item bg-purple-500" data-color="#a855f7"></div>
+                        <div class="color-picker-item bg-gray-500" data-color="#6b7280"></div>
+                        <div class="color-picker-item bg-white border border-gray-400" data-color="#ffffff"></div>
+                    </div>
+                    <input type="color" id="custom-color-picker" class="hidden mt-4 md:mt-2 w-full h-10 md:w-auto md:h-auto rounded-md cursor-pointer">
+                </div>
+                <div class="mt-6">
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2 hidden md:block">Brush Size</h3>
+                    <input type="range" id="brush-size" min="1" max="20" value="3" class="w-full md:w-auto h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Whiteboard Canvas -->
+            <div class="flex-grow relative overflow-hidden">
+                <canvas id="whiteboard-canvas" class="drawing-canvas w-full h-full"></canvas>
+                <div id="canvas-overlay" class="absolute inset-0 pointer-events-none"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('whiteboard-canvas');
+        const ctx = canvas.getContext('2d');
+        const exportButton = document.getElementById('export-button');
+        const clearButton = document.getElementById('clear-button');
+        const toolPen = document.getElementById('tool-pen');
+        const toolEraser = document.getElementById('tool-eraser');
+        const toolRectangle = document.getElementById('tool-rectangle');
+        const toolCircle = document.getElementById('tool-circle');
+        const toolText = document.getElementById('tool-text');
+        const toolSticker = document.getElementById('tool-sticker');
+        const colorPickers = document.querySelectorAll('.color-picker-item');
+        const customColorPicker = document.getElementById('custom-color-picker');
+        const brushSizeInput = document.getElementById('brush-size');
+        const toolsSidebar = document.querySelector('.tools-sidebar');
+        const toggleToolsButton = document.getElementById('toggle-tools');
+        const activeUsersSpan = document.getElementById('active-users');
+
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = '#000000';
+        let currentBrushSize = 3;
+        let lastX = 0;
+        let lastY = 0;
+
+        // --- Canvas Setup ---
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            // Redraw content if needed, or just clear for simplicity
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial resize
+
+        // --- Drawing Logic ---
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCanvasCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            // Store initial state for undo/redo if implemented
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const [x, y] = getCanvasCoordinates(e);
+
+            ctx.lineWidth = currentBrushSize;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = currentColor;
+
+            if (currentTool === 'pen' || currentTool === 'eraser') {
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else if (currentTool === 'rectangle') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous shapes
+                drawAllShapes(); // Redraw existing shapes
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentBrushSize;
+                ctx.strokeRect(lastX, lastY, x - lastX, y - lastY);
+            } else if (currentTool === 'circle') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous shapes
+                drawAllShapes(); // Redraw existing shapes
+                const radius = Math.sqrt(Math.pow(x - lastX, 2) + Math.pow(y - lastY, 2));
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentBrushSize;
+                ctx.beginPath();
+                ctx.arc(lastX, lastY, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.closePath();
+            // Save current state to history for undo/redo
+        }
+
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return [
+                clientX - rect.left,
+                clientY - rect.top
+            ];
+        }
+
+        // Event Listeners for Drawing
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing); // Stop drawing if mouse leaves canvas
+
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            startDrawing(e);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            draw(e);
+        });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // --- Tool Selection ---
+        function selectTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.getElementById(`tool-${tool}`).classList.add('selected');
+        }
+
+        toolPen.addEventListener('click', () => selectTool('pen'));
+        toolEraser.addEventListener('click', () => selectTool('eraser'));
+        toolRectangle.addEventListener('click', () => selectTool('rectangle'));
+        toolCircle.addEventListener('click', () => selectTool('circle'));
+        toolText.addEventListener('click', () => selectTool('text')); // Placeholder for text tool
+        toolSticker.addEventListener('click', () => selectTool('sticker')); // Placeholder for sticker tool
+
+        // --- Color Selection ---
+        function selectColor(color) {
+            currentColor = color;
+            // Update custom color picker to match selected color
+            customColorPicker.value = color;
+        }
+
+        colorPickers.forEach(picker => {
+            picker.addEventListener('click', () => selectColor(picker.dataset.color));
+        });
+
+        customColorPicker.addEventListener('input', (e) => {
+            selectColor(e.target.value);
+        });
+
+        // --- Brush Size ---
+        brushSizeInput.addEventListener('input', (e) => {
+            currentBrushSize = parseInt(e.target.value);
+        });
+
+        // --- Export Functionality ---
+        exportButton.addEventListener('click', () => {
+            const imageDataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'whiteboard.png';
+            link.href = imageDataURL;
+            link.click();
+        });
+
+        clearButton.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear the whiteboard?')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Clear all drawing history if implemented
+            }
+        });
+
+        // --- Tools Sidebar Toggle (Mobile) ---
+        toggleToolsButton.addEventListener('click', () => {
+            toolsSidebar.classList.toggle('open');
+        });
+
+        // --- Placeholder for Multi-User Functionality ---
+        // In a real application, this would involve WebSockets (e.g., using Socket.IO)
+        // to broadcast drawing events and receive updates from other users.
+        // For example:
+        // - When a user draws, emit an event with path data.
+        // - Listen for events from other users and draw on your canvas.
+        // - Update the `active-users` span dynamically based on connected clients.
+        let userCount = 1; // Simulate initial user
+        activeUsersSpan.textContent = userCount;
+
+        // Simulate user connection/disconnection
+        setInterval(() => {
+            userCount = Math.floor(Math.random() * 3) + 1; // 1 to 3 users
+            activeUsersSpan.textContent = userCount;
+        }, 5000); // Update every 5 seconds
+
+        // --- Basic Undo/Redo (Conceptual) ---
+        // This is a simplified version. A real implementation would store
+        // full image data or path data for each action.
+        const history = [];
+        let historyIndex = -1;
+
+        function saveState() {
+            if (historyIndex < history.length - 1) {
+                // Remove future states if we are not at the end
+                history.splice(historyIndex + 1);
+            }
+            history.push(canvas.toDataURL());
+            historyIndex = history.length - 1;
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = history[historyIndex];
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = history[historyIndex];
+            }
+        }
+
+        // Call saveState on significant drawing changes (e.g., after a stroke)
+        // This is a very basic example. Real-time collaboration would require
+        // more sophisticated state management.
+        canvas.addEventListener('mouseup', () => {
+            if (isDrawing) {
+                saveState();
+            }
+        });
+        canvas.addEventListener('touchend', () => {
+            if (isDrawing) {
+                saveState();
+            }
+        });
+
+        // --- Placeholder for Drawing History (Conceptual) ---
+        // This function would be called when a new drawing operation starts
+        // to ensure we have the latest state for potential undo/redo.
+        function drawAllShapes() {
+            // This is a placeholder. A real implementation would iterate
+            // through a list of shapes/paths and redraw them.
+            // For simplicity, we're just redrawing the canvas from its current state.
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = canvas.toDataURL();
+        }
+    </script>
+</body>
+</html>

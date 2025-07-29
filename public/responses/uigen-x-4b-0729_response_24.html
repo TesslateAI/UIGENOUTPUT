@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --secondary-bg: #1e293b;
+            --tertiary-bg: #334155;
+            --card-bg: #1e293b;
+            --accent: #3b82f6;
+            --accent-light: #60a5fa;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background-color: var(--secondary-bg);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .header {
+            grid-area: header;
+            background-color: var(--secondary-bg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: var(--primary-bg);
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .kpi-card {
+            background: linear-gradient(145deg, var(--card-bg), var(--tertiary-bg));
+        }
+        
+        .nav-item {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-light);
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background: rgba(59, 130, 246, 0.2);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: var(--tertiary-bg);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-completed {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+        
+        .status-pending {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+        
+        .status-processing {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+        }
+        
+        .table-row:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                top: 0;
+                bottom: 0;
+                z-index: 50;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
+            
+            .sidebar.open + .overlay {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar p-4 hidden md:block">
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
+                    <i class="fas fa-chart-line text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold">AnalyticsPro</h1>
+            </div>
+            
+            <nav class="space-y-1">
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg active">
+                    <i class="fas fa-home mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg">
+                    <i class="fas fa-chart-bar mr-3"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg">
+                    <i class="fas fa-users mr-3"></i>
+                    <span>Customers</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg">
+                    <i class="fas fa-shopping-cart mr-3"></i>
+                    <span>Orders</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg">
+                    <i class="fas fa-box mr-3"></i>
+                    <span>Products</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg">
+                    <i class="fas fa-cog mr-3"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-8">
+                <div class="bg-tertiary-bg rounded-xl p-4">
+                    <h3 class="font-semibold mb-2">Need Help?</h3>
+                    <p class="text-sm text-text-secondary mb-3">Our support team is here to help you</p>
+                    <button class="w-full bg-accent hover:bg-accent-light text-white py-2 rounded-lg text-sm font-medium">
+                        Contact Support
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Overlay for mobile -->
+        <div class="overlay"></div>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6">
+            <div class="flex items-center">
+                <button id="menu-toggle" class="md:hidden mr-4 text-text-secondary">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-xl font-semibold">Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="text-text-secondary hover:text-text-primary">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-danger rounded-full"></span>
+                    </button>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-2">
+                        <span class="text-white font-medium">JD</span>
+                    </div>
+                    <span class="hidden md:block">John Doe</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-6">
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="kpi-card card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary text-sm">Total Revenue</p>
+                            <h3 class="text-2xl font-bold mt-1">$24,568</h3>
+                            <div class="flex items-center mt-2">
+                                <span class="text-success text-sm flex items-center">
+                                    <i class="fas fa-arrow-up mr-1 text-xs"></i> 12.5%
+                                </span>
+                                <span class="text-text-secondary text-sm ml-2">vs last month</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-blue-500/10">
+                            <i class="fas fa-dollar-sign text-accent text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kpi-card card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary text-sm">New Customers</p>
+                            <h3 class="text-2xl font-bold mt-1">1,248</h3>
+                            <div class="flex items-center mt-2">
+                                <span class="text-success text-sm flex items-center">
+                                    <i class="fas fa-arrow-up mr-1 text-xs"></i> 8.3%
+                                </span>
+                                <span class="text-text-secondary text-sm ml-2">vs last month</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-green-500/10">
+                            <i class="fas fa-user-plus text-success text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kpi-card card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary text-sm">Orders</p>
+                            <h3 class="text-2xl font-bold mt-1">3,452</h3>
+                            <div class="flex items-center mt-2">
+                                <span class="text-danger text-sm flex items-center">
+                                    <i class="fas fa-arrow-down mr-1 text-xs"></i> 2.1%
+                                </span>
+                                <span class="text-text-secondary text-sm ml-2">vs last month</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-purple-500/10">
+                            <i class="fas fa-shopping-cart text-purple-500 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="kpi-card card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary text-sm">Conversion Rate</p>
+                            <h3 class="text-2xl font-bold mt-1">4.8%</h3>
+                            <div class="flex items-center mt-2">
+                                <span class="text-success text-sm flex items-center">
+                                    <i class="fas fa-arrow-up mr-1 text-xs"></i> 1.7%
+                                </span>
+                                <span class="text-text-secondary text-sm ml-2">vs last month</span>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-yellow-500/10">
+                            <i class="fas fa-percent text-warning text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Revenue Chart -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-semibold text-lg">Revenue Overview</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg bg-tertiary-bg">Month</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-accent text-white">Quarter</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-tertiary-bg">Year</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Traffic Sources -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-semibold text-lg">Traffic Sources</h3>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity & Top Products -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Recent Activity -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-semibold text-lg">Recent Activity</h3>
+                        <button class="text-accent hover:text-accent-light">
+                            View All
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="p-2 rounded-lg bg-blue-500/10 mr-3">
+                                <i class="fas fa-shopping-cart text-accent"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">New order received</h4>
+                                <p class="text-sm text-text-secondary">Order #3214 for $245.00</p>
+                                <p class="text-xs text-text-secondary mt-1">2 minutes ago</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="p-2 rounded-lg bg-green-500/10 mr-3">
+                                <i class="fas fa-user-plus text-success"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">New customer registered</h4>
+                                <p class="text-sm text-text-secondary">Sarah Johnson joined</p>
+                                <p class="text-xs text-text-secondary mt-1">1 hour ago</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="p-2 rounded-lg bg-purple-500/10 mr-3">
+                                <i class="fas fa-file-invoice-dollar text-purple-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">Invoice paid</h4>
+                                <p class="text-sm text-text-secondary">Invoice #4582 for $1,200.00</p>
+                                <p class="text-xs text-text-secondary mt-1">3 hours ago</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="p-2 rounded-lg bg-yellow-500/10 mr-3">
+                                <i class="fas fa-chart-line text-warning"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">Campaign performance</h4>
+                                <p class="text-sm text-text-secondary">Summer Sale campaign up 24%</p>
+                                <p class="text-xs text-text-secondary mt-1">5 hours ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Top Products -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-semibold text-lg">Top Products</h3>
+                        <button class="text-accent hover:text-accent-light">
+                            View All
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-text-secondary text-sm border-b border-tertiary-bg">
+                                    <th class="pb-3">Product</th>
+                                    <th class="pb-3">Category</th>
+                                    <th class="pb-3">Price</th>
+                                    <th class="pb-3">Sold</th>
+                                    <th class="pb-3">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-row border-b border-tertiary-bg">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 mr-3"></div>
+                                            <span>Premium Headphones</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Electronics</td>
+                                    <td class="py-3">$199.99</td>
+                                    <td class="py-3">1,248</td>
+                                    <td class="py-3 font-medium">$248,000</td>
+                                </tr>
+                                <tr class="table-row border-b border-tertiary-bg">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500 to-emerald-600 mr-3"></div>
+                                            <span>Smart Watch Pro</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Wearables</td>
+                                    <td class="py-3">$249.99</td>
+                                    <td class="py-3">987</td>
+                                    <td class="py-3 font-medium">$246,500</td>
+                                </tr>
+                                <tr class="table-row border-b border-tertiary-bg">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-violet-600 mr-3"></div>
+                                            <span>Wireless Earbuds</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Audio</td>
+                                    <td class="py-3">$129.99</td>
+                                    <td class="py-3">1,562</td>
+                                    <td class="py-3 font-medium">$202,400</td>
+                                </tr>
+                                <tr class="table-row border-b border-tertiary-bg">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500 to-amber-600 mr-3"></div>
+                                            <span>Fitness Tracker</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Wearables</td>
+                                    <td class="py-3">$79.99</td>
+                                    <td class="py-3">2,105</td>
+                                    <td class="py-3 font-medium">$168,100</td>
+                                </tr>
+                                <tr class="table-row">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-md bg-gradient-to-br from-pink-500 to-rose-600 mr-3"></div>
+                                            <span>Bluetooth Speaker</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">Audio</td>
+                                    <td class="py-3">$89.99</td>
+                                    <td class="py-3">1,324</td>
+                                    <td class="py-3 font-medium">$119,000</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Metrics -->
+            <div class="card p-5 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-semibold text-lg">Performance Metrics</h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm rounded-lg bg-tertiary-bg">Daily</button>
+                        <button class="px-3 py-1 text-sm rounded-lg bg-accent text-white">Weekly</button>
+                        <button class="px-3 py-1 text-sm rounded-lg bg-tertiary-bg">Monthly</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-text-secondary">Conversion Rate</span>
+                            <span class="font-medium">4.8%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-success" style="width: 48%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-text-secondary">Customer Satisfaction</span>
+                            <span class="font-medium">92%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-accent" style="width: 92%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-text-secondary">Support Response</span>
+                            <span class="font-medium">87%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-purple-500" style="width: 87%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-text-secondary">Task Completion</span>
+                            <span class="font-medium">76%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-warning" style="width: 76%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('open');
+        });
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Revenue Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [12000, 19000, 15000, 18000, 22000, 24000, 21000, 23000, 25000, 28000, 26000, 30000],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Traffic Sources Chart
+            const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+            const trafficChart = new Chart(trafficCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Direct', 'Social Media', 'Search Engines', 'Email', 'Referrals'],
+                    datasets: [{
+                        data: [35, 25, 20, 12, 8],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#10b981',
+                            '#8b5cf6',
+                            '#f59e0b',
+                            '#ef4444'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#f1f5f9',
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Shop - Virtual Try-On</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#818CF8',
+                        accent: '#F97316',
+                        dark: '#1E293B',
+                        light: '#F8FAFC',
+                        gray: '#64748B'
+                    },
+                    animation: {
+                        'fade': 'fadeIn 0.5s ease-in-out',
+                        'scale': 'scaleIn 0.3s ease-in-out',
+                        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 }
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 }
+                        },
+                        pulse: {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.5 }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+            overflow-x: hidden;
+        }
+        
+        .product-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white;
+            padding: 1.5rem;
+            transform: translateY(100%);
+            transition: transform 0.4s ease;
+        }
+        
+        .product-card:hover .product-overlay {
+            transform: translateY(0);
+        }
+        
+        .try-on-container {
+            perspective: 1000px;
+        }
+        
+        .try-on-box {
+            transform-style: preserve-3d;
+            transform: rotateY(-5deg) rotateX(5deg);
+            transition: transform 0.4s ease;
+        }
+        
+        .try-on-box:hover {
+            transform: rotateY(0) rotateX(0);
+        }
+        
+        .feature-card {
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+        
+        .feature-card.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .carousel-item {
+            display: none;
+        }
+        
+        .carousel-item.active {
+            display: block;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3">
+                    <i class="fas fa-vr-cardboard text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-dark">AR<span class="text-primary">Shop</span></h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">Home</a>
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">Products</a>
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">Categories</a>
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">About</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-search text-gray-600"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-shopping-cart text-gray-600"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-user text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-16 bg-gradient-to-r from-primary to-secondary">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-12 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Try Before You Buy</h1>
+                    <p class="text-xl text-white opacity-90 mb-8 max-w-lg">
+                        Experience the future of shopping with our augmented reality technology. 
+                        See products in 3D, customize colors, and make confident purchases.
+                    </p>
+                    <div class="flex space-x-4">
+                        <button class="bg-white text-primary font-semibold px-6 py-3 rounded-lg hover:bg-opacity-90 transition-all">
+                            Shop Now
+                        </button>
+                        <button class="bg-transparent border-2 border-white text-white font-semibold px-6 py-3 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all">
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div class="w-64 h-64 md:w-80 md:h-80 bg-white rounded-2xl shadow-2xl flex items-center justify-center floating">
+                            <div class="w-48 h-48 md:w-60 md:h-60 bg-gray-200 rounded-xl flex items-center justify-center">
+                                <div class="text-center">
+                                    <i class="fas fa-vr-cardboard text-5xl text-primary mb-4"></i>
+                                    <p class="text-dark font-semibold">Virtual Try-On Experience</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute -bottom-8 -left-8 w-32 h-32 bg-accent rounded-2xl shadow-lg flex items-center justify-center">
+                            <div class="text-white font-bold text-lg">300+</div>
+                        </div>
+                        <div class="absolute -top-8 -right-8 w-32 h-32 bg-primary rounded-2xl shadow-lg flex items-center justify-center">
+                            <div class="text-white font-bold text-lg">10K+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 bg-light">
+        <div class="container mx-auto px-4">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Powerful Features</h2>
+                <p class="text-gray-600">Our augmented reality technology makes shopping effortless and enjoyable</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg">
+                    <div class="w-16 h-16 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-6">
+                        <i class="fas fa-eye text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Virtual Try-On</h3>
+                    <p class="text-gray-600 mb-4">See products in 3D and customize colors, sizes, and styles before purchasing.</p>
+                    <div class="flex items-center text-primary font-medium">
+                        <span>Learn more</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </div>
+                </div>
+                
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg">
+                    <div class="w-16 h-16 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-6">
+                        <i class="fas fa-tags text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Smart Pricing</h3>
+                    <p class="text-gray-600 mb-4">Get real-time pricing and discount information directly in your AR view.</p>
+                    <div class="flex items-center text-primary font-medium">
+                        <span>Learn more</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </div>
+                </div>
+                
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg">
+                    <div class="w-16 h-16 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-6">
+                        <i class="fas fa-shipping-fast text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Fast Delivery</h3>
+                    <p class="text-gray-600 mb-4">Order quickly and get your products delivered in 1-2 business days.</p>
+                    <div class="flex items-center text-primary font-medium">
+                        <span>Learn more</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Virtual Try-On Demo -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Virtual Try-On Experience</h2>
+                <p class="text-gray-600">See how our AR technology transforms your shopping experience</p>
+            </div>
+            
+            <div class="try-on-container mx-auto max-w-4xl">
+                <div class="try-on-box bg-gray-100 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="grid grid-cols-1 md:grid-cols-2">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-96 flex items-center justify-center">
+                            <div class="text-center p-8">
+                                <i class="fas fa-vr-cardboard text-5xl text-primary mb-4"></i>
+                                <h3 class="text-xl font-bold text-dark mb-2">Virtual Try-On Demo</h3>
+                                <p class="text-gray-600">Click to interact with the product</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-dark">Premium Sneakers</h3>
+                                <div class="flex items-center">
+                                    <span class="text-accent font-bold text-xl mr-2">$129.99</span>
+                                    <span class="text-gray-500 line-through">$159.99</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <div class="flex items-center mb-3">
+                                    <span class="font-medium text-dark mr-3">Color:</span>
+                                    <div class="flex space-x-2">
+                                        <button class="w-6 h-6 rounded-full bg-black border-2 border-gray-300"></button>
+                                        <button class="w-6 h-6 rounded-full bg-blue-500 border-2 border-gray-300"></button>
+                                        <button class="w-6 h-6 rounded-full bg-red-500 border-2 border-gray-300"></button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <span class="font-medium text-dark mr-3">Size:</span>
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 border border-gray-300 rounded-lg">7</button>
+                                        <button class="px-3 py-1 bg-primary text-white rounded-lg">8</button>
+                                        <button class="px-3 py-1 border border-gray-300 rounded-lg">9</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <i class="fas fa-minus text-gray-500"></i>
+                                    </button>
+                                    <span class="mx-4 font-medium">1</span>
+                                    <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <i class="fas fa-plus text-gray-500"></i>
+                                    </button>
+                                </div>
+                                <button class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-opacity-90 transition-all">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Showcase -->
+    <section class="py-16 bg-light">
+        <div class="container mx-auto px-4">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Featured Products</h2>
+                <p class="text-gray-600">Discover our most popular items with AR try-on capabilities</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Product 1 -->
+                <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="relative">
+                        <div class="h-80 bg-gray-200 border-2 border-dashed flex items-center justify-center">
+                            <i class="fas fa-tshirt text-5xl text-primary"></i>
+                        </div>
+                        <div class="product-overlay">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Premium T-Shirt</h3>
+                                    <p class="text-white opacity-80">Color: Navy Blue</p>
+                                </div>
+                                <span class="bg-accent text-white text-sm font-bold px-2 py-1 rounded">-15%</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-white font-bold text-lg">$29.99</span>
+                                    <span class="text-white opacity-70 line-through">$35.99</span>
+                                </div>
+                                <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-opacity-90">
+                                    Try On
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                <span class="font-medium">4.8</span>
+                                <span class="text-gray-500 ml-1">(128)</span>
+                            </div>
+                            <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                <i class="fas fa-heart text-gray-500"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mb-4">Comfortable cotton t-shirt with modern design for everyday wear.</p>
+                        <button class="w-full bg-primary text-white py-3 rounded-lg hover:bg-opacity-90 transition-all">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Product 2 -->
+                <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="relative">
+                        <div class="h-80 bg-gray-200 border-2 border-dashed flex items-center justify-center">
+                            <i class="fas fa-mug-hot text-5xl text-primary"></i>
+                        </div>
+                        <div class="product-overlay">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Designer Coffee Mug</h3>
+                                    <p class="text-white opacity-80">Color: Terracotta</p>
+                                </div>
+                                <span class="bg-accent text-white text-sm font-bold px-2 py-1 rounded">New</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-white font-bold text-lg">$24.99</span>
+                                </div>
+                                <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-opacity-90">
+                                    Try On
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                <span class="font-medium">4.6</span>
+                                <span class="text-gray-500 ml-1">(89)</span>
+                            </div>
+                            <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                <i class="fas fa-heart text-gray-500"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mb-4">Handcrafted ceramic mug with comfortable grip and beautiful pattern.</p>
+                        <button class="w-full bg-primary text-white py-3 rounded-lg hover:bg-opacity-90 transition-all">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Product 3 -->
+                <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="relative">
+                        <div class="h-80 bg-gray-200 border-2 border-dashed flex items-center justify-center">
+                            <i class="fas fa-headphones text-5xl text-primary"></i>
+                        </div>
+                        <div class="product-overlay">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">Wireless Headphones</h3>
+                                    <p class="text-white opacity-80">Color: Black</p>
+                                </div>
+                                <span class="bg-accent text-white text-sm font-bold px-2 py-1 rounded">Sale</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-white font-bold text-lg">$89.99</span>
+                                    <span class="text-white opacity-70 line-through">$129.99</span>
+                                </div>
+                                <button class="bg-white text-primary px-4 py-2 rounded-lg hover:bg-opacity-90">
+                                    Try On
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                <span class="font-medium">4.9</span>
+                                <span class="text-gray-500 ml-1">(210)</span>
+                            </div>
+                            <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                <i class="fas fa-heart text-gray-500"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-600 mb-4">Premium sound quality with noise cancellation and 30-hour battery life.</p>
+                        <button class="w-full bg-primary text-white py-3 rounded-lg hover:bg-opacity-90 transition-all">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">What Our Customers Say</h2>
+                <p class="text-gray-600">Join thousands of satisfied customers who have transformed their shopping</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-light p-6 rounded-2xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mr-4">
+                            <span class="text-primary font-bold">SJ</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-dark">Sarah Johnson</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">"The virtual try-on feature saved me so much time! I was able to see how an outfit would look before buying, and it was perfect. The AR experience is seamless and incredibly accurate."</p>
+                </div>
+                
+                <div class="bg-light p-6 rounded-2xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mr-4">
+                            <span class="text-primary font-bold">MR</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-dark">Michael Rodriguez</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">"I've tried many AR shopping apps, but this one stands out. The product details overlay is incredibly informative and helps me make better purchasing decisions. The design is clean and intuitive."</p>
+                </div>
+                
+                <div class="bg-light p-6 rounded-2xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mr-4">
+                            <span class="text-primary font-bold">ET</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-dark">Emma Thompson</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">"The virtual try-on for clothing items is spot on! I can see how different colors and styles look on me without trying them on. It's like having a personal stylist who also shops with me!"</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-r from-primary to-secondary">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Transform Your Shopping?</h2>
+            <p class="text-xl text-white opacity-90 max-w-2xl mx-auto mb-8">Join thousands of satisfied customers who have discovered the power of augmented reality shopping.</p>
+            <button class="bg-white text-primary font-bold px-8 py-4 rounded-lg text-lg hover:bg-opacity-90 transition-all">
+                Download the App
+            </button>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3">
+                            <i class="fas fa-vr-cardboard text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">AR<span class="text-primary">Shop</span></h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">The future of shopping is here. Try before you buy with our augmented reality technology.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Shop</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">New Arrivals</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Best Sellers</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Sale</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Categories</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Gift Cards</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Support</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">FAQs</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Shipping Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Returns & Exchanges</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Newsletter</h4>
+                    <p class="text-gray-400 mb-4">Subscribe to get special offers, free giveaways, and new product updates.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-dark">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-gray-800 text-center text-gray-500">
+                <p>&copy; 2023 ARShop. All rights reserved. The future of shopping is augmented reality.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Feature cards animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const featureCards = document.querySelectorAll('.feature-card');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            featureCards.forEach(card => {
+                observer.observe(card);
+            });
+            
+            // Product card hover effect
+            const productCards = document.querySelectorAll('.product-card');
+            productCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.classList.add('shadow-xl');
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.classList.remove('shadow-xl');
+                });
+            });
+            
+            // Try-on box interaction
+            const tryOnBox = document.querySelector('.try-on-box');
+            tryOnBox.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const angle = Math.atan2(centerY - y, centerX - x) * 180 / Math.PI;
+                
+                this.style.transform = `rotateY(${angle}deg)`;
+            });
+        });
+    </script>
+</body>
+</html>

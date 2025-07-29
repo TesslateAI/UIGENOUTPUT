@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5',
+                        'secondary': '#7C3AED',
+                        'accent': '#10B981',
+                        'todo': '#F59E0B',
+                        'inprogress': '#3B82F6',
+                        'review': '#8B5CF6',
+                        'done': '#10B981',
+                        'dark': '#1E293B',
+                        'light': '#F8FAFC'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #4F46E5;
+            --color-secondary: #7C3AED;
+            --color-accent: #10B981;
+            --color-todo: #F59E0B;
+            --color-inprogress: #3B82F6;
+            --color-review: #8B5CF6;
+            --color-done: #10B981;
+            --color-dark: #1E293B;
+            --color-light: #F8FAFC;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-light);
+            color: var(--color-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .kanban-column {
+            min-height: 70vh;
+            background-color: rgba(241, 245, 249, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        .task-card {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .drag-over {
+            background-color: rgba(79, 70, 229, 0.05);
+            border: 2px dashed var(--color-primary);
+        }
+        
+        .add-task-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .add-task-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-dark">TaskFlow</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-gray-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white font-medium">JD</div>
+                    <span class="font-medium text-dark">John Doe</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Board Header -->
+        <div class="mb-8 animate-on-scroll">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-dark">Project Dashboard</h2>
+                    <p class="text-gray-500 mt-2">Manage your tasks and track progress in real-time</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <button class="bg-primary text-white px-5 py-2.5 rounded-lg font-medium hover:bg-indigo-600 transition flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add New Task
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Kanban Board -->
+        <div class="kanban-board grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <!-- To Do Column -->
+            <div class="kanban-column rounded-xl p-4 animate-on-scroll" data-delay="100">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-todo mr-2"></div>
+                        <h3 class="font-semibold text-dark">To Do</h3>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">5</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="tasks space-y-4 min-h-[400px]">
+                    <!-- Task 1 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="1">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">Design Homepage Layout</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-todo/10 text-todo px-2 py-1 rounded">Design</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Create wireframes and mockups for the new homepage design</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-blue-200 border-2 border-white -ml-2"></div>
+                                <div class="w-6 h-6 rounded-full bg-purple-200 border-2 border-white -ml-2"></div>
+                                <div class="w-6 h-6 rounded-full bg-green-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">+2</div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-todo" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Task 2 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="2">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">Research Competitors</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Research</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Analyze competitor websites and identify key features</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-yellow-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">JD</div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-purple-500" style="width: 30%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Task Button -->
+                    <button class="add-task-btn w-full py-3 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Task
+                    </button>
+                </div>
+            </div>
+            
+            <!-- In Progress Column -->
+            <div class="kanban-column rounded-xl p-4 animate-on-scroll" data-delay="200">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-inprogress mr-2"></div>
+                        <h3 class="font-semibold text-dark">In Progress</h3>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">3</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="tasks space-y-4 min-h-[400px]">
+                    <!-- Task 1 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="3">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">Implement Authentication</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Dev</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Create login and registration functionality with JWT</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-green-200 border-2 border-white -ml-2"></div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-inprogress" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Task 2 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="4">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">API Integration</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">API</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Connect frontend to backend services</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-yellow-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">JD</div>
+                                <div class="w-6 h-6 rounded-full bg-red-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">+1</div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-green-500" style="width: 40%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Task Button -->
+                    <button class="add-task-btn w-full py-3 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Task
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Review Column -->
+            <div class="kanban-column rounded-xl p-4 animate-on-scroll" data-delay="300">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-review mr-2"></div>
+                        <h3 class="font-semibold text-dark">Review</h3>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">2</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="tasks space-y-4 min-h-[400px]">
+                    <!-- Task 1 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="5">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">User Testing Session</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Testing</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Conduct usability tests with 5 participants</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-blue-200 border-2 border-white -ml-2"></div>
+                                <div class="w-6 h-6 rounded-full bg-green-200 border-2 border-white -ml-2"></div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-review" style="width: 80%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Task Button -->
+                    <button class="add-task-btn w-full py-3 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Task
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Done Column -->
+            <div class="kanban-column rounded-xl p-4 animate-on-scroll" data-delay="400">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-done mr-2"></div>
+                        <h3 class="font-semibold text-dark">Done</h3>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">4</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="tasks space-y-4 min-h-[400px]">
+                    <!-- Task 1 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="6">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">Project Setup</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Setup</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Initialize project with Vite and required dependencies</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-red-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">JD</div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-done" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Task 2 -->
+                    <div class="task-card bg-white rounded-lg p-4 cursor-move" draggable="true" data-task-id="7">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-medium text-dark">Create Wireframes</h4>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Design</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Design initial wireframes for all main pages</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-purple-200 border-2 border-white -ml-2"></div>
+                                <div class="w-6 h-6 rounded-full bg-yellow-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">+1</div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-done" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Task Button -->
+                    <button class="add-task-btn w-full py-3 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Task
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white rounded-xl p-6 shadow-sm animate-on-scroll">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-primary/10 text-primary mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-dark">24</h3>
+                        <p class="text-gray-500">Total Tasks</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm animate-on-scroll" data-delay="100">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-green-100 text-green-600 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-dark">16</h3>
+                        <p class="text-gray-500">Completed</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm animate-on-scroll" data-delay="200">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-blue-100 text-blue-600 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-dark">8</h3>
+                        <p class="text-gray-500">In Progress</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-dark ml-2">TaskFlow</h2>
+                    </div>
+                    <p class="text-gray-500 mt-2 text-sm">Streamline your workflow with our intuitive Kanban board</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500 text-sm">
+                © 2023 TaskFlow. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Drag and drop functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tasks = document.querySelectorAll('.task-card');
+            const columns = document.querySelectorAll('.kanban-column');
+            
+            let draggedTask = null;
+            
+            tasks.forEach(task => {
+                task.addEventListener('dragstart', function() {
+                    draggedTask = this;
+                    setTimeout(() => {
+                        this.style.opacity = '0.4';
+                    }, 0);
+                });
+                
+                task.addEventListener('dragend', function() {
+                    setTimeout(() => {
+                        this.style.opacity = '1';
+                        draggedTask = null;
+                    }, 0);
+                });
+            });
+            
+            columns.forEach(column => {
+                column.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('drag-over');
+                });
+                
+                column.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                
+                column.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    if (draggedTask) {
+                        this.querySelector('.tasks').appendChild(draggedTask);
+                        
+                        // Update task status based on column
+                        const taskId = draggedTask.getAttribute('data-task-id');
+                        const status = this.getAttribute('data-status') || 'todo';
+                        
+                        // In a real app, you would update the task status in your database
+                        console.log(`Task ${taskId} moved to ${status}`);
+                    }
+                });
+            });
+            
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const delay = parseInt(entry.target.dataset.delay) || 0;
+                        setTimeout(() => {
+                            entry.target.classList.add('is-visible');
+                        }, delay);
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Add task buttons functionality
+            const addTaskButtons = document.querySelectorAll('.add-task-btn');
+            addTaskButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const column = this.closest('.kanban-column');
+                    const tasksContainer = column.querySelector('.tasks');
+                    
+                    const newTask = document.createElement('div');
+                    newTask.className = 'task-card bg-white rounded-lg p-4 cursor-move';
+                    newTask.draggable = true;
+                    newTask.setAttribute('data-task-id', Date.now());
+                    
+                    newTask.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <input type="text" class="font-medium text-dark w-full px-2 py-1" placeholder="Task title" value="New Task">
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">New</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">Click to edit this task description</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white -ml-2 flex items-center justify-center text-xs text-gray-500">JD</div>
+                            </div>
+                            <div class="progress-bar bg-gray-200 w-24">
+                                <div class="progress-fill bg-gray-400" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    tasksContainer.insertBefore(newTask, this);
+                    
+                    // Make the input editable
+                    const titleInput = newTask.querySelector('input');
+                    titleInput.contentEditable = true;
+                    titleInput.focus();
+                    
+                    // Handle input blur to update title
+                    titleInput.addEventListener('blur', function() {
+                        if (this.value.trim() === '') {
+                            this.value = 'New Task';
+                        }
+                    });
+                    
+                    // Add drag events to the new task
+                    newTask.addEventListener('dragstart', function() {
+                        draggedTask = this;
+                        setTimeout(() => {
+                            this.style.opacity = '0.4';
+                        }, 0);
+                    });
+                    
+                    newTask.addEventListener('dragend', function() {
+                        setTimeout(() => {
+                            this.style.opacity = '1';
+                            draggedTask = null;
+                        }, 0);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

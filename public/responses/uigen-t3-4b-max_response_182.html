@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Regional Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: #1a1a1a;
+            --color-text-primary: #f0f0f0;
+            --color-text-secondary: #b0b0b0;
+            --color-accent: #0099ff;
+            --color-chat-bubble-user: #007bff;
+            --color-chat-bubble-bot: #333333;
+            --color-chat-bubble-user-light: #0080ff;
+            --color-chat-bubble-bot-light: #555555;
+            --color-border: #333333;
+            --font-primary: 'Inter', sans-serif;
+        }
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            font-family: var(--font-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden; /* Prevent body scroll if chat is too tall */
+        }
+        .chat-container {
+            background-color: #2a2a2a;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 480px; /* Standard mobile/tablet width */
+            display: flex;
+            flex-direction: column;
+            height: 90vh; /* Make it take most of the viewport height */
+            max-height: 800px; /* Cap height */
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 16px 20px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 16px 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .chat-messages::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        .chat-message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        .chat-message.user {
+            align-self: flex-end;
+            background-color: var(--color-chat-bubble-user);
+            color: white;
+            border-bottom-right-radius: 4px; /* Tail for user bubble */
+        }
+        .chat-message.user::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 10px 10px 10px;
+            border-color: transparent transparent var(--color-chat-bubble-user) transparent;
+            top: -10px;
+            right: 14px;
+        }
+        .chat-message.bot {
+            align-self: flex-start;
+            background-color: var(--color-chat-bubble-bot);
+            color: white;
+            border-bottom-left-radius: 4px; /* Tail for bot bubble */
+        }
+        .chat-message.bot::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 10px 10px 0 10px;
+            border-color: transparent var(--color-chat-bubble-bot) transparent transparent;
+            bottom: -10px;
+            left: 14px;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #2a2a2a;
+        }
+        .chat-input {
+            flex-grow: 1;
+            background-color: #3a3a3a;
+            border: 1px solid var(--color-border);
+            padding: 10px 15px;
+            border-radius: 25px;
+            color: var(--color-text-primary);
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        .chat-input:focus {
+            border-color: var(--color-accent);
+        }
+        .send-button {
+            background-color: var(--color-accent);
+            color: white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-left: 10px;
+            border: none;
+        }
+        .send-button:hover {
+            background-color: #0080ff;
+        }
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #3a3a3a;
+            border-radius: 15px;
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        .language-selector button {
+            background: none;
+            border: none;
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .language-selector button.active {
+            background-color: var(--color-accent);
+            color: white;
+            border-radius: 8px 8px 0 0; /* Make active button look like a pill */
+        }
+        .language-selector button.active:hover {
+            background-color: #0080ff;
+        }
+        .language-selector button:not(.active) {
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+        }
+        .language-selector button:not(.active):hover {
+            background-color: #4a4a4a;
+            color: var(--color-text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Global Chatbot</h2>
+            <div class="language-selector" id="language-selector">
+                <button data-lang="en" class="active" title="English">EN</button>
+                <button data-lang="es" title="Español">ES</button>
+                <button data-lang="fr" title="Français">FR</button>
+                <button data-lang="de" title="Deutsch">DE</button>
+                <button data-lang="ja" title="Japanese">JP</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Chat messages will be dynamically added here -->
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type your message...">
+            <button id="send-button" class="send-button" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const languageSelector = document.getElementById('language-selector');
+
+        let currentLang = 'en'; // Default language
+
+        const messages = [
+            {
+                sender: 'bot',
+                text: 'Hello! How can I assist you today?',
+                lang: 'en'
+            },
+            {
+                sender: 'user',
+                text: 'I need help with booking a flight to Paris.',
+                lang: 'en'
+            },
+            {
+                sender: 'bot',
+                text: 'Sure! What are you looking for? A round trip or a one-way ticket? What are your preferred dates?',
+                lang: 'en'
+            },
+            {
+                sender: 'user',
+                text: 'Round trip, from October 25 to November 5. Any budget range?',
+                lang: 'en'
+            },
+            {
+                sender: 'bot',
+                text: 'Great! I can help you with that. Do you have any specific airlines or destinations in mind?',
+                lang: 'en'
+            },
+            {
+                sender: 'user',
+                text: 'No, just looking for the best deals. What are the available options for October 25 to November 5?',
+                lang: 'en'
+            },
+            {
+                sender: 'bot',
+                text: 'I can provide a list of available flights in that period. Would you like to see a summary of the current deals?',
+                lang: 'en'
+            },
+            {
+                sender: 'user',
+                text: 'Yes, please!',
+                lang: 'en'
+            },
+            {
+                sender: 'bot',
+                text: 'I understand. I will provide you with the current flight deals from October 25 to November 5. Please wait a moment...',
+                lang: 'en'
+            },
+            {
+                sender: 'user',
+                text: 'Okay, thanks for the help!',
+                lang: 'en'
+            },
+            {
+                sender: 'bot',
+                text: 'You\'re welcome! Is there anything else I can assist you with?',
+                lang: 'en'
+            },
+            {
+                sender: 'user',
+                text: 'No, I think that\'s it. Have a great day!',
+                lang: 'en'
+            },
+            {
+                sender: 'bot',
+                text: 'You can always reach out if you need further assistance. Have a great day!',
+                lang: 'en'
+            }
+        ];
+
+        const messagesByLang = {
+            'en': [
+                { "sender": "bot", "text": "Hello! How can I assist you today?" },
+                { "sender": "user", "text": "I need help with booking a flight to Paris." },
+                { "sender": "bot", "text": "Sure! What are you looking for? A round trip or a one-way ticket? What are your preferred dates?" },
+                { "sender": "user", "text": "Round trip, from October 25 to November 5. Any budget range?" },
+                { "sender": "bot", "text": "Great! I can help you with that. Do you have any specific airlines or destinations in mind?" },
+                { "sender": "user", "text": "No, just looking for the best deals. What are the available options for October 25 to November 5?" },
+                { "sender": "bot", "text": "I can provide a list of available flights in that period. Would you like to see a summary of the current deals?" },
+                { "sender": "user", "text": "Yes, please!" },
+                { "sender": "bot", "text": "I understand. I will provide you with the current flight deals from October 25 to November 5. Please wait a moment..." },
+                { "sender": "user", "text": "Okay, thanks for the help!" },
+                { "sender": "bot", "text": "You're welcome! Is there anything else I can assist you with?" },
+                { "sender": "user", "text": "No, I think that's it. Have a great day!" },
+                { "sender": "bot", "text": "You can always reach out if you need further assistance. Have a great day!" }
+            ],
+            'es': [
+                { "sender": "bot", "text": "¡Hola! ¿Cómo puedo ayudarte hoy?" },
+                { "sender": "user", "text": "Necesito ayuda para reservar un vuelo a París." },
+                { "sender": "bot", "text": "¡Claro! ¿Estás buscando un billete de ida y vuelta o un solo ida? ¿Cuáles son tus fechas preferidas?" },
+                { "sender": "user", "text": "Ida y vuelta, del 25 de octubre al 5 de noviembre. ¿Cuál es tu rango de presupuesto?" },
+                { "sender": "bot", "text": "Perfecto. Puedo ayudarte con eso. ¿Tienes alguna aerolínea o destino específico en mente?" },
+                { "sender": "user", "text": "No, solo estoy buscando las mejores ofertas. ¿Cuáles son las opciones disponibles del 25 de octubre al 5 de noviembre?" },
+                { "sender": "bot", "text": "Puedo proporcionar una lista de vuelos disponibles en ese período. ¿Te gustaría ver un resumen de las ofertas actuales?" },
+                { "sender": "user", "text": "Sí, por favor." },
+                { "sender": "bot", "text": "Entiendo. Te proporcionaré las ofertas actuales de vuelos del 25 de octubre al 5 de noviembre. Por favor, espera un momento..." },
+                { "sender": "user", "text": "Okay, thanks for the help!" },
+                { "sender": "bot", "text": "¡Lo entiendo! ¿Hay algo más que pueda ayudarte?" },
+                { "sender": "user", "text": "No, creo que eso es todo. ¡Buen día!" },
+                { "sender": "bot", "text": "Siempre puedes contactarme si necesitas ayuda adicional. ¡Buen día!" }
+            ],
+            'fr': [
+                { "sender": "bot", "text": "Bonjour ! Comment puis-je vous aider aujourd'hui ?" },
+                { "sender": "user", "text": "Je dois aider à réserver un vol pour Paris." },
+                { "sender": "bot", "text": "Bien sûr ! Que cherchez-vous : une traversée ou un aller simple ? Quelles sont vos dates de préférence ?" },
+                { "sender": "user", "text": "Une traversée, du 25 octobre au 5 novembre. Quel est votre plafond budgétaire ?" },
+                { "sender": "bot", "text": "Très bien ! Je peux vous aider avec cela. Avez-vous une compagnie aérienne ou une destination spécifique en tête ?" },
+                { "sender": "user", "text": "Non, je ne cherche qu'à trouver les meilleures offres. Quelles sont les options disponibles du 25 octobre au 5 novembre ?" },
+                { "sender": "bot", "text": "Je peux vous fournir une liste de vols disponibles pendant cette période. Voulez-vous voir un résumé des offres actuelles ?" },
+                { "sender": "user", "text": "Oui, s'il vous plaît." },
+                { "sender": "bot", "text": "Je comprends. Je vais vous fournir les offres actuelles de vols du 25 octobre au 5 novembre. Veuillez patienter un moment..." },
+                { "sender": "user", "text": "Okay, thanks for the help!" },
+                { "sender": "bot", "text": "Je comprends ! Y a-t-il quelque chose d'autre que je peux vous aider ?" },
+                { "sender": "user", "text": "Non, je pense que c'est tout. Bonjour ! " },
+                { "sender": "bot", "text": "Vous pouvez toujours me contacter si vous avez besoin d'une assistance supplémentaire. Bonjour ! " }
+            ],
+            'de': [
+                { "sender": "bot", "text": "Hallo! Wie kann ich Ihnen heute helfen?" },
+                { "sender": "user", "text": "Ich brauche Hilfe, um ein Flugticket nach Paris zu buchen." },
+                { "sender": "bot", "text": "Sehr gut! Was suchen Sie? Ein Kreuzfahrten-Ticket oder ein einseitiges Ticket? Welche bevorzugten Daten haben Sie?" },
+                { "sender": "user", "text": "Kreuzfahrt, vom 25. Oktober bis 5. November. Welcher Budgetbereich ist Ihnen wichtig?" },
+                { "sender": "bot", "text": "Gut! Ich kann Ihnen das helfen. Haben Sie eine bestimmte Fluglinie oder einen Zielpunkt in Betracht gezogen?" },
+                { "sender": "user", "text": "Nein, ich suche einfach nach den besten Deals. Welche Optionen sind für den 25. Oktober bis 5. November verfügbar?" },
+                { "sender": "bot", "text": "Ich kann eine Liste der verfügbaren Flüge in dieser Periode bereitstellen. Möchten Sie eine Zusammenfassung der aktuellen Deals sehen?" },
+                { "sender": "user", "text": "Ja, bitte." },
+                { "sender": "bot", "text": "Ich verstehe. Ich werde Ihnen die aktuellen Flugdeals vom 25. Oktober bis 5. November bereitstellen. Bitte warten Sie einen Moment..." },
+                { "sender": "user", "text": "Okay, thanks for the help!" },
+                { "sender": "bot", "text": "Ich verstehe. Ist noch etwas, das ich Ihnen helfen kann?" },
+                { "sender": "user", "text": "Nein, ich denke, das ist alles. Guten Tag!" },
+                { "sender": "bot", "text": "Sie können sich immer bei mir wenden, wenn Sie weitere Hilfe benötigen. Guten Tag!" }
+            ],
+            'ja': [
+                { "sender": "bot", "text": "こんにちは！今日はどのようにお手伝いできますか？" },
+                { "sender": "user", "text": "パリへの飛行機の予約をしたいです。" },
+                { "sender": "bot", "text": "もちろんです！どちらのタイプですか？往復か片道ですか？どちらの時期ですか？" },
+                { "sender": "user", "text": "往復で、10月25日に5日までです。予算の範囲はありますか？" },
+                { "sender": "bot", "text": "とても良いです！それはどちらの航空会社や目的地ですか？" },
+                { "sender": "user", "text": "ありません。ただ、良いディールを探しています。10月25日に5日までのオプションはありますか？" },
+                { "sender": "bot", "text": "その期間の飛行機のリストを提供できます。今のディールのサマリーを見たいですか？" },
+                { "sender": "user", "text": "はい、お願いします。" },
+                { "sender": "bot", "text": "わかりました。10月25日に5日までの現在の飛行機ディールを提供します。少し時間をください..." },
+                { "sender": "user", "text": "Okay, thanks for the help!" },
+                { "sender": "bot", "text": "わかりました。何かさらにお手伝いできることがありますか？" },
+                { "sender": "user", "text": "いいえ、これでいいです。おやすみ！" },
+                { "sender": "bot", "text": "さらにお手伝いが必要な場合はいつでもご連絡ください。おやすみ！" }
+            ]
+        };
+
+        function addMessage(sender, text, isBot) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', sender);
+            if (isBot) {
+                messageDiv.classList.add('bot');
+            }
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+        }
+
+        function sendMessage() {
+            const messageText = chatInput.value.trim();
+            if (messageText) {
+                addMessage('user', messageText, false);
+                chatInput.value = '';
+                // Simulate bot response
+                setTimeout(() => {
+                    const botResponse = getBotResponse(messageText, currentLang);
+                    addMessage('bot', botResponse, true);
+                }, 500);
+            }
+        }
+
+        function getBotResponse(userMessage, lang) {
+            // Simple keyword-based response for demo
+            let botResponse = "I'm not sure how to respond to that. Can you please rephrase?";
+            let found = false;
+
+            for (const message of messagesByLang[lang] || []) {
+                if (message.text.toLowerCase().includes(userMessage.toLowerCase())) {
+                    botResponse = message.text;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found && lang === 'en') {
+                botResponse = "I'm sorry, I don't understand your message. Please try again or ask in English, Spanish, or another supported language.";
+            }
+
+            return botResponse;
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        languageSelector.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const lang = e.target.dataset.lang;
+                languageSelector.querySelector('button.active').classList.remove('active');
+                e.target.classList.add('active');
+                currentLang = lang;
+                // Re-display messages in the new language
+                chatMessages.innerHTML = ''; // Clear previous messages
+                messages.forEach(msg => {
+                    addMessage(msg.sender, getTranslatedMessage(msg.text, currentLang), msg.sender === 'bot');
+                });
+            }
+        });
+
+        function getTranslatedMessage(text, targetLang) {
+            // This is a simplified lookup. In a real app, you'd use a more robust
+            // translation API (like Google Translate, DeepL, or a localization
+            // resource) and handle dynamic content.
+            if (text.includes('Hello! How can I assist you today?')) {
+                return messagesByLang[targetLang][0].text;
+            } else if (text.includes('I need help with booking a flight to Paris.')) {
+                return messagesByLang[targetLang][1].text;
+            } else if (text.includes('Round trip, from October 25 to November 5. Any budget range?')) {
+                return messagesByLang[targetLang][3].text;
+            } else if (text.includes('No, just looking for the best deals. What are the available options for October 25 to November 5?')) {
+                return messagesByLang[targetLang][5].text;
+            } else if (text.includes('Yes, please!')) {
+                return messagesByLang[targetLang][6].text;
+            } else if (text.includes('Okay, thanks for the help!')) {
+                return messagesByLang[targetLang][8].text;
+            } else if (text.includes('No, I think that\'s it. Have a great day!')) {
+                return messagesByLang[targetLang][10].text;
+            } else if (text.includes('You can always reach out if you need further assistance. Have a great day!')) {
+                return messagesByLang[targetLang][11].text;
+            }
+            return text; // Fallback
+        }
+    </script>
+</body>
+</html>

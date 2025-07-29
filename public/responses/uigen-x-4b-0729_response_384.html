@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        neutral: {
+                            50: '#f8faf9fa',
+                            100: '#e9ecef',
+                            200: '#dee2e6',
+                            300: '#ced4da',
+                            400: '#adb5bd',
+                            500: '#6c757d',
+                            600: '#495057',
+                            700: '#343a40',
+                            800: '#212529',
+                            900: '#121416',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-secondary: #22c55e;
+            --color-background: #f8faf9fa;
+            --color-card: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .habit-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .habit-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .streak-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            transform: translate(20%, -20%);
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--color-secondary);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .week-chart-bar {
+            width: 32px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+    </style>
+</head>
+<body class="bg-neutral-50 min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-primary-500 w-8 h-8 rounded-lg flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <span class="ml-3 text-xl font-bold text-neutral-800">Habit Tracker</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button class="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-neutral-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Today's Date -->
+        <div class="text-center mb-12">
+            <h1 class="text-3xl font-bold text-neutral-800">Monday, June 12</h1>
+            <p class="mt-2 text-neutral-500">Track your habits and build your streak</p>
+        </div>
+
+        <!-- Habits Section -->
+        <section class="mb-16">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-neutral-800">Your Habits</h2>
+                <button class="text-primary-600 hover:text-primary-800 font-medium flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Add Habit
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Habit Card 1 -->
+                <div class="habit-card bg-white rounded-xl overflow-hidden fade-in" style="animation-delay: 0.1s;">
+                    <div class="p-5">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-lg text-neutral-800">Morning Meditation</h3>
+                                <p class="text-sm text-neutral-500">Daily at 7:00 AM</p>
+                            </div>
+                            <div class="streak-badge bg-secondary-500">7</div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-neutral-500 mb-1">
+                                <span>Progress</span>
+                                <span>80%</span>
+                            </div>
+                            <div class="progress-bar bg-neutral-200">
+                                <div class="progress-fill bg-secondary-500" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between">
+                            <button class="text-sm font-medium text-neutral-500 hover:text-primary-600">
+                                Edit
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-xs text-neutral-500 mr-2">Today</span>
+                                <div class="w-4 h-4 rounded-full bg-primary-100 border-2 border-white"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Habit Card 2 -->
+                <div class="habit-card bg-white rounded-xl overflow-hidden fade-in" style="animation-delay: 0.2s;">
+                    <div class="p-5">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-lg text-neutral-800">Drink Water</h3>
+                                <p class="text-sm text-neutral-500">8 glasses per day</p>
+                            </div>
+                            <div class="streak-badge bg-secondary-500">12</div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-neutral-500 mb-1">
+                                <span>Progress</span>
+                                <span>65%</span>
+                            </div>
+                            <div class="progress-bar bg-neutral-200">
+                                <div class="progress-fill bg-primary-500" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between">
+                            <button class="text-sm font-medium text-neutral-500 hover:text-primary-600">
+                                Edit
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-xs text-neutral-500 mr-2">Today</span>
+                                <div class="w-4 h-4 rounded-full bg-primary-100 border-2 border-white"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Habit Card 3 -->
+                <div class="habit-card bg-white rounded-xl overflow-hidden fade-in" style="animation-delay: 0.3s;">
+                    <div class="p-5">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold text-lg text-neutral-800">30-min Exercise</h3>
+                                <p class="text-sm text-neutral-500">Evening at 6:30 PM</p>
+                            </div>
+                            <div class="streak-badge bg-secondary-500">5</div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-neutral-500 mb-1">
+                                <span>Progress</span>
+                                <span>40%</span>
+                            </div>
+                            <div class="progress-bar bg-neutral-200">
+                                <div class="progress-fill bg-primary-500" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between">
+                            <button class="text-sm font-medium text-neutral-500 hover:text-primary-600">
+                                Edit
+                            </button>
+                            <div class="flex items-center">
+                                <span class="text-xs text-neutral-500 mr-2">Today</span>
+                                <div class="w-4 h-4 rounded-full bg-neutral-200 border-2 border-white"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Weekly Progress -->
+        <section class="mb-16">
+            <h2 class="text-xl font-semibold text-neutral-800 mb-6">Weekly Progress</h2>
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex justify-between mb-6">
+                    <div>
+                        <h3 class="font-medium text-neutral-800">This Week</h3>
+                        <p class="text-sm text-neutral-500">Track your consistency over the week</p>
+                    </div>
+                    <button class="text-primary-600 hover:text-primary-800 font-medium text-sm">
+                        View All
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-7 gap-4">
+                    <!-- Day 1 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Mon</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 80%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">80%</div>
+                    </div>
+                    
+                    <!-- Day 2 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Tue</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 65%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">65%</div>
+                    </div>
+                    
+                    <!-- Day 3 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Wed</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 90%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">90%</div>
+                    </div>
+                    
+                    <!-- Day 4 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Thu</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 75%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">75%</div>
+                    </div>
+                    
+                    <!-- Day 5 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Fri</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 60%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">60%</div>
+                    </div>
+                    
+                    <!-- Day 6 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Sat</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 40%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">40%</div>
+                    </div>
+                    
+                    <!-- Day 7 -->
+                    <div class="text-center">
+                        <div class="text-sm text-neutral-500 mb-2">Sun</div>
+                        <div class="week-chart-bar bg-primary-500" style="height: 50%"></div>
+                        <div class="text-xs text-neutral-500 mt-1">50%</div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-medium text-neutral-800">Current Streak</h3>
+                        <p class="text-sm text-neutral-500">7 days of consistency</p>
+                    </div>
+                    <div class="pulse bg-secondary-500 text-white px-4 py-2 rounded-lg font-medium">
+                        Keep it up!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Achievements -->
+        <section>
+            <h2 class="text-xl font-semibold text-neutral-800 mb-6">Your Achievements</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl p-4 text-center">
+                    <div class="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <h3 class="font-medium text-neutral-800">First Steps</h3>
+                    <p class="text-sm text-neutral-500">Started tracking</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 text-center">
+                    <div class="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <h3 class="font-medium text-neutral-800">7-Day Streak</h3>
+                    <p class="text-sm text-neutral-500">Consistency</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 text-center">
+                    <div class="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-medium text-neutral-800">Goal Achiever</h3>
+                    <p class="text-sm text-neutral-500">Complete 5 goals</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 text-center">
+                    <div class="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <h3 class="font-medium text-neutral-800">21-Day Rule</h3>
+                    <p class="text-sm text-neutral-500">Habit mastery</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-16 py-8 border-t border-neutral-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center">
+                    <div class="bg-primary-500 w-6 h-6 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <span class="ml-2 text-lg font-bold text-neutral-800">Habit Tracker</span>
+                </div>
+                <p class="mt-4 md:mt-0 text-sm text-neutral-500">
+                    © 2023 Habit Tracker. All rights reserved.
+                </p>
+                <div class="mt-4 md:mt-0 flex space-x-4">
+                    <a href="#" class="text-neutral-500 hover:text-primary-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="#" class="text-neutral-500 hover:text-primary-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                        </svg>
+                    </a>
+                    <a href="#" class="text-neutral-500 hover:text-primary-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple animation for the progress bars
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate progress bars on load
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 300);
+            });
+            
+            // Add animation to habit cards on scroll
+            const habitCards = document.querySelectorAll('.habit-card');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animationPlayState = 'running';
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            habitCards.forEach(card => {
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>

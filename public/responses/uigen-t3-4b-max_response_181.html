@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #FF0000; /* Instagram Red */
+            --color-secondary: #FF3300; /* Darker Red for highlights */
+            --color-background: #F0F0F0; /* Light grey background */
+            --color-card-background: #FFFFFF; /* White for cards */
+            --color-text-dark: #262626; /* Dark text */
+            --color-text-light: #FFFFFF; /* Light text for dark backgrounds */
+            --color-border: #E0E0E0; /* Light grey border */
+            --color-story-active: #FF0000; /* Active story background */
+        }
+
+        body {
+            background-color: var(--color-background);
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-dark);
+        }
+
+        .story-placeholder {
+            background-color: #DDD;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            color: #999;
+            border: 1px solid var(--color-border);
+        }
+
+        .post-image {
+            aspect-ratio: 16 / 9; /* Standard Instagram post aspect ratio */
+            border-radius: 0.75rem; /* 12px */
+            overflow: hidden;
+        }
+
+        .post-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,1) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1rem;
+            color: white;
+            z-index: 10;
+        }
+
+        .post-actions {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0,0,0,0.7);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .post-interaction-icon {
+            cursor: pointer;
+            transition: color 0.2s ease-in-out;
+        }
+        .post-interaction-icon:hover {
+            color: var(--color-secondary);
+        }
+
+        .post-interaction-count {
+            font-size: 0.75rem;
+            color: white;
+        }
+
+        .story-interaction-icon {
+            cursor: pointer;
+            transition: color 0.2s ease-in-out;
+        }
+        .story-interaction-icon:hover {
+            color: var(--color-secondary);
+        }
+
+        .story-interaction-count {
+            font-size: 0.75rem;
+            color: white;
+        }
+
+        .story-interactive {
+            position: relative;
+            overflow: hidden;
+            border-radius: 9999px;
+        }
+
+        .story-interactive::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,1) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .story-interactive .story-overlay {
+            position: relative; /* Relative to the story-interactive div */
+            top: 0; /* Adjust as needed for overlay positioning */
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 0.5rem;
+            color: white;
+            z-index: 10;
+        }
+
+        .story-interactive .story-overlay span {
+            font-size: 0.75rem;
+            color: white;
+        }
+
+        .story-interactive .story-overlay .story-actions {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0,0,0,0.7);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Responsive adjustments for stories */
+        @media (max-width: 640px) {
+            .story-interactive {
+                width: 100%;
+                height: 120px; /* Adjust for smaller screens */
+                border-radius: 9999px;
+                overflow: hidden;
+            }
+            .story-interactive::before {
+                height: 100%;
+            }
+            .story-interactive .story-overlay {
+                padding: 0.25rem;
+                bottom: 0.25rem;
+                left: 0.25rem;
+                right: 0.25rem;
+            }
+            .story-interactive .story-overlay span {
+                font-size: 0.6rem;
+            }
+            .story-interactive .story-overlay .story-actions {
+                bottom: 0.25rem;
+                right: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+    <!-- Left Navigation (Stories) -->
+    <div class="w-16 md:w-20 flex-shrink-0 border-r border-gray-200 bg-white">
+        <div class="flex flex-col items-center py-4 space-y-4">
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-home"></i>
+            </button>
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-plus-circle"></i>
+            </button>
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
+        <div class="mt-auto pt-4 flex flex-col items-center">
+            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xl">
+                <img src="https://placehold.co/100x100/cccccc/ffffff?text=P" alt="Profile" class="rounded-full w-full h-full object-cover">
+            </div>
+            <span class="text-xs text-gray-500 mt-1">Your Name</span>
+        </div>
+    </div>
+
+    <!-- Main Feed Area -->
+    <div class="flex-1 p-4 overflow-y-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-semibold">Home</h1>
+            <div class="flex space-x-2">
+                <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-search"></i></button>
+                <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-ellipsis-h"></i></button>
+            </div>
+        </div>
+
+        <!-- Stories Section -->
+        <div class="mb-6">
+            <div class="flex space-x-2 overflow-x-auto pb-2 no-scrollbar">
+                <!-- Story 1 (Active) -->
+                <div class="flex-shrink-0 w-16 h-16 rounded-full bg-[var(--color-story-active)] border-2 border-white flex items-center justify-center text-white font-bold">
+                    <img src="https://placehold.co/100x100/FF0000/FFFFFF?text=U1" alt="Story 1" class="rounded-full w-full h-full object-cover">
+                </div>
+                <!-- Story 2 -->
+                <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
+                    <img src="https://placehold.co/100x100/FF3300/FFFFFF?text=U2" alt="Story 2" class="rounded-full w-full h-full object-cover">
+                </div>
+                <!-- Story 3 -->
+                <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
+                    <img src="https://placehold.co/100x100/000000/FFFFFF?text=U3" alt="Story 3" class="rounded-full w-full h-full object-cover">
+                </div>
+                <!-- Story 4 -->
+                <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
+                    <img src="https://placehold.co/100x100/000000/FFFFFF?text=U4" alt="Story 4" class="rounded-full w-full h-full object-cover">
+                </div>
+                <!-- Story 5 -->
+                <div class="flex-shrink-0 w-16 h-16 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">
+                    <img src="https://placehold.co/100x100/000000/FFFFFF?text=U5" alt="Story 5" class="rounded-full w-full h-full object-cover">
+                </div>
+            </div>
+        </div>
+
+        <!-- Post Section -->
+        <div class="space-y-6">
+            <!-- Example Post 1 -->
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div class="w-full h-48 post-image">
+                    <img src="https://placehold.co/400x600/FF0000/FFFFFF?text=Post+Image+1" alt="Post 1" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/FF0000/FFFFFF?text=P" alt="User 1" class="rounded-full w-10 h-10 mr-2">
+                        <span class="font-semibold text-sm">user1</span>
+                    </div>
+                    <p class="text-sm mb-2">This is a great example of a post with some text. It showcases the ability to easily add content and make it interactive.</p>
+                    <div class="flex items-center text-gray-500 text-sm">
+                        <span class="mr-4"><i class="far fa-heart"></i> 1,234</span>
+                        <span><i class="far fa-comment"></i> 56</span>
+                        <span class="ml-auto"><i class="far fa-paper-plane"></i> 10</span>
+                    </div>
+                </div>
+                <div class="post-overlay">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-heart"></i>
+                            <span class="post-interaction-count">1,234</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-comment"></i>
+                            <span class="post-interaction-count">56</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-paper-plane"></i>
+                            <span class="post-interaction-count">10</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="far fa-smile"></i>
+                        <span>23</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="story-interaction-icon"><i class="far fa-heart"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-comment"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- Example Post 2 -->
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div class="w-full h-48 post-image">
+                    <img src="https://placehold.co/400x600/0000FF/FFFFFF?text=Post+Image+2" alt="Post 2" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/0000FF/FFFFFF?text=P" alt="User 2" class="rounded-full w-10 h-10 mr-2">
+                        <span class="font-semibold text-sm">user2</span>
+                    </div>
+                    <p class="text-sm mb-2">Exploring new features and making sure the design is responsive across all devices. A key aspect of modern web development.</p>
+                    <div class="flex items-center text-gray-500 text-sm">
+                        <span class="mr-4"><i class="far fa-heart"></i> 567</span>
+                        <span><i class="far fa-comment"></i> 12</span>
+                        <span class="ml-auto"><i class="far fa-paper-plane"></i> 3</span>
+                    </div>
+                </div>
+                <div class="post-overlay">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-heart"></i>
+                            <span class="post-interaction-count">567</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-comment"></i>
+                            <span class="post-interaction-count">12</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-paper-plane"></i>
+                            <span class="post-interaction-count">3</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="far fa-smile"></i>
+                        <span>8</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="story-interaction-icon"><i class="far fa-heart"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-comment"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- Example Post 3 (with more text) -->
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div class="w-full h-48 post-image">
+                    <img src="https://placehold.co/400x600/00FF00/FFFFFF?text=Post+Image+3" alt="Post 3" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/00FF00/FFFFFF?text=P" alt="User 3" class="rounded-full w-10 h-10 mr-2">
+                        <span class="font-semibold text-sm">user3</span>
+                    </div>
+                    <p class="text-sm mb-2">This is a longer post to demonstrate how the text area can adapt and still look good. It's important to make sure the content is readable and the design is clean, without overwhelming the user. The goal is to provide value without being cluttered. This is a key consideration in UI/UX design.</p>
+                    <div class="flex items-center text-gray-500 text-sm">
+                        <span class="mr-4"><i class="far fa-heart"></i> 987</span>
+                        <span><i class="far fa-comment"></i> 45</span>
+                        <span class="ml-auto"><i class="far fa-paper-plane"></i> 20</span>
+                    </div>
+                </div>
+                <div class="post-overlay">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-heart"></i>
+                            <span class="post-interaction-count">987</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-comment"></i>
+                            <span class="post-interaction-count">45</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-paper-plane"></i>
+                            <span class="post-interaction-count">20</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="far fa-smile"></i>
+                        <span>30</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="story-interaction-icon"><i class="far fa-heart"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-comment"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- Example Post 4 (with video placeholder, though not interactive) -->
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div class="w-full h-48 post-image">
+                    <img src="https://placehold.co/400x600/FF00FF/FFFFFF?text=Post+Image+4" alt="Post 4" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center mb-2">
+                        <img src="https://placehold.co/40x40/FF00FF/FFFFFF?text=P" alt="User 4" class="rounded-full w-10 h-10 mr-2">
+                        <span class="font-semibold text-sm">user4</span>
+                    </div>
+                    <p class="text-sm mb-2">A quick note about the importance of accessibility in design. Making sure everyone can use your product, regardless of their abilities, is a fundamental principle. It's not just about compliance, but about creating a truly inclusive experience.</p>
+                    <div class="flex items-center text-gray-500 text-sm">
+                        <span class="mr-4"><i class="far fa-heart"></i> 765</span>
+                        <span><i class="far fa-comment"></i> 18</span>
+                        <span class="ml-auto"><i class="far fa-paper-plane"></i> 5</span>
+                    </div>
+                </div>
+                <div class="post-overlay">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-heart"></i>
+                            <span class="post-interaction-count">765</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-comment"></i>
+                            <span class="post-interaction-count">18</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-paper-plane"></i>
+                            <span class="post-interaction-count">5</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <i class="far fa-smile"></i>
+                        <span>15</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="story-interaction-icon"><i class="far fa-heart"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-comment"></i></button>
+                    <button class="story-interaction-icon"><i class="far fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Navigation (Explore, Notifications, etc.) -->
+    <div class="w-16 md:w-20 flex-shrink-0 border-l border-gray-200 bg-white">
+        <div class="flex flex-col items-center py-4 space-y-4">
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button class="w-12 h-12 rounded-full bg-white text-gray-800 flex items-center justify-center text-2xl font-bold">
+                <i class="fas fa-user-plus"></i>
+            </button>
+        </div>
+        <div class="mt-auto pt-4 flex flex-col items-center">
+            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xl">
+                <img src="https://placehold.co/100x100/cccccc/ffffff?text=U" alt="Profile" class="rounded-full w-full h-full object-cover">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simple interactivity for post actions
+            document.querySelectorAll('.post-actions button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // In a real app, this would trigger a function to update post interactions
+                    console.log('Post action clicked:', this.closest('.post-actions').querySelectorAll('i')[0].classList[0]);
+                });
+            });
+
+            // Simple interactivity for story actions
+            document.querySelectorAll('.story-interaction-icon').forEach(button => {
+                button.addEventListener('click', function() {
+                    // In a real app, this would trigger a function to update story interactions
+                    console.log('Story action clicked:', this.classList[1]);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

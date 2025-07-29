@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-white: #FFFFFF;
+            --color-off-white: #F9F9F9;
+            --color-slate-bg: #F4F4F4; /* Lighter for map */
+            --color-dark-slate: #2B2B2B;
+            --color-charcoal: #1A1A1A;
+            --color-gold: #FFD700; /* For accents */
+            --color-orange: #FF6347; /* For status indicators */
+            --color-green: #28A745; /* For success */
+            --color-red: #DC3545; /* For warnings/critical */
+            --color-blue: #007BFF; /* For primary actions */
+            --color-light-gray: #E0E0E0;
+
+            --font-primary: 'Inter', sans-serif;
+            --font-secondary: 'Manrope', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-slate-bg);
+            color: var(--color-charcoal);
+            overflow-x: hidden;
+        }
+
+        .font-primary { font-family: var(--font-primary); }
+        .font-secondary { font-family: var(--font-secondary); }
+
+        .tracking-card {
+            background-color: var(--color-white);
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%; /* 4:3 Aspect Ratio */
+            background-color: #e0e0e0;
+            border-radius: 1rem;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-charcoal);
+            font-size: 1.5rem;
+        }
+
+        .map-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-secondary);
+            font-weight: 600;
+            color: var(--color-light-gray);
+        }
+
+        .map-marker {
+            position: absolute;
+            background-color: var(--color-orange);
+            color: var(--color-white);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid var(--color-white);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .map-marker.active {
+            background-color: var(--color-blue);
+            border-color: var(--color-blue);
+            box-shadow: 0 0 0 3px var(--color-blue);
+        }
+
+        .map-marker .icon {
+            margin-right: 0.25rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .status-dot.in-transit { background-color: var(--color-orange); }
+        .status-dot.in-transit:hover { background-color: var(--color-gold); }
+        .status-dot.delivered { background-color: var(--color-green); }
+        .status-dot.arriving { background-color: var(--color-blue); }
+        .status-dot.delayed { background-color: var(--color-red); }
+        .status-dot.away { background-color: var(--color-light-gray); }
+        .status-dot.inspection { background-color: var(--color-blue); }
+
+        .item-row {
+            border-bottom: 1px solid var(--color-slate-bg);
+            transition: background-color 0.2s ease-in-out;
+        }
+        .item-row:hover {
+            background-color: var(--color-off-white);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navbar (simplified for tracking UI) -->
+    <nav class="bg-[var(--color-white)] shadow-sm p-4 flex items-center justify-between sticky top-0 z-50">
+        <a href="#" class="text-2xl font-secondary font-bold text-[var(--color-charcoal)]">ShipTrack</a>
+        <div class="flex items-center space-x-4">
+            <button class="text-[var(--color-charcoal)] hover:text-[var(--color-blue)] transition-colors">
+                <i class="fas fa-bell"></i>
+            </button>
+            <div class="w-10 h-10 rounded-full bg-[var(--color-off-white)] flex items-center justify-center text-[var(--color-charcoal)] font-semibold">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Map View Section -->
+        <section class="lg:col-span-2 tracking-card h-96 md:h-[600px]">
+            <div class="map-container" id="map-view">
+                <div class="map-placeholder">
+                    <img src="https://placehold.co/600x450/cccccc/333333?text=Interactive+Map" alt="Interactive Map Placeholder" class="w-full h-full object-cover">
+                </div>
+                <!-- Map markers will be dynamically added here -->
+                <div class="map-marker" data-shipment-id="1" data-status="in-transit">
+                    <span class="font-bold">Shipment 1</span>
+                    <span class="icon"><i class="fas fa-truck"></i></span>
+                </div>
+                <div class="map-marker" data-shipment-id="2" data-status="arriving">
+                    <span class="font-bold">Shipment 2</span>
+                    <span class="icon"><i class="fas fa-box"></i></span>
+                </div>
+                <div class="map-marker" data-shipment-id="3" data-status="delayed">
+                    <span class="font-bold">Shipment 3</span>
+                    <span class="icon"><i class="fas fa-hourglass-half"></i></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Real-time Status & Item List Section -->
+        <section class="tracking-card">
+            <div class="p-6 border-b border-[var(--color-slate-bg)]">
+                <h2 class="text-3xl font-secondary font-bold text-[var(--color-charcoal)] mb-4">Shipments Overview</h2>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <span class="text-sm px-3 py-1 rounded-full bg-[var(--color-off-white)] text-[var(--color-charcoal)]">In Transit: 2</span>
+                    <span class="text-sm px-3 py-1 rounded-full bg-[var(--color-off-white)] text-[var(--color-charcoal)]">Arriving: 1</span>
+                    <span class="text-sm px-3 py-1 rounded-full bg-[var(--color-off-white)] text-[var(--color-charcoal)]">Delayed: 1</span>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <input type="text" placeholder="Search shipments..." class="flex-grow p-2 border border-[var(--color-slate-bg)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-blue)]">
+                    <button class="px-5 py-2 bg-[var(--color-blue)] text-[var(--color-white)] rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>New Shipment
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-[var(--color-slate-bg)]">
+                        <thead class="bg-[var(--color-off-white)]">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-charcoal)] uppercase tracking-wider">Shipment ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-charcoal)] uppercase tracking-wider">Shipper</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-charcoal)] uppercase tracking-wider">Destination</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-charcoal)] uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-charcoal)] uppercase tracking-wider">Last Update</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-[var(--color-white)] divide-y divide-[var(--color-slate-bg)]">
+                            <!-- Shipment Row 1 -->
+                            <tr class="item-row">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-charcoal)]">SHP-001</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">Global Logistics</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">New York, USA</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="status-dot in-transit"></span>
+                                    <span class="text-[var(--color-orange)]">In Transit</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">2024-03-10 14:30</td>
+                            </tr>
+                            <!-- Shipment Row 2 -->
+                            <tr class="item-row">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-charcoal)]">SHP-002</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">Express Pack</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">London, UK</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="status-dot.arriving"></span>
+                                    <span class="text-[var(--color-blue)]">Arriving</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">2024-03-09 09:15</td>
+                            </tr>
+                            <!-- Shipment Row 3 -->
+                            <tr class="item-row">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-charcoal)]">SHP-003</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">QuickShip</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">Tokyo, Japan</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="status-dot.delayed"></span>
+                                    <span class="text-[var(--color-red)]">Delayed</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">2024-03-11 10:00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer (simplified for tracking UI) -->
+    <footer class="py-6 bg-[var(--color-dark-slate)] text-[var(--color-white)] text-center">
+        <p>&copy; 2024 ShipTrack. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Simulate real-time status updates
+            const statusUpdateInterval = 5000; // 5 seconds
+            const shipments = [
+                { id: '1', status: 'in-transit', lastUpdate: '2024-03-10 14:30' },
+                { id: '2', status: 'arriving', lastUpdate: '2024-03-09 09:15' },
+                { id: '3', status: 'delayed', lastUpdate: '2024-03-11 10:00' },
+                { id: '4', status: 'delivered', lastUpdate: '2024-03-10 08:00' },
+            ];
+
+            const mapMarkers = document.querySelectorAll('.map-marker');
+            const statusTable = document.querySelector('tbody');
+
+            function updateShipments() {
+                // Update map markers
+                mapMarkers.forEach(marker => {
+                    const shipmentId = marker.dataset.shipmentId;
+                    const status = shipments.find(s => s.id === shipmentId)?.status || 'in-transit';
+
+                    // Remove active class from all, then add to clicked one
+                    mapMarkers.forEach(m => m.classList.remove('active'));
+                    if (status === 'in-transit') {
+                        marker.classList.add('active');
+                    }
+                });
+
+                // Update table
+                statusTable.innerHTML = ''; // Clear current table
+                shipments.forEach(shipment => {
+                    const statusClass = `status-dot ${shipment.status}`;
+                    const statusText = {
+                        in-transit: 'In Transit',
+                        arriving: 'Arriving',
+                        delayed: 'Delayed',
+                        delivered: 'Delivered',
+                        away: 'Away',
+                        inspection: 'Inpection'
+                    }[shipment.status];
+
+                    const row = document.createElement('tr');
+                    row.classList.add('item-row');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-charcoal)]">${shipment.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">Shipper ${shipment.id.split('-')[1]}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">Destination ${shipment.id.split('-')[1]}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="${statusClass}"></span>
+                            <span class="text-[var(--color-${getColorForStatus(shipment.status)})]">${statusText}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-charcoal)]">${shipment.lastUpdate}</td>
+                    `;
+                    statusTable.appendChild(row);
+                });
+
+                // Simulate new status
+                if (shipments.length < 5) { // Limit to 4 for demo
+                    const newStatus = ['in-transit', 'arriving', 'delayed', 'delivered', 'away', 'inspection'][Math.floor(Math.random() * 6)];
+                    const newShipmentId = 'SHP-00' + (shipments.length + 1);
+                    const newLastUpdate = new Date().toISOString().slice(0, 16);
+
+                    shipments.push({ id: newShipmentId, status: newStatus, lastUpdate: newLastUpdate });
+                }
+            }
+
+            // Helper to get color for status
+            function getColorForStatus(status) {
+                switch (status) {
+                    case 'in-transit': return 'orange';
+                    case 'arriving': return 'blue';
+                    case 'delayed': return 'red';
+                    case 'delivered': return 'green';
+                    case 'away': return 'light-gray';
+                    case 'inspection': return 'blue';
+                    default: return 'orange';
+                }
+            }
+
+            // Initial update
+            updateShipments();
+            // Set interval for real-time updates
+            setInterval(updateShipments, statusUpdateInterval);
+        });
+    </script>
+</body>
+</html>

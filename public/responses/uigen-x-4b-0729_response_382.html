@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genealogy Explorer | Family History Research</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'gene-primary': '#1a3a5f',
+                        'gene-secondary': '#4a6fa5',
+                        'gene-accent': '#e6c567',
+                        'gene-light': '#f8f9fa',
+                        'gene-dark': '#212529',
+                        'gene-paper': '#f5f2e9',
+                        'gene-ink': '#333333',
+                        'gene-border': '#d1d5db'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            overflow-x: hidden;
+        }
+        
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .gene-tree {
+            position: relative;
+            height: 500px;
+        }
+        
+        .tree-node {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e6c567;
+            border: 3px solid #1a3a5f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a3a5f;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .tree-node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 5px rgba(26, 58, 95, 0.3);
+        }
+        
+        .tree-connection {
+            position: absolute;
+            background-color: #1a3a5f;
+            width: 2px;
+            height: calc(100% - 20px);
+        }
+        
+        .document-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .document-card:hover {
+            transform: translateY(-5px);
+            border-color: #e6c567;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .search-highlight {
+            background-color: rgba(230, 197, 103, 0.3);
+            padding: 0 2px;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .marquee-container {
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+        
+        .marquee-content {
+            display: flex;
+            animation: marquee 30s linear infinite;
+        }
+        
+        .marquee-content > * {
+            flex-shrink: 0;
+            margin-right: 2rem;
+        }
+        
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(26, 58, 95, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(26, 58, 95, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(26, 58, 95, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gene-light text-gene-dark">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-gene-primary flex items-center justify-center mr-3">
+                    <i class="fas fa-tree text-gene-accent text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gene-primary font-playfair">Genealogy Explorer</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#tree" class="font-medium text-gene-primary hover:text-gene-accent transition">Family Tree</a>
+                <a href="#documents" class="font-medium text-gene-primary hover:text-gene-accent transition">Documents</a>
+                <a href="#search" class="font-medium text-gene-primary hover:text-gene-accent transition">Search</a>
+                <a href="#about" class="font-medium text-gene-primary hover:text-gene-accent transition">About</a>
+            </nav>
+            
+            <div class="flex items-center">
+                <div class="relative mr-4">
+                    <input type="text" placeholder="Search ancestors..." class="pl-10 pr-4 py-2 rounded-full border border-gene-border focus:outline-none focus:ring-2 focus:ring-gene-primary focus:border-transparent">
+                    <i class="fas fa-search absolute left-3 top-3 text-gene-border"></i>
+                </div>
+                <button class="md:hidden text-gene-primary">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 bg-gradient-to-r from-gene-primary to-gene-secondary text-white">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 font-playfair">Discover Your Family's <span class="text-gene-accent">Story</span></h1>
+                    <p class="text-xl mb-8 max-w-lg">Explore your ancestry through interactive family trees, historical documents, and powerful search tools. Your roots, our expertise.</p>
+                    <div class="flex flex-wrap gap-4">
+                        <button class="bg-gene-accent text-gene-primary font-medium py-3 px-6 rounded-full hover:bg-opacity-90 transition transform hover:scale-105">
+                            Start Exploring
+                        </button>
+                        <button class="bg-white bg-opacity-20 text-white font-medium py-3 px-6 rounded-full hover:bg-opacity-30 transition">
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div class="w-64 h-64 bg-gene-accent rounded-full absolute top-0 left-1/2 transform -translate-x-1/2"></div>
+                        <div class="w-48 h-48 bg-gene-primary rounded-full absolute top-16 left-1/2 transform -translate-x-1/2"></div>
+                        <div class="w-32 h-32 bg-gene-secondary rounded-full absolute top-32 left-1/2 transform -translate-x-1/2"></div>
+                        <div class="relative z-10 bg-white p-6 rounded-2xl shadow-xl w-64">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-gene-accent"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-lg">Sarah Johnson</h3>
+                                    <p class="text-sm text-gray-600">1895 - 1972</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between">
+                                <button class="w-8 h-8 rounded-full bg-gene-light flex items-center justify-center">
+                                    <i class="fas fa-arrow-up text-gene-primary"></i>
+                                </button>
+                                <button class="w-8 h-8 rounded-full bg-gene-light flex items-center justify-center">
+                                    <i class="fas fa-arrow-down text-gene-primary"></i>
+                                </button>
+                                <button class="w-8 h-8 rounded-full bg-gene-light flex items-center justify-center">
+                                    <i class="fas fa-arrow-right text-gene-primary"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Family Tree Section -->
+    <section id="tree" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12 animate-on-scroll">
+                <h2 class="text-3xl md:text-4xl font-bold text-gene-primary mb-4 font-playfair">Interactive Family Tree</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Explore your ancestors through our interactive family tree. Click on any ancestor to view details and connections.</p>
+            </div>
+            
+            <div class="gene-tree mb-16 animate-on-scroll">
+                <!-- Family Tree Visualization -->
+                <div class="tree-node" style="top: 50px; left: 200px; transform: rotate(10deg);">
+                    <i class="fas fa-user text-xl"></i>
+                </div>
+                <div class="tree-node" style="top: 150px; left: 150px; transform: rotate(5deg);">
+                    <i class="fas fa-user text-xl"></i>
+                </div>
+                <div class="tree-node" style="top: 150px; left: 250px; transform: rotate(-5deg);">
+                    <i class="fas fa-user text-xl"></i>
+                </div>
+                <div class="tree-node" style="top: 250px; left: 100px; transform: rotate(15deg);">
+                    <i class="fas fa-user text-xl"></i>
+                </div>
+                <div class="tree-node" style="top: 250px; left: 200px; transform: rotate(0deg);">
+                    <i class="fas fa-user text-xl"></i>
+                </div>
+                <div class="tree-node" style="top: 250px; left: 300px; transform: rotate(-15deg);">
+                    <i class="fas fa-user text-xl"></i>
+                </div>
+                
+                <!-- Connections -->
+                <div class="tree-connection" style="top: 100px; left: 180px; transform: rotate(10deg);"></div>
+                <div class="tree-connection" style="top: 100px; left: 220px; transform: rotate(-10deg);"></div>
+                <div class="tree-connection" style="top: 180px; left: 160px; transform: rotate(5deg);"></div>
+                <div class="tree-connection" style="top: 180px; left: 240px; transform: rotate(-5deg);"></div>
+                <div class="tree-connection" style="top: 230px; left: 110px; transform: rotate(15deg);"></div>
+                <div class="tree-connection" style="top: 230px; left: 210px; transform: rotate(0deg);"></div>
+                <div class="tree-connection" style="top: 230px; left: 310px; transform: rotate(-15deg);"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-on-scroll">
+                <div class="bg-gene-paper p-6 rounded-xl border border-gene-border">
+                    <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mb-4">
+                        <i class="fas fa-history text-gene-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Historical Context</h3>
+                    <p>Understand your ancestors' lives in the historical context of their era.</p>
+                </div>
+                <div class="bg-gene-paper p-6 rounded-xl border border-gene-border">
+                    <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mb-4">
+                        <i class="fas fa-file-alt text-gene-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Document Analysis</h3>
+                    <p>Examine marriage licenses, birth certificates, and land deeds.</p>
+                </div>
+                <div class="bg-gene-paper p-6 rounded-xl border border-gene-border">
+                    <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-line text-gene-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Ancestral Connections</h3>
+                    <p>Discover connections between your family and other historical lineages.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Historical Documents Section -->
+    <section id="documents" class="py-16 bg-gene-paper">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12 animate-on-scroll">
+                <h2 class="text-3xl md:text-4xl font-bold text-gene-primary mb-4 font-playfair">Historical Documents</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Access digitized historical records and documents from various archives around the world.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-on-scroll">
+                <div class="document-card bg-white rounded-xl overflow-hidden shadow-md">
+                    <div class="p-4 bg-gene-primary text-gene-accent font-bold text-lg">Marriage License</div>
+                    <div class="p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-gene-secondary flex items-center justify-center mr-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Thomas Johnson</h3>
+                                <p class="text-sm text-gray-600">b. 1872</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4">Married to Elizabeth Smith on October 12, 1902 at St. Michael's Church, New York.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-500">New York City, NY</div>
+                            <button class="text-gene-primary font-medium hover:underline">View Full Document</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="document-card bg-white rounded-xl overflow-hidden shadow-md">
+                    <div class="p-4 bg-gene-primary text-gene-accent font-bold text-lg">Land Deed</div>
+                    <div class="p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-gene-secondary flex items-center justify-center mr-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Sarah Williams</h3>
+                                <p class="text-sm text-gray-600">b. 1845</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4">Transferred 5 acres of land in Greenfield, Massachusetts from her father to her husband John.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-500">Greenfield, MA</div>
+                            <button class="text-gene-primary font-medium hover:underline">View Full Document</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="document-card bg-white rounded-xl overflow-hidden shadow-md">
+                    <div class="p-4 bg-gene-primary text-gene-accent font-bold text-lg">Census Record</div>
+                    <div class="p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-gene-secondary flex items-center justify-center mr-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold">Robert Davis</h3>
+                                <p class="text-sm text-gray-600">b. 1888</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-700 mb-4">Occupation: Laborer; Family: 4 children; Residence: 123 Main St, Chicago, IL.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-500">Chicago, IL 1910</div>
+                            <button class="text-gene-primary font-medium hover:underline">View Full Document</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-10 animate-on-scroll">
+                <button class="bg-gene-primary text-gene-accent font-medium py-3 px-8 rounded-full hover:bg-opacity-90 transition">
+                    Browse All Documents
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search & Advanced Features -->
+    <section id="search" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12 animate-on-scroll">
+                <h2 class="text-3xl md:text-4xl font-bold text-gene-primary mb-4 font-playfair">Powerful Search Tools</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Find ancestors, locations, and historical events with our advanced search capabilities.</p>
+            </div>
+            
+            <div class="max-w-3xl mx-auto bg-gene-paper p-8 rounded-2xl shadow-lg animate-on-scroll">
+                <div class="mb-6">
+                    <label class="block text-gene-primary font-medium mb-2">Search Ancestors</label>
+                    <div class="relative">
+                        <input type="text" placeholder="Enter name, location, or event" class="w-full p-4 rounded-lg border border-gene-border focus:outline-none focus:ring-2 focus:ring-gene-primary">
+                        <button class="absolute right-3 top-3 bg-gene-primary text-gene-accent p-2 rounded-lg">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gene-primary font-medium mb-2">Filter By</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <select class="w-full p-3 rounded-lg border border-gene-border focus:outline-none focus:ring-2 focus:ring-gene-primary">
+                                <option>All Locations</option>
+                                <option>United States</option>
+                                <option>United Kingdom</option>
+                                <option>Canada</option>
+                                <option>Germany</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select class="w-full p-3 rounded-lg border border-gene-border focus:outline-none focus:ring-2 focus:ring-gene-primary">
+                                <option>All Time Periods</option>
+                                <option>19th Century</option>
+                                <option>18th Century</option>
+                                <option>17th Century</option>
+                                <option>16th Century</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gene-primary font-medium mb-2">Search Type</label>
+                    <div class="flex flex-wrap gap-3">
+                        <button class="px-4 py-2 bg-gene-primary text-gene-accent rounded-lg font-medium">Family Tree</button>
+                        <button class="px-4 py-2 bg-gene-light border border-gene-border rounded-lg font-medium">Documents</button>
+                        <button class="px-4 py-2 bg-gene-light border border-gene-border rounded-lg font-medium">Events</button>
+                        <button class="px-4 py-2 bg-gene-light border border-gene-border rounded-lg font-medium">Locations</button>
+                    </div>
+                </div>
+                
+                <button class="w-full bg-gene-primary text-gene-accent font-medium py-3 rounded-lg hover:bg-opacity-90 transition">
+                    Search Ancestors
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 animate-on-scroll">
+                <div class="bg-gene-paper p-6 rounded-xl border border-gene-border">
+                    <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mb-4">
+                        <i class="fas fa-map-marked-alt text-gene-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Location Explorer</h3>
+                    <p>Explore family locations on interactive maps and discover places your ancestors lived.</p>
+                </div>
+                <div class="bg-gene-paper p-6 rounded-xl border border-gene-border">
+                    <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mb-4">
+                        <i class="fas fa-calendar-alt text-gene-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Event Timeline</h3>
+                    <p>Create a personal timeline of your family's history with key events and milestones.</p>
+                </div>
+                <div class="bg-gene-paper p-6 rounded-xl border border-gene-border">
+                    <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mb-4">
+                        <i class="fas fa-share-alt text-gene-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Family Sharing</h3>
+                    <p>Share your family tree and research with relatives and collaborate on projects.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-16 bg-gene-primary text-gene-accent">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <div class="relative">
+                        <div class="w-64 h-64 bg-gene-accent rounded-full absolute top-0 left-0 transform -translate-x-1/2 -translate-y-1/2"></div>
+                        <div class="w-48 h-48 bg-gene-secondary rounded-full absolute top-16 left-16 transform -translate-x-1/2 -translate-y-1/2"></div>
+                        <div class="relative z-10 bg-white p-6 rounded-2xl shadow-xl w-64">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 rounded-full bg-gene-primary flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-gene-accent"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-lg">Michael Anderson</h3>
+                                    <p class="text-sm text-gray-600">Family Historian</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-700">"For over 20 years, I've been helping families uncover their past. Genealogy Explorer combines the latest technology with historical expertise to bring your family's story to life."</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-1/2">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6 font-playfair">About Genealogy Explorer</h2>
+                    <p class="text-lg mb-6">Genealogy Explorer was founded in 2010 with a mission to make family history research accessible to everyone. Our team of professional genealogists, archivists, and historians work together to provide accurate and engaging family history resources.</p>
+                    <p class="text-lg mb-8">We believe that understanding your past is essential to building your future. Our platform combines cutting-edge technology with centuries of historical knowledge to help you discover who you are and where you come from.</p>
+                    <div class="flex flex-wrap gap-4">
+                        <button class="bg-gene-accent text-gene-primary font-medium py-3 px-6 rounded-full hover:bg-opacity-90 transition transform hover:scale-105">
+                            Learn More About Us
+                        </button>
+                        <button class="bg-white bg-opacity-20 text-white font-medium py-3 px-6 rounded-full hover:bg-opacity-30 transition">
+                            Contact Our Team
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gene-dark text-gene-light py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gene-primary flex items-center justify-center mr-3">
+                            <i class="fas fa-tree text-gene-accent text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white font-playfair">Genealogy Explorer</h3>
+                    </div>
+                    <p class="mb-4">Your journey through family history and historical documents.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gene-light hover:text-gene-accent"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gene-light hover:text-gene-accent"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gene-light hover:text-gene-accent"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gene-light hover:text-gene-accent"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-gene-accent">Family Tree Builder</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Document Archive</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Search Tools</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Historical Context</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Location Explorer</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-gene-accent">Blog</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Tutorials</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Research Guides</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">FAQ</a></li>
+                        <li><a href="#" class="hover:text-gene-accent">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Contact</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-3"></i>
+                            <span>123 History Lane, Research City</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone mt-1 mr-3"></i>
+                            <span>(555) 123-4567</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope mt-1 mr-3"></i>
+                            <span>info@genealogyexplorer.com</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gene-light border-opacity-20 mt-12 pt-8 text-center text-sm">
+                <p>© 2023 Genealogy Explorer. All rights reserved. Designed with <i class="fas fa-heart text-gene-accent"></i> for family history enthusiasts.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animation on scroll
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Search term highlighting
+            const searchInput = document.querySelector('input[type="text"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const cards = document.querySelectorAll('.document-card');
+                    
+                    cards.forEach(card => {
+                        const text = card.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            card.style.display = 'block';
+                            card.querySelectorAll('*').forEach(el => {
+                                if (el.textContent.toLowerCase().includes(searchTerm)) {
+                                    el.classList.add('search-highlight');
+                                } else {
+                                    el.classList.remove('search-highlight');
+                                }
+                            });
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+            
+            // Mobile menu toggle
+            const mobileMenuButton = document.querySelector('button[aria-label="Open menu"]');
+            const mobileMenu = document.querySelector('.mobile-menu');
+            
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

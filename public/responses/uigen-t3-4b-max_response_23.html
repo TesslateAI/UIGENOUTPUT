@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Icon Library (e.g., Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: #1a1a1a; /* Dark Gray */
+            --color-text-secondary: #555555; /* Medium Gray */
+            --color-bg-primary: #f8f8f8; /* Light Gray */
+            --color-bg-card: #ffffff; /* White */
+            --color-border: #e0e0e0; /* Light Gray Border */
+            --color-accent-green: #4CAF50; /* Green for positive spending */
+            --color-accent-red: #F44336; /* Red for negative spending */
+            --color-accent-blue: #2196F3; /* Blue for budget creation */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+        }
+        .card {
+            background-color: var(--color-bg-card);
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--color-border);
+        }
+        .chart-container {
+            position: relative;
+            height: 250px; /* Fixed height to prevent infinite growth */
+            width: 100%;
+        }
+        .transaction-item {
+            border-bottom: 1px solid var(--color-border);
+        }
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+        .budget-item {
+            border-bottom: 1px solid var(--color-border);
+        }
+        .budget-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left Section: Spending Overview & Pie Chart -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Spending Overview Card -->
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-4">Spending Overview</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-sm text-[var(--color-text-secondary)]">Total Spending: <span class="font-semibold text-[var(--color-text-primary)]">$2,345.67</span></p>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-[var(--color-text-secondary)]">This Month</span>
+                        <i class="fas fa-calendar-alt text-[var(--color-text-secondary)]"></i>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="spendingChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Budget Creation Tool -->
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-4">Set Your Budget</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="budget-name" class="block text-sm font-medium text-[var(--color-text-primary)] mb-2">Budget Name</label>
+                        <input type="text" id="budget-name" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-blue)]" placeholder="e.g., Groceries, Dining Out">
+                    </div>
+                    <div>
+                        <label for="budget-amount" class="block text-sm font-medium text-[var(--color-text-primary)] mb-2">Monthly Budget</label>
+                        <input type="number" id="budget-amount" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-blue)]" placeholder="e.g., 500" step="0.01">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label for="budget-start-date" class="text-sm font-medium text-[var(--color-text-primary)]">Start Date</label>
+                        <input type="date" id="budget-start-date" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-blue)]">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label for="budget-end-date" class="text-sm font-medium text-[var(--color-text-primary)]">End Date</label>
+                        <input type="date" id="budget-end-date" class="w-full p-2 border border-[var(--color-border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-blue)]">
+                    </div>
+                    <button class="w-full bg-[var(--color-accent-blue)] text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-plus-circle mr-2"></i> Add Budget
+                    </button>
+                    <div id="budget-list" class="mt-4 space-y-3">
+                        <!-- Budget items will be dynamically added here -->
+                        <div class="budget-item flex justify-between items-center text-[var(--color-text-primary)]">
+                            <span>Groceries (2024-03-01 - 2024-03-31)</span>
+                            <span class="text-sm font-semibold">$500.00</span>
+                        </div>
+                        <div class="budget-item flex justify-between items-center text-[var(--color-text-primary)]">
+                            <span>Dining Out (2024-03-01 - 2024-03-31)</span>
+                            <span class="text-sm font-semibold">$300.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: Transaction List -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Recent Transactions Card -->
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-4">Recent Transactions</h2>
+                <ul class="space-y-3">
+                    <!-- Transaction items will be dynamically added here -->
+                    <li class="transaction-item flex justify-between items-center text-[var(--color-text-primary)]">
+                        <div>
+                            <p class="font-semibold">Groceries</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">SuperMart - $125.50</p>
+                        </div>
+                        <span class="text-[var(--color-accent-red)]">- $125.50</span>
+                    </li>
+                    <li class="transaction-item flex justify-between items-center text-[var(--color-text-primary)]">
+                        <div>
+                            <p class="font-semibold">Dining Out</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">The Restaurant - $75.00</p>
+                        </div>
+                        <span class="text-[var(--color-accent-red)]">- $75.00</span>
+                    </li>
+                    <li class="transaction-item flex justify-between items-center text-[var(--color-text-primary)]">
+                        <div>
+                            <p class="font-semibold">Salary</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Employer - $2,500.00</p>
+                        </div>
+                        <span class="text-[var(--color-accent-green)]">+ $2,500.00</span>
+                    </li>
+                    <li class="transaction-item flex justify-between items-center text-[var(--color-text-primary)]">
+                        <div>
+                            <p class="font-semibold">Utilities</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Electricity - $110.20</p>
+                        </div>
+                        <span class="text-[var(--color-accent-red)]">- $110.20</span>
+                    </li>
+                </ul>
+                <button class="w-full bg-[var(--color-accent-blue)] text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors mt-4 flex items-center justify-center">
+                    <i class="fas fa-plus-circle mr-2"></i> Add New Transaction
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js - Spending Pie Chart
+        const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+        const spendingChart = new Chart(spendingCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Groceries', 'Dining Out', 'Entertainment', 'Utilities', 'Transport'],
+                datasets: [{
+                    data: [300, 200, 150, 100, 95.67], // Example spending
+                    backgroundColor: [
+                        'rgba(76, 175, 80, 0.8)', // Green
+                        'rgba(255, 99, 132, 0.8)', // Red
+                        'rgba(54, 162, 235, 0.8)', // Blue
+                        'rgba(255, 206, 86, 0.8)', // Yellow
+                        'rgba(153, 102, 255, 0.8)'  // Purple
+                    ],
+                    borderColor: [
+                        'rgba(76, 175, 80, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Important for fixed height
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: {
+                                family: 'Inter',
+                                size: 14
+                            },
+                            color: 'var(--color-text-primary)'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

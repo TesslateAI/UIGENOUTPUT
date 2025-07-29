@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board Game Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'board-primary': '#2C3E50',
+                        'board-secondary': '#4A6572',
+                        'board-accent': '#E74C3C',
+                        'board-highlight': '#F39C12',
+                        'board-light': '#ECF0F1',
+                        'board-dark': '#2C3E50',
+                        'board-text': '#2C3E50',
+                        'board-text-light': '#7F8C8D'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F5F7FA;
+            color: #2C3E50;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .font-display {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .timer-circle {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+        
+        .timer-circle-bg {
+            stroke: #CBD5E0;
+            stroke-width: 6;
+            fill: none;
+        }
+        
+        .timer-circle-progress {
+            stroke: #E74C3C;
+            stroke-width: 6;
+            fill: none;
+            transition: stroke-dashoffset 0.5s linear;
+        }
+        
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+            font-size: 2rem;
+            color: #2C3E50;
+        }
+        
+        .score-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0,0,0.05);
+        }
+        
+        .score-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        }
+        
+        .rule-card {
+            transition: all 0.3s ease;
+        }
+        
+        .rule-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .player-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+        }
+        
+        .player-1 { background: linear-gradient(135deg, #E74C3C, #C0392B); }
+        .player-2 { background: linear-gradient(135deg, #3498DB, #2980B9); }
+        .player-3 { background: linear-gradient(135deg, #2ECC71, #27AE60); }
+        .player-4 { background: linear-gradient(135deg, #9B59B6, #8E44AD); }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-board-light min-h-screen">
+    <!-- Header -->
+    <header class="bg-board-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="bg-board-accent w-10 h-10 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-gamepad text-white text-xl"></i>
+                </div>
+                <h1 class="font-display text-2xl font-bold">Board<span class="text-board-highlight">Game</span>Companion</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="hover:text-board-highlight transition">Dashboard</a>
+                <a href="#" class="hover:text-board-highlight transition">Games</a>
+                <a href="#" class="hover:text-board-highlight transition">My Games</a>
+                <a href="#" class="hover:text-board-highlight transition">Settings</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <button class="bg-board-secondary hover:bg-board-accent text-white px-4 py-2 rounded-lg transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i> New Game
+                </button>
+                <div class="w-10 h-10 rounded-full bg-board-highlight flex items-center justify-center text-board-primary font-bold">
+                    U
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="text-center mb-12">
+            <h1 class="font-display text-4xl md:text-5xl font-bold text-board-primary mb-4">Enhance Your Board Gaming Experience</h1>
+            <p class="text-lg text-board-text-light max-w-2xl mx-auto mb-8">
+                Track scores, look up rules, and manage game timers - all in one place. Perfect for competitive players and casual enthusiasts.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <button class="bg-board-primary hover:bg-board-secondary text-white px-6 py-3 rounded-lg font-medium transition flex items-center">
+                    <i class="fas fa-play-circle mr-2"></i> Start Playing
+                </button>
+                <button class="bg-white border border-board-primary text-board-primary hover:bg-board-light px-6 py-3 rounded-lg font-medium transition flex items-center">
+                    <i class="fas fa-book mr-2"></i> View Features
+                </button>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - Timer -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-display text-2xl font-bold text-board-primary">Game Timer</h2>
+                        <div class="flex space-x-2">
+                            <button id="start-timer" class="bg-board-primary hover:bg-board-secondary text-white px-4 py-2 rounded-lg transition flex items-center animate-pulse-slow">
+                                <i class="fas fa-play mr-2"></i> Start
+                            </button>
+                            <button id="reset-timer" class="bg-board-light hover:bg-gray-200 text-board-primary px-4 py-2 rounded-lg transition">
+                                <i class="fas fa-redo mr-2"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="timer-circle mb-6">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle class="timer-circle-bg" cx="60" cy="60" r="54" />
+                            <circle class="timer-circle-progress" cx="60" cy="60" r="54" stroke-dasharray="339.292" stroke-dashoffset="0" />
+                        </svg>
+                        <div class="timer-text" id="timer-display">00:00:00</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-board-light p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-board-primary" id="minutes">00</div>
+                            <div class="text-sm text-board-text-light">MINUTES</div>
+                        </div>
+                        <div class="bg-board-light p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-board-primary" id="seconds">00</div>
+                            <div class="text-sm text-board-text-light">SECONDS</div>
+                        </div>
+                        <div class="bg-board-light p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-board-primary" id="milliseconds">00</div>
+                            <div class="text-sm text-board-text-light">MILLISECONDS</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Game Info -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="font-display text-2xl font-bold text-board-primary mb-4">Current Game</h2>
+                    <div class="flex items-center mb-4">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
+                        <div class="ml-4">
+                            <h3 class="font-bold text-lg text-board-primary">Carcassonne</h3>
+                            <p class="text-board-text-light">2 players • 20-40 min</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex items-center">
+                            <div class="player-avatar player-1">J</div>
+                            <div class="ml-3">
+                                <div class="font-medium text-board-primary">John</div>
+                                <div class="text-sm text-board-text-light">Score</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="player-avatar player-2">S</div>
+                            <div class="ml-3">
+                                <div class="font-medium text-board-primary">Sarah</div>
+                                <div class="text-sm text-board-text-light">Score</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Middle Column - Score Tracker -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-display text-2xl font-bold text-board-primary">Score Tracker</h2>
+                        <div class="relative">
+                            <select class="bg-board-light border border-board-primary text-board-primary rounded-lg py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-board-accent">
+                                <option>Points</option>
+                                <option>Wins</option>
+                                <option>Rounds</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="score-card bg-board-light rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="font-medium text-board-primary">John</div>
+                                <div class="text-board-accent">-</div>
+                            </div>
+                            <div class="text-3xl font-bold text-board-primary" id="john-score">0</div>
+                            <div class="text-sm text-board-text-light mt-1">Current</div>
+                        </div>
+                        
+                        <div class="score-card bg-board-light rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="font-medium text-board-primary">Sarah</div>
+                                <div class="text-board-accent">-</div>
+                            </div>
+                            <div class="text-3xl font-bold text-board-primary" id="sarah-score">0</div>
+                            <div class="text-sm text-board-text-light mt-1">Current</div>
+                        </div>
+                        
+                        <div class="score-card bg-board-light rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="font-medium text-board-primary">Mike</div>
+                                <div class="text-board-accent">-</div>
+                            </div>
+                            <div class="text-3xl font-bold text-board-primary" id="mike-score">0</div>
+                            <div class="text-sm text-board-text-light mt-1">Current</div>
+                        </div>
+                        
+                        <div class="score-card bg-board-light rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="font-medium text-board-primary">Lisa</div>
+                                <div class="text-board-accent">-</div>
+                            </div>
+                            <div class="text-3xl font-bold text-board-primary" id="lisa-score">0</div>
+                            <div class="text-sm text-board-text-light mt-1">Current</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="font-bold text-board-primary mb-3">Add Points</h3>
+                        <div class="flex space-x-2">
+                            <button class="bg-board-primary hover:bg-board-secondary text-white px-4 py-2 rounded-lg flex-1 text-center">
+                                <i class="fas fa-plus-circle"></i>
+                            </button>
+                            <button class="bg-board-primary hover:bg-board-secondary text-white px-4 py-2 rounded-lg flex-1 text-center">
+                                <i class="fas fa-minus-circle"></i>
+                            </button>
+                            <button class="bg-board-primary hover:bg-board-secondary text-white px-4 py-2 rounded-lg flex-1 text-center">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Players -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="font-display text-2xl font-bold text-board-primary mb-4">Active Players</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center p-3 bg-board-light rounded-lg">
+                            <div class="player-avatar player-1">J</div>
+                            <div class="ml-3 flex-1">
+                                <div class="font-medium text-board-primary">John</div>
+                                <div class="text-sm text-board-text-light">Player 1</div>
+                            </div>
+                            <div class="text-board-accent">●</div>
+                        </div>
+                        <div class="flex items-center p-3 bg-board-light rounded-lg">
+                            <div class="player-avatar player-2">S</div>
+                            <div class="ml-3 flex-1">
+                                <div class="font-medium text-board-primary">Sarah</div>
+                                <div class="text-sm text-board-text-light">Player 2</div>
+                            </div>
+                            <div class="text-board-accent">●</div>
+                        </div>
+                        <div class="flex items-center p-3 bg-board-light rounded-lg">
+                            <div class="player-avatar player-3">M</div>
+                            <div class="ml-3 flex-1">
+                                <div class="font-medium text-board-primary">Mike</div>
+                                <div class="text-sm text-board-text-light">Player 3</div>
+                            </div>
+                            <div class="text-gray-400">○</div>
+                        </div>
+                        <div class="flex items-center p-3 bg-board-light rounded-lg">
+                            <div class="player-avatar player-4">L</div>
+                            <div class="ml-3 flex-1">
+                                <div class="font-medium text-board-primary">Lisa</div>
+                                <div class="text-sm text-board-text-light">Player 4</div>
+                            </div>
+                            <div class="text-gray-400">○</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Rules & Features -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <h2 class="font-display text-2xl font-bold text-board-primary mb-6">Game Rules</h2>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-board-primary mb-2 flex items-center">
+                            <i class="fas fa-dice-2 mr-2 text-board-accent"></i> Objective
+                        </h3>
+                        <p class="text-board-text-light">
+                            In Carcassonne, players take turns placing tiles to build a continuous path of cities, roads, and fields. 
+                            The goal is to be the first to have at least 12 points by completing features (cities, roads, fields). 
+                            When all tiles are used, the game ends and players total their points.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-board-primary mb-2 flex items-center">
+                            <i class="fas fa-hands-helping mr-2 text-board-accent"></i> Player Actions
+                        </h3>
+                        <p class="text-board-text-light">
+                            On your turn, you may:
+                            <ul class="list-disc pl-5 mt-2 space-y-1">
+                                <li>Place a tile anywhere on the board that doesn't exceed the boundaries</li>
+                                <li>Rotate a tile to any orientation</li>
+                                <li>Connect tiles to form complete features</li>
+                                <li>Play an action card (if you have one remaining)</li>
+                            </ul>
+                        </p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-bold text-board-primary mb-2 flex items-center">
+                            <i class="fas fa-trophy mr-2 text-board-accent"></i> Scoring
+                        </h3>
+                        <p class="text-board-text-light">
+                            Features are scored as follows:
+                            <ul class="list-disc pl-5 mt-2 space-y-1">
+                                <li><strong>City:</strong> 1 point for each city tile you own</li>
+                                <li><strong>City with 2 or more roads:</strong> 4 points</li>
+                                <li><strong>City with 3 or more roads:</strong> 8 points</li>
+                                <li><strong>Field:</strong> 1 point for each field tile you own</li>
+                                <li><strong>Longest straight:</strong> 1 point for each tile in the straight (up to 5 tiles)</li>
+                            </ul>
+                        </p>
+                    </div>
+                    
+                    <button class="w-full bg-board-primary hover:bg-board-secondary text-white py-3 rounded-lg font-medium transition">
+                        <i class="fas fa-book-open mr-2"></i> Full Rules
+                    </button>
+                </div>
+                
+                <!-- Quick Tips -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h2 class="font-display text-2xl font-bold text-board-primary mb-4">Quick Tips</h2>
+                    <div class="space-y-4">
+                        <div class="rule-card bg-board-light p-4 rounded-lg">
+                            <div class="flex items-start">
+                                <div class="bg-board-accent w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                                    <i class="fas fa-lightbulb text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-board-primary mb-1">Plan ahead</h3>
+                                    <p class="text-sm text-board-text-light">Always consider how your move will impact future possibilities.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="rule-card bg-board-light p-4 rounded-lg">
+                            <div class="flex items-start">
+                                <div class="bg-board-accent w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                                    <i class="fas fa-lightbulb text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-board-primary mb-1">Protect your features</h3>
+                                    <p class="text-sm text-board-text-light">Try to block opponents from completing features you're working on.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="rule-card bg-board-light p-4 rounded-lg">
+                            <div class="flex items-start">
+                                <div class="bg-board-accent w-8 h-8 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                                    <i class="fas fa-lightbulb text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-board-primary mb-1">Use your action cards wisely</h3>
+                                    <p class="text-sm text-board-text-light">Action cards can help you place tiles or block opponents.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-board-primary text-white py-12 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="bg-board-accent w-10 h-10 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-gamepad text-white text-xl"></i>
+                        </div>
+                        <h2 class="font-display text-xl font-bold">Board<span class="text-board-highlight">Game</span>Companion</h2>
+                    </div>
+                    <p class="text-board-text-light mb-4">
+                        The ultimate companion for board game enthusiasts. Track scores, look up rules, and enhance your gaming experience.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-board-text-light hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-board-text-light hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-board-text-light hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-board-text-light hover:text-white">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-lg mb-4">Features</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-board-text-light hover:text-white">Score Tracking</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Game Timers</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Rules Lookup</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Player Management</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Game Library</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-lg mb-4">Games</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-board-text-light hover:text-white">Carcassonne</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Monopoly</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Scattergories</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Clue</a></li>
+                        <li><a href="#" class="text-board-text-light hover:text-white">Risk</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-lg mb-4">Subscribe</h3>
+                    <p class="text-board-text-light mb-4">
+                        Get updates on new games and features.
+                    </p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-board-primary">
+                        <button class="bg-board-accent hover:bg-orange-700 text-white px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-board-secondary mt-8 pt-8 text-center text-board-text-light">
+                <p>© 2023 BoardGameCompanion. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Timer functionality
+        let seconds = 0;
+        let minutes = 0;
+        let milliseconds = 0;
+        let timerInterval;
+        let isRunning = false;
+        
+        function updateTimerDisplay() {
+            const minutesEl = document.getElementById('minutes');
+            const secondsEl = document.getElementById('seconds');
+            const millisecondsEl = document.getElementById('milliseconds');
+            
+            // Format time with leading zeros
+            const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+            const secondsStr = seconds < 10 ? '0' + seconds : seconds;
+            const millisecondsStr = milliseconds < 10 ? '00' + milliseconds : milliseconds < 100 ? '0' + milliseconds : milliseconds;
+            
+            minutesEl.textContent = minutesStr;
+            secondsEl.textContent = secondsStr;
+            millisecondsEl.textContent = millisecondsStr;
+            
+            // Update progress circle
+            const totalSeconds = minutes * 60 + seconds + milliseconds / 100;
+            const progress = 1 - (totalSeconds / 300); // 300 seconds total
+            const progressCircle = document.querySelector('.timer-circle-progress');
+            const circumference = 2 * Math.PI * 54;
+            const offset = circumference - (progress * circumference);
+            
+            progressCircle.style.strokeDashoffset = offset;
+        }
+        
+        function startTimer() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            timerInterval = setInterval(() => {
+                if (milliseconds === 0) {
+                    if (seconds === 0) {
+                        if (minutes === 0) {
+                            seconds = 0;
+                        } else {
+                            seconds = 0;
+                        }
+                    } else {
+                        seconds = 0;
+                    }
+                }
+                
+                milliseconds += 10;
+                
+                if (milliseconds >= 1000) {
+                    milliseconds = 0;
+                    seconds += 1;
+                    
+                    if (seconds >= 60) {
+                        seconds = 0;
+                        minutes += 1;
+                        
+                        if (minutes >= 5) {
+                            minutes = 0;
+                        }
+                    }
+                }
+                
+                updateTimerDisplay();
+            }, 10);
+            
+            // Start with a 5-minute countdown
+            minutes = 5;
+            updateTimerDisplay();
+        }
+        
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            seconds = 0;
+            minutes = 0;
+            milliseconds = 0;
+            updateTimerDisplay();
+        }
+        
+        // Event listeners
+        document.getElementById('start-timer').addEventListener('click', startTimer);
+        document.getElementById('reset-timer').addEventListener('click', resetTimer);
+        
+        // Initialize
+        updateTimerDisplay();
+        
+        // Add animation to score cards on load
+        document.querySelectorAll('.score-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.classList.add('fade-in');
+        });
+    </script>
+</body>
+</html>

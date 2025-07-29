@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlow - Video Streaming Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1A1A1A; /* Dark background for a modern feel */
+            color: #E0E0E0; /* Light text for contrast */
+        }
+
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2A2A2A;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4A4A4A;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5A5A5A;
+        }
+
+        .video-player-container {
+            position: relative;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: #000;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .video-player-container iframe,
+        .video-player-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .video-thumbnail {
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 8px;
+            background-color: #333;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .video-thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 8px;
+        }
+
+        .video-thumbnail:hover .video-overlay {
+            opacity: 1;
+        }
+
+        .video-overlay i {
+            font-size: 3rem;
+            color: #FF0000; /* YouTube-like play button color */
+        }
+
+        .thumbnail-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0));
+            color: white;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .thumbnail-info .title {
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .thumbnail-info .channel {
+            font-size: 0.7rem;
+            color: #A0A0A0;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .playlist-item:hover {
+            background-color: #2A2A2A;
+        }
+
+        .playlist-item-thumbnail {
+            width: 100px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .playlist-item-details {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .playlist-item-title {
+            font-weight: 500;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item-channel {
+            font-size: 0.8rem;
+            color: #A0A0A0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Responsive adjustments for thumbnails */
+        @media (max-width: 768px) {
+            .video-thumbnail {
+                width: 100%;
+                margin-bottom: 10px;
+                aspect-ratio: 16 / 9; /* Maintain aspect ratio on small screens */
+            }
+            .thumbnail-info {
+                padding: 6px;
+                font-size: 0.7rem;
+            }
+            .thumbnail-info .title {
+                font-size: 0.7rem;
+            }
+            .playlist-item-thumbnail {
+                width: 80px;
+                height: 56px;
+            }
+            .playlist-item-title {
+                font-size: 0.9rem;
+            }
+            .playlist-item-channel {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Mobile specific styles */
+        .mobile-sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .mobile-sidebar.open {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <!-- Header / Navigation -->
+    <header class="bg-gray-800 p-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-4">
+            <button id="mobile-menu-button" class="md:hidden text-gray-100 text-xl">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="#" class="text-2xl font-bold text-red-500">StreamFlow</a>
+        </div>
+        <div class="hidden md:flex items-center space-x-6">
+            <a href="#" class="text-gray-300 hover:text-red-500 transition-colors">Home</a>
+            <a href="#" class="text-gray-300 hover:text-red-500 transition-colors">Trending</a>
+            <a href="#" class="text-gray-300 hover:text-red-500 transition-colors">Subscriptions</a>
+            <a href="#" class="text-gray-300 hover:text-red-500 transition-colors">Library</a>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="text-gray-300 hover:text-gray-100 transition-colors">
+                <i class="fas fa-search text-lg"></i>
+            </button>
+            <button class="text-gray-300 hover:text-gray-100 transition-colors">
+                <i class="fas fa-video text-lg"></i>
+            </button>
+            <button class="text-gray-300 hover:text-gray-100 transition-colors">
+                <i class="fas fa-bell text-lg"></i>
+            </button>
+            <div class="relative group">
+                <img src="https://placehold.co/40x40/FF0000/FFFFFF/png?text=U" alt="User Avatar" class="w-10 h-10 rounded-full cursor-pointer">
+                <div class="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-2 hidden group-hover:block">
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Your Channel</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Settings</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Sign out</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="flex flex-col lg:flex-row min-h-screen pt-16">
+
+        <!-- Sidebar (Hidden on mobile, visible on desktop) -->
+        <aside class="hidden lg:block w-64 bg-gray-800 p-4 border-r border-gray-700">
+            <h3 class="text-lg font-semibold mb-4 text-gray-200">Browse</h3>
+            <ul class="space-y-2">
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-home text-lg"></i>
+                    <span>Home</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-fire text-lg"></i>
+                    <span>Trending</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-video text-lg"></i>
+                    <span>Subscriptions</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-clock text-lg"></i>
+                    <span>Library</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-history text-lg"></i>
+                    <span>History</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-bell text-lg"></i>
+                    <span>Notifications</span>
+                </a></li>
+            </ul>
+            <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-200">Playlists</h3>
+            <ul class="space-y-2">
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span>Playlist 1</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span>Playlist 2</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span>Playlist 3</span>
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- Mobile Sidebar (Overlay) -->
+        <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 w-64 bg-gray-800 p-4 z-40 transform -translate-x-full mobile-sidebar">
+            <div class="flex justify-between items-center mb-6">
+                <a href="#" class="text-2xl font-bold text-red-500">StreamFlow</a>
+                <button id="close-mobile-menu" class="text-gray-100 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <ul class="space-y-4">
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-home text-lg"></i>
+                    <span>Home</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-fire text-lg"></i>
+                    <span>Trending</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-video text-lg"></i>
+                    <span>Subscriptions</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-clock text-lg"></i>
+                    <span>Library</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-history text-lg"></i>
+                    <span>History</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-bell text-lg"></i>
+                    <span>Notifications</span>
+                </a></li>
+            </ul>
+            <h3 class="text-lg font-semibold mt-8 mb-4 text-gray-200">Playlists</h3>
+            <ul class="space-y-2">
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span>Playlist 1</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span>Playlist 2</span>
+                </a></li>
+                <li><a href="#" class="flex items-center space-x-3 text-gray-300 hover:text-red-500 transition-colors">
+                    <i class="fas fa-play-circle text-lg"></i>
+                    <span>Playlist 3</span>
+                </a></li>
+            </ul>
+        </aside>
+
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+            <!-- Main Video Player -->
+            <section class="mb-8">
+                <div class="video-player-container">
+                    <video src="https://www.w3schools.com/html/mov_bbb.mp4" poster="https://placehold.co/1280x720/000000/FFFFFF/png?text=Main+Video+Placeholder" controls></video>
+                </div>
+                <div class="flex items-center text-sm text-gray-400 mt-4">
+                    <span class="mr-2"><i class="fas fa-user-circle"></i> Channel Name</span>
+                    <span class="mx-2">•</span>
+                    <span>1.2M views</span>
+                    <span class="mx-2">•</span>
+                    <span>2 months ago</span>
+                </div>
+                <p class="text-gray-300 mt-2 mb-4">
+                    This is a placeholder description for the main video content. It provides a brief overview of what the video is about, encouraging users to watch and engage.
+                </p>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                        <i class="fas fa-thumbs-up mr-2"></i> 123K
+                    </button>
+                    <button class="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                        <i class="fas fa-thumbs-down mr-2"></i>
+                    </button>
+                    <button class="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                        <i class="fas fa-share-alt mr-2"></i> Share
+                    </button>
+                    <button class="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Save
+                    </button>
+                </div>
+            </section>
+
+            <!-- Dynamic Playlists -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-gray-200">Up next</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Playlist Item 1 -->
+                    <div class="video-thumbnail aspect-video">
+                        <img src="https://placehold.co/640x360/4A4A4A/FFFFFF/png?text=Video+1" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="thumbnail-info">
+                            <span class="title">Dynamic Playlist Video Title 1</span>
+                            <span class="channel">Channel Name 1</span>
+                        </div>
+                    </div>
+                    <!-- Playlist Item 2 -->
+                    <div class="video-thumbnail aspect-video">
+                        <img src="https://placehold.co/640x360/5A5A5A/FFFFFF/png?text=Video+2" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="thumbnail-info">
+                            <span class="title">Dynamic Playlist Video Title 2</span>
+                            <span class="channel">Channel Name 2</span>
+                        </div>
+                    </div>
+                    <!-- Playlist Item 3 -->
+                    <div class="video-thumbnail aspect-video">
+                        <img src="https://placehold.co/640x360/6A6A6A/FFFFFF/png?text=Video+3" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="thumbnail-info">
+                            <span class="title">Dynamic Playlist Video Title 3</span>
+                            <span class="channel">Channel Name 3</span>
+                        </div>
+                    </div>
+                    <!-- Playlist Item 4 -->
+                    <div class="video-thumbnail aspect-video">
+                        <img src="https://placehold.co/640x360/7A7A7A/FFFFFF/png?text=Video+4" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="thumbnail-info">
+                            <span class="title">Dynamic Playlist Video Title 4</span>
+                            <span class="channel">Channel Name 4</span>
+                        </div>
+                    </div>
+                    <!-- Playlist Item 5 -->
+                    <div class="video-thumbnail aspect-video">
+                        <img src="https://placehold.co/640x360/8A8A8A/FFFFFF/png?text=Video+5" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="thumbnail-info">
+                            <span class="title">Dynamic Playlist Video Title 5</span>
+                            <span class="channel">Channel Name 5</span>
+                        </div>
+                    </div>
+                    <!-- Playlist Item 6 -->
+                    <div class="video-thumbnail aspect-video">
+                        <img src="https://placehold.co/640x360/9A9A9A/FFFFFF/png?text=Video+6" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="thumbnail-info">
+                            <span class="title">Dynamic Playlist Video Title 6</span>
+                            <span class="channel">Channel Name 6</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recommended Videos -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-gray-200">Recommended for you</h2>
+                <div class="space-y-4">
+                    <!-- Recommended Video Item 1 -->
+                    <div class="playlist-item">
+                        <img src="https://placehold.co/100x70/FF0000/FFFFFF/png?text=Rec+1" alt="Recommended Thumbnail" class="playlist-item-thumbnail">
+                        <div class="playlist-item-details">
+                            <p class="playlist-item-title">Recommended Video Title 1</p>
+                            <p class="playlist-item-channel">Channel Name 1</p>
+                        </div>
+                        <span class="text-gray-400 text-sm ml-auto">1.5M views</span>
+                    </div>
+                    <!-- Recommended Video Item 2 -->
+                    <div class="playlist-item">
+                        <img src="https://placehold.co/100x70/00FF00/FFFFFF/png?text=Rec+2" alt="Recommended Thumbnail" class="playlist-item-thumbnail">
+                        <div class="playlist-item-details">
+                            <p class="playlist-item-title">Recommended Video Title 2</p>
+                            <p class="playlist-item-channel">Channel Name 2</p>
+                        </div>
+                        <span class="text-gray-400 text-sm ml-auto">800K views</span>
+                    </div>
+                    <!-- Recommended Video Item 3 -->
+                    <div class="playlist-item">
+                        <img src="https://placehold.co/100x70/0000FF/FFFFFF/png?text=Rec+3" alt="Recommended Thumbnail" class="playlist-item-thumbnail">
+                        <div class="playlist-item-details">
+                            <p class="playlist-item-title">Recommended Video Title 3</p>
+                            <p class="playlist-item-channel">Channel Name 3</p>
+                        </div>
+                        <span class="text-gray-400 text-sm ml-auto">1.1M views</span>
+                    </div>
+                    <!-- Recommended Video Item 4 -->
+                    <div class="playlist-item">
+                        <img src="https://placehold.co/100x70/FFFF00/000000/png?text=Rec+4" alt="Recommended Thumbnail" class="playlist-item-thumbnail">
+                        <div class="playlist-item-details">
+                            <p class="playlist-item-title">Recommended Video Title 4</p>
+                            <p class="playlist-item-channel">Channel Name 4</p>
+                        </div>
+                        <span class="text-gray-400 text-sm ml-auto">500K views</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const closeMobileMenuButton = document.getElementById('close-mobile-menu');
+        const mobileSidebar = document.getElementById('mobile-sidebar');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileSidebar.classList.add('open');
+        });
+
+        closeMobileMenuButton.addEventListener('click', () => {
+            mobileSidebar.classList.remove('open');
+        });
+
+        // Close mobile menu when a link is clicked
+        mobileSidebar.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileSidebar.classList.remove('open');
+            });
+        });
+
+        // Adaptive Thumbnails (simple example)
+        // This script will adjust the aspect ratio based on screen width for responsiveness
+        // In a real application, you'd likely use different image resolutions or a more robust library.
+        window.addEventListener('resize', () => {
+            const thumbnails = document.querySelectorAll('.video-thumbnail');
+            thumbnails.forEach(thumbnail => {
+                if (window.innerWidth < 768) { // On small screens
+                    thumbnail.style.aspectRatio = '16 / 9'; // Maintain 16:9 aspect ratio
+                } else {
+                    thumbnail.style.aspectRatio = ''; // Reset aspect ratio for larger screens
+                }
+            });
+        });
+        // Initial check on load
+        window.dispatchEvent(new Event('resize'));
+
+    </script>
+</body>
+</html>

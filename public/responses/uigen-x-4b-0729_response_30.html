@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstract Art Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                        light: '#F9FAFB'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'spin-slow': 'spin 20s linear infinite'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+            min-height: 100vh;
+        }
+        
+        .font-heading {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .canvas-container {
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .control-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .control-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .color-dot:hover {
+            transform: scale(1.2);
+        }
+        
+        .color-dot.active {
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #4F46E5;
+        }
+        
+        .pattern-option {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .pattern-option:hover, .pattern-option.active {
+            border-color: #4F46E5;
+            transform: scale(1.05);
+        }
+        
+        .pattern-option.active {
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .pulse {
+            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .spin {
+            animation: spin-slow 20s linear infinite;
+        }
+        
+        .canvas-bg {
+            background: linear-gradient(45deg, #E0F2FE 0%, #F0F9FF 100%);
+        }
+        
+        .canvas-drawing {
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 30%);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-accent {
+            background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
+        }
+        
+        .glow {
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+        }
+        
+        .glow {
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+        }
+        
+        .glow-accent {
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+        }
+    </style>
+</head>
+<body class="text-dark">
+    <!-- Header -->
+    <header class="py-6 px-4 md:px-8 lg:px-16">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mr-3">
+                    <i class="fas fa-palette text-white text-xl"></i>
+                </div>
+                <h1 class="font-heading text-2xl md:text-3xl font-bold text-dark">Abstract<span class="text-primary">Art</span>Studio</h1>
+            </div>
+            
+            <nav class="flex space-x-6">
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">Home</a>
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">Features</a>
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">Gallery</a>
+                <a href="#" class="font-medium text-dark hover:text-primary transition-colors">About</a>
+            </nav>
+            
+            <button class="mt-4 md:mt-0 px-5 py-2.5 rounded-full bg-primary text-white font-medium hover:bg-indigo-700 transition-colors">
+                Create Art
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="py-12 px-4 md:px-8 lg:px-16">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="font-heading text-4xl md:text-5xl font-bold mb-4">Create Your Own Abstract Masterpiece</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Experiment with vibrant colors, dynamic patterns, and unique shapes to generate stunning abstract art. 
+                    All controls are fully customizable and real-time.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Canvas Section -->
+                <div class="lg:col-span-2">
+                    <div class="canvas-container rounded-2xl overflow-hidden">
+                        <div id="canvas" class="w-full h-96 bg-white relative canvas-bg"></div>
+                    </div>
+                </div>
+                
+                <!-- Controls Section -->
+                <div class="lg:col-span-1">
+                    <div class="space-y-8">
+                        <!-- Color Selection -->
+                        <div class="control-card bg-white rounded-xl p-6">
+                            <h3 class="font-heading text-xl font-semibold mb-4 flex items-center">
+                                <i class="fas fa-palette mr-2 text-primary"></i> Color Palette
+                            </h3>
+                            <div class="grid grid-cols-5 gap-3">
+                                <div class="color-dot bg-primary active" data-color="#4F46E5"></div>
+                                <div class="color-dot bg-secondary" data-color="#10B981"></div>
+                                <div class="color-dot bg-accent" data-color="#F59E0B"></div>
+                                <div class="color-dot bg-purple-400" data-color="#8B5CF6"></div>
+                                <div class="color-dot bg-pink-500" data-color="#EC4899"></div>
+                                <div class="color-dot bg-yellow-400" data-color="#FBBF24"></div>
+                                <div class="color-dot bg-blue-400" data-color="#3B82F6"></div>
+                                <div class="color-dot bg-indigo-300" data-color="#93C5FD"></div>
+                                <div class="color-dot bg-cyan-400" data-color="#22D3EE"></div>
+                                <div class="color-dot bg-rose-400" data-color="#F472B6"></div>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <h4 class="font-medium mb-2">Custom Color</h4>
+                                <div class="flex items-center">
+                                    <input type="color" id="customColor" class="w-10 h-10 rounded-full border-2 border-gray-300 cursor-pointer" value="#4F46E5">
+                                    <input type="text" id="colorValue" class="ml-2 bg-gray-100 rounded px-3 py-1 text-sm" value="#4F46E5">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Drawing Tools -->
+                        <div class="control-card bg-white rounded-xl p-6">
+                            <h3 class="font-heading text-xl font-semibold mb-4 flex items-center">
+                                <i class="fas fa-tools mr-2 text-primary"></i> Drawing Tools
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Brush Size</label>
+                                    <input type="range" min="1" max="20" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" id="brushSize">
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>1px</span>
+                                        <span>10px</span>
+                                        <span>20px</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Opacity</label>
+                                    <input type="range" min="10" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" id="opacity">
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>10%</span>
+                                        <span>50%</span>
+                                        <span>100%</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Pattern Density</label>
+                                    <input type="range" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary" id="density">
+                                    <div class="flex justify-between text-xs text-gray-500">
+                                        <span>Coarse</span>
+                                        <span>Moderate</span>
+                                        <span>Dense</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pattern Selection -->
+                        <div class="control-card bg-white rounded-xl p-6">
+                            <h3 class="font-heading text-xl font-semibold mb-4 flex items-center">
+                                <i class="fas fa-layer-group mr-2 text-primary"></i> Patterns
+                            </h3>
+                            
+                            <div class="grid grid-cols-3 gap-4">
+                                <div class="pattern-option active" data-pattern="dots">
+                                    <div class="w-full h-20 rounded-lg bg-gradient-to-br from-primary to-indigo-500"></div>
+                                    <p class="text-center text-xs mt-1">Dots</p>
+                                </div>
+                                <div class="pattern-option" data-pattern="lines">
+                                    <div class="w-full h-20 rounded-lg bg-gradient-to-br from-primary to-transparent opacity-30"></div>
+                                    <p class="text-center text-xs mt-1">Lines</p>
+                                </div>
+                                <div class="pattern-option" data-pattern="waves">
+                                    <div class="w-full h-20 rounded-lg bg-gradient-to-br from-primary to-transparent opacity-30"></div>
+                                    <p class="text-center text-xs mt-1">Waves</p>
+                                </div>
+                                <div class="pattern-option" data-pattern="crosses">
+                                    <div class="w-full h-20 rounded-lg bg-gradient-to-br from-primary to-transparent opacity-30"></div>
+                                    <p class="text-center text-xs mt-1">Crosses</p>
+                                </div>
+                                <div class="pattern-option" data-pattern="circles">
+                                    <div class="w-full h-20 rounded-lg bg-gradient-to-br from-primary to-transparent opacity-30"></div>
+                                    <p class="text-center text-xs mt-1">Circles</p>
+                                </div>
+                                <div class="pattern-option" data-pattern="diamonds">
+                                    <div class="w-full h-20 rounded-lg bg-gradient-to-br from-primary to-transparent opacity-30"></div>
+                                    <p class="text-center text-xs mt-1">Diamonds</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h4 class="font-medium mb-2">Animation Style</h4>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <button class="py-2 px-3 rounded-lg bg-primary text-white text-sm font-medium">None</button>
+                                    <button class="py-2 px-3 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">Float</button>
+                                    <button class="py-2 px-3 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">Spin</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex space-x-4">
+                            <button class="btn-primary flex-1 py-3 rounded-lg font-medium flex items-center justify-center">
+                                <i class="fas fa-paint-brush mr-2"></i> Start Drawing
+                            </button>
+                            <button class="btn-secondary flex-1 py-3 rounded-lg font-medium flex items-center justify-center">
+                                <i class="fas fa-undo mr-2"></i> Reset
+                            </button>
+                            <button class="btn-accent flex-1 py-3 rounded-lg font-medium flex items-center justify-center">
+                                <i class="fas fa-download mr-2"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Features Section -->
+            <div class="mt-24">
+                <h2 class="font-heading text-3xl md:text-4xl font-bold text-center mb-12">Why Use Our Abstract Art Generator?</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white rounded-2xl p-6 text-center control-card">
+                        <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-bolt text-primary text-2xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-semibold mb-2">Real-time Preview</h3>
+                        <p class="text-gray-600">See your changes instantly as you adjust controls and create new patterns.</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-6 text-center control-card">
+                        <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-palette text-secondary text-2xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-semibold mb-2">Custom Color Palette</h3>
+                        <p class="text-gray-600">Choose from our vibrant color options or create entirely new custom colors.</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-6 text-center control-card">
+                        <div class="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-infinity text-accent text-2xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-semibold mb-2">Unlimited Possibilities</h3>
+                        <p class="text-gray-600">Combine multiple patterns, colors, and effects to create truly unique art.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-12 px-4 md:px-8 lg:px-16 bg-dark text-white">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mr-3">
+                            <i class="fas fa-palette text-white text-xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-bold">Abstract<span class="text-primary">Art</span>Studio</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">
+                        Create stunning abstract art with our powerful online generator. 
+                        Experiment with colors, patterns, and animations.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-dribbble"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-heading text-lg font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Abstract Patterns</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Custom Color Palette</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Real-time Preview</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Export Options</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Animation Tools</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-heading text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Tutorials</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Documentation</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Community</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-heading text-lg font-semibold mb-4">Subscribe</h4>
+                    <p class="text-gray-400 mb-4">Get the latest updates and new features</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-gray-800">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500 text-sm">
+                <p>© 2023 AbstractArtStudio. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        
+        // Initial resize
+        resizeCanvas();
+        
+        // Drawing variables
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentColor = '#4F46E5';
+        let currentBrushSize = 5;
+        let currentOpacity = 0.8;
+        let currentPattern = 'dots';
+        let patternDensity = 5;
+        
+        // Color selection
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.addEventListener('click', function() {
+                // Remove active class from all dots
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                
+                // Add active class to clicked dot
+                this.classList.add('active');
+                
+                // Update color
+                currentColor = this.dataset.color;
+                document.getElementById('customColor').value = currentColor;
+                document.getElementById('colorValue').value = currentColor;
+            });
+        });
+        
+        // Custom color input
+        document.getElementById('customColor').addEventListener('input', function() {
+            currentColor = this.value;
+            document.getElementById('colorValue').value = currentColor;
+        });
+        
+        // Brush size slider
+        document.getElementById('brushSize').addEventListener('input', function() {
+            currentBrushSize = parseInt(this.value);
+        });
+        
+        // Opacity slider
+        document.getElementById('opacity').addEventListener('input', function() {
+            currentOpacity = parseFloat(this.value) / 100;
+        });
+        
+        // Pattern selection
+        document.querySelectorAll('.pattern-option').forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove active class from all options
+                document.querySelectorAll('.pattern-option').forEach(o => o.classList.remove('active'));
+                
+                // Add active class to clicked option
+                this.classList.add('active');
+                
+                // Update pattern
+                currentPattern = this.dataset.pattern;
+                patternDensity = parseInt(this.dataset.density);
+            });
+        });
+        
+        // Drawing functions
+        function drawPattern() {
+            const size = currentBrushSize * patternDensity;
+            ctx.globalAlpha = currentOpacity;
+            
+            if (currentPattern === 'dots') {
+                for (let x = 0; x < canvas.width; x += size) {
+                    for (let y = 0; y < canvas.height; y += size) {
+                        ctx.beginPath();
+                        ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+                        ctx.fillStyle = currentColor;
+                        ctx.fill();
+                    }
+                }
+            } else if (currentPattern === 'lines') {
+                for (let x = 0; x < canvas.width; x += size) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.strokeStyle = currentColor;
+                    ctx.stroke();
+                }
+                
+                for (let y = 0; y < canvas.height; y += size) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.strokeStyle = currentColor;
+                    ctx.stroke();
+                }
+            } else if (currentPattern === 'waves') {
+                const waveHeight = 20;
+                for (let y = 0; y < canvas.height; y += size) {
+                    // Draw wave
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.quadraticCurveTo(canvas.width/2, y - waveHeight, canvas.width, y);
+                    ctx.strokeStyle = currentColor;
+                    ctx.stroke();
+                    
+                    // Draw valley
+                    ctx.beginPath();
+                    ctx.moveTo(0, y + waveHeight);
+                    ctx.quadraticCurveTo(canvas.width/2, y + waveHeight * 2, canvas.width, y + waveHeight);
+                    ctx.strokeStyle = currentColor;
+                    ctx.stroke();
+                }
+            } else if (currentPattern === 'crosses') {
+                for (let x = 0; x < canvas.width; x += size) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.strokeStyle = currentColor;
+                    ctx.stroke();
+                }
+                
+                for (let y = 0; y < canvas.height; y += size) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.strokeStyle = currentColor;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Drawing event handlers
+        canvas.addEventListener('mousedown', function(e) {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+        
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentBrushSize;
+            ctx.globalAlpha = currentOpacity;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        });
+        
+        canvas.addEventListener('mouseup', function() {
+            isDrawing = false;
+        });
+        
+        canvas.addEventListener('mouseout', function() {
+            isDrawing = false;
+        });
+        
+        // Pattern drawing
+        function drawPatternCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPattern();
+        }
+        
+        // Initial pattern
+        drawPatternCanvas();
+        
+        // Resize canvas on window resize
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>

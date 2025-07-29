@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smartwatch Activity Summary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8faf1',
+                            100: '#f1f9f4',
+                            200: '#d9f2e9',
+                            300: '#b7e8d8',
+                            400: '#8acae0',
+                            500: '#5fd7e0',
+                            600: '#2dd4bf',
+                            700: '#14b8a6',
+                            800: '#0d9488',
+                            900: '#0f766e',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .circular-progress {
+            transform: rotate(-90deg);
+        }
+        
+        .circular-progress-circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+            transform: rotate(90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .activity-card {
+            transition: all 0.3s ease;
+        }
+        
+        .activity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .step-icon {
+            transition: all 0.3s ease;
+        }
+        
+        .step-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        .time-indicator {
+            transition: all 0.3s ease;
+        }
+        
+        .time-indicator.active {
+            background-color: #0ea5e9;
+            color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-dark-900/90 backdrop-blur-sm border-b border-dark-700">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <i class="fas fa-heart text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">FitPro Watch</h1>
+                        <p class="text-sm text-dark-400">Today, 10:45 AM</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-dark-800 flex items-center justify-center">
+                            <i class="fas fa-bell text-dark-400"></i>
+                        </div>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-dark-800 flex items-center justify-center">
+                        <i class="fas fa-cog text-dark-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+        <!-- Activity Summary Section -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-6">Today's Activity</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Steps Card -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-dark-400 text-sm">STEPS</p>
+                            <p class="text-2xl font-bold">8,542</p>
+                        </div>
+                        <div class="step-icon w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center">
+                            <i class="fas fa-walking text-primary-400"></i>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-24">
+                        <svg class="circular-progress w-full h-full" viewBox="0 0 100 100">
+                            <circle class="progress-ring__circle" 
+                                    stroke="#334155" 
+                                    stroke-width="8" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50">
+                            </circle>
+                            <circle class="progress-ring__circle" 
+                                    stroke="#0ea5e9" 
+                                    stroke-width="8" 
+                                    stroke-linecap="round" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50"
+                                    stroke-dasharray="251.2" 
+                                    stroke-dashoffset="75.36">
+                            </circle>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Calories Card -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.1s;">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-dark-400 text-sm">CALORIES</p>
+                            <p class="text-2xl font-bold">420</p>
+                        </div>
+                        <div class="step-icon w-12 h-12 rounded-full bg-secondary-500/20 flex items-center justify-center">
+                            <i class="fas fa-fire text-secondary-400"></i>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-24">
+                        <svg class="circular-progress w-full h-full" viewBox="0 0 100 100">
+                            <circle class="progress-ring__circle" 
+                                    stroke="#334155" 
+                                    stroke-width="8" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50">
+                            </circle>
+                            <circle class="progress-ring__circle" 
+                                    stroke="#2dd4bf" 
+                                    stroke-width="8" 
+                                    stroke-linecap="round" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50"
+                                    stroke-dasharray="251.2" 
+                                    stroke-dashoffset="105.6">
+                            </circle>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Heart Rate Card -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.2s;">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-dark-400 text-sm">HEART RATE</p>
+                            <p class="text-2xl font-bold">72</p>
+                            <p class="text-xs text-dark-400">BPM</p>
+                        </div>
+                        <div class="step-icon w-12 h-12 rounded-full bg-accent-500/20 flex items-center justify-center">
+                            <i class="fas fa-heartbeat text-accent-400"></i>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-24">
+                        <svg class="circular-progress w-full h-full" viewBox="0 0 100 100">
+                            <circle class="progress-ring__circle" 
+                                    stroke="#334155" 
+                                    stroke-width="8" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50">
+                            </circle>
+                            <circle class="progress-ring__circle" 
+                                    stroke="#8b5cf6" 
+                                    stroke-width="8" 
+                                    stroke-linecap="round" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50"
+                                    stroke-dasharray="251.2" 
+                                    stroke-dashoffset="50.24">
+                            </circle>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Sleep Card -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.3s;">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-dark-400 text-sm">SLEEP</p>
+                            <p class="text-2xl font-bold">7h 24m</p>
+                        </div>
+                        <div class="step-icon w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                            <i class="fas fa-moon text-purple-400"></i>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-24">
+                        <svg class="circular-progress w-full h-full" viewBox="0 0 100 100">
+                            <circle class="progress-ring__circle" 
+                                    stroke="#334155" 
+                                    stroke-width="8" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50">
+                            </circle>
+                            <circle class="progress-ring__circle" 
+                                    stroke="#a78bfa" 
+                                    stroke-width="8" 
+                                    stroke-linecap="round" 
+                                    fill="transparent" 
+                                    r="40" 
+                                    cx="50" 
+                                    cy="50"
+                                    stroke-dasharray="251.2" 
+                                    stroke-dashoffset="175.84">
+                            </circle>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Recent Activities -->
+        <section>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Recent Activities</h2>
+                <button class="text-primary-400 hover:text-primary-300 flex items-center">
+                    <span>View All</span>
+                    <i class="fas fa-chevron-right ml-2 text-sm"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Activity Item -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center mr-4">
+                            <i class="fas fa-running text-primary-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <h3 class="font-medium">Morning Run</h3>
+                            <p class="text-sm text-dark-400">5.2 km • 32 min</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">420</p>
+                            <p class="text-sm text-dark-400">calories</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Activity Item -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.1s;">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-secondary-500/20 flex items-center justify-center mr-4">
+                            <i class="fas fa-bicycle text-secondary-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <h3 class="font-medium">Cycling</h3>
+                            <p class="text-sm text-dark-400">15.3 km • 45 min</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">380</p>
+                            <p class="text-sm text-dark-400">calories</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Activity Item -->
+                <div class="activity-card bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.2s;">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-accent-500/20 flex items-center justify-center mr-4">
+                            <i class="fas fa-dumbbell text-accent-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <h3 class="font-medium">Strength Training</h3>
+                            <p class="text-sm text-dark-400">45 min • 320 kcal</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">320</p>
+                            <p class="text-sm text-dark-400">calories</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Goals Section -->
+        <section class="mt-12">
+            <h2 class="text-2xl font-bold mb-6">Weekly Goals</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-dark-800 rounded-xl p-5 reveal">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-dark-400">STEPS</span>
+                        <span class="font-medium">72%</span>
+                    </div>
+                    <div class="w-full bg-dark-700 rounded-full h-2.5">
+                        <div class="bg-primary-500 h-2.5 rounded-full" style="width: 72%"></div>
+                    </div>
+                    <p class="text-center text-dark-400 text-sm mt-2">128,542 / 180,000 steps</p>
+                </div>
+                
+                <div class="bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.1s;">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-dark-400">CALORIES</span>
+                        <span class="font-medium">65%</span>
+                    </div>
+                    <div class="w-full bg-dark-700 rounded-full h-2.5">
+                        <div class="bg-secondary-500 h-2.5 rounded-full" style="width: 65%"></div>
+                    </div>
+                    <p class="text-center text-dark-400 text-sm mt-2">2,600 / 4,000 calories</p>
+                </div>
+                
+                <div class="bg-dark-800 rounded-xl p-5 reveal" style="transition-delay: 0.2s;">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-dark-400">SLEEP</span>
+                        <span class="font-medium">82%</span>
+                    </div>
+                    <div class="w-full bg-dark-700 rounded-full h-2.5">
+                        <div class="bg-accent-500 h-2.5 rounded-full" style="width: 82%"></div>
+                    </div>
+                    <p class="text-center text-dark-400 text-sm mt-2">7h 12m / 8h 0m</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-dark-900 border-t border-dark-800">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-around py-3">
+                <a href="#" class="flex flex-col items-center text-primary-400">
+                    <i class="fas fa-home"></i>
+                    <span class="text-xs mt-1">Home</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-dark-400">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="text-xs mt-1">Stats</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-dark-400">
+                    <i class="fas fa-database"></i>
+                    <span class="text-xs mt-1">History</span>
+                </a>
+                <a href="#" class="flex flex-col items-center text-dark-400">
+                    <i class="fas fa-cog"></i>
+                    <span class="text-xs mt-1">Settings</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Reveal animation
+            const revealElements = document.querySelectorAll('.reveal');
+            
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            revealElements.forEach(el => {
+                revealObserver.observe(el);
+            });
+            
+            // Simulate progress updates
+            setInterval(() => {
+                const stepsCircle = document.querySelector('.progress-ring__circle:nth-child(1)');
+                const caloriesCircle = document.querySelector('.progress-ring__circle:nth-child(3)');
+                const heartRateCircle = document.querySelector('.progress-ring__circle:nth-child(5)');
+                const sleepCircle = document.querySelector('.progress-ring__circle:nth-child(7)');
+                
+                if (stepsCircle && stepsCircle.style.strokeDashoffset) {
+                    const currentOffset = parseFloat(stepsCircle.style.strokeDashoffset);
+                    stepsCircle.style.strokeDashoffset = Math.max(0, currentOffset - 0.5);
+                }
+                
+                if (caloriesCircle && caloriesCircle.style.strokeDashoffset) {
+                    const currentOffset = parseFloat(caloriesCircle.style.strokeDashoffset);
+                    caloriesCircle.style.strokeDashoffset = Math.max(0, currentOffset - 0.3);
+                }
+                
+                if (heartRateCircle && heartRateCircle.style.strokeDashoffset) {
+                    const currentOffset = parseFloat(heartRateCircle.style.strokeDashoffset);
+                    heartRateCircle.style.strokeDashoffset = Math.max(0, currentOffset - 0.1);
+                }
+                
+                if (sleepCircle && sleepCircle.style.strokeDashoffset) {
+                    const currentOffset = parseFloat(sleepCircle.style.strokeDashoffset);
+                    sleepCircle.style.strokeDashoffset = Math.max(0, currentOffset - 0.2);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

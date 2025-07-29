@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary-dark: #0F1149;
+            --color-primary-yellow: #FFD03A;
+            --color-bg-light: #F7F7F7;
+            --color-text-dark: #0F1149;
+            --color-text-light: #FFD03A;
+            --color-border-light: rgba(255, 255, 255, 0.3);
+            --color-border-dark-transparent: rgba(15, 17, 73, 0.3);
+            --font-primary: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        .kanban-board {
+            display: flex;
+            overflow-x: auto;
+            padding: 1rem;
+            gap: 1.5rem;
+            align-items: flex-start; /* Ensure columns align to the top */
+        }
+
+        .kanban-column {
+            flex-shrink: 0;
+            width: 300px;
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            min-height: 400px; /* Ensure columns have a minimum height */
+        }
+
+        .kanban-column-header {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kanban-tasks {
+            flex-grow: 1;
+            min-height: 0; /* Allow content to shrink */
+            overflow-y: auto; /* Enable scrolling for tasks within a column */
+            padding-right: 0.5rem; /* Space for scrollbar */
+        }
+
+        .task-card {
+            background-color: #f9f9f9;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: grab;
+            transition: transform 0.1s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        .task-card:active {
+            cursor: grabbing;
+            transform: scale(1.02);
+        }
+
+        .task-card.dragging {
+            opacity: 0.7;
+            border: 2px dashed var(--color-primary-yellow);
+        }
+
+        .task-category-chip {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-indicator {
+            width: 100%;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            height: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 9999px;
+            background-color: var(--color-primary-yellow);
+            transition: width 0.3s ease-in-out;
+        }
+
+        .add-task-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: var(--color-primary-yellow);
+            color: var(--color-primary-dark);
+            font-weight: 600;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .add-task-button:hover {
+            background-color: #e0c24a;
+        }
+
+        .add-column-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 300px; /* Match column width */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #e5e7eb;
+            color: #6b7280;
+            font-weight: 500;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            border: 1px dashed #d1d5db;
+        }
+
+        .add-column-button:hover {
+            background-color: #f3f4f6;
+            color: var(--color-text-dark);
+        }
+
+        .category-color-design { background-color: #FF6B6B; color: white; } /* Red */
+        .category-color-development { background-color: #4CAF50; color: white; } /* Green */
+        .category-color-testing { background-color: #007BFF; color: white; } /* Blue */
+        .category-color-marketing { background-color: #FFC107; color: black; } /* Amber */
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-4xl md:text-5xl font-bold text-center mb-8 text-[var(--color-primary-dark)]">My Kanban Board</h1>
+        
+        <div id="kanban-board" class="kanban-board">
+            <!-- To-Do Column -->
+            <div class="kanban-column" data-column-id="todo">
+                <div class="kanban-column-header">
+                    <h2>To Do <span class="text-sm text-gray-500">(3)</span></h2>
+                    <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+                <div class="kanban-tasks">
+                    <div class="task-card" draggable="true" data-task-id="1" data-category="design">
+                        <span class="task-category-chip category-color-design">Design</span>
+                        <h3 class="task-title">Design new landing page header</h3>
+                        <p class="task-description">Create a visually appealing and responsive header for the new landing page.</p>
+                        <div class="progress-indicator">
+                            <div class="progress-bar" style="width: 20%;"></div>
+                        </div>
+                    </div>
+                    <div class="task-card" draggable="true" data-task-id="2" data-category="development">
+                        <span class="task-category-chip category-color-development">Development</span>
+                        <h3 class="task-title">Implement user authentication</h3>
+                        <p class="task-description">Set up OAuth 2.0 for user login and registration.</p>
+                        <div class="progress-indicator">
+                            <div class="progress-bar" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                    <div class="task-card" draggable="true" data-task-id="3" data-category="marketing">
+                        <span class="task-category-chip category-color-marketing">Marketing</span>
+                        <h3 class="task-title">Plan Q3 social media campaign</h3>
+                        <p class="task-description">Outline content themes and schedule posts for Q3.</p>
+                        <div class="progress-indicator">
+                            <div class="progress-bar" style="width: 10%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-task-button" onclick="addTask('todo')">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+
+            <!-- In Progress Column -->
+            <div class="kanban-column" data-column-id="in-progress">
+                <div class="kanban-column-header">
+                    <h2>In Progress <span class="text-sm text-gray-500">(2)</span></h2>
+                    <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+                <div class="kanban-tasks">
+                    <div class="task-card" draggable="true" data-task-id="4" data-category="development">
+                        <span class="task-category-chip category-color-development">Development</span>
+                        <h3 class="task-title">Develop payment gateway integration</h3>
+                        <p class="task-description">Integrate Stripe API for secure payments.</p>
+                        <div class="progress-indicator">
+                            <div class="progress-bar" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    <div class="task-card" draggable="true" data-task-id="5" data-category="testing">
+                        <span class="task-category-chip category-color-testing">Testing</span>
+                        <h3 class="task-title">Perform end-to-end testing for user flow</h3>
+                        <p class="task-description">Test all user interactions from login to checkout.</p>
+                        <div class="progress-indicator">
+                            <div class="progress-bar" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="add-task-button" onclick="addTask('in-progress')">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+
+            <!-- Done Column -->
+            <div class="kanban-column" data-column-id="done">
+                <div class="kanban-column-header">
+                    <h2>Done <span class="text-sm text-gray-500">(1)</span></h2>
+                    <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+                <div class="kanban-tasks">
+                    <div class="task-card" draggable="true" data-task-id="6" data-category="design" data-completed="true">
+                        <span class="task-category-chip category-color-design">Design</span>
+                        <h3 class="task-title">Finalize project proposal</h3>
+                        <p class="task-description">Complete and review the project proposal document.</p>
+                        <div class="progress-indicator">
+                            <div class="progress-bar" style="width: 100%;"></div>
+                        </div>
+                        <div class="absolute top-2 right-2 text-green-500"><i class="fas fa-check-circle"></i></div>
+                    </div>
+                </div>
+                <button class="add-task-button" onclick="addTask('done')">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+
+            <!-- Add Column Button -->
+            <div class="add-column-button" onclick="addColumn()">
+                <i class="fas fa-plus mr-2"></i> Add Column
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tasks = {
+            'todo': [
+                { id: 1, title: 'Design new landing page header', description: 'Create a visually appealing and responsive header for the new landing page.', category: 'design', progress: 20, completed: false },
+                { id: 2, title: 'Implement user authentication', description: 'Set up OAuth 2.0 for user login and registration.', category: 'development', progress: 50, completed: false },
+                { id: 3, title: 'Plan Q3 social media campaign', description: 'Outline content themes and schedule posts for Q3.', category: 'marketing', progress: 10, completed: false }
+            ],
+            'in-progress': [
+                { id: 4, title: 'Develop payment gateway integration', description: 'Integrate Stripe API for secure payments.', category: 'development', progress: 75, completed: false },
+                { id: 5, title: 'Perform end-to-end testing for user flow', description: 'Test all user interactions from login to checkout.', category: 'testing', progress: 60, completed: false }
+            ],
+            'done': [
+                { id: 6, title: 'Finalize project proposal', description: 'Complete and review the project proposal document.', category: 'design', progress: 100, completed: true }
+            ]
+        };
+
+        let draggedTask = null;
+
+        function renderBoard() {
+            const board = document.getElementById('kanban-board');
+            board.innerHTML = ''; // Clear existing board
+
+            for (const columnId in tasks) {
+                const columnDiv = document.createElement('div');
+                columnDiv.className = 'kanban-column';
+                columnDiv.setAttribute('data-column-id', columnId);
+                columnDiv.innerHTML = `
+                    <div class="kanban-column-header">
+                        <h2>${columnId.charAt(0).toUpperCase() + columnId.slice(1)} <span class="text-sm text-gray-500">(${tasks[columnId].length})</span></h2>
+                        <button class="text-gray-400 hover:text-gray-600"><i class="fas fa-ellipsis-h"></i></button>
+                    </div>
+                    <div class="kanban-tasks"></div>
+                    <button class="add-task-button" onclick="addTask('${columnId}')">
+                        <i class="fas fa-plus mr-2"></i> Add Task
+                    </button>
+                `;
+                board.appendChild(columnDiv);
+
+                const tasksContainer = columnDiv.querySelector('.kanban-tasks');
+                tasks[columnId].forEach(task => {
+                    const taskCard = createTaskCard(task);
+                    tasksContainer.appendChild(taskCard);
+                });
+            }
+            addColumnButton(board);
+            addDragAndDropListeners();
+            updateProgressBars();
+        }
+
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'task-card';
+            card.setAttribute('draggable', 'true');
+            card.setAttribute('data-task-id', task.id);
+            card.setAttribute('data-category', task.category);
+            if (task.completed) {
+                card.classList.add('opacity-50', 'border-dashed', 'border-gray-300');
+            }
+
+            card.innerHTML = `
+                <span class="task-category-chip category-color-${task.category}">${task.category.charAt(0).toUpperCase() + task.category.slice(1)}</span>
+                <h3 class="task-title">${task.title}</h3>
+                <p class="task-description">${task.description}</p>
+                <div class="progress-indicator">
+                    <div class="progress-bar" style="width: ${task.progress}%;"></div>
+                </div>
+                ${task.completed ? '<div class="absolute top-2 right-2 text-green-500"><i class="fas fa-check-circle"></i></div>' : ''}
+                <button class="absolute top-2 right-8 text-red-500 hover:text-red-700 text-sm" onclick="deleteTask(${task.id})"><i class="fas fa-times-circle"></i></button>
+            `;
+            return card;
+        }
+
+        function addColumn() {
+            const newColumnId = prompt('Enter new column name (e.g., "Review", "Backlog"):');
+            if (newColumnId && newColumnId.trim() !== '') {
+                tasks[newColumnId.trim().toLowerCase()] = [];
+                renderBoard();
+            }
+        }
+
+        function addColumnButton(board) {
+            const addColumnBtn = document.createElement('div');
+            addColumnBtn.className = 'add-column-button';
+            addColumnBtn.innerHTML = '<i class="fas fa-plus mr-2"></i> Add Column';
+            addColumnBtn.onclick = addColumn;
+            board.appendChild(addColumnBtn);
+        }
+
+        function addTask(columnId) {
+            const newTitle = prompt('Enter task title:');
+            if (newTitle && newTitle.trim() !== '') {
+                const newDescription = prompt('Enter task description (optional):');
+                const newCategory = prompt('Enter task category (e.g., design, development, testing, marketing):');
+                const newProgress = parseInt(prompt('Enter progress percentage (0-100):', '0'));
+
+                const newTask = {
+                    id: Date.now(), // Unique ID
+                    title: newTitle.trim(),
+                    description: newDescription ? newDescription.trim() : '',
+                    category: newCategory ? newCategory.trim().toLowerCase() : 'other',
+                    progress: isNaN(newProgress) || newProgress < 0 || newProgress > 100 ? 0 : newProgress,
+                    completed: false
+                };
+
+                tasks[columnId].push(newTask);
+                renderBoard();
+            }
+        }
+
+        function deleteTask(taskId) {
+            if (confirm('Are you sure you want to delete this task?')) {
+                for (const columnId in tasks) {
+                    tasks[columnId] = tasks[columnId].filter(task => task.id !== taskId);
+                }
+                renderBoard();
+            }
+        }
+
+        function updateProgress(taskId, newProgress) {
+            for (const columnId in tasks) {
+                const taskIndex = tasks[columnId].findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                    tasks[columnId][taskIndex].progress = newProgress;
+                    break;
+                }
+            }
+            renderBoard();
+        }
+
+        function completeTask(taskId) {
+            for (const columnId in tasks) {
+                const taskIndex = tasks[columnId].findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                    tasks[columnId][taskIndex].completed = true;
+                    tasks[columnId][taskIndex].progress = 100;
+                    break;
+                }
+            }
+            renderBoard();
+        }
+
+        function updateProgressBars() {
+            document.querySelectorAll('.progress-bar').forEach(bar => {
+                // Progress bars are updated by re-rendering the board
+                // This function is a placeholder for a more dynamic update if needed
+                // Currently, re-rendering is the most straightforward way
+            });
+        }
+
+        function addDragAndDropListeners() {
+            const taskCards = document.querySelectorAll('.task-card');
+            const kanbanColumns = document.querySelectorAll('.kanban-column');
+
+            taskCards.forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    draggedTask = card;
+                    setTimeout(() => {
+                        card.classList.add('dragging');
+                    }, 0);
+                });
+
+                card.addEventListener('dragend', () => {
+                    draggedTask.classList.remove('dragging');
+                    draggedTask = null;
+                });
+            });
+
+            kanbanColumns.forEach(column => {
+                column.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Allow drop
+                    const afterElement = getDragAfterElement(column.querySelector('.kanban-tasks'), e.clientY);
+                    const draggable = document.querySelector('.dragging');
+                    if (draggable) {
+                        if (afterElement == null) {
+                            column.querySelector('.kanban-tasks').appendChild(draggable);
+                        } else {
+                            column.querySelector('.kanban-tasks').insertBefore(draggable, afterElement);
+                        }
+                    }
+                });
+
+                column.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedTask) {
+                        const currentColumnId = column.getAttribute('data-column-id');
+                        const taskId = parseInt(draggedTask.getAttribute('data-task-id'));
+                        const originalColumnId = draggedTask.closest('.kanban-column').getAttribute('data-column-id');
+
+                        // Move task data between arrays
+                        const taskIndex = tasks[originalColumnId].findIndex(task => task.id === taskId);
+                        if (taskIndex !== -1) {
+                            const [movedTask] = tasks[originalColumnId].splice(taskIndex, 1);
+                            tasks[currentColumnId].push(movedTask);
+                            renderBoard(); // Re-render to ensure correct order and data structure
+                        }
+                    }
+                });
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: -Infinity }).element;
+        }
+
+        // Initial render
+        renderBoard();
+    </script>
+</body>
+</html>

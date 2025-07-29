@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Flow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: rgb(24, 24, 24);
+            --color-text-primary: rgb(255, 255, 255);
+            --color-text-secondary: rgb(170, 170, 170);
+            --color-card-bg: rgb(36, 36, 36);
+            --color-accent: rgb(0, 122, 255);
+            --color-accent-light: rgba(0, 122, 255, 0.2);
+            --color-border: rgb(54, 54, 54);
+            --color-success: rgb(34, 197, 94);
+            --color-error: rgb(239, 68, 68);
+        }
+
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent body scroll, content will scroll */
+        }
+
+        .onboarding-container {
+            background-color: var(--color-card-bg);
+            border-radius: 1.5rem; /* 24px */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 600px;
+            padding: 2.5rem; /* 40px */
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .onboarding-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.5s ease-in-out; /* For animation */
+        }
+
+        .onboarding-content.active {
+            position: relative; /* Ensure active content is positioned correctly */
+        }
+
+        .onboarding-content:not(.active) {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            transform: translateX(100%); /* Start off-screen to the right */
+            opacity: 0;
+            pointer-events: none; /* Make inactive content unclickable */
+        }
+
+        .onboarding-content.active:not(.first-step) {
+            transform: translateX(-100%); /* Start off-screen to the left for non-first steps */
+        }
+        .onboarding-content.active:not(.last-step) {
+            transform: translateX(100%); /* Start off-screen to the right for non-last steps */
+        }
+
+
+        .onboarding-step-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: all 0.3s ease-in-out;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            z-index: 10;
+        }
+
+        .onboarding-step-indicator.active {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary);
+            border: 2px solid var(--color-text-primary);
+        }
+
+        .onboarding-step-indicator.completed {
+            background-color: var(--color-success);
+            color: var(--color-text-primary);
+            border: 2px solid var(--color-text-primary);
+        }
+
+        .onboarding-step-label {
+            position: absolute;
+            bottom: -20px;
+            background-color: var(--color-card-bg);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--color-text-primary);
+            z-index: 11;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .onboarding-step-label.active {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary);
+        }
+
+        .onboarding-step-label.completed {
+            background-color: var(--color-success);
+            color: var(--color-text-primary);
+        }
+
+        .onboarding-content .image-container {
+            width: 100%;
+            height: 200px; /* Fixed height for consistency */
+            background-color: var(--color-border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+        }
+        .onboarding-content .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .onboarding-button {
+            background-color: var(--color-accent);
+            color: var(--color-text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            width: 100%;
+            max-width: 250px;
+            margin-top: 1.5rem;
+        }
+
+        .onboarding-button:hover {
+            background-color: var(--color-text-primary);
+            color: var(--color-bg-main);
+            transform: translateY(-2px);
+        }
+
+        .onboarding-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .onboarding-button.skip {
+            background-color: var(--color-border);
+            color: var(--color-text-primary);
+            margin-top: 1rem;
+            border: 1px solid var(--color-border);
+            padding: 0.5rem 1rem;
+        }
+        .onboarding-button.skip:hover {
+            background-color: var(--color-text-secondary);
+        }
+
+        .onboarding-progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--color-border);
+            border-radius: 4px;
+            position: relative;
+            margin-top: 1.5rem;
+            overflow: hidden;
+        }
+        .onboarding-progress-fill {
+            height: 100%;
+            background-color: var(--color-accent);
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+            border-radius: 4px;
+        }
+        .onboarding-progress-label {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-text-primary);
+            font-size: 0.875rem;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-container">
+        <!-- Step Indicators -->
+        <div id="onboarding-step-indicators" class="w-full flex justify-between items-center mb-8">
+            <div id="step-1" class="onboarding-step-indicator active">1</div>
+            <div class="onboarding-step-label active">Getting Started</div>
+            <div id="step-2" class="onboarding-step-indicator">2</div>
+            <div class="onboarding-step-label">Your Profile</div>
+            <div id="step-3" class="onboarding-step-indicator">3</div>
+            <div class="onboarding-step-label">Explore Features</div>
+            <div id="step-4" class="onboarding-step-indicator">4</div>
+            <div class="onboarding-step-label">Ready to Go!</div>
+        </div>
+
+        <!-- Onboarding Content -->
+        <div id="onboarding-content">
+            <!-- Step 1: Getting Started -->
+            <div class="onboarding-content active first-step" data-step="1">
+                <div class="image-container">
+                    <i class="fa-solid fa-rocket text-6xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold mb-2">Welcome to Our Platform!</h2>
+                <p class="text-[var(--color-text-secondary)] mb-6">
+                    This is your journey to discover new possibilities. Let's get started!
+                </p>
+                <button id="onboarding-next-1" class="onboarding-button" disabled>
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+                <button class="onboarding-button skip">Skip</button>
+            </div>
+
+            <!-- Step 2: Your Profile -->
+            <div class="onboarding-content" data-step="2">
+                <div class="image-container">
+                    <i class="fa-solid fa-user-circle text-6xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold mb-2">Tell Us About Yourself</h2>
+                <p class="text-[var(--color-text-secondary)] mb-6">
+                    Let's make your experience personal. Share a bit about your interests.
+                </p>
+                <button id="onboarding-next-2" class="onboarding-button" disabled>
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+                <button id="onboarding-previous-2" class="onboarding-button">Previous <i class="fas fa-arrow-left ml-2"></i></button>
+            </div>
+
+            <!-- Step 3: Explore Features -->
+            <div class="onboarding-content" data-step="3">
+                <div class="image-container">
+                    <i class="fa-solid fa-magic text-6xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold mb-2">Discover Our Power</h2>
+                <p class="text-[var(--color-text-secondary)] mb-6">
+                    See what makes our platform unique and how it can help you.
+                </p>
+                <button id="onboarding-next-3" class="onboarding-button" disabled>
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+                <button id="onboarding-previous-3" class="onboarding-button">Previous <i class="fas fa-arrow-left ml-2"></i></button>
+            </div>
+
+            <!-- Step 4: Ready to Go! -->
+            <div class="onboarding-content" data-step="4">
+                <div class="image-container">
+                    <i class="fa-solid fa-check-circle text-6xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold mb-2">You're All Set!</h2>
+                <p class="text-[var(--color-text-secondary)] mb-6">
+                    Enjoy the platform! We hope you love it.
+                </p>
+                <button id="onboarding-continue-4" class="onboarding-button">
+                    Continue to App <i class="fas fa-external-link-alt ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="onboarding-progress-bar">
+            <div id="onboarding-progress-fill" class="onboarding-progress-fill"></div>
+            <div id="onboarding-progress-label" class="onboarding-progress-label">0%</div>
+        </div>
+    </div>
+
+    <script>
+        const onboardingContents = document.querySelectorAll('.onboarding-content');
+        const stepIndicators = document.querySelectorAll('.onboarding-step-indicator');
+        const stepLabels = document.querySelectorAll('.onboarding-step-label');
+        const progressBarFill = document.getElementById('onboarding-progress-fill');
+        const progressBarLabel = document.getElementById('onboarding-progress-label');
+        let currentStep = 0;
+        const totalSteps = onboardingContents.length;
+
+        function updateOnboarding() {
+            // Remove active class from all content, indicators, and labels
+            onboardingContents.forEach(content => content.classList.remove('active'));
+            stepIndicators.forEach(indicator => indicator.classList.remove('active', 'completed'));
+            stepLabels.forEach(label => label.classList.remove('active', 'completed'));
+
+            // Add active class to current step
+            onboardingContents[currentStep].classList.add('active');
+            if (currentStep > 0) {
+                stepIndicators[currentStep - 1].classList.add('completed');
+                stepLabels[currentStep - 1].classList.add('completed');
+            }
+            if (currentStep < totalSteps - 1) {
+                stepIndicators[currentStep].classList.add('active');
+                stepLabels[currentStep].classList.add('active');
+            } else {
+                // For the last step, make the indicator active
+                stepIndicators[currentStep].classList.add('active');
+                stepLabels[currentStep].classList.add('active');
+            }
+
+            // Update progress bar
+            const progress = ((currentStep + 1) / totalSteps) * 100;
+            progressBarFill.style.width = `${progress}%`;
+            progressBarLabel.textContent = `${Math.round(progress)}%`;
+
+            // Enable/disable next/previous buttons
+            if (currentStep > 0) {
+                document.getElementById(`onboarding-previous-${currentStep}`).classList.remove('onboarding-button');
+                document.getElementById(`onboarding-previous-${currentStep}`).classList.add('onboarding-button');
+            } else {
+                document.getElementById(`onboarding-previous-${currentStep}`).classList.add('onboarding-button');
+                document.getElementById(`onboarding-previous-${currentStep}`).classList.remove('onboarding-button');
+            }
+
+            if (currentStep < totalSteps - 1) {
+                document.getElementById(`onboarding-next-${currentStep}`).classList.remove('onboarding-button');
+                document.getElementById(`onboarding-next-${currentStep}`).classList.add('onboarding-button');
+            } else {
+                document.getElementById(`onboarding-next-${currentStep}`).classList.add('onboarding-button');
+                document.getElementById(`onboarding-next-${currentStep}`).classList.remove('onboarding-button');
+            }
+        }
+
+        function showNextStep() {
+            if (currentStep < totalSteps - 1) {
+                currentStep++;
+                updateOnboarding();
+            }
+        }
+
+        function showPreviousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                updateOnboarding();
+            }
+        }
+
+        document.getElementById('onboarding-next-1').addEventListener('click', showNextStep);
+        document.getElementById('onboarding-next-2').addEventListener('click', showNextStep);
+        document.getElementById('onboarding-next-3').addEventListener('click', showNextStep);
+        document.getElementById('onboarding-continue-4').addEventListener('click', () => {
+            alert('Onboarding complete! Redirecting to the app...');
+            // In a real app, you would navigate to the main app or a welcome screen
+        });
+
+        document.getElementById('onboarding-previous-2').addEventListener('click', showPreviousStep);
+        document.getElementById('onboarding-previous-3').addEventListener('click', showPreviousStep);
+
+        // Initial setup
+        updateOnboarding();
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart with Tooltip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-text-primary: rgb(26, 26, 26);
+            --color-text-secondary: rgb(102, 102, 102);
+            --color-bg-primary: rgb(255, 255, 255);
+            --color-bg-alt: rgb(248, 248, 248);
+            --color-accent: rgb(255, 105, 182);
+            --font-main: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-alt);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .bar-chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px; /* Fixed height for the chart area */
+            background-color: var(--color-bg-primary);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Bars start from the bottom */
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .bar {
+            background-color: var(--color-accent);
+            border-radius: 4px;
+            margin-bottom: 4px; /* Spacing between bars */
+            width: 20%; /* Equal width for all bars */
+            position: relative;
+            transition: height 0.3s ease-out; /* Smooth height transition */
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            pointer-events: none; /* Allows clicks to pass through to the bar */
+            z-index: 10;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+
+        .tooltip.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .bar-chart-container {
+                height: 250px;
+            }
+            .bar {
+                width: 25%; /* Adjust bar width for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bar-chart-container" id="barChart">
+        <!-- Bars will be dynamically inserted here by JavaScript -->
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const data = [
+                { label: 'Category A', value: 75, tooltip: 'High demand for Category A' },
+                { label: 'Category B', value: 50, tooltip: 'Moderate performance for Category B' },
+                { label: 'Category C', value: 90, tooltip: 'Strong growth in Category C' },
+                { label: 'Category D', value: 40, tooltip: 'Low engagement in Category D' },
+                { label: 'Category E', value: 80, tooltip: 'Stable performance in Category E' },
+                { label: 'Category F', value: 60, tooltip: 'Good but improving Category F' },
+                { label: 'Category G', value: 20, tooltip: 'Very low interest in Category G' },
+                { label: 'Category H', value: 100, tooltip: 'Peak performance in Category H' }
+            ];
+
+            const chartContainer = document.getElementById('barChart');
+
+            // Calculate max value for scaling
+            const maxValue = Math.max(...data.map(item => item.value));
+            const baseHeight = 20; // Base height for the bars
+            const scale = 20; // Max height for bars, e.g., 100 units can be 200px
+
+            data.forEach((item, index) => {
+                const bar = document.createElement('div');
+                bar.classList.add('bar', 'animate-fade-in'); // Add animation class
+                bar.style.height = `${(item.value / maxValue) * scale + baseHeight}px`;
+                bar.style.animationDelay = `${index * 0.05}s`; // Staggered animation
+                bar.dataset.value = item.value;
+                bar.dataset.label = item.label;
+                bar.dataset.tooltip = item.tooltip;
+
+                const tooltip = document.createElement('div');
+                tooltip.classList.add('tooltip');
+                tooltip.textContent = `${item.label}: ${item.value}`;
+                tooltip.innerHTML += `<p class="text-xs text-white/80">${item.tooltip}</p>`; // Add more tooltip content
+
+                bar.addEventListener('mouseenter', () => {
+                    tooltip.classList.add('active');
+                });
+
+                bar.addEventListener('mouseleave', () => {
+                    tooltip.classList.remove('active');
+                });
+
+                // Position the tooltip to the right of the bar
+                const barRect = bar.getBoundingClientRect();
+                const containerRect = chartContainer.getBoundingClientRect();
+                const barWidth = barRect.width;
+                const chartWidth = containerRect.width;
+                const tooltipWidth = tooltip.offsetWidth;
+
+                // Adjust position if tooltip overflows to the right
+                if (barRect.left + barWidth + tooltipWidth > chartWidth) {
+                    tooltip.classList.remove('left-0', 'right-0');
+                    tooltip.classList.add('right-0');
+                    tooltip.style.left = `-${tooltipWidth / 2}px`;
+                    tooltip.style.top = `${barRect.top - containerRect.top + barRect.height - 15}px`; // Adjust for vertical alignment
+                } else {
+                    tooltip.classList.remove('right-0');
+                    tooltip.classList.add('left-0');
+                    tooltip.style.left = `${barRect.left - containerRect.left + barRect.width / 2 - tooltipWidth / 2}px`;
+                    tooltip.style.top = `${barRect.top - containerRect.top + barRect.height - 15}px`; // Adjust for vertical alignment
+                }
+
+
+                chartContainer.appendChild(bar);
+                chartContainer.appendChild(tooltip);
+            });
+
+            // Simple fade-in animation for the entire chart
+            const chartElement = document.getElementById('barChart');
+            if (chartElement) {
+                chartElement.style.opacity = '0';
+                setTimeout(() => {
+                    chartElement.style.animation = 'fadeIn 0.5s ease-out forwards';
+                }, 100);
+            }
+
+            // CSS for the fade-in animation
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsFlow - Modern News Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'news-dark': '#0f172a',
+                        'news-darker': '#0a15',
+                        'news-medium': '#1e293b',
+                        'news-light': '#334155',
+                        'news-text': '#f1f5f9',
+                        'news-muted': '#94a3b8',
+                        'news-primary': '#3b82f6',
+                        'news-accent': '#60a5fa',
+                        'news-highlight': '#93c5fd',
+                        'news-tech': '#3b82f6',
+                        'news-business': '#10b981',
+                        'news-sports': '#f59e0b',
+                        'news-entertainment': '#ec4899',
+                        'news-science': '#8b5cf6',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Manrope', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+        
+        body {
+            background-color: #0f172a;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .category-chip {
+            transition: all 0.3s ease;
+        }
+        
+        .category-chip.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .article-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-spinner {
+            border-top-color: #3b82f6;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .fade-in-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .infinite-scroll-container {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-news-dark text-news-text">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-news-darker border-b border-news-light">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-news-primary flex items-center justify-center mr-3">
+                        <i class="fas fa-newspaper text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-display font-bold">NewsFlow</h1>
+                </div>
+                
+                <div class="hidden md:flex space-x-6">
+                    <a href="#" class="text-news-text hover:text-news-accent transition-colors">Home</a>
+                    <a href="#" class="text-news-muted hover:text-news-accent transition-colors">Trending</a>
+                    <a href="#" class="text-news-muted hover:text-news-accent transition-colors">Bookmarks</a>
+                    <a href="#" class="text-news-muted hover:text-news-accent transition-colors">Settings</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 rounded-full hover:bg-news-medium transition-colors">
+                        <i class="fas fa-search text-news-muted"></i>
+                    </button>
+                    <button class="p-2 rounded-full hover:bg-news-medium transition-colors">
+                        <i class="fas fa-bell text-news-muted"></i>
+                    </button>
+                    <div class="w-8 h-8 rounded-full bg-news-primary flex items-center justify-center text-sm font-semibold">U</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Category Navigation -->
+    <section class="bg-news-darker py-4 sticky top-16 z-40">
+        <div class="container mx-auto px-4 overflow-x-auto">
+            <div class="flex space-x-3 min-w-max">
+                <button class="category-chip active px-5 py-2 rounded-full bg-news-primary text-white font-medium whitespace-nowrap">All News</button>
+                <button class="category-chip px-5 py-2 rounded-full bg-news-medium hover:bg-news-light transition-colors whitespace-nowrap" data-category="technology">
+                    <i class="fas fa-microchip mr-2"></i> Technology
+                </button>
+                <button class="category-chip px-5 py-2 rounded-full bg-news-medium hover:bg-news-light transition-colors whitespace-nowrap" data-category="business">
+                    <i class="fas fa-chart-line mr-2"></i> Business
+                </button>
+                <button class="category-chip px-5 py-2 rounded-full bg-news-medium hover:bg-news-light transition-colors whitespace-nowrap" data-category="sports">
+                    <i class="fas fa-football-ball mr-2"></i> Sports
+                </button>
+                <button class="category-chip px-5 py-2 rounded-full bg-news-medium hover:bg-news-light transition-colors whitespace-nowrap" data-category="entertainment">
+                    <i class="fas fa-film mr-2"></i> Entertainment
+                </button>
+                <button class="category-chip px-5 py-2 rounded-full bg-news-medium hover:bg-news-light transition-colors whitespace-nowrap" data-category="science">
+                    <i class="fas fa-flask mr-2"></i> Science
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="py-8 infinite-scroll-container">
+        <div class="container mx-auto px-4">
+            <!-- Featured Article -->
+            <section class="mb-12 fade-in-section">
+                <div class="bg-news-medium rounded-2xl overflow-hidden shadow-xl">
+                    <div class="md:flex">
+                        <div class="md:w-1/2 p-8 flex flex-col justify-center">
+                            <div class="flex items-center mb-4">
+                                <span class="px-3 py-1 bg-news-primary text-white rounded-full text-sm font-medium">Featured</span>
+                                <span class="ml-3 text-news-muted text-sm">12 min read</span>
+                            </div>
+                            <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">AI Breakthrough: New Model Surpasses Human Performance in Complex Tasks</h2>
+                            <p class="text-news-muted mb-6">Researchers at NeuroTech Labs have developed an AI system that outperforms humans in complex reasoning tasks, opening new possibilities for scientific discovery and problem-solving.</p>
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-news-light flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-news-muted"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Sarah Johnson</p>
+                                    <p class="text-news-muted text-sm">Tech Correspondent • 2 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 bg-gradient-to-br from-news-primary to-news-accent flex items-center justify-center">
+                            <div class="text-center p-8">
+                                <i class="fas fa-robot text-white text-6xl mb-4"></i>
+                                <p class="text-white font-medium">AI Revolutionizing Industries</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Article Grid -->
+            <section>
+                <h2 class="text-2xl font-display font-bold mb-6 fade-in-section">Latest News</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Article 1 -->
+                    <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                        <div class="h-48 bg-gradient-to-r from-news-tech to-blue-500 flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-4xl"></i>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-2 py-1 bg-blue-900/30 text-news-primary rounded text-xs font-medium">Technology</span>
+                                <span class="text-news-muted text-sm">5 min read</span>
+                            </div>
+                            <h3 class="text-xl font-display font-bold mb-2">Quantum Computing Milestone Achieved with Error-Corrected Qubits</h3>
+                            <p class="text-news-muted mb-4">Scientists have demonstrated stable error-corrected qubits, a major breakthrough for practical quantum computing.</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                        <i class="fas fa-user text-news-muted text-sm"></i>
+                                    </div>
+                                    <span class="text-sm">Michael Chen</span>
+                                </div>
+                                <span class="text-news-muted text-sm">1h ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Article 2 -->
+                    <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                        <div class="h-48 bg-gradient-to-r from-green-500 to-news-business flex items-center justify-center">
+                            <i class="fas fa-coins text-white text-4xl"></i>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-2 py-1 bg-green-900/30 text-news-business rounded text-xs font-medium">Business</span>
+                                <span class="text-news-muted text-sm">4 min read</span>
+                            </div>
+                            <h3 class="text-xl font-display font-bold mb-2">Global Markets Rally as Inflation Concerns Ease</h3>
+                            <p class="text-news-muted mb-4">Stock markets worldwide surged as new economic data suggests inflation may be cooling faster than expected.</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                        <i class="fas fa-user text-news-muted text-sm"></i>
+                                    </div>
+                                    <span class="text-sm">Robert Davis</span>
+                                </div>
+                                <span class="text-news-muted text-sm">3h ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Article 3 -->
+                    <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                        <div class="h-48 bg-gradient-to-r from-yellow-500 to-news-sports flex items-center justify-center">
+                            <i class="fas fa-football-ball text-white text-4xl"></i>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-2 py-1 bg-yellow-900/30 text-news-sports rounded text-xs font-medium">Sports</span>
+                                <span class="text-news-muted text-sm">3 min read</span>
+                            </div>
+                            <h3 class="text-xl font-display font-bold mb-2">Underdog Team Stuns Champions in Historic Finals Upset</h3>
+                            <p class="text-news-muted mb-4">In one of the biggest surprises in sports history, the underdog team defeated the reigning champions with a last-minute goal.</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                        <i class="fas fa-user text-news-muted text-sm"></i>
+                                    </div>
+                                    <span class="text-sm">James Wilson</span>
+                                </div>
+                                <span class="text-news-muted text-sm">5h ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Article 4 -->
+                    <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                        <div class="h-48 bg-gradient-to-r from-pink-500 to-news-entertainment flex items-center justify-center">
+                            <i class="fas fa-film text-white text-4xl"></i>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-2 py-1 bg-pink-900/30 text-news-entertainment rounded text-xs font-medium">Entertainment</span>
+                                <span class="text-news-muted text-sm">6 min read</span>
+                            </div>
+                            <h3 class="text-xl font-display font-bold mb-2">Award-Winning Director Announces Ambitious New Sci-Fi Trilogy</h3>
+                            <p class="text-news-muted mb-4">The visionary filmmaker revealed plans for a three-part space opera featuring groundbreaking visual effects.</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                        <i class="fas fa-user text-news-muted text-sm"></i>
+                                    </div>
+                                    <span class="text-sm">Emma Rodriguez</span>
+                                </div>
+                                <span class="text-news-muted text-sm">7h ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Article 5 -->
+                    <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                        <div class="h-48 bg-gradient-to-r from-purple-500 to-news-science flex items-center justify-center">
+                            <i class="fas fa-planet-ringed text-white text-4xl"></i>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-2 py-1 bg-purple-900/30 text-news-science rounded text-xs font-medium">Science</span>
+                                <span class="text-news-muted text-sm">8 min read</span>
+                            </div>
+                            <h3 class="text-xl font-display font-bold mb-2">Astronomers Discover Earth-Like Planet in Habitable Zone</h3>
+                            <p class="text-news-muted mb-4">A newly found exoplanet shows promising signs of potentially supporting liquid water and possibly life.</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                        <i class="fas fa-user text-news-muted text-sm"></i>
+                                    </div>
+                                    <span class="text-sm">Dr. Alan Turing</span>
+                                </div>
+                                <span class="text-news-muted text-sm">9h ago</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Article 6 -->
+                    <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                        <div class="h-48 bg-gradient-to-r from-indigo-500 to-news-primary flex items-center justify-center">
+                            <i class="fas fa-shield-alt text-white text-4xl"></i>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="px-2 py-1 bg-indigo-900/30 text-indigo-300 rounded text-xs font-medium">Security</span>
+                                <span class="text-news-muted text-sm">4 min read</span>
+                            </div>
+                            <h3 class="text-xl font-display font-bold mb-2">New Cybersecurity Framework Released to Combat AI Threats</h3>
+                            <p class="text-news-muted mb-4">Global experts have developed a comprehensive framework to protect against emerging AI-powered cyber threats.</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                        <i class="fas fa-user text-news-muted text-sm"></i>
+                                    </div>
+                                    <span class="text-sm">Thomas Anderson</span>
+                                </div>
+                                <span class="text-news-muted text-sm">11h ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loading spinner -->
+                <div class="text-center py-8 fade-in-section">
+                    <div class="inline-block">
+                        <div class="w-12 h-12 border-4 border-t-transparent border-news-primary rounded-full loading-spinner"></div>
+                    </div>
+                    <p class="mt-4 text-news-muted">Loading more articles...</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-news-darker border-t border-news-light py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-news-primary flex items-center justify-center mr-3">
+                            <i class="fas fa-newspaper text-white text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-display font-bold">NewsFlow</h2>
+                    </div>
+                    <p class="text-news-muted mb-4">Your personalized news reader delivering the latest stories from around the world.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-news-muted hover:text-news-accent transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-news-muted hover:text-news-accent transition-colors">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-news-muted hover:text-news-accent transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-news-muted hover:text-news-accent transition-colors">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-display font-semibold mb-4">Categories</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Technology</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Business</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Sports</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Entertainment</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Science</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-display font-semibold mb-4">Company</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">About Us</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Careers</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Contact</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Advertise</a></li>
+                        <li><a href="#" class="text-news-muted hover:text-news-accent transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-display font-semibold mb-4">Subscribe</h3>
+                    <p class="text-news-muted mb-4">Get the latest news delivered to your inbox</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 bg-news-medium rounded-l-lg focus:outline-none focus:ring-2 focus:ring-news-primary w-full">
+                        <button class="bg-news-primary px-4 py-2 rounded-r-lg hover:bg-blue-500 transition-colors">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-news-light mt-12 pt-6 text-center text-news-muted text-sm">
+                <p>© 2023 NewsFlow. All rights reserved. Designed with ❤️ for news enthusiasts.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Category filtering functionality
+        document.querySelectorAll('.category-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                // Remove active class from all chips
+                document.querySelectorAll('.category-chip').forEach(c => {
+                    c.classList.remove('active');
+                    c.classList.add('bg-news-medium');
+                    c.classList.remove('text-white');
+                });
+                
+                // Add active class to clicked chip
+                this.classList.add('active');
+                this.classList.remove('bg-news-medium');
+                this.classList.add('text-white');
+                
+                // In a real app, this would filter articles by category
+                // For demo, we'll just show a message
+                const category = this.getAttribute('data-category');
+                alert(`Filtering by category: ${category}`);
+            });
+        });
+        
+        // Infinite scroll simulation
+        window.addEventListener('scroll', function() {
+            const scrollPosition = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const bodyHeight = document.body.offsetHeight;
+            
+            // When user scrolls to bottom (within 200px)
+            if (bodyHeight - (scrollPosition + windowHeight) < 200) {
+                // Show loading spinner
+                const spinner = document.querySelector('.loading-spinner').parentElement.parentElement;
+                spinner.classList.remove('hidden');
+                
+                // Simulate loading delay
+                setTimeout(() => {
+                    // Create new articles
+                    const grid = document.querySelector('.grid');
+                    const newArticles = document.createElement('div');
+                    newArticles.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+                    
+                    // Create 3 new articles
+                    for (let i = 0; i < 3; i++) {
+                        newArticles.innerHTML += `
+                            <div class="article-card bg-news-medium rounded-xl overflow-hidden fade-in-section">
+                                <div class="h-48 bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center">
+                                    <i class="fas fa-bolt text-white text-4xl"></i>
+                                </div>
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <span class="px-2 py-1 bg-indigo-900/30 text-indigo-300 rounded text-xs font-medium">Technology</span>
+                                        <span class="text-news-muted text-sm">${Math.floor(Math.random() * 10) + 3} min read</span>
+                                    </div>
+                                    <h3 class="text-xl font-display font-bold mb-2">New Breakthrough in Renewable Energy Storage</h3>
+                                    <p class="text-news-muted mb-4">Scientists have developed a revolutionary battery technology that could make renewable energy more reliable and accessible worldwide.</p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-news-light flex items-center justify-center mr-2">
+                                                <i class="fas fa-user text-news-muted text-sm"></i>
+                                            </div>
+                                            <span class="text-sm">Dr. Elena Martinez</span>
+                                        </div>
+                                        <span class="text-news-muted text-sm">${Math.floor(Math.random() * 12) + 1}h ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Add new articles to grid
+                    grid.appendChild(newArticles);
+                    
+                    // Hide loading spinner
+                    spinner.classList.add('hidden');
+                    
+                    // Animate new articles
+                    setTimeout(() => {
+                        document.querySelectorAll('.fade-in-section').forEach((el, index) => {
+                            el.style.animationDelay = `${index * 0.1}s`;
+                            el.classList.add('visible');
+                        });
+                    }, 100);
+                }, 1500);
+            }
+        });
+        
+        // Fade in animation for sections
+        const fadeSections = document.querySelectorAll('.fade-in-section');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        fadeSections.forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>

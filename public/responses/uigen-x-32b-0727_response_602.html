@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5',
+                        'secondary': '#8B5CF6',
+                        'accent': '#10B981',
+                        'dark': '#1F2937',
+                        'light': '#F9FAFB',
+                        'todo': '#3B82F6',
+                        'progress': '#F59E0B',
+                        'review': '#8B5CF6',
+                        'done': '#10B981'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .kanban-column {
+            min-width: 300px;
+            max-width: 300px;
+        }
+        
+        .kanban-card {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .kanban-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .column-body {
+            min-height: 500px;
+        }
+        
+        .drag-over {
+            background-color: rgba(79, 70, 229, 0.05);
+            border: 2px dashed #4F46E5;
+        }
+        
+        .add-task-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .add-task-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border: 2px solid white;
+        }
+        
+        .user-avatar:nth-child(1) { z-index: 4; }
+        .user-avatar:nth-child(2) { z-index: 3; margin-left: -10px; }
+        .user-avatar:nth-child(3) { z-index: 2; margin-left: -10px; }
+        .user-avatar:nth-child(4) { z-index: 1; margin-left: -10px; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center">
+                            <div class="bg-primary w-8 h-8 rounded-md flex items-center justify-center">
+                                <i class="fas fa-tasks text-white"></i>
+                            </div>
+                            <span class="ml-2 text-xl font-display font-bold text-primary">KanbanFlow</span>
+                        </div>
+                        <nav class="ml-10 flex space-x-8">
+                            <a href="#" class="text-primary border-b-2 border-primary px-1 pt-1 text-sm font-medium">Dashboard</a>
+                            <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Projects</a>
+                            <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Teams</a>
+                            <a href="#" class="text-gray-500 hover:text-gray-700 px-1 pt-1 text-sm font-medium">Reports</a>
+                        </nav>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="ml-3 relative">
+                            <div class="flex items-center space-x-4">
+                                <button class="bg-gray-100 p-1 rounded-full text-gray-500 hover:text-gray-700 focus:outline-none">
+                                    <i class="fas fa-bell h-5 w-5"></i>
+                                </button>
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-semibold">JD</div>
+                                    <span class="ml-2 text-sm font-medium text-gray-700 hidden md:block">John Doe</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Board Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                    <div>
+                        <h1 class="text-3xl font-display font-bold text-gray-900">Project Dashboard</h1>
+                        <p class="mt-2 text-gray-600">Manage your team's tasks with our intuitive Kanban board</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 flex space-x-3">
+                        <button class="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                            <i class="fas fa-filter mr-2"></i> Filter
+                        </button>
+                        <button class="bg-primary text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-dark flex items-center">
+                            <i class="fas fa-plus mr-2"></i> New Task
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kanban Board -->
+                <div class="flex overflow-x-auto pb-6 space-x-6" id="kanban-board">
+                    <!-- To Do Column -->
+                    <div class="kanban-column bg-white rounded-xl shadow-sm">
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-todo mr-2"></div>
+                                <h2 class="font-semibold text-gray-800">To Do</h2>
+                                <span class="ml-2 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">12</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                        </div>
+                        <div class="column-body p-4 space-y-4" id="todo-column">
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="1">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-blue-100 text-blue-800">Feature</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-indigo-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Implement user authentication</h3>
+                                <p class="text-sm text-gray-500 mt-1">Create login and registration functionality with JWT</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 15</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">3</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="2">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-purple-100 text-purple-800">Design</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-pink-200 border-2 border-white"></div>
+                                        <div class="user-avatar rounded-full bg-yellow-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Create dashboard UI</h3>
+                                <p class="text-sm text-gray-500 mt-1">Design the main dashboard interface with charts</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 18</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">7</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="3">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-green-100 text-green-800">Bug</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-blue-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Fix login redirect issue</h3>
+                                <p class="text-sm text-gray-500 mt-1">Users are redirected to wrong page after login</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 10</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">2</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <button class="add-task-btn w-full flex items-center justify-center text-gray-500 hover:text-primary py-2 rounded-lg border border-dashed border-gray-300 hover:border-primary">
+                                <i class="fas fa-plus mr-2"></i> Add Task
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- In Progress Column -->
+                    <div class="kanban-column bg-white rounded-xl shadow-sm">
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-progress mr-2"></div>
+                                <h2 class="font-semibold text-gray-800">In Progress</h2>
+                                <span class="ml-2 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">8</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                        </div>
+                        <div class="column-body p-4 space-y-4" id="progress-column">
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="4">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-blue-100 text-blue-800">Feature</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-indigo-200 border-2 border-white"></div>
+                                        <div class="user-avatar rounded-full bg-yellow-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">API integration for payment</h3>
+                                <p class="text-sm text-gray-500 mt-1">Integrate Stripe payment gateway</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 20</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">5</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="5">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-purple-100 text-purple-800">Design</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-pink-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Mobile responsive layout</h3>
+                                <p class="text-sm text-gray-500 mt-1">Optimize for mobile devices</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 22</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">3</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <button class="add-task-btn w-full flex items-center justify-center text-gray-500 hover:text-primary py-2 rounded-lg border border-dashed border-gray-300 hover:border-primary">
+                                <i class="fas fa-plus mr-2"></i> Add Task
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Review Column -->
+                    <div class="kanban-column bg-white rounded-xl shadow-sm">
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-review mr-2"></div>
+                                <h2 class="font-semibold text-gray-800">Review</h2>
+                                <span class="ml-2 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">5</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                        </div>
+                        <div class="column-body p-4 space-y-4" id="review-column">
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="6">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-blue-100 text-blue-800">Feature</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-indigo-200 border-2 border-white"></div>
+                                        <div class="user-avatar rounded-full bg-green-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">User profile page</h3>
+                                <p class="text-sm text-gray-500 mt-1">Design and implement user profile section</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 25</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">4</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="7">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-yellow-100 text-yellow-800">Task</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-blue-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Database optimization</h3>
+                                <p class="text-sm text-gray-500 mt-1">Optimize queries and add indexes</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Due: Jun 28</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                        <span class="text-xs text-gray-500">1</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <button class="add-task-btn w-full flex items-center justify-center text-gray-500 hover:text-primary py-2 rounded-lg border border-dashed border-gray-300 hover:border-primary">
+                                <i class="fas fa-plus mr-2"></i> Add Task
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Done Column -->
+                    <div class="kanban-column bg-white rounded-xl shadow-sm">
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-done mr-2"></div>
+                                <h2 class="font-semibold text-gray-800">Done</h2>
+                                <span class="ml-2 bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">15</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                        </div>
+                        <div class="column-body p-4 space-y-4" id="done-column">
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="8">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-blue-100 text-blue-800">Feature</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-indigo-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Email notification system</h3>
+                                <p class="text-sm text-gray-500 mt-1">Implement email notifications for user actions</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Completed: Jun 5</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-check-circle text-green-500 text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Task Card -->
+                            <div class="kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable" draggable="true" data-id="9">
+                                <div class="flex justify-between">
+                                    <span class="text-xs font-medium px-2 py-1 rounded bg-purple-100 text-purple-800">Design</span>
+                                    <div class="flex">
+                                        <div class="user-avatar rounded-full bg-pink-200 border-2 border-white"></div>
+                                        <div class="user-avatar rounded-full bg-yellow-200 border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                <h3 class="font-medium mt-2">Landing page redesign</h3>
+                                <p class="text-sm text-gray-500 mt-1">Create new landing page with improved UX</p>
+                                <div class="flex justify-between items-center mt-4">
+                                    <div class="flex items-center text-xs text-gray-500">
+                                        <i class="far fa-calendar mr-1"></i>
+                                        <span>Completed: Jun 8</span>
+                                    </div>
+                                    <div class="flex">
+                                        <i class="fas fa-check-circle text-green-500 text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <button class="add-task-btn w-full flex items-center justify-center text-gray-500 hover:text-primary py-2 rounded-lg border border-dashed border-gray-300 hover:border-primary">
+                                <i class="fas fa-plus mr-2"></i> Add Task
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="md:flex md:items-center md:justify-between">
+                    <div class="flex justify-center md:justify-start">
+                        <div class="flex items-center">
+                            <div class="bg-primary w-6 h-6 rounded-md flex items-center justify-center">
+                                <i class="fas fa-tasks text-white text-xs"></i>
+                            </div>
+                            <span class="ml-2 text-lg font-display font-bold text-primary">KanbanFlow</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 md:mt-0 md:order-1">
+                        <p class="text-center text-sm text-gray-500">
+                            &copy; 2023 KanbanFlow. All rights reserved.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Drag and drop functionality
+            const draggables = document.querySelectorAll('.draggable');
+            const columns = document.querySelectorAll('.column-body');
+            
+            let currentDragging = null;
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => {
+                    currentDragging = draggable;
+                    setTimeout(() => {
+                        draggable.classList.add('dragging');
+                    }, 0);
+                });
+                
+                draggable.addEventListener('dragend', () => {
+                    setTimeout(() => {
+                        draggable.classList.remove('dragging');
+                        currentDragging = null;
+                    }, 0);
+                });
+            });
+            
+            columns.forEach(column => {
+                column.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    column.classList.add('drag-over');
+                });
+                
+                column.addEventListener('dragleave', () => {
+                    column.classList.remove('drag-over');
+                });
+                
+                column.addEventListener('drop', e => {
+                    e.preventDefault();
+                    column.classList.remove('drag-over');
+                    
+                    if (currentDragging) {
+                        column.appendChild(currentDragging);
+                        
+                        // Update task count in column header
+                        const columnHeader = column.parentElement.querySelector('.flex.items-center');
+                        const countElement = columnHeader.querySelector('span');
+                        const currentCount = parseInt(countElement.textContent);
+                        countElement.textContent = currentCount - 1;
+                    }
+                });
+            });
+            
+            // Add task button functionality
+            const addTaskButtons = document.querySelectorAll('.add-task-btn');
+            addTaskButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const columnBody = button.parentElement.querySelector('.column-body');
+                    const newTask = document.createElement('div');
+                    newTask.className = 'kanban-card bg-white rounded-lg border border-gray-200 p-4 cursor-move draggable mb-4' + 
+                                      ' draggable" draggable="true" data-id="' + (Math.floor(Math.random() * 1000) + 10)';
+                    newTask.innerHTML = `
+                        <div class="flex justify-between">
+                            <span class="text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-800">New Task</span>
+                            <div class="flex">
+                                <div class="user-avatar rounded-full bg-gray-200 border-2 border-white"></div>
+                            </div>
+                        </div>
+                        <h3 class="font-medium mt-2">New Task Title</h3>
+                        <p class="text-sm text-gray-500 mt-1">Description of the new task</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center text-xs text-gray-500">
+                                <i class="far fa-calendar mr-1"></i>
+                                <span>Due: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                            <div class="flex">
+                                <i class="fas fa-comment text-gray-400 text-xs mr-1"></i>
+                                <span class="text-xs text-gray-500">0</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add drag events to new task
+                    newTask.addEventListener('dragstart', () => {
+                        currentDragging = newTask;
+                        setTimeout(() => {
+                            newTask.classList.add('dragging');
+                        }, 0);
+                    });
+                    
+                    newTask.addEventListener('dragend', () => {
+                        setTimeout(() => {
+                            newTask.classList.remove('dragging');
+                            currentDragging = null;
+                        }, 0);
+                    });
+                    
+                    columnBody.insertBefore(newTask, columnBody.firstChild);
+                    
+                    // Update task count in column header
+                    const columnHeader = columnBody.parentElement.querySelector('.flex.items-center');
+                    const countElement = columnHeader.querySelector('span');
+                    const currentCount = parseInt(countElement.textContent);
+                    countElement.textContent = currentCount + 1;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GarageSaleHub - Local Garage Sale Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700;1,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary: #0D9488; /* Teal */
+            --primary-light: #99F6E4;
+            --primary-dark: #115E59;
+            --secondary: #F59E0B; /* Amber */
+            --accent: #8B5CF6; /* Violet */
+            --text-dark: #1E293B;
+            --text-medium: #475569;
+            --text-light: #64748B;
+            --bg-light: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --border: #E2E8F0;
+        }
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .font-inter { font-family: 'Inter', sans-serif; }
+        
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .scroll-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .map-container {
+            height: 500px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sale-card {
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+        
+        .sale-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-light);
+        }
+        
+        .category-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .category-chip:hover, .category-chip.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .map-toggle {
+            transition: all 0.3s ease;
+        }
+        
+        .map-toggle.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .sale-item {
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sale-item:last-child {
+            border-bottom: none;
+        }
+        
+        .price-tag {
+            background-color: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .sale-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background-color: var(--secondary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .sale-image {
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .sale-image-placeholder {
+            background: linear-gradient(135deg, #e0e7ff, #d1d5db);
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .map-marker {
+            background-color: var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .map-marker::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: white;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-[var(--bg-light)] text-[var(--text-dark)] overflow-x-hidden">
+    <!-- Header -->
+    <header class="bg-white sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <a href="#" class="text-2xl font-bold text-[var(--primary)] flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    GarageSaleHub
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden lg:flex space-x-8 items-center">
+                    <a href="#map" class="text-[var(--text-medium)] hover:text-[var(--primary)] transition-colors">Map View</a>
+                    <a href="#listings" class="text-[var(--text-medium)] hover:text-[var(--primary)] transition-colors">Listings</a>
+                    <a href="#categories" class="text-[var(--text-medium)] hover:text-[var(--primary)] transition-colors">Categories</a>
+                    <a href="#how-it-works" class="text-[var(--text-medium)] hover:text-[var(--primary)] transition-colors">How It Works</a>
+                    <a href="#post-sale" class="bg-[var(--primary)] text-white px-6 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity">Post a Sale</a>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <div class="lg:hidden">
+                    <button id="mobile-menu-button" class="text-[var(--text-dark)] focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white absolute top-20 left-0 right-0 shadow-lg">
+            <a href="#map" class="block px-4 py-3 text-[var(--text-medium)] hover:bg-gray-50">Map View</a>
+            <a href="#listings" class="block px-4 py-3 text-[var(--text-medium)] hover:bg-gray-50">Listings</a>
+            <a href="#categories" class="block px-4 py-3 text-[var(--text-medium)] hover:bg-gray-50">Categories</a>
+            <a href="#how-it-works" class="block px-4 py-3 text-[var(--text-medium)] hover:bg-gray-50">How It Works</a>
+            <a href="#post-sale" class="block px-4 py-3 bg-[var(--primary)] text-white text-center font-medium">Post a Sale</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="pt-16 pb-16 md:pt-24 md:pb-24 relative overflow-hidden">
+            <div class="absolute inset-0 opacity-5 bg-gradient-to-br from-[var(--primary-light)] to-[var(--primary)] rounded-2xl -z-10"></div>
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="text-center md:text-left scroll-animate">
+                        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--text-dark)] mb-6 leading-tight">
+                            Discover Amazing Finds at <span class="text-[var(--primary)]">Local Garage Sales</span>
+                        </h1>
+                        <p class="text-lg text-[var(--text-medium)] mb-8 max-w-lg mx-auto md:mx-0">
+                            Explore thousands of unique items from neighbors in your community. From furniture to collectibles, find treasures at unbeatable prices.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                            <a href="#listings" class="bg-[var(--primary)] text-white px-8 py-3.5 rounded-full text-base font-medium hover:opacity-90 transition-opacity text-center">
+                                Browse Sales
+                            </a>
+                            <a href="#post-sale" class="bg-white text-[var(--text-dark)] px-8 py-3.5 rounded-full text-base font-medium border border-[var(--border)] hover:bg-gray-50 transition-colors text-center">
+                                Host a Sale
+                            </a>
+                        </div>
+                    </div>
+                    <div class="relative scroll-animate">
+                        <div class="bg-white p-6 rounded-2xl shadow-lg">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-bold text-lg">Featured Sale</h3>
+                                <span class="text-[var(--primary)] font-semibold">Today • 10AM-2PM</span>
+                            </div>
+                            <div class="sale-image-placeholder">
+                                <p>Garage Sale Image</p>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-bold text-xl">Summer Garage Sale</h4>
+                                    <span class="price-tag">$20-$100</span>
+                                </div>
+                                <p class="text-[var(--text-medium)] mb-3">123 Oak Street, Anytown</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Furniture</span>
+                                    <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Clothing</span>
+                                    <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Electronics</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-[var(--primary)] rounded-full opacity-10 blur-3xl -z-10"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map View Section -->
+        <section id="map" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 scroll-animate">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-[var(--text-dark)] mb-4">Find Sales Near You</h2>
+                    <p class="text-lg text-[var(--text-medium)] max-w-2xl mx-auto">
+                        Browse garage sales on our interactive map. Click on markers to see details about each sale.
+                    </p>
+                </div>
+                
+                <div class="flex justify-center mb-8 scroll-animate">
+                    <div class="inline-flex bg-white rounded-lg p-1 border border-[var(--border)] shadow-sm">
+                        <button class="map-toggle px-4 py-2 rounded-md active">Map View</button>
+                        <button class="map-toggle px-4 py-2 rounded-md">List View</button>
+                    </div>
+                </div>
+                
+                <div class="map-container scroll-animate">
+                    <div id="mapid" class="w-full h-full"></div>
+                </div>
+                
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 scroll-animate">
+                    <div class="sale-card bg-white p-6 rounded-xl">
+                        <div class="sale-badge">Hot</div>
+                        <div class="sale-image-placeholder mb-4">
+                            <p>Garage Sale Image</p>
+                        </div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">Spring Cleanout</h4>
+                            <span class="price-tag">$5-$50</span>
+                        </div>
+                        <p class="text-[var(--text-medium)] mb-3">456 Pine Rd, 2 miles away</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Books</span>
+                            <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Toys</span>
+                        </div>
+                    </div>
+                    
+                    <div class="sale-card bg-white p-6 rounded-xl">
+                        <div class="sale-image-placeholder mb-4">
+                            <p>Garage Sale Image</p>
+                        </div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">End of Summer Sale</h4>
+                            <span class="price-tag">$10-$200</span>
+                        </div>
+                        <p class="text-[var(--text-medium)] mb-3">789 Elm Blvd, 3 miles away</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Furniture</span>
+                            <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Electronics</span>
+                        </div>
+                    </div>
+                    
+                    <div class="sale-card bg-white p-6 rounded-xl">
+                        <div class="sale-badge">New</div>
+                        <div class="sale-image-placeholder mb-4">
+                            <p>Garage Sale Image</p>
+                        </div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">Moving Sale</h4>
+                            <span class="price-tag">$1-$150</span>
+                        </div>
+                        <p class="text-[var(--text-medium)] mb-3">101 Maple Ave, 5 miles away</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Kitchen</span>
+                            <span class="bg-[var(--primary-light)] text-[var(--primary-dark)] text-xs px-2 py-1 rounded">Decor</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section id="categories" class="py-16 md:py-24 bg-[var(--bg-light)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 scroll-animate">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-[var(--text-dark)] mb-4">Browse by Category</h2>
+                    <p class="text-lg text-[var(--text-medium)] max-w-2xl mx-auto">
+                        Find exactly what you're looking for with our curated categories
+                    </p>
+                </div>
+                
+                <div class="flex flex-wrap justify-center gap-3 mb-12 scroll-animate">
+                    <button class="category-chip active px-4 py-2 rounded-full bg-[var(--primary)] text-white">All Items</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Furniture</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Electronics</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Clothing</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Books</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Toys</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Kitchen</button>
+                    <button class="category-chip px-4 py-2 rounded-full bg-white border border-[var(--border)]">Decor</button>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Featured Sale 1 -->
+                    <div class="sale-card bg-white p-6 rounded-xl scroll-animate">
+                        <div class="sale-badge">Top Seller</div>
+                        <div class="sale-image-placeholder mb-4">
+                            <p>Antique Chair</p>
+                        </div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">Vintage Wingback Chair</h4>
+                            <span class="price-tag">$85</span>
+                        </div>
+                        <p class="text-[var(--text-medium)] mb-3">From the "Spring Cleanout" sale</p>
+                        <div class="flex items-center text-sm text-[var(--text-light)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            1.2 miles away
+                        </div>
+                    </div>
+                    
+                    <!-- Featured Sale 2 -->
+                    <div class="sale-card bg-white p-6 rounded-xl scroll-animate">
+                        <div class="sale-image-placeholder mb-4">
+                            <p>Smartphone</p>
+                        </div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">iPhone 12 Pro Max</h4>
+                            <span class="price-tag">$450</span>
+                        </div>
+                        <p class="text-[var(--text-medium)] mb-3">From the "End of Summer Sale" sale</p>
+                        <div class="flex items-center text-sm text-[var(--text-light)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            3.1 miles away
+                        </div>
+                    </div>
+                    
+                    <!-- Featured Sale 3 -->
+                    <div class="sale-card bg-white p-6 rounded-xl scroll-animate">
+                        <div class="sale-badge">Rare</div>
+                        <div class="sale-image-placeholder mb-4">
+                            <p>Record Collection</p>
+                        </div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-lg">Vinyl Record Collection</h4>
+                            <span class="price-tag">$120</span>
+                        </div>
+                        <p class="text-[var(--text-medium)] mb-3">From the "Moving Sale" sale</p>
+                        <div class="flex items-center text-sm text-[var(--text-light)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            5.4 miles away
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 scroll-animate">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-[var(--text-dark)] mb-4">How GarageSaleHub Works</h2>
+                    <p class="text-lg text-[var(--text-medium)] max-w-2xl mx-auto">
+                        Simple steps to find or host amazing garage sales in your community
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Step 1 -->
+                    <div class="text-center p-8 bg-[var(--bg-light)] rounded-xl scroll-animate">
+                        <div class="w-16 h-16 bg-[var(--primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">1</div>
+                        <h3 class="text-xl font-bold text-[var(--text-dark)] mb-3">Find Sales</h3>
+                        <p class="text-[var(--text-medium)]">Browse our map or listings to discover sales near you. Filter by category, date, or distance.</p>
+                    </div>
+                    
+                    <!-- Step 2 -->
+                    <div class="text-center p-8 bg-[var(--bg-light)] rounded-xl scroll-animate">
+                        <div class="w-16 h-16 bg-[var(--primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">2</div>
+                        <h3 class="text-xl font-bold text-[var(--text-dark)] mb-3">Visit Sales</h3>
+                        <p class="text-[var(--text-medium)]">Stop by the sale locations, meet neighbors, and discover amazing deals on quality items.</p>
+                    </div>
+                    
+                    <!-- Step 3 -->
+                    <div class="text-center p-8 bg-[var(--bg-light)] rounded-xl scroll-animate">
+                        <div class="w-16 h-16 bg-[var(--primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6">3</div>
+                        <h3 class="text-xl font-bold text-[var(--text-dark)] mb-3">Host Sales</h3>
+                        <p class="text-[var(--text-medium)]">List your own garage sale, connect with buyers, and clear out your space with ease.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section class="py-16 md:py-24 bg-[var(--primary-light)] bg-opacity-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 scroll-animate">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-[var(--text-dark)] mb-4">What Our Community Says</h2>
+                    <p class="text-lg text-[var(--text-medium)] max-w-2xl mx-auto">
+                        Hear from neighbors who love our marketplace
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Testimonial 1 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm scroll-animate">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 mr-4"></div>
+                            <div>
+                                <h4 class="font-bold">Sarah Johnson</h4>
+                                <p class="text-sm text-[var(--text-light)]">Frequent Buyer</p>
+                            </div>
+                        </div>
+                        <p class="text-[var(--text-medium)] italic">"I found my dream vintage typewriter at a garage sale through GarageSaleHub! The map view made it so easy to find sales in my neighborhood."</p>
+                    </div>
+                    
+                    <!-- Testimonial 2 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm scroll-animate">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 mr-4"></div>
+                            <div>
+                                <h4 class="font-bold">Mike Thompson</h4>
+                                <p class="text-sm text-[var(--text-light)]">Seller</p>
+                            </div>
+                        </div>
+                        <p class="text-[var(--text-medium)] italic">"Hosting my first garage sale was a breeze thanks to GarageSaleHub. I cleared out my attic and made some extra cash - all while meeting great neighbors!"</p>
+                    </div>
+                    
+                    <!-- Testimonial 3 -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm scroll-animate">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 mr-4"></div>
+                            <div>
+                                <h4 class="font-bold">Emily Rodriguez</h4>
+                                <p class="text-sm text-[var(--text-light)]">Community Member</p>
+                            </div>
+                        </div>
+                        <p class="text-[var(--text-medium)] italic">"This app has transformed how we think about garage sales in our town. It's brought our community together and helped us discover hidden treasures!"</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 md:py-24 bg-[var(--primary)] text-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-6 scroll-animate">Ready to Join the Garage Sale Revolution?</h2>
+                <p class="text-lg max-w-2xl mx-auto mb-8 scroll-animate">
+                    Start discovering amazing finds or hosting your own sale today!
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 scroll-animate">
+                    <a href="#listings" class="bg-white text-[var(--primary)] px-8 py-3.5 rounded-full text-base font-medium hover:opacity-90 transition-opacity">
+                        Browse Sales
+                    </a>
+                    <a href="#post-sale" class="bg-transparent text-white px-8 py-3.5 rounded-full text-base font-medium border border-white hover:bg-white hover:text-[var(--primary)] transition-colors">
+                        Host a Sale
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--text-dark)] text-white pt-16 pb-8">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                <!-- Column 1: Brand & About -->
+                <div class="scroll-animate">
+                    <a href="#" class="text-2xl font-bold text-white mb-4 inline-block">
+                        GarageSaleHub
+                    </a>
+                    <p class="text-[var(--primary-light)] mb-6">
+                        Connecting neighbors through local garage sales. Discover treasures, save money, and build community.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                        </a>
+                        <a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                        <a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Column 2: Quick Links -->
+                <div class="scroll-animate">
+                    <h5 class="text-lg font-semibold mb-4">Quick Links</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#map" class="text-[var(--primary-light)] hover:text-white transition-colors">Map View</a></li>
+                        <li><a href="#listings" class="text-[var(--primary-light)] hover:text-white transition-colors">All Sales</a></li>
+                        <li><a href="#categories" class="text-[var(--primary-light)] hover:text-white transition-colors">Categories</a></li>
+                        <li><a href="#post-sale" class="text-[var(--primary-light)] hover:text-white transition-colors">Post a Sale</a></li>
+                        <li><a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">Contact Us</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: Resources -->
+                <div class="scroll-animate">
+                    <h5 class="text-lg font-semibold mb-4">Resources</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">Community Guidelines</a></li>
+                        <li><a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">Host a Sale Guide</a></li>
+                        <li><a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">Buyer Tips</a></li>
+                        <li><a href="#" class="text-[var(--primary-light)] hover:text-white transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Newsletter -->
+                <div class="scroll-animate">
+                    <h5 class="text-lg font-semibold mb-4">Stay Updated</h5>
+                    <p class="text-[var(--primary-light)] mb-4">Get notified about new sales in your area</p>
+                    <form class="flex flex-col sm:flex-row gap-2">
+                        <input type="email" placeholder="Your email address" class="px-4 py-2.5 rounded-lg text-sm bg-[#334155] border border-[#475569] text-white placeholder-[#94a3b8] focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent outline-none">
+                        <button type="submit" class="bg-[var(--primary)] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="border-t border-[#334155] pt-8 text-center text-sm text-[var(--primary-light)] scroll-animate">
+                <p>© 2023 GarageSaleHub. All rights reserved. Connecting neighbors through local garage sales.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile Menu Toggle
+            const menuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (menuButton && mobileMenu) {
+                menuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Initialize Map
+            const map = L.map('mapid').setView([51.505, -0.09], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add sample markers
+            const markers = [
+                { lat: 51.505, lng: -0.09, title: "Spring Cleanout", price: "$5-$50", items: "Books, Toys" },
+                { lat: 51.51, lng: -0.1, title: "End of Summer Sale", price: "$10-$200", items: "Furniture, Electronics" },
+                { lat: 51.515, lng: -0.08, title: "Moving Sale", price: "$1-$150", items: "Kitchen, Decor" }
+            ];
+            
+            markers.forEach(marker => {
+                const markerEl = L.marker([marker.lat, marker.lng], {
+                    icon: L.divIcon({
+                        className: 'map-marker',
+                        html: '<div class="map-marker"></div>'
+                    })
+                }).addTo(map);
+                
+                markerEl.bindPopup(`
+                    <div class="p-2">
+                        <h4 class="font-bold">${marker.title}</h4>
+                        <p class="text-sm">${marker.price}</p>
+                        <p class="text-xs text-gray-600">${marker.items}</p>
+                    </div>
+                `);
+            });
+            
+            // Scroll Animations
+            const animatedElements = document.querySelectorAll('.scroll-animate');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Category chips interaction
+            const categoryChips = document.querySelectorAll('.category-chip');
+            categoryChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    categoryChips.forEach(c => c.classList.remove('active', 'bg-[var(--primary)]', 'text-white'));
+                    chip.classList.add('active', 'bg-[var(--primary)]', 'text-white');
+                });
+            });
+            
+            // Map toggle interaction
+            const mapToggles = document.querySelectorAll('.map-toggle');
+            mapToggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    mapToggles.forEach(t => t.classList.remove('active'));
+                    toggle.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

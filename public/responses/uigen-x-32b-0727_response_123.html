@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow Pomodoro Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .timer-container {
+            box-shadow: 0 20px 50px rgba(2, 132, 199, 0.15);
+            border-radius: 2rem;
+            overflow: hidden;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        
+        .work-mode {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        }
+        
+        .break-mode {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+        }
+        
+        .btn {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(14, 165, 233, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container w-full max-w-md bg-white">
+        <!-- Timer Header -->
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">FocusFlow</h1>
+                    <p class="text-gray-500 text-sm">Pomodoro Timer</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="settings-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-cog text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Timer Display -->
+        <div class="p-8 flex flex-col items-center">
+            <div class="relative w-64 h-64 mb-8">
+                <!-- Circular progress ring -->
+                <svg class="w-full h-full" viewBox="0 0 100 100">
+                    <circle 
+                        class="text-gray-200 stroke-current" 
+                        stroke-width="8" 
+                        fill="transparent" 
+                        r="42" 
+                        cx="50" 
+                        cy="50"
+                    />
+                    <circle 
+                        id="progress-ring" 
+                        class="text-primary-500 stroke-current work-mode" 
+                        stroke-width="8" 
+                        fill="transparent" 
+                        r="42" 
+                        cx="50" 
+                        cy="50"
+                        stroke-dasharray="264"
+                        stroke-dashoffset="0"
+                    />
+                </svg>
+                
+                <!-- Timer text -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div id="timer-display" class="text-5xl font-bold text-gray-800">25:00</div>
+                    <div id="timer-status" class="text-gray-500 mt-2">Work Time</div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex space-x-4 mt-4">
+                <button id="start-btn" class="btn bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-6 rounded-full flex items-center">
+                    <i class="fas fa-play mr-2"></i> Start
+                </button>
+                <button id="stop-btn" class="btn bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-full flex items-center">
+                    <i class="fas fa-stop mr-2"></i> Stop
+                </button>
+            </div>
+            
+            <!-- Session Info -->
+            <div class="mt-8 w-full px-4">
+                <div class="flex justify-between text-sm text-gray-500 mb-2">
+                    <span>Work Duration</span>
+                    <span id="work-duration">25 min</span>
+                </div>
+                <div class="flex justify-between text-sm text-gray-500">
+                    <span>Break Duration</span>
+                    <span id="break-duration">5 min</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats -->
+        <div class="p-6 border-t border-gray-100 bg-gray-50">
+            <div class="flex justify-between">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-primary-600" id="completed-sessions">0</div>
+                    <div class="text-gray-500 text-sm">Sessions</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-primary-600" id="total-focus">0</div>
+                    <div class="text-gray-500 text-sm">Minutes</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-primary-600" id="streak">0</div>
+                    <div class="text-gray-500 text-sm">Streak</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const timerDisplay = document.getElementById('timer-display');
+            const timerStatus = document.getElementById('timer-status');
+            const progressRing = document.getElementById('progress-ring');
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const completedSessions = document.getElementById('completed-sessions');
+            const totalFocus = document.getElementById('total-focus');
+            const streak = document.getElementById('streak');
+            const workDurationEl = document.getElementById('work-duration');
+            const breakDurationEl = document.getElementById('break-duration');
+            
+            // Timer variables
+            let timer;
+            let isRunning = false;
+            let isWorkTime = true;
+            let secondsLeft = 25 * 60; // 25 minutes in seconds
+            const workTime = 25 * 60; // 25 minutes
+            const breakTime = 5 * 60; // 5 minutes
+            let currentStreak = 0;
+            let totalSessions = 0;
+            let totalFocusTime = 0;
+            
+            // Update the display
+            function updateDisplay() {
+                const minutes = Math.floor(secondsLeft / 60);
+                const seconds = secondsLeft % 60;
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update progress ring
+                const circumference = 2 * Math.PI * 42; // r=42
+                const offset = circumference - (secondsLeft / (isWorkTime ? workTime : breakTime)) * circumference;
+                progressRing.style.strokeDashoffset = offset;
+                
+                // Update status text
+                timerStatus.textContent = isWorkTime ? 'Work Time' : 'Break Time';
+                
+                // Update mode color
+                progressRing.className = 'text-primary-500 stroke-current ' + 
+                    (isWorkTime ? 'work-mode' : 'break-mode');
+            }
+            
+            // Start the timer
+            function startTimer() {
+                if (isRunning) return;
+                
+                isRunning = true;
+                startBtn.innerHTML = '<i class="fas fa-pause mr-2"></i> Pause';
+                startBtn.classList.add('pulse');
+                
+                timer = setInterval(() => {
+                    secondsLeft--;
+                    updateDisplay();
+                    
+                    if (secondsLeft <= 0) {
+                        clearInterval(timer);
+                        isRunning = false;
+                        isWorkTime = !isWorkTime;
+                        
+                        if (isWorkTime) {
+                            // Work session completed
+                            totalSessions++;
+                            totalFocusTime += workTime;
+                            currentStreak++;
+                            
+                            // Update stats
+                            completedSessions.textContent = totalSessions;
+                            totalFocus.textContent = Math.floor(totalFocusTime / 60);
+                            streak.textContent = currentStreak;
+                            
+                            // Play sound
+                            playSound('work');
+                        } else {
+                            // Break ended, switch back to work
+                            secondsLeft = workTime;
+                        }
+                        
+                        updateDisplay();
+                        startBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Start';
+                        startBtn.classList.remove('pulse');
+                        
+                        // Show notification
+                        showNotification(isWorkTime ? 'Time to work!' : 'Break time is over!');
+                    }
+                }, 1000);
+            }
+            
+            // Stop the timer
+            function stopTimer() {
+                clearInterval(timer);
+                isRunning = false;
+                startBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Start';
+                startBtn.classList.remove('pulse');
+            }
+            
+            // Reset the timer
+            function resetTimer() {
+                stopTimer();
+                secondsLeft = isWorkTime ? workTime : breakTime;
+                updateDisplay();
+            }
+            
+            // Play sound
+            function playSound(type) {
+                const audio = new Audio();
+                audio.src = type === 'work' ? 
+                    'https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3' : 
+                    'https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3';
+                audio.play();
+            }
+            
+            // Show notification
+            function showNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-white text-gray-800 px-6 py-3 rounded-lg shadow-lg fade-in';
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full mr-3 ${
+                            isWorkTime ? 'bg-primary-500' : 'bg-secondary-500'
+                        }"></div>
+                        <span>${message}</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // Event listeners
+            startBtn.addEventListener('click', () => {
+                if (isRunning) {
+                    stopTimer();
+                } else {
+                    startTimer();
+                }
+            });
+            
+            stopBtn.addEventListener('click', stopTimer);
+            
+            // Initialize
+            updateDisplay();
+            
+            // Settings button functionality
+            document.getElementById('settings-btn').addEventListener('click', () => {
+                const settings = document.createElement('div');
+                settings.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                settings.innerHTML = `
+                    <div class="bg-white rounded-xl p-6 w-full max-w-md fade-in">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Timer Settings</h2>
+                            <button id="close-settings" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-gray-700 mb-2">Work Duration (minutes)</label>
+                                <input type="number" min="1" max="60" value="25" class="w-full p-3 border border-gray-300 rounded-lg">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 mb-2">Break Duration (minutes)</label>
+                                <input type="number" min="1" max="30" value="5" class="w-full p-3 border border-gray-300 rounded-lg">
+                            </div>
+                            
+                            <div class="pt-4">
+                                <button class="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 rounded-lg">
+                                    Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(settings);
+                
+                document.getElementById('close-settings').addEventListener('click', () => {
+                    document.body.removeChild(settings);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

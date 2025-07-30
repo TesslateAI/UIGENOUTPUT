@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Form Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-text-primary: #0f172a;
+            --color-text-secondary: #475569;
+            --color-text-tertiary: #94a3b8;
+            --color-text-inverted: #f8fafc;
+            
+            --color-bg-primary: #ffffff;
+            --color-bg-alt: #f1f5f9;
+            --color-bg-alt-transparent: rgba(241, 245, 249, 0.8);
+            --color-bg-dark: #0f172a;
+            --color-bg-overlay: rgba(15, 23, 42, 0.8);
+            
+            --color-border-primary: #e2e8f0;
+            --color-border-light: #f1f5f9;
+            
+            --color-accent-primary: #0ea5e9;
+            --color-accent-secondary: #14b8a6;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--color-bg-alt);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .form-builder-container {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        
+        .form-element {
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        
+        .form-element:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-canvas {
+            min-height: 500px;
+            background-image: 
+                linear-gradient(rgba(226, 232, 240, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(226, 232, 240, 0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .form-field {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .form-field:hover {
+            border-color: var(--color-accent-primary);
+        }
+        
+        .form-field.selected {
+            border-color: var(--color-accent-primary);
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+        
+        .conditional-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--color-accent-secondary);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        
+        .drag-over {
+            background-color: rgba(14, 165, 233, 0.1);
+            border: 2px dashed var(--color-accent-primary);
+        }
+        
+        .validation-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: var(--color-accent-secondary);
+            color: white;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .nested-field {
+            margin-left: 2rem;
+            border-left: 2px solid var(--color-accent-primary);
+            padding-left: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Advanced Form Builder</h1>
+                    <p class="text-gray-600 mt-1">Create complex forms with nested conditionals and custom validations</p>
+                </div>
+                <div class="flex gap-3">
+                    <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        <i class="fas fa-save"></i> Save Form
+                    </button>
+                    <button class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2">
+                        <i class="fas fa-play"></i> Preview
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Builder Area -->
+        <div class="form-builder-container bg-white">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
+                <!-- Left Panel - Form Elements -->
+                <div class="lg:col-span-3 bg-gray-50 rounded-xl p-4">
+                    <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-shapes text-primary-600"></i> Form Elements
+                    </h2>
+                    <p class="text-sm text-gray-500 mb-4">Drag and drop elements to build your form</p>
+                    
+                    <div class="space-y-3">
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="text">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-font text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Text Input</h3>
+                                    <p class="text-xs text-gray-500">Single line text</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="textarea">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-align-left text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Text Area</h3>
+                                    <p class="text-xs text-gray-500">Multi-line text</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="number">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-hashtag text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Number Input</h3>
+                                    <p class="text-xs text-gray-500">Numeric value</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="select">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-list text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Dropdown</h3>
+                                    <p class="text-xs text-gray-500">Select from options</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="checkbox">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-check-square text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Checkbox</h3>
+                                    <p class="text-xs text-gray-500">Multiple selections</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="radio">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-primary-100 p-2 rounded-lg">
+                                    <i class="fas fa-dot-circle text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Radio Buttons</h3>
+                                    <p class="text-xs text-gray-500">Single selection</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-element bg-white border border-gray-200 rounded-lg p-4 cursor-move" draggable="true" data-type="conditional">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-accent-100 p-2 rounded-lg">
+                                    <i class="fas fa-code-branch text-accent-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Conditional Section</h3>
+                                    <p class="text-xs text-gray-500">Show based on conditions</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Center Panel - Form Canvas -->
+                <div class="lg:col-span-6">
+                    <div class="bg-white rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-edit text-primary-600"></i> Form Canvas
+                            </h2>
+                            <div class="text-sm text-gray-500">
+                                <span class="font-medium">Form Title:</span> 
+                                <input type="text" class="form-title bg-transparent border-b border-dashed border-gray-300 ml-2 focus:outline-none focus:border-primary-500" placeholder="Enter form title" value="Customer Feedback Form">
+                            </div>
+                        </div>
+                        
+                        <div class="form-canvas bg-white rounded-lg p-6 min-h-[500px]">
+                            <!-- Form fields will be added here -->
+                            <div class="form-field selected border-2 border-primary-500 rounded-lg p-5 mb-4 relative">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Enter your full name">
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <div class="conditional-indicator">
+                                            <i class="fas fa-code-branch text-xs"></i>
+                                        </div>
+                                        <div class="validation-badge">
+                                            <i class="fas fa-check-circle"></i> Required
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                        <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="your.email@example.com">
+                                    </div>
+                                    <div class="validation-badge">
+                                        <i class="fas fa-check-circle"></i> Email
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Feedback Type</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                            <option value="">Select feedback type</option>
+                                            <option value="bug">Bug Report</option>
+                                            <option value="feature">Feature Request</option>
+                                            <option value="complaint">Complaint</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="conditional-indicator">
+                                        <i class="fas fa-code-branch text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="3" placeholder="Your feedback..."></textarea>
+                                    </div>
+                                    <div class="validation-badge">
+                                        <i class="fas fa-check-circle"></i> Required
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                                        <div class="flex gap-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="priority" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                                <span class="ml-2 text-gray-700">Low</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="priority" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                                <span class="ml-2 text-gray-700">Medium</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="priority" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                                <span class="ml-2 text-gray-700">High</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-field border border-gray-200 rounded-lg p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Attachments</label>
+                                        <div class="flex items-center justify-center w-full">
+                                            <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
+                                                    <p class="text-sm text-gray-500">Click to upload or drag and drop</p>
+                                                    <p class="text-xs text-gray-500">PNG, JPG, PDF (MAX. 5MB)</p>
+                                                </div>
+                                                <input id="dropzone-file" type="file" class="hidden" />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Conditional Section Example -->
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mt-6">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <h3 class="text-lg font-semibold text-gray-800">Additional Information</h3>
+                                            <span class="text-xs bg-accent-100 text-accent-800 px-2 py-1 rounded">Conditional</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mb-4">This section appears when feedback type is "Bug Report"</p>
+                                        
+                                        <div class="nested-field">
+                                            <div class="form-field border border-gray-200 rounded-lg p-4 mb-3">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Bug Description</label>
+                                                <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="2" placeholder="Describe the bug..."></textarea>
+                                            </div>
+                                            
+                                            <div class="form-field border border-gray-200 rounded-lg p-4">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Steps to Reproduce</label>
+                                                <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="3" placeholder="Steps to reproduce the issue..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-center">
+                            <div class="text-center text-sm text-gray-500">
+                                <i class="fas fa-info-circle mr-2"></i> Drag and drop form elements here
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Panel - Field Properties -->
+                <div class="lg:col-span-3 bg-gray-50 rounded-xl p-4">
+                    <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-sliders-h text-primary-600"></i> Field Properties
+                    </h2>
+                    
+                    <div class="bg-white rounded-lg p-5">
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Field Label</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" value="Full Name">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Field Type</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <option>Text Input</option>
+                                <option>Text Area</option>
+                                <option>Number Input</option>
+                                <option>Dropdown</option>
+                                <option>Checkbox</option>
+                                <option>Radio Buttons</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                            <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="2" placeholder="Add description for this field"></textarea>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Validation Rules</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" class="h-4 w-4 text-primary-600 rounded" checked>
+                                    <span class="ml-2 text-gray-700">Required Field</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" class="h-4 w-4 text-primary-600 rounded">
+                                    <span class="ml-2 text-gray-700">Email Format</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" class="h-4 w-4 text-primary-600 rounded">
+                                    <span class="ml-2 text-gray-700">Minimum Length: 5</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" class="h-4 w-4 text-primary-600 rounded">
+                                    <span class="ml-2 text-gray-700">Maximum Length: 255</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" class="h-4 w-4 text-primary-600 rounded">
+                                    <span class="ml-2 text-gray-700">Numeric Only</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Conditional Logic</label>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-sm text-gray-600">Show this field when</span>
+                                    <select class="px-2 py-1 border border-gray-300 rounded text-sm">
+                                        <option>Full Name</option>
+                                        <option>Email Address</option>
+                                        <option>Feedback Type</option>
+                                    </select>
+                                    <span class="text-sm text-gray-600">is</span>
+                                    <select class="px-2 py-1 border border-gray-300 rounded text-sm">
+                                        <option>contains</option>
+                                        <option>equals</option>
+                                        <option>not equals</option>
+                                        <option>is empty</option>
+                                    </select>
+                                    <input type="text" class="px-2 py-1 border border-gray-300 rounded text-sm w-24" placeholder="Value">
+                                </div>
+                                <button class="text-primary-600 text-sm font-medium flex items-center">
+                                    <i class="fas fa-plus mr-1"></i> Add Condition
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button class="flex-1 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                                Save Changes
+                            </button>
+                            <button class="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50">
+                                <i class="fas fa-trash text-gray-600"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 bg-white rounded-lg p-5">
+                        <h3 class="font-medium text-gray-800 mb-3">Form Settings</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700">Form Title</span>
+                                <input type="text" class="form-title bg-transparent border-b border-dashed border-gray-300 px-2 py-1 focus:outline-none focus:border-primary-500" value="Customer Feedback Form">
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700">Form Description</span>
+                                <input type="text" class="bg-transparent border-b border-dashed border-gray-300 px-2 py-1 focus:outline-none focus:border-primary-500" placeholder="Form description">
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700">Show Form Title</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700">Require Login</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-sm text-gray-500">
+            <p>Advanced Form Builder v2.0 • Drag and drop to create complex forms with nested conditionals</p>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Drag and drop functionality
+            const formElements = document.querySelectorAll('.form-element');
+            const canvas = document.querySelector('.form-canvas');
+            
+            formElements.forEach(element => {
+                element.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', element.dataset.type);
+                });
+            });
+            
+            canvas.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                canvas.classList.add('drag-over');
+            });
+            
+            canvas.addEventListener('dragleave', () => {
+                canvas.classList.remove('drag-over');
+            });
+            
+            canvas.addEventListener('drop', (e) => {
+                e.preventDefault();
+                canvas.classList.remove('drag-over');
+                
+                const fieldType = e.dataTransfer.getData('text/plain');
+                addFieldToCanvas(fieldType);
+            });
+            
+            // Add field to canvas
+            function addFieldToCanvas(type) {
+                const fieldId = Date.now();
+                let fieldHtml = '';
+                
+                switch(type) {
+                    case 'text':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">New Text Field</label>
+                                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Enter text">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'textarea':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">New Text Area</label>
+                                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="3" placeholder="Enter text"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'number':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">New Number Field</label>
+                                        <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Enter number">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'select':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">New Dropdown</label>
+                                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                            <option value="">Select an option</option>
+                                            <option value="1">Option 1</option>
+                                            <option value="2">Option 2</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'checkbox':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">New Checkbox</label>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" class="h-4 w-4 text-primary-600 rounded">
+                                            <span class="ml-2 text-gray-700">Checkbox option</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'radio':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">New Radio Buttons</label>
+                                        <div class="flex gap-4">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="radio-group" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                                <span class="ml-2 text-gray-700">Option 1</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="radio-group" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                                <span class="ml-2 text-gray-700">Option 2</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'conditional':
+                        fieldHtml = `
+                            <div class="form-field border border-gray-200 rounded-lg p-5 mb-4 relative" data-id="${fieldId}">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <h3 class="text-lg font-semibold text-gray-800">New Conditional Section</h3>
+                                            <span class="text-xs bg-accent-100 text-accent-800 px-2 py-1 rounded">Conditional</span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mb-4">This section will appear based on conditions you set</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                // Add the new field to the canvas
+                canvas.insertAdjacentHTML('beforeend', fieldHtml);
+                
+                // Add event listener to the new field
+                const newField = canvas.lastElementChild;
+                newField.addEventListener('click', () => {
+                    document.querySelectorAll('.form-field').forEach(field => {
+                        field.classList.remove('selected');
+                    });
+                    newField.classList.add('selected');
+                });
+            }
+            
+            // Field selection
+            canvas.addEventListener('click', (e) => {
+                if (e.target.closest('.form-field')) {
+                    document.querySelectorAll('.form-field').forEach(field => {
+                        field.classList.remove('selected');
+                    });
+                    e.target.closest('.form-field').classList.add('selected');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

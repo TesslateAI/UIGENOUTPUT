@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow | Interactive Todo List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #0D0D0D;
+            --color-secondary: #1A1A1A;
+            --color-accent: #FF6B6B;
+            --color-accent-alt: #4ECDC4;
+            --color-background: #FFFFFF;
+            --color-background-alt: #F8F9FA;
+            --color-border: #E6E6E6;
+            --color-text: #333333;
+            --color-text-muted: #777777;
+            --color-high: #FF6B6B;
+            --color-medium: #FFD166;
+            --color-low: #06D6A0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-dm-mono {
+            font-family: 'DM Mono', monospace;
+        }
+
+        .task-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .priority-high {
+            border-left: 4px solid var(--color-high);
+        }
+
+        .priority-medium {
+            border-left: 4px solid var(--color-medium);
+        }
+
+        .priority-low {
+            border-left: 4px solid var(--color-low);
+        }
+
+        .completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .drag-over {
+            background-color: var(--color-background-alt);
+            border: 2px dashed var(--color-accent-alt);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .header-blur {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-background)]">
+    <!-- Header -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <div class="header-blur border-b border-[var(--color-border)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <a href="#" class="font-dm-mono text-xl font-bold text-[var(--color-primary)] flex items-center">
+                        <i class="fas fa-tasks mr-2 text-[var(--color-accent)]"></i>
+                        TaskFlow
+                    </a>
+                    <div class="flex items-center space-x-4">
+                        <button id="theme-toggle" class="p-2 rounded-full hover:bg-[var(--color-background-alt)]">
+                            <i class="fas fa-moon text-[var(--color-text-muted)]"></i>
+                        </button>
+                        <button id="add-task-btn" class="bg-[var(--color-accent)] text-white px-4 py-2 rounded-full font-medium hover:bg-[#e55a5a] transition-colors">
+                            <i class="fas fa-plus mr-2"></i>New Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-16">
+        <!-- Hero Section -->
+        <section class="py-12 md:py-20 bg-gradient-to-br from-[var(--color-background)] to-[var(--color-background-alt)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl mx-auto text-center">
+                    <h1 class="font-dm-mono text-4xl sm:text-5xl font-bold text-[var(--color-primary)] mb-6">
+                        Organize Your <span class="text-[var(--color-accent)]">Workflow</span>
+                    </h1>
+                    <p class="text-lg text-[var(--color-text-muted)] mb-10 max-w-2xl mx-auto">
+                        Drag and drop tasks to prioritize your work. Color-coded priorities help you focus on what matters most.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Todo List Section -->
+        <section class="py-8 md:py-12">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-4xl mx-auto">
+                    <!-- Add Task Form (Hidden by default) -->
+                    <div id="add-task-form" class="mb-12 p-6 bg-[var(--color-background)] rounded-xl border border-[var(--color-border)] shadow-sm hidden">
+                        <h3 class="font-dm-mono text-xl font-semibold text-[var(--color-primary)] mb-4">Add New Task</h3>
+                        <form id="task-form" class="space-y-4">
+                            <div>
+                                <label for="task-title" class="block text-sm font-medium text-[var(--color-text-muted)] mb-1">Task Title</label>
+                                <input type="text" id="task-title" required class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="task-description" class="block text-sm font-medium text-[var(--color-text-muted)] mb-1">Description (Optional)</label>
+                                <textarea id="task-description" rows="2" class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"></textarea>
+                            </div>
+                            <div>
+                                <label for="task-priority" class="block text-sm font-medium text-[var(--color-text-muted)] mb-1">Priority</label>
+                                <select id="task-priority" class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent">
+                                    <option value="low">Low Priority</option>
+                                    <option value="medium" selected>Medium Priority</option>
+                                    <option value="high">High Priority</option>
+                                </select>
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" id="cancel-task" class="px-4 py-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">Cancel</button>
+                                <button type="submit" class="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#e55a5a] transition-colors">Add Task</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Task Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)]">
+                            <div class="text-2xl font-dm-mono font-bold text-[var(--color-primary)]" id="total-tasks">0</div>
+                            <div class="text-sm text-[var(--color-text-muted)]">Total Tasks</div>
+                        </div>
+                        <div class="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)]">
+                            <div class="text-2xl font-dm-mono font-bold text-[var(--color-primary)]" id="completed-tasks">0</div>
+                            <div class="text-sm text-[var(--color-text-muted)]">Completed</div>
+                        </div>
+                        <div class="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)]">
+                            <div class="text-2xl font-dm-mono font-bold text-[var(--color-primary)]" id="pending-tasks">0</div>
+                            <div class="text-sm text-[var(--color-text-muted)]">Pending</div>
+                        </div>
+                    </div>
+
+                    <!-- Task List -->
+                    <div class="bg-[var(--color-background)] rounded-xl border border-[var(--color-border)] shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-[var(--color-border)] flex justify-between items-center">
+                            <h2 class="font-dm-mono text-xl font-semibold text-[var(--color-primary)]">Your Tasks</h2>
+                            <div class="flex space-x-2">
+                                <button id="filter-all" class="px-3 py-1 text-sm rounded-lg bg-[var(--color-accent)] text-white">All</button>
+                                <button id="filter-high" class="px-3 py-1 text-sm rounded-lg hover:bg-[var(--color-background-alt)]">High</button>
+                                <button id="filter-medium" class="px-3 py-1 text-sm rounded-lg hover:bg-[var(--color-background-alt)]">Medium</button>
+                                <button id="filter-low" class="px-3 py-1 text-sm rounded-lg hover:bg-[var(--color-background-alt)]">Low</button>
+                            </div>
+                        </div>
+                        
+                        <div id="task-list" class="divide-y divide-[var(--color-border)] min-h-[300px]">
+                            <!-- Tasks will be dynamically added here -->
+                            <div class="p-8 text-center text-[var(--color-text-muted)]">
+                                <i class="fas fa-tasks text-4xl mb-4 text-[var(--color-text-muted)]"></i>
+                                <p>No tasks yet. Add your first task to get started!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-16 bg-[var(--color-background-alt)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-16">
+                        <h2 class="font-dm-mono text-3xl font-bold text-[var(--color-primary)] mb-4">Why Use TaskFlow?</h2>
+                        <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto">Designed for productivity and simplicity</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-[var(--color-background)] p-6 rounded-xl border border-[var(--color-border)]">
+                            <div class="w-12 h-12 rounded-full bg-[var(--color-accent-alt)] bg-opacity-10 flex items-center justify-center mb-4">
+                                <i class="fas fa-arrows-alt text-[var(--color-accent-alt)] text-xl"></i>
+                            </div>
+                            <h3 class="font-dm-mono text-xl font-semibold text-[var(--color-primary)] mb-2">Drag & Drop</h3>
+                            <p class="text-[var(--color-text-muted)]">Reorder tasks with intuitive drag and drop functionality</p>
+                        </div>
+                        <div class="bg-[var(--color-background)] p-6 rounded-xl border border-[var(--color-border)]">
+                            <div class="w-12 h-12 rounded-full bg-[var(--color-accent-alt)] bg-opacity-10 flex items-center justify-center mb-4">
+                                <i class="fas fa-flag text-[var(--color-accent-alt)] text-xl"></i>
+                            </div>
+                            <h3 class="font-dm-mono text-xl font-semibold text-[var(--color-primary)] mb-2">Priority Colors</h3>
+                            <p class="text-[var(--color-text-muted)]">Color-coded priorities help you focus on important tasks</p>
+                        </div>
+                        <div class="bg-[var(--color-background)] p-6 rounded-xl border border-[var(--color-border)]">
+                            <div class="w-12 h-12 rounded-full bg-[var(--color-accent-alt)] bg-opacity-10 flex items-center justify-center mb-4">
+                                <i class="fas fa-sync text-[var(--color-accent-alt)] text-xl"></i>
+                            </div>
+                            <h3 class="font-dm-mono text-xl font-semibold text-[var(--color-primary)] mb-2">Sync Anywhere</h3>
+                            <p class="text-[var(--color-text-muted)]">Tasks saved locally - access your list from any device</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-primary)] text-[var(--color-background)] py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-6 md:mb-0">
+                        <a href="#" class="font-dm-mono text-xl font-bold text-[var(--color-background)] flex items-center">
+                            <i class="fas fa-tasks mr-2 text-[var(--color-accent)]"></i>
+                            TaskFlow
+                        </a>
+                        <p class="text-[var(--color-text-muted)] mt-2">Organize your work, simplify your life</p>
+                    </div>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-background)] transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-background)] transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-background)] transition-colors">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="border-t border-[var(--color-secondary)] mt-8 pt-8 text-center text-[var(--color-text-muted)] text-sm">
+                    <p>© 2023 TaskFlow. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sample initial tasks
+            let tasks = [
+                { id: 1, title: "Complete project proposal", description: "Finish the client proposal document", priority: "high", completed: false },
+                { id: 2, title: "Team meeting", description: "Weekly team sync", priority: "medium", completed: false },
+                { id: 3, title: "Research new tools", description: "Look for productivity tools", priority: "low", completed: true },
+                { id: 4, title: "Update portfolio", description: "Add recent projects", priority: "medium", completed: false }
+            ];
+            
+            // DOM Elements
+            const taskList = document.getElementById('task-list');
+            const addTaskBtn = document.getElementById('add-task-btn');
+            const addTaskForm = document.getElementById('add-task-form');
+            const taskForm = document.getElementById('task-form');
+            const cancelTaskBtn = document.getElementById('cancel-task');
+            const filterButtons = {
+                all: document.getElementById('filter-all'),
+                high: document.getElementById('filter-high'),
+                medium: document.getElementById('filter-medium'),
+                low: document.getElementById('filter-low')
+            };
+            
+            // Stats elements
+            const totalTasksEl = document.getElementById('total-tasks');
+            const completedTasksEl = document.getElementById('completed-tasks');
+            const pendingTasksEl = document.getElementById('pending-tasks');
+            
+            // Current filter state
+            let currentFilter = 'all';
+            
+            // Initialize the app
+            function initApp() {
+                renderTasks();
+                updateStats();
+                setupEventListeners();
+                setupDragAndDrop();
+            }
+            
+            // Render tasks based on current filter
+            function renderTasks() {
+                taskList.innerHTML = '';
+                
+                const filteredTasks = tasks.filter(task => {
+                    if (currentFilter === 'all') return true;
+                    return task.priority === currentFilter;
+                });
+                
+                if (filteredTasks.length === 0) {
+                    taskList.innerHTML = `
+                        <div class="p-8 text-center text-[var(--color-text-muted)]">
+                            <i class="fas fa-tasks text-4xl mb-4 text-[var(--color-text-muted)]"></i>
+                            <p>No tasks found. ${currentFilter === 'all' ? 'Add a new task to get started!' : 'Try changing your filter.'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                filteredTasks.forEach((task, index) => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = `task-card p-4 cursor-move reveal priority-${task.priority} ${task.completed ? 'completed' : ''}`;
+                    taskElement.dataset.id = task.id;
+                    taskElement.draggable = true;
+                    
+                    // Priority indicator
+                    let priorityIndicator = '';
+                    switch(task.priority) {
+                        case 'high':
+                            priorityIndicator = '<div class="w-3 h-3 rounded-full bg-[var(--color-high)] inline-block mr-2"></div>';
+                            break;
+                        case 'medium':
+                            priorityIndicator = '<div class="w-3 h-3 rounded-full bg-[var(--color-medium)] inline-block mr-2"></div>';
+                            break;
+                        case 'low':
+                            priorityIndicator = '<div class="w-3 h-3 rounded-full bg-[var(--color-low)] inline-block mr-2"></div>';
+                            break;
+                    }
+                    
+                    taskElement.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                                    class="w-4 h-4 text-[var(--color-accent)] rounded focus:ring-[var(--color-accent)]" 
+                                    onchange="toggleTask(${task.id})">
+                            </div>
+                            <div class="ml-3 flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <span class="task-title font-medium text-[var(--color-text)] truncate">${task.title}</span>
+                                    <span class="ml-2 text-xs px-2 py-1 rounded-full bg-${task.priority === 'high' ? 'red' : task.priority === 'medium' ? 'yellow' : 'green'}-100 text-${task.priority === 'high' ? 'red' : task.priority === 'medium' ? 'yellow' : 'green'}-800">
+                                        ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                                    </span>
+                                </div>
+                                ${task.description ? `<p class="text-sm text-[var(--color-text-muted)] mt-1">${task.description}</p>` : ''}
+                            </div>
+                            <div class="ml-4 flex-shrink-0 flex">
+                                <button class="delete-task p-1 text-[var(--color-text-muted)] hover:text-[var(--color-high)]" onclick="deleteTask(${task.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    taskList.appendChild(taskElement);
+                });
+                
+                // Animate new tasks
+                setTimeout(() => {
+                    const reveals = document.querySelectorAll('.reveal');
+                    reveals.forEach(reveal => {
+                        if (reveal.classList.contains('reveal')) {
+                            reveal.classList.add('is-visible');
+                        }
+                    });
+                }, 10);
+            }
+            
+            // Update task statistics
+            function updateStats() {
+                totalTasksEl.textContent = tasks.length;
+                const completed = tasks.filter(task => task.completed).length;
+                completedTasksEl.textContent = completed;
+                pendingTasksEl.textContent = tasks.length - completed;
+            }
+            
+            // Add a new task
+            function addTask(title, description, priority) {
+                const newTask = {
+                    id: Date.now(),
+                    title,
+                    description,
+                    priority,
+                    completed: false
+                };
+                
+                tasks.unshift(newTask);
+                renderTasks();
+                updateStats();
+            }
+            
+            // Toggle task completion
+            function toggleTask(id) {
+                const task = tasks.find(task => task.id === id);
+                if (task) {
+                    task.completed = !task.completed;
+                    renderTasks();
+                    updateStats();
+                }
+            }
+            
+            // Delete a task
+            function deleteTask(id) {
+                tasks = tasks.filter(task => task.id !== id);
+                renderTasks();
+                updateStats();
+            }
+            
+            // Filter tasks
+            function filterTasks(filter) {
+                currentFilter = filter;
+                renderTasks();
+                
+                // Update active filter button
+                Object.values(filterButtons).forEach(btn => btn.classList.remove('bg-[var(--color-accent)]', 'text-white'));
+                filterButtons[filter].classList.add('bg-[var(--color-accent)]', 'text-white');
+            }
+            
+            // Setup drag and drop
+            function setupDragAndDrop() {
+                const draggables = document.querySelectorAll('.task-card');
+                const container = taskList;
+                
+                draggables.forEach(draggable => {
+                    draggable.addEventListener('dragstart', () => {
+                        draggable.classList.add('dragging');
+                    });
+                    
+                    draggable.addEventListener('dragend', () => {
+                        draggable.classList.remove('dragging');
+                    });
+                });
+                
+                container.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    const draggable = document.querySelector('.dragging');
+                    
+                    if (afterElement == null) {
+                        container.appendChild(draggable);
+                    } else {
+                        container.insertBefore(draggable, afterElement);
+                    }
+                });
+            }
+            
+            // Helper function for drag and drop
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // Setup event listeners
+            function setupEventListeners() {
+                addTaskBtn.addEventListener('click', () => {
+                    addTaskForm.classList.remove('hidden');
+                    addTaskForm.classList.add('block');
+                });
+                
+                cancelTaskBtn.addEventListener('click', () => {
+                    addTaskForm.classList.add('hidden');
+                    addTaskForm.classList.remove('block');
+                });
+                
+                taskForm.addEventListener('submit', e => {
+                    e.preventDefault();
+                    const title = document.getElementById('task-title').value;
+                    const description = document.getElementById('task-description').value;
+                    const priority = document.getElementById('task-priority').value;
+                    
+                    if (title.trim() === '') return;
+                    
+                    addTask(title, description, priority);
+                    
+                    // Reset form
+                    taskForm.reset();
+                    addTaskForm.classList.add('hidden');
+                    addTaskForm.classList.remove('block');
+                });
+                
+                // Filter buttons
+                filterButtons.all.addEventListener('click', () => filterTasks('all'));
+                filterButtons.high.addEventListener('click', () => filterTasks('high'));
+                filterButtons.medium.addEventListener('click', () => filterTasks('medium'));
+                filterButtons.low.addEventListener('click', () => filterTasks('low'));
+                
+                // Theme toggle
+                document.getElementById('theme-toggle').addEventListener('click', () => {
+                    document.body.classList.toggle('dark-mode');
+                    const icon = document.querySelector('#theme-toggle i');
+                    if (document.body.classList.contains('dark-mode')) {
+                        document.body.style.backgroundColor = '#121212';
+                        document.body.style.color = '#e0e0e0';
+                        icon.className = 'fas fa-sun text-yellow-300';
+                    } else {
+                        document.body.style.backgroundColor = '';
+                        document.body.style.color = '';
+                        icon.className = 'fas fa-moon text-[var(--color-text-muted)]';
+                    }
+                });
+            }
+            
+            // Initialize the app
+            initApp();
+            
+            // Global functions for task operations
+            window.toggleTask = toggleTask;
+            window.deleteTask = deleteTask;
+        });
+    </script>
+</body>
+</html>

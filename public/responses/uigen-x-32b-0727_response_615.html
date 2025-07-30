@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumTrade - Stock Trading Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a',
+                        'card-bg': '#1e293b',
+                        'card-border': '#334155',
+                        'primary': '#3b82f6',
+                        'primary-hover': '#2563eb',
+                        'secondary': '#10b981',
+                        'text-primary': '#f1f5f9',
+                        'text-secondary': '#94a3b8',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444',
+                        'watch-green': '#10b981',
+                        'watch-red': '#ef4444',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .chart-container {
+            background: linear-gradient(145deg, #1e293b, #1a2535);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+        }
+        
+        .order-card {
+            background: linear-gradient(145deg, #1e293b, #1a2535);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .order-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .watchlist-item:hover {
+            background-color: rgba(30, 41, 59, 0.7);
+        }
+        
+        .active-tab {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .positive {
+            color: #10b981;
+        }
+        
+        .negative {
+            color: #ef4444;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        
+        .glow:hover {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+        }
+        
+        .order-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .order-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .chart-grid {
+            background-image: 
+                linear-gradient(to right, #334155 1px, transparent 1px),
+                linear-gradient(to bottom, #334155 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-dark-bg text-text-primary">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-dark-bg/90 backdrop-blur-md border-b border-card-border">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">Quantum<span class="text-primary">Trade</span></h1>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Dashboard</a>
+                <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Markets</a>
+                <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Portfolio</a>
+                <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">News</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 rounded-lg hover:bg-card-bg transition-colors">
+                        <i class="fas fa-bell text-text-secondary"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"></span>
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                        <span class="font-semibold">JD</span>
+                    </div>
+                    <div class="hidden md:block">
+                        <p class="text-sm font-medium">John Doe</p>
+                        <p class="text-xs text-text-secondary">$42,568.75</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Chart and Order Placement -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Chart Section -->
+                <div class="chart-container p-4">
+                    <div class="flex flex-wrap items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-xl font-bold">AAPL - Apple Inc.</h2>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <span class="text-2xl font-bold">$182.63</span>
+                                <span class="positive text-sm font-medium flex items-center">
+                                    <i class="fas fa-arrow-up mr-1"></i> 1.24%
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg bg-card-bg border border-card-border">1D</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-card-bg border border-card-border">1W</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-primary">1M</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-card-bg border border-card-border">3M</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-card-bg border border-card-border">1Y</button>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container chart-grid h-80">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                    
+                    <div class="flex justify-center mt-4 space-x-4">
+                        <button class="p-2 rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="p-2 rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="p-2 rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Order Placement -->
+                <div class="order-card p-6">
+                    <h2 class="text-xl font-bold mb-6">Place Order</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-3">Order Details</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Symbol</label>
+                                    <div class="relative">
+                                        <input type="text" value="AAPL" class="w-full bg-card-bg border border-card-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                                        <button class="absolute right-3 top-3 text-text-secondary">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Order Type</label>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <button class="py-2 text-sm rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">Market</button>
+                                        <button class="py-2 text-sm rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">Limit</button>
+                                        <button class="py-2 text-sm rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">Stop</button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Quantity</label>
+                                    <div class="relative">
+                                        <input type="number" value="10" class="w-full bg-card-bg border border-card-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                                        <button class="absolute right-3 top-3 text-text-secondary">
+                                            <i class="fas fa-sliders-h"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Price</label>
+                                    <input type="number" value="182.63" class="w-full bg-card-bg border border-card-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold mb-3">Order Actions</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Side</label>
+                                    <div class="flex space-x-2">
+                                        <button class="flex-1 py-3 rounded-lg bg-success hover:bg-green-600 transition-colors font-medium">
+                                            <i class="fas fa-arrow-down mr-2"></i> Buy
+                                        </button>
+                                        <button class="flex-1 py-3 rounded-lg bg-danger hover:bg-red-600 transition-colors font-medium">
+                                            <i class="fas fa-arrow-up mr-2"></i> Sell
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Time in Force</label>
+                                    <select class="w-full bg-card-bg border border-card-border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
+                                        <option>Day</option>
+                                        <option>Good 'Til Canceled</option>
+                                        <option>At the Close</option>
+                                        <option>Fill or Kill</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-secondary mb-1">Advanced Options</label>
+                                    <div class="flex space-x-2">
+                                        <button class="flex-1 py-2 text-sm rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">OCO</button>
+                                        <button class="flex-1 py-2 text-sm rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">Trailing</button>
+                                        <button class="flex-1 py-2 text-sm rounded-lg bg-card-bg border border-card-border hover:bg-card-border transition-colors">Bracket</button>
+                                    </div>
+                                </div>
+                                
+                                <button class="w-full py-3 rounded-lg bg-primary hover:bg-primary-hover transition-colors font-medium glow order-btn">
+                                    Place Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Watchlist and Orders -->
+            <div class="space-y-6">
+                <!-- Watchlist -->
+                <div class="order-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Watchlist</h2>
+                        <button class="text-primary text-sm flex items-center">
+                            <i class="fas fa-plus mr-1"></i> Add
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
+                        <div class="watchlist-item flex items-center justify-between p-2 rounded-lg hover:bg-card-bg cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-bold">AAPL</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Apple Inc.</p>
+                                    <p class="text-xs text-text-secondary">Technology</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$182.63</p>
+                                <p class="text-xs positive">+1.24%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="watchlist-item flex items-center justify-between p-2 rounded-lg hover:bg-card-bg cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-bold">MSFT</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Microsoft Corp.</p>
+                                    <p class="text-xs text-text-secondary">Technology</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$340.54</p>
+                                <p class="text-xs positive">+0.87%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="watchlist-item flex items-center justify-between p-2 rounded-lg hover:bg-card-bg cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-bold">TSLA</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Tesla Inc.</p>
+                                    <p class="text-xs text-text-secondary">Automotive</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$245.18</p>
+                                <p class="text-xs negative">-0.42%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="watchlist-item flex items-center justify-between p-2 rounded-lg hover:bg-card-bg cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-bold">AMZN</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Amazon.com Inc.</p>
+                                    <p class="text-xs text-text-secondary">E-commerce</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$135.21</p>
+                                <p class="text-xs positive">+0.36%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="watchlist-item flex items-center justify-between p-2 rounded-lg hover:bg-card-bg cursor-pointer">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center mr-3">
+                                    <span class="text-xs font-bold">META</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Meta Platforms</p>
+                                    <p class="text-xs text-text-secondary">Technology</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$325.75</p>
+                                <p class="text-xs negative">-0.18%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Orders -->
+                <div class="order-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Recent Orders</h2>
+                        <button class="text-primary text-sm flex items-center">
+                            <i class="fas fa-history mr-1"></i> History
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-card-bg border border-card-border">
+                            <div>
+                                <p class="font-medium">Buy AAPL</p>
+                                <p class="text-xs text-text-secondary">Market order • 10 shares</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$1,826.30</p>
+                                <p class="text-xs text-success">Filled</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-card-bg border border-card-border">
+                            <div>
+                                <p class="font-medium">Sell MSFT</p>
+                                <p class="text-xs text-text-secondary">Limit order • 5 shares</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$1,702.70</p>
+                                <p class="text-xs text-warning">Pending</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-card-bg border border-card-border">
+                            <div>
+                                <p class="font-medium">Buy TSLA</p>
+                                <p class="text-xs text-text-secondary">Market order • 3 shares</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$735.54</p>
+                                <p class="text-xs text-success">Filled</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-card-bg border border-card-border">
+                            <div>
+                                <p class="font-medium">Buy GOOGL</p>
+                                <p class="text-xs text-text-secondary">Limit order • 8 shares</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">$1,256.40</p>
+                                <p class="text-xs text-danger">Cancelled</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="border-t border-card-border mt-12 py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white"></i>
+                    </div>
+                    <h2 class="text-lg font-bold">Quantum<span class="text-primary">Trade</span></h2>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">About</a>
+                    <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Services</a>
+                    <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Research</a>
+                    <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Support</a>
+                    <a href="#" class="text-text-secondary hover:text-text-primary transition-colors">Legal</a>
+                </div>
+                
+                <div class="mt-4 md:mt-0 text-sm text-text-secondary">
+                    © 2023 QuantumTrade. All rights reserved. Trading involves risk and may not be suitable for all investors.
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Initialize Chart.js
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            // Generate sample data
+            const labels = [];
+            const data = [];
+            let currentPrice = 180;
+            
+            for (let i = 0; i < 30; i++) {
+                labels.push(`Day ${i+1}`);
+                const change = (Math.random() - 0.5) * 2;
+                currentPrice += change;
+                data.push(currentPrice);
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'AAPL Price',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#94a3b8',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `$${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Add animation to the "Place Order" button
+            const orderBtn = document.querySelector('.glow');
+            orderBtn.addEventListener('click', function() {
+                this.classList.add('animate-pulse-slow');
+                setTimeout(() => {
+                    this.classList.remove('animate-pulse-slow');
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>

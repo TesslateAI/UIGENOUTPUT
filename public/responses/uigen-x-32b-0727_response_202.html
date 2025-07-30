@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Personal Finance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #1e40af;
+            --color-primary-light: #3b82f6;
+            --color-primary-dark: #1e3a8a;
+            --color-secondary: #10b981;
+            --color-secondary-light: #34d399;
+            --color-accent: #f59e0b;
+            --color-accent-light: #fbbf24;
+            --color-text-base: #1f2937;
+            --color-text-muted: #6b7280;
+            --color-background-page: #f9fafb;
+            --color-background-light: #ffffff;
+            --color-background-dark: #1e293b;
+            --color-border-light: #e5e7eb;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-background-page);
+            color: var(--color-text-base);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+        }
+
+        .header {
+            grid-area: header;
+            background-color: var(--color-background-light);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .main-content {
+            grid-area: main;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--color-background-light);
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+
+        .summary-card {
+            border-top: 4px solid var(--color-primary);
+        }
+
+        .income-card {
+            border-top: 4px solid var(--color-success);
+        }
+
+        .expense-card {
+            border-top: 4px solid var(--color-danger);
+        }
+
+        .savings-card {
+            border-top: 4px solid var(--color-accent);
+        }
+
+        .nav-link {
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background-color: white;
+        }
+
+        .transaction-row:hover {
+            background-color: #f8fafc;
+        }
+
+        .income-badge {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--color-success);
+        }
+
+        .expense-badge {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-danger);
+        }
+
+        .savings-badge {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--color-accent);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                top: 0;
+                height: 100vh;
+                z-index: 50;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 40;
+            }
+            
+            .overlay.open {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar text-white">
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i class="fas fa-chart-line text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">FinTrack</h1>
+                </div>
+            </div>
+            
+            <nav class="p-4">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="nav-link active flex items-center p-3 rounded-lg">
+                            <i class="fas fa-home mr-3"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                            <i class="fas fa-wallet mr-3"></i>
+                            <span>Accounts</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                            <i class="fas fa-exchange-alt mr-3"></i>
+                            <span>Transactions</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                            <i class="fas fa-chart-pie mr-3"></i>
+                            <span>Investments</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                            <i class="fas fa-file-invoice-dollar mr-3"></i>
+                            <span>Bills</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                            <i class="fas fa-cog mr-3"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium">Alex Morgan</p>
+                        <p class="text-sm text-white/60">Premium Member</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6 py-4">
+            <div class="flex items-center">
+                <button id="menu-toggle" class="md:hidden mr-4 text-gray-600">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-xl font-semibold">Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-bell text-xl"></i>
+                    </button>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </div>
+                
+                <div class="relative">
+                    <button class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-cog text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                    <span class="hidden md:block font-medium">Alex Morgan</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="card summary-card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Balance</p>
+                            <h3 class="text-2xl font-bold mt-1">$24,568.00</h3>
+                        </div>
+                        <div class="bg-blue-100 p-2 rounded-lg">
+                            <i class="fas fa-wallet text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-green-500 text-sm mt-3 flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 2.5% from last month
+                    </p>
+                </div>
+                
+                <div class="card income-card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Income</p>
+                            <h3 class="text-2xl font-bold mt-1">$5,200.00</h3>
+                        </div>
+                        <div class="bg-green-100 p-2 rounded-lg">
+                            <i class="fas fa-arrow-down text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-3">This month</p>
+                </div>
+                
+                <div class="card expense-card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Expenses</p>
+                            <h3 class="text-2xl font-bold mt-1">$3,450.00</h3>
+                        </div>
+                        <div class="bg-red-100 p-2 rounded-lg">
+                            <i class="fas fa-arrow-up text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-gray-500 text-sm mt-3">This month</p>
+                </div>
+                
+                <div class="card savings-card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Monthly Savings</p>
+                            <h3 class="text-2xl font-bold mt-1">$1,750.00</h3>
+                        </div>
+                        <div class="bg-amber-100 p-2 rounded-lg">
+                            <i class="fas fa-piggy-bank text-amber-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-green-500 text-sm mt-3 flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 5.2% from last month
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Income vs Expenses Chart -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-semibold text-lg">Income vs Expenses</h3>
+                        <div class="flex space-x-2">
+                            <button class="text-xs px-3 py-1 bg-blue-50 text-blue-600 rounded-full">Month</button>
+                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-500 rounded-full">Quarter</button>
+                            <button class="text-xs px-3 py-1 bg-gray-100 text-gray-500 rounded-full">Year</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="incomeExpenseChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Spending by Category Chart -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-semibold text-lg">Spending by Category</h3>
+                        <button class="text-sm text-blue-600">View All</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="spendingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Transactions -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-semibold text-lg">Recent Transactions</h3>
+                    <button class="text-sm text-blue-600">View All</button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-500 text-sm border-b">
+                                <th class="pb-3">Description</th>
+                                <th class="pb-3">Category</th>
+                                <th class="pb-3">Date</th>
+                                <th class="pb-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-shopping-cart text-blue-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Amazon Purchase</p>
+                                            <p class="text-sm text-gray-500">Shopping</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="income-badge px-3 py-1 rounded-full text-xs">Shopping</span>
+                                </td>
+                                <td class="py-4 text-gray-500">Jun 12, 2023</td>
+                                <td class="py-4 text-right font-medium text-red-600">-$89.99</td>
+                            </tr>
+                            
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-money-check-alt text-green-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Salary Deposit</p>
+                                            <p class="text-sm text-gray-500">Income</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="income-badge px-3 py-1 rounded-full text-xs">Salary</span>
+                                </td>
+                                <td class="py-4 text-gray-500">Jun 10, 2023</td>
+                                <td class="py-4 text-right font-medium text-green-600">+$3,200.00</td>
+                            </tr>
+                            
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-utensils text-amber-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Dinner at Bistro</p>
+                                            <p class="text-sm text-gray-500">Dining</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="expense-badge px-3 py-1 rounded-full text-xs">Dining</span>
+                                </td>
+                                <td class="py-4 text-gray-500">Jun 8, 2023</td>
+                                <td class="py-4 text-right font-medium text-red-600">-$64.50</td>
+                            </tr>
+                            
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-home text-purple-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Mortgage Payment</p>
+                                            <p class="text-sm text-gray-500">Housing</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="expense-badge px-3 py-1 rounded-full text-xs">Housing</span>
+                                </td>
+                                <td class="py-4 text-gray-500">Jun 5, 2023</td>
+                                <td class="py-4 text-right font-medium text-red-600">-$1,200.00</td>
+                            </tr>
+                            
+                            <tr class="transaction-row">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-chart-line text-cyan-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">Stock Dividend</p>
+                                            <p class="text-sm text-gray-500">Investment</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="savings-badge px-3 py-1 rounded-full text-xs">Investment</span>
+                                </td>
+                                <td class="py-4 text-gray-500">Jun 3, 2023</td>
+                                <td class="py-4 text-right font-medium text-green-600">+$120.75</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Mobile overlay -->
+    <div class="overlay"></div>
+    
+    <script>
+        // Mobile menu toggle
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('open');
+            document.querySelector('.overlay').classList.toggle('open');
+        });
+        
+        // Close sidebar when clicking on overlay
+        document.querySelector('.overlay').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.remove('open');
+            this.classList.remove('open');
+        });
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Income vs Expenses Chart
+            const incomeExpenseCtx = document.getElementById('incomeExpenseChart').getContext('2d');
+            const incomeExpenseChart = new Chart(incomeExpenseCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: [4200, 4800, 5100, 4900, 5200, 5200],
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Expenses',
+                            data: [3200, 3500, 3800, 3600, 3400, 3450],
+                            backgroundColor: '#ef4444',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Spending by Category Chart
+            const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+            const spendingChart = new Chart(spendingCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Housing', 'Food', 'Transport', 'Entertainment', 'Shopping', 'Utilities'],
+                    datasets: [{
+                        data: [35, 20, 15, 10, 12, 8],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#10b981',
+                            '#f59e0b',
+                            '#8b5cf6',
+                            '#ec4899',
+                            '#06b6d4'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        });
+    </script>
+</body>
+</html>

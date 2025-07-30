@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savory | Recipe Management App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E67E22', // Warm orange
+                        'primary-darker': '#D35400', // Darker orange
+                        'bg-accent-light': '#FFF9F0', // Light warm background
+                        'text-dark': '#2C3E50', // Dark blue-gray
+                        'text-light': '#ECF0F1', // Light gray
+                        'text-medium': '#7F8C8D', // Medium gray
+                        'border-default': '#E0E0E0', // Light border
+                        'accent-green': '#27AE60', // Green for healthy options
+                        'accent-blue': '#3498DB', // Blue for quick options
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Manrope', 'sans-serif'],
+                        heading: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    transitionTimingFunction: {
+                       'spring-like': 'cubic-bezier(0.215, 0.610, 0.355, 1)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #E67E22;
+            --color-primary-darker: #D35400;
+            --color-bg-accent-light: #FFF9F0;
+            --color-text-dark: #2C3E50;
+            --color-text-light: #ECF0F1;
+            --color-text-medium: #7F8C8D;
+            --color-border-default: #E0E0E0;
+            --color-accent-green: #27AE60;
+            --color-accent-blue: #3498DB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: white;
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-display { font-family: 'Manrope', sans-serif; }
+        .font-heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .animate-slide-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-slide-up.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .sticky-section-header {
+            position: sticky;
+            top: 72px;
+            z-index: 10;
+            background-color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .sticky-section-header {
+                top: 64px;
+            }
+        }
+        
+        .recipe-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .filter-btn.active {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .search-bar:focus-within {
+            box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.3);
+        }
+        
+        .difficulty-beginner {
+            background-color: rgba(39, 174, 96, 0.1);
+            color: var(--color-accent-green);
+        }
+        
+        .difficulty-intermediate {
+            background-color: rgba(230, 126, 34, 0.1);
+            color: var(--color-primary);
+        }
+        
+        .difficulty-advanced {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #E74C3C;
+        }
+        
+        .time-quick {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: var(--color-accent-blue);
+        }
+        
+        .time-medium {
+            background-color: rgba(230, 126, 34, 0.1);
+            color: var(--color-primary);
+        }
+        
+        .time-long {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #E74C3C;
+        }
+        
+        .category-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .category-chip:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <!-- Header -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="#" class="text-2xl font-bold font-display text-primary">Savory</a>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-8 items-center">
+                    <a href="#" class="text-text-dark hover:text-primary transition-colors">Home</a>
+                    <a href="#recipes" class="text-text-dark hover:text-primary transition-colors">Recipes</a>
+                    <a href="#categories" class="text-text-dark hover:text-primary transition-colors">Categories</a>
+                    <a href="#saved" class="text-text-dark hover:text-primary transition-colors">Saved</a>
+                    <a href="#profile" class="text-text-dark hover:text-primary transition-colors">Profile</a>
+                    <a href="#" class="bg-primary text-white px-5 py-2 rounded-full font-medium hover:bg-primary-darker transition-colors">Add Recipe</a>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-text-dark focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute top-full left-0 right-0 border-t border-border-default">
+            <nav class="flex flex-col space-y-2 p-4">
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-text-dark hover:bg-gray-100">Home</a>
+                <a href="#recipes" class="block px-3 py-2 rounded-md text-base font-medium text-text-dark hover:bg-gray-100">Recipes</a>
+                <a href="#categories" class="block px-3 py-2 rounded-md text-base font-medium text-text-dark hover:bg-gray-100">Categories</a>
+                <a href="#saved" class="block px-3 py-2 rounded-md text-base font-medium text-text-dark hover:bg-gray-100">Saved</a>
+                <a href="#profile" class="block px-3 py-2 rounded-md text-base font-medium text-text-dark hover:bg-gray-100">Profile</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-primary hover:bg-primary-darker">Add Recipe</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="pt-16">
+        <!-- Hero Section with Search -->
+        <section class="py-12 md:py-16 bg-bg-accent-light">
+            <div class="container mx-auto px-4">
+                <div class="max-w-3xl mx-auto text-center mb-10 animate-slide-up">
+                    <h1 class="font-heading text-4xl sm:text-5xl font-bold text-text-dark mb-6">
+                        Discover & Create <span class="text-primary">Delicious</span> Recipes
+                    </h1>
+                    <p class="text-lg text-text-medium mb-8">
+                        Your personal recipe organizer with smart filtering and beautiful presentation
+                    </p>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="max-w-2xl mx-auto mb-12 animate-slide-up" style="transition-delay: 0.1s;">
+                    <div class="search-bar relative bg-white rounded-full shadow-md p-1 flex items-center">
+                        <div class="pl-4 text-text-medium">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="Search for recipes, ingredients, or categories..." 
+                            class="w-full py-4 px-3 focus:outline-none"
+                        >
+                        <button class="bg-primary text-white px-6 py-3 rounded-full font-medium hover:bg-primary-darker transition-colors">
+                            Search
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Popular Categories -->
+                <div class="animate-slide-up" style="transition-delay: 0.2s;">
+                    <h3 class="font-heading text-xl font-semibold text-text-dark mb-4">Popular Categories</h3>
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button class="category-chip bg-white rounded-full px-4 py-2 text-sm font-medium border border-border-default hover:border-primary transition-colors">
+                            Breakfast
+                        </button>
+                        <button class="category-chip bg-white rounded-full px-4 py-2 text-sm font-medium border border-border-default hover:border-primary transition-colors">
+                            Vegetarian
+                        </button>
+                        <button class="category-chip bg-white rounded-full px-4 py-2 text-sm font-medium border border-border-default hover:border-primary transition-colors">
+                            Quick & Easy
+                        </button>
+                        <button class="category-chip bg-white rounded-full px-4 py-2 text-sm font-medium border border-border-default hover:border-primary transition-colors">
+                            Desserts
+                        </button>
+                        <button class="category-chip bg-white rounded-full px-4 py-2 text-sm font-medium border border-border-default hover:border-primary transition-colors">
+                            Healthy
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recipe Grid Section -->
+        <section id="recipes" class="py-12 md:py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                    <h2 class="font-heading text-3xl font-bold text-text-dark mb-4 md:mb-0">Featured Recipes</h2>
+                    
+                    <!-- Filter Controls -->
+                    <div class="flex flex-wrap gap-3">
+                        <button class="filter-btn active bg-primary text-white px-4 py-2 rounded-full text-sm font-medium">
+                            All
+                        </button>
+                        <button class="filter-btn bg-bg-accent-light px-4 py-2 rounded-full text-sm font-medium border border-border-default hover:bg-primary hover:text-white hover:border-primary transition-colors">
+                            Vegetarian
+                        </button>
+                        <button class="filter-btn bg-bg-accent-light px-4 py-2 rounded-full text-sm font-medium border border-border-default hover:bg-primary hover:text-white hover:border-primary transition-colors">
+                            Quick
+                        </button>
+                        <button class="filter-btn bg-bg-accent-light px-4 py-2 rounded-full text-sm font-medium border border-border-default hover:bg-primary hover:text-white hover:border-primary transition-colors">
+                            Healthy
+                        </button>
+                        <button class="filter-btn bg-bg-accent-light px-4 py-2 rounded-full text-sm font-medium border border-border-default hover:bg-primary hover:text-white hover:border-primary transition-colors">
+                            Desserts
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Recipe Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Recipe Card 1 -->
+                    <div class="recipe-card bg-white rounded-xl overflow-hidden border border-border-default">
+                        <div class="relative">
+                            <div class="h-48 bg-gray-200 border-2 border-dashed rounded-t-xl w-full"></div>
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="difficulty-beginner text-xs font-medium px-2 py-1 rounded-full">Beginner</span>
+                                <span class="time-quick text-xs font-medium px-2 py-1 rounded-full">20 min</span>
+                            </div>
+                            <button class="absolute bottom-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
+                                <i class="fas fa-heart text-text-medium"></i>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-heading text-xl font-bold text-text-dark">Avocado Toast with Poached Eggs</h3>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 text-text-dark font-medium">4.8</span>
+                                </div>
+                            </div>
+                            <p class="text-text-medium mb-4">Creamy avocado on artisan bread topped with perfectly poached eggs and chili flakes.</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center text-sm text-text-medium">
+                                    <i class="fas fa-user-friends mr-1"></i>
+                                    <span>2 servings</span>
+                                </div>
+                                <button class="text-primary font-medium hover:text-primary-darker flex items-center">
+                                    View Recipe <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recipe Card 2 -->
+                    <div class="recipe-card bg-white rounded-xl overflow-hidden border border-border-default">
+                        <div class="relative">
+                            <div class="h-48 bg-gray-300 border-2 border-dashed rounded-t-xl w-full"></div>
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="difficulty-intermediate text-xs font-medium px-2 py-1 rounded-full">Intermediate</span>
+                                <span class="time-medium text-xs font-medium px-2 py-1 rounded-full">45 min</span>
+                            </div>
+                            <button class="absolute bottom-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
+                                <i class="fas fa-heart text-primary"></i>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-heading text-xl font-bold text-text-dark">Mushroom Risotto</h3>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 text-text-dark font-medium">4.6</span>
+                                </div>
+                            </div>
+                            <p class="text-text-medium mb-4">Creamy Italian rice dish with wild mushrooms, white wine, and parmesan cheese.</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center text-sm text-text-medium">
+                                    <i class="fas fa-user-friends mr-1"></i>
+                                    <span>4 servings</span>
+                                </div>
+                                <button class="text-primary font-medium hover:text-primary-darker flex items-center">
+                                    View Recipe <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recipe Card 3 -->
+                    <div class="recipe-card bg-white rounded-xl overflow-hidden border border-border-default">
+                        <div class="relative">
+                            <div class="h-48 bg-gray-400 border-2 border-dashed rounded-t-xl w-full"></div>
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="difficulty-advanced text-xs font-medium px-2 py-1 rounded-full">Advanced</span>
+                                <span class="time-long text-xs font-medium px-2 py-1 rounded-full">1h 20min</span>
+                            </div>
+                            <button class="absolute bottom-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
+                                <i class="fas fa-heart text-text-medium"></i>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-heading text-xl font-bold text-text-dark">Beef Wellington</h3>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 text-text-dark font-medium">4.9</span>
+                                </div>
+                            </div>
+                            <p class="text-text-medium mb-4">Classic British dish with tender beef tenderloin wrapped in puff pastry.</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center text-sm text-text-medium">
+                                    <i class="fas fa-user-friends mr-1"></i>
+                                    <span>6 servings</span>
+                                </div>
+                                <button class="text-primary font-medium hover:text-primary-darker flex items-center">
+                                    View Recipe <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recipe Card 4 -->
+                    <div class="recipe-card bg-white rounded-xl overflow-hidden border border-border-default">
+                        <div class="relative">
+                            <div class="h-48 bg-gray-500 border-2 border-dashed rounded-t-xl w-full"></div>
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="difficulty-beginner text-xs font-medium px-2 py-1 rounded-full">Beginner</span>
+                                <span class="time-quick text-xs font-medium px-2 py-1 rounded-full">15 min</span>
+                            </div>
+                            <button class="absolute bottom-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
+                                <i class="fas fa-heart text-text-medium"></i>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-heading text-xl font-bold text-text-dark">Berry Smoothie Bowl</h3>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 text-text-dark font-medium">4.7</span>
+                                </div>
+                            </div>
+                            <p class="text-text-medium mb-4">Thick smoothie base topped with fresh berries, granola, and coconut flakes.</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center text-sm text-text-medium">
+                                    <i class="fas fa-user-friends mr-1"></i>
+                                    <span>1 serving</span>
+                                </div>
+                                <button class="text-primary font-medium hover:text-primary-darker flex items-center">
+                                    View Recipe <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recipe Card 5 -->
+                    <div class="recipe-card bg-white rounded-xl overflow-hidden border border-border-default">
+                        <div class="relative">
+                            <div class="h-48 bg-gray-600 border-2 border-dashed rounded-t-xl w-full"></div>
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="difficulty-intermediate text-xs font-medium px-2 py-1 rounded-full">Intermediate</span>
+                                <span class="time-medium text-xs font-medium px-2 py-1 rounded-full">35 min</span>
+                            </div>
+                            <button class="absolute bottom-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
+                                <i class="fas fa-heart text-text-medium"></i>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-heading text-xl font-bold text-text-dark">Vegetable Stir Fry</h3>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 text-text-dark font-medium">4.5</span>
+                                </div>
+                            </div>
+                            <p class="text-text-medium mb-4">Colorful mix of vegetables stir-fried in a savory sauce with tofu and rice.</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center text-sm text-text-medium">
+                                    <i class="fas fa-user-friends mr-1"></i>
+                                    <span>3 servings</span>
+                                </div>
+                                <button class="text-primary font-medium hover:text-primary-darker flex items-center">
+                                    View Recipe <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recipe Card 6 -->
+                    <div class="recipe-card bg-white rounded-xl overflow-hidden border border-border-default">
+                        <div class="relative">
+                            <div class="h-48 bg-gray-700 border-2 border-dashed rounded-t-xl w-full"></div>
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="difficulty-beginner text-xs font-medium px-2 py-1 rounded-full">Beginner</span>
+                                <span class="time-quick text-xs font-medium px-2 py-1 rounded-full">10 min</span>
+                            </div>
+                            <button class="absolute bottom-4 right-4 bg-white rounded-full p-2 shadow-md hover:bg-gray-100">
+                                <i class="fas fa-heart text-primary"></i>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-heading text-xl font-bold text-text-dark">Chocolate Avocado Mousse</h3>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 text-text-dark font-medium">4.8</span>
+                                </div>
+                            </div>
+                            <p class="text-text-medium mb-4">Rich and creamy chocolate dessert made with ripe avocados and cocoa powder.</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center text-sm text-text-medium">
+                                    <i class="fas fa-user-friends mr-1"></i>
+                                    <span>2 servings</span>
+                                </div>
+                                <button class="text-primary font-medium hover:text-primary-darker flex items-center">
+                                    View Recipe <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-12">
+                    <button class="bg-white text-primary border border-primary px-8 py-3 rounded-full font-medium hover:bg-primary hover:text-white transition-colors">
+                        Load More Recipes
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-16 bg-bg-accent-light">
+            <div class="container mx-auto px-4">
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <h2 class="font-heading text-3xl font-bold text-text-dark mb-4">Why Choose Savory?</h2>
+                    <p class="text-text-medium">Our recipe management app makes cooking enjoyable and stress-free with powerful features designed for food lovers.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-border-default">
+                        <div class="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-4">
+                            <i class="fas fa-search text-primary text-xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-semibold text-text-dark mb-2">Smart Search</h3>
+                        <p class="text-text-medium">Find recipes by ingredients, dietary restrictions, cooking time, and difficulty level with our advanced search.</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-border-default">
+                        <div class="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-4">
+                            <i class="fas fa-bookmark text-primary text-xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-semibold text-text-dark mb-2">Organized Collections</h3>
+                        <p class="text-text-medium">Create custom collections for meal planning, seasonal recipes, or special occasions.</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-border-default">
+                        <div class="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-4">
+                            <i class="fas fa-mobile-alt text-primary text-xl"></i>
+                        </div>
+                        <h3 class="font-heading text-xl font-semibold text-text-dark mb-2">Cross-Device Sync</h3>
+                        <p class="text-text-medium">Access your recipes on any device. Save to your phone for cooking without internet.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 bg-primary text-white">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="font-heading text-3xl md:text-4xl font-bold mb-6">Start Your Culinary Journey Today</h2>
+                <p class="text-lg text-white text-opacity-90 max-w-2xl mx-auto mb-8">Join thousands of home chefs who are already creating, saving, and sharing their favorite recipes with Savory.</p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button class="bg-white text-primary px-8 py-3 rounded-full font-medium hover:bg-opacity-90 transition-opacity">
+                        Download App
+                    </button>
+                    <button class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-medium hover:bg-white hover:text-primary transition-colors">
+                        Web Version
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-text-dark text-text-light py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="font-heading text-xl font-bold mb-4">Savory</h3>
+                    <p class="text-text-light text-opacity-70 mb-4">Your personal recipe organizer for delicious discoveries and culinary creations.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-text-light text-opacity-70 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-text-light text-opacity-70 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-text-light text-opacity-70 hover:text-white"><i class="fab fa-pinterest"></i></a>
+                        <a href="#" class="text-text-light text-opacity-70 hover:text-white"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-heading text-lg font-semibold mb-4">Explore</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">All Recipes</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Popular Categories</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Seasonal Collections</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Cooking Tips</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Meal Planning</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-heading text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Cooking Guides</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Video Tutorials</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Dietary Guides</a></li>
+                        <li><a href="#" class="text-text-light text-opacity-70 hover:text-white">Community Forum</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-heading text-lg font-semibold mb-4">Newsletter</h4>
+                    <p class="text-text-light text-opacity-70 mb-4">Get weekly recipe inspiration and cooking tips delivered to your inbox.</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-text-dark">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg hover:bg-primary-darker">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-text-light border-opacity-20 mt-12 pt-8 text-center text-text-light text-opacity-50">
+                <p>© 2023 Savory Recipe App. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mainHeader = document.getElementById('main-header');
+        let isMenuOpen = false;
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                isMenuOpen = !isMenuOpen;
+                mobileMenu.classList.toggle('hidden');
+                if (isMenuOpen) {
+                    mainHeader.classList.add('bg-white', 'shadow-lg');
+                } else if (window.scrollY < 50) {
+                    mainHeader.classList.remove('bg-white', 'shadow-lg');
+                }
+            });
+        }
+
+        // Header style change on scroll
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                mainHeader.classList.add('bg-white', 'shadow-lg');
+            } else if (!isMenuOpen) {
+                mainHeader.classList.remove('bg-white', 'shadow-lg');
+            }
+        });
+
+        // Intersection Observer for animations
+        const animatedElements = document.querySelectorAll('.animate-slide-up');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        animatedElements.forEach(el => {
+            observer.observe(el);
+        });
+
+        // Filter button interactions
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active', 'bg-primary', 'text-white'));
+                button.classList.add('active', 'bg-primary', 'text-white');
+            });
+        });
+
+        // Category chip interactions
+        const categoryChips = document.querySelectorAll('.category-chip');
+        categoryChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chip.classList.toggle('bg-primary');
+                chip.classList.toggle('text-white');
+                chip.classList.toggle('border-primary');
+            });
+        });
+    </script>
+</body>
+</html>

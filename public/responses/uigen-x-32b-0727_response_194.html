@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataViz Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-dark: #0f172a;
+            --color-bg-secondary: #1e293b;
+            --color-bg-tertiary: #334155;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #cbd5e1;
+            --color-accent-blue: #3b82f6;
+            --color-accent-purple: #8b5cf6;
+            --color-accent-green: #10b981;
+            --color-accent-orange: #f97316;
+            --color-accent-red: #ef4444;
+            --color-border: #475569;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-primary);
+            overflow-x: hidden;
+        }
+
+        .dashboard-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        .chart-header {
+            border-bottom: 1px solid var(--color-border);
+            padding: 1rem 1.5rem;
+        }
+
+        .chart-content {
+            padding: 1.5rem;
+            height: calc(100% - 60px);
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--color-accent-blue), var(--color-accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+        }
+
+        .positive {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--color-accent-green);
+        }
+
+        .negative {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-accent-red);
+        }
+
+        .nav-link {
+            position: relative;
+            color: var(--color-text-secondary);
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--color-text-primary);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--color-accent-blue);
+            border-radius: 3px;
+        }
+
+        .time-filter {
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+        }
+
+        .time-filter.active {
+            background: var(--color-accent-blue);
+            color: white;
+            border-color: var(--color-accent-blue);
+        }
+
+        .time-filter:hover:not(.active) {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .data-point {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .data-point:hover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(3px);
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 0.5rem 1rem;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+
+        .tooltip-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .tooltip-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tooltip-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-dark)] text-[var(--color-text-primary)]">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar fixed md:relative w-64 bg-[var(--color-bg-secondary)] border-r border-[var(--color-border)] h-full z-50">
+            <div class="p-6 border-b border-[var(--color-border)]">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--color-accent-blue)] to-[var(--color-accent-purple)] flex items-center justify-center">
+                        <i class="fas fa-chart-network text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">DataViz Dashboard</h1>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <nav class="space-y-1">
+                    <a href="#" class="nav-link active flex items-center gap-3 py-3 px-4 rounded-lg">
+                        <i class="fas fa-home w-5 text-center"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center gap-3 py-3 px-4 rounded-lg">
+                        <i class="fas fa-chart-line w-5 text-center"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center gap-3 py-3 px-4 rounded-lg">
+                        <i class="fas fa-database w-5 text-center"></i>
+                        <span>Data Sources</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center gap-3 py-3 px-4 rounded-lg">
+                        <i class="fas fa-cog w-5 text-center"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+                
+                <div class="mt-8">
+                    <h3 class="text-xs uppercase text-[var(--color-text-secondary)] px-4 mb-2">Data Categories</h3>
+                    <div class="space-y-1">
+                        <a href="#" class="nav-link flex items-center gap-3 py-2 px-4 rounded-lg">
+                            <div class="w-2 h-2 rounded-full bg-[var(--color-accent-blue)]"></div>
+                            <span>Performance</span>
+                        </a>
+                        <a href="#" class="nav-link flex items-center gap-3 py-2 px-4 rounded-lg">
+                            <div class="w-2 h-2 rounded-full bg-[var(--color-accent-green)]"></div>
+                            <span>Revenue</span>
+                        </a>
+                        <a href="#" class="nav-link flex items-center gap-3 py-2 px-4 rounded-lg">
+                            <div class="w-2 h-2 rounded-full bg-[var(--color-accent-purple)]"></div>
+                            <span>User Activity</span>
+                        </a>
+                        <a href="#" class="nav-link flex items-center gap-3 py-2 px-4 rounded-lg">
+                            <div class="w-2 h-2 rounded-full bg-[var(--color-accent-orange)]"></div>
+                            <span>System Metrics</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overlay for mobile sidebar -->
+        <div class="overlay" id="overlay"></div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-[var(--color-bg-secondary)] border-b border-[var(--color-border)]">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center gap-4">
+                        <button id="menu-toggle" class="md:hidden text-[var(--color-text-secondary)]">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h2 class="text-xl font-semibold">Dashboard Overview</h2>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="relative">
+                            <button class="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)]">
+                                <i class="fas fa-bell"></i>
+                            </button>
+                            <span class="absolute top-0 right-0 w-2 h-2 bg-[var(--color-accent-red)] rounded-full"></span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--color-accent-blue)] to-[var(--color-accent-purple)]"></div>
+                            <span class="hidden md:block">Admin User</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 pb-4 flex flex-wrap gap-2">
+                    <button class="time-filter active px-4 py-2 rounded-lg text-sm">Today</button>
+                    <button class="time-filter px-4 py-2 rounded-lg text-sm">Week</button>
+                    <button class="time-filter px-4 py-2 rounded-lg text-sm">Month</button>
+                    <button class="time-filter px-4 py-2 rounded-lg text-sm">Quarter</button>
+                    <button class="time-filter px-4 py-2 rounded-lg text-sm">Year</button>
+                </div>
+            </header>
+            
+            <!-- Stats Section -->
+            <div class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="stat-card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="stat-value">12,458</div>
+                            <div class="stat-label mt-2">Total Users</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-[var(--color-accent-blue)] bg-opacity-10">
+                            <i class="fas fa-users text-[var(--color-accent-blue)] text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="stat-change positive">
+                            <i class="fas fa-arrow-up mr-1"></i> 12.3%
+                        </span>
+                        <span class="text-[var(--color-text-secondary)] text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="stat-value">$42.8K</div>
+                            <div class="stat-label mt-2">Total Revenue</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-[var(--color-accent-green)] bg-opacity-10">
+                            <i class="fas fa-dollar-sign text-[var(--color-accent-green)] text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="stat-change positive">
+                            <i class="fas fa-arrow-up mr-1"></i> 8.2%
+                        </span>
+                        <span class="text-[var(--color-text-secondary)] text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="stat-value">1,248</div>
+                            <div class="stat-label mt-2">New Sessions</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-[var(--color-accent-purple)] bg-opacity-10">
+                            <i class="fas fa-chart-line text-[var(--color-accent-purple)] text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="stat-change negative">
+                            <i class="fas fa-arrow-down mr-1"></i> 3.1%
+                        </span>
+                        <span class="text-[var(--color-text-secondary)] text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="stat-value">96.7%</div>
+                            <div class="stat-label mt-2">Uptime</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-[var(--color-accent-orange)] bg-opacity-10">
+                            <i class="fas fa-server text-[var(--color-accent-orange)] text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="stat-change positive">
+                            <i class="fas fa-arrow-up mr-1"></i> 0.4%
+                        </span>
+                        <span class="text-[var(--color-text-secondary)] text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="flex-1 p-4 overflow-y-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                    <!-- Line Chart -->
+                    <div class="dashboard-card">
+                        <div class="chart-header flex justify-between items-center">
+                            <h3 class="font-semibold">Performance Metrics</h3>
+                            <div class="flex gap-2">
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <div class="chart-container">
+                                <canvas id="lineChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bar Chart -->
+                    <div class="dashboard-card">
+                        <div class="chart-header flex justify-between items-center">
+                            <h3 class="font-semibold">Revenue by Category</h3>
+                            <div class="flex gap-2">
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <div class="chart-container">
+                                <canvas id="barChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <!-- Scatter Plot -->
+                    <div class="dashboard-card">
+                        <div class="chart-header flex justify-between items-center">
+                            <h3 class="font-semibold">User Engagement</h3>
+                            <div class="flex gap-2">
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <div class="chart-container">
+                                <canvas id="scatterChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Table -->
+                    <div class="dashboard-card">
+                        <div class="chart-header flex justify-between items-center">
+                            <h3 class="font-semibold">Recent Activity</h3>
+                            <div class="flex gap-2">
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <div class="space-y-3">
+                                <div class="data-point flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                            <i class="fas fa-user text-[var(--color-accent-blue)]"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">New user registered</div>
+                                            <div class="text-sm text-[var(--color-text-secondary)]">2 minutes ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[var(--color-accent-green)]">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="data-point flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                            <i class="fas fa-shopping-cart text-[var(--color-accent-orange)]"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Order #4582 completed</div>
+                                            <div class="text-sm text-[var(--color-text-secondary)]">15 minutes ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[var(--color-accent-green)]">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="data-point flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                            <i class="fas fa-exclamation-triangle text-[var(--color-accent-red)]"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">High CPU usage detected</div>
+                                            <div class="text-sm text-[var(--color-text-secondary)]">1 hour ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[var(--color-accent-red)]">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="data-point flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                            <i class="fas fa-chart-line text-[var(--color-accent-purple)]"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-medium">Monthly report generated</div>
+                                            <div class="text-sm text-[var(--color-text-secondary)]">3 hours ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[var(--color-accent-green)]">
+                                        <i class="fas fa-file-export"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Line Chart
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+            const lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                    datasets: [
+                        {
+                            label: 'CPU Usage',
+                            data: [45, 52, 60, 75, 80, 72, 65],
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Memory Usage',
+                            data: [30, 40, 55, 65, 70, 60, 50],
+                            borderColor: 'rgb(139, 92, 246)',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'rgb(203, 213, 225)'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgb(30, 41, 59)',
+                            titleColor: 'rgb(241, 245, 249)',
+                            bodyColor: 'rgb(203, 213, 225)',
+                            borderColor: 'rgb(71, 85, 105)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'x',
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgb(203, 213, 225)'
+                            }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgb(203, 213, 225)',
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Bar Chart
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            const barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Electronics', 'Clothing', 'Home & Garden', 'Books', 'Beauty', 'Sports'],
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: [12500, 9800, 7500, 4200, 6100, 3800],
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(139, 92, 246, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(249, 115, 22, 0.7)',
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(14, 165, 233, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(59, 130, 246)',
+                            'rgb(139, 92, 246)',
+                            'rgb(16, 185, 129)',
+                            'rgb(249, 115, 22)',
+                            'rgb(239, 68, 68)',
+                            'rgb(14, 165, 233)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgb(30, 41, 59)',
+                            titleColor: 'rgb(241, 245, 249)',
+                            bodyColor: 'rgb(203, 213, 225)',
+                            borderColor: 'rgb(71, 85, 105)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: 'rgb(203, 213, 225)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgb(203, 213, 225)',
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Scatter Chart
+            const scatterCtx = document.getElementById('scatterChart').getContext('2d');
+            const scatterChart = new Chart(scatterCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'User Engagement',
+                        data: [
+                            {x: 12, y: 45, r: 8},
+                            {x: 19, y: 60, r: 10},
+                            {x: 15, y: 30, r: 6},
+                            {x: 25, y: 75, r: 12},
+                            {x: 8, y: 20, r: 5},
+                            {x: 30, y: 85, r: 15},
+                            {x: 10, y: 40, r: 7},
+                            {x: 22, y: 65, r: 9},
+                            {x: 18, y: 50, r: 8},
+                            {x: 28, y: 70, r: 11}
+                        ],
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'rgb(203, 213, 225)'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgb(30, 41, 59)',
+                            titleColor: 'rgb(241, 245, 249)',
+                            bodyColor: 'rgb(203, 213, 225)',
+                            borderColor: 'rgb(71, 85, 105)',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return 'User: ' + tooltipItems[0].datasetIndex;
+                                },
+                                label: function(context) {
+                                    return [
+                                        'Time Spent: ' + context.parsed.x + ' min',
+                                        'Page Views: ' + context.parsed.y
+                                    ];
+                                }
+                            }
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'xy',
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'xy'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time Spent (min)',
+                                color: 'rgb(203, 213, 225)'
+                            },
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgb(203, 213, 225)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Page Views',
+                                color: 'rgb(203, 213, 225)'
+                            },
+                            grid: {
+                                color: 'rgba(71, 85, 105, 0.2)'
+                            },
+                            ticks: {
+                                color: 'rgb(203, 213, 225)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Mobile menu toggle
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            });
+            
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+            
+            // Time filter buttons
+            const timeFilters = document.querySelectorAll('.time-filter');
+            timeFilters.forEach(filter => {
+                filter.addEventListener('click', () => {
+                    timeFilters.forEach(f => f.classList.remove('active'));
+                    filter.classList.add('active');
+                    
+                    // In a real app, this would update the charts with new data
+                    // For this demo, we'll just log the action
+                    console.log(`Time filter changed to: ${filter.textContent}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

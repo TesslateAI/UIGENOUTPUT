@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnergySavvy - Home Energy Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'energy-primary': '#0f766e',
+                        'energy-secondary': '#0d9488',
+                        'energy-accent': '#0ea5e9',
+                        'energy-light': '#ccfbf1',
+                        'energy-dark': '#042f2e',
+                        'energy-card': '#f0fdfa',
+                        'energy-text': '#0f172a',
+                        'energy-muted': '#64748b',
+                        'energy-border': '#e2e8f0',
+                        'energy-success': '#10b981',
+                        'energy-warning': '#f59e0b',
+                        'energy-danger': '#ef4444',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f8fafc;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .gauge {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: conic-gradient(#0ea5e9 0% 75%, #e2e8f0 75% 100%);
+        }
+        
+        .gauge::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        
+        .energy-meter {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(90deg, #0f766e, #0d9488, #0ea5e9);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .meter-needle {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 4px;
+            height: 60%;
+            background: white;
+            transform-origin: bottom center;
+            transform: rotate(0deg);
+            transition: transform 0.5s ease;
+        }
+        
+        .meter-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .meter-labels {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .device-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .device-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .device-card.active {
+            border-color: #0ea5e9;
+            background-color: #f0fdfa;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-energy-text">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-energy-primary flex items-center justify-center">
+                    <i class="fas fa-bolt text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">EnergySavvy</h1>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#" class="text-energy-primary font-medium">Dashboard</a>
+                <a href="#" class="text-energy-muted hover:text-energy-primary transition-colors">Usage History</a>
+                <a href="#" class="text-energy-muted hover:text-energy-primary transition-colors">Savings Tips</a>
+                <a href="#" class="text-energy-muted hover:text-energy-primary transition-colors">Settings</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <i class="fas fa-bell text-energy-muted text-xl"></i>
+                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-energy-danger rounded-full text-xs flex items-center justify-center text-white">3</span>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-energy-light flex items-center justify-center">
+                    <i class="fas fa-user text-energy-primary"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Dashboard Header -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-2">Home Energy Dashboard</h2>
+            <p class="text-energy-muted">Monitor and manage your energy consumption in real-time</p>
+        </div>
+        
+        <!-- Stats Overview -->
+        <div class="dashboard-grid mb-8">
+            <!-- Current Usage -->
+            <div class="card p-6 col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-muted text-sm">Current Usage</p>
+                        <h3 class="text-3xl font-bold mt-2">4.2 <span class="text-lg font-normal text-energy-muted">kW</span></h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-energy-light flex items-center justify-center">
+                        <i class="fas fa-bolt text-energy-primary text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-energy-muted mb-1">
+                        <span>Today's average</span>
+                        <span>3.8 kW</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-energy-accent" style="width: 75%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Today's Cost -->
+            <div class="card p-6 col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-muted text-sm">Today's Cost</p>
+                        <h3 class="text-3xl font-bold mt-2">$24.75</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-dollar-sign text-blue-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-energy-muted mb-1">
+                        <span>Estimated daily</span>
+                        <span>$26.50</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-energy-success" style="width: 92%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Savings -->
+            <div class="card p-6 col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-muted text-sm">Monthly Savings</p>
+                        <h3 class="text-3xl font-bold mt-2">$84.20</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
+                        <i class="fas fa-piggy-bank text-green-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-energy-muted mb-1">
+                        <span>Target savings</span>
+                        <span>$100</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-energy-success" style="width: 84%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Carbon Footprint -->
+            <div class="card p-6 col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-muted text-sm">Carbon Footprint</p>
+                        <h3 class="text-3xl font-bold mt-2">12.4 <span class="text-lg font-normal text-energy-muted">kg CO₂</span></h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center">
+                        <i class="fas fa-leaf text-purple-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-energy-muted mb-1">
+                        <span>Daily average</span>
+                        <span>14.2 kg</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-energy-warning" style="width: 87%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts and Visualizations -->
+        <div class="dashboard-grid mb-8">
+            <!-- Usage History Chart -->
+            <div class="card p-6 col-span-12 lg:col-span-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold">Energy Usage History</h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm rounded-lg bg-energy-light text-energy-primary font-medium">Today</button>
+                        <button class="px-3 py-1 text-sm rounded-lg text-energy-muted hover:bg-energy-light">Week</button>
+                        <button class="px-3 py-1 text-sm rounded-lg text-energy-muted hover:bg-energy-light">Month</button>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Consumption Breakdown -->
+            <div class="card p-6 col-span-12 lg:col-span-4">
+                <h3 class="text-lg font-bold mb-6">Consumption Breakdown</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Heating/Cooling</span>
+                            <span class="text-sm font-medium">42%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-energy-primary" style="width: 42%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Lighting</span>
+                            <span class="text-sm font-medium">18%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-energy-accent" style="width: 18%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Appliances</span>
+                            <span class="text-sm font-medium">24%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-energy-warning" style="width: 24%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Water Heating</span>
+                            <span class="text-sm font-medium">12%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-energy-danger" style="width: 12%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Other</span>
+                            <span class="text-sm font-medium">4%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-energy-muted" style="width: 4%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Devices and Recommendations -->
+        <div class="dashboard-grid mb-8">
+            <!-- Active Devices -->
+            <div class="card p-6 col-span-12 lg:col-span-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold">Active Devices</h3>
+                    <button class="text-energy-primary text-sm font-medium">View All</button>
+                </div>
+                <div class="space-y-4">
+                    <div class="device-card card p-4 border border-energy-border flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-4">
+                            <i class="fas fa-thermometer-half text-blue-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium">Central AC</h4>
+                            <p class="text-sm text-energy-muted">Running (24,000 BTU)</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">1.8 kW</p>
+                            <p class="text-sm text-energy-muted">Since 2:30 PM</p>
+                        </div>
+                    </div>
+                    
+                    <div class="device-card card p-4 border border-energy-border flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center mr-4">
+                            <i class="fas fa-washing-machine text-yellow-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium">Washing Machine</h4>
+                            <p class="text-sm text-energy-muted">In cycle (Heavy)</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">2.1 kW</p>
+                            <p class="text-sm text-energy-muted">15 min left</p>
+                        </div>
+                    </div>
+                    
+                    <div class="device-card card p-4 border border-energy-border flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-4">
+                            <i class="fas fa-kitchen-set text-purple-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium">Refrigerator</h4>
+                            <p class="text-sm text-energy-muted">Cooling (40°F)</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">0.3 kW</p>
+                            <p class="text-sm text-energy-muted">Always on</p>
+                        </div>
+                    </div>
+                    
+                    <div class="device-card card p-4 border border-energy-border flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-4">
+                            <i class="fas fa-plug text-green-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium">Smart TV</h4>
+                            <p class="text-sm text-energy-muted">On (4K mode)</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">0.4 kW</p>
+                            <p class="text-sm text-energy-muted">3 hours today</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Energy Tips -->
+            <div class="card p-6 col-span-12 lg:col-span-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold">Energy Saving Tips</h3>
+                    <button class="text-energy-primary text-sm font-medium">See All</button>
+                </div>
+                <div class="space-y-4">
+                    <div class="p-4 bg-energy-card rounded-lg border border-energy-border">
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-lightbulb text-green-500 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1">Optimize AC Usage</h4>
+                                <p class="text-sm text-energy-muted">Set thermostat to 78°F when at home and 85°F when away to save up to 15% on cooling costs.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-energy-card rounded-lg border border-energy-border">
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-plug text-blue-500 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1">Unplug Devices</h4>
+                                <p class="text-sm text-energy-muted">Electronics consume power even when turned off. Unplug devices not in use or use smart power strips.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-energy-card rounded-lg border border-energy-border">
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-bath text-purple-500 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1">Shorten Showers</h4>
+                                <p class="text-sm text-energy-muted">Reduce shower time by 1-2 minutes to save water and energy used to heat it.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-energy-card rounded-lg border border-energy-border">
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-wind text-yellow-500 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-1">Use Natural Light</h4>
+                                <p class="text-sm text-energy-muted">Open curtains during the day to reduce lighting needs and use task lighting when possible.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Real-time Meter -->
+        <div class="card p-6 mb-8">
+            <h3 class="text-lg font-bold mb-6">Real-time Energy Meter</h3>
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="energy-meter mb-4 md:mb-0 md:mr-8">
+                    <div class="meter-needle" style="transform: rotate(120deg);"></div>
+                    <div class="meter-value">4.2 kW</div>
+                    <div class="meter-labels">
+                        <span>0</span>
+                        <span>5 kW</span>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-energy-muted text-sm">Today</p>
+                            <p class="text-xl font-bold">24.7 kWh</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-energy-muted text-sm">This Week</p>
+                            <p class="text-xl font-bold">156.3 kWh</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-energy-muted text-sm">This Month</p>
+                            <p class="text-xl font-bold">684.2 kWh</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="bg-energy-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-energy-primary flex items-center justify-center">
+                            <i class="fas fa-bolt text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">EnergySavvy</h3>
+                    </div>
+                    <p class="text-energy-light opacity-80 mb-4">Smart energy monitoring for a sustainable future.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-energy-light opacity-80 hover:opacity-100"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-energy-light opacity-80 hover:opacity-100"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-energy-light opacity-80 hover:opacity-100"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-energy-light opacity-80 hover:opacity-100"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Real-time Monitoring</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Usage Analytics</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Energy Reports</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Device Management</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Savings Tips</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Guides</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Support Center</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">API Documentation</a></li>
+                        <li><a href="#" class="text-energy-light opacity-80 hover:opacity-100 hover:text-white">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Subscribe</h4>
+                    <p class="text-energy-light opacity-80 mb-4">Get energy-saving tips and updates</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-energy-dark">
+                        <button class="bg-energy-primary px-4 py-2 rounded-r-lg font-medium">Join</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-energy-primary border-opacity-20 mt-8 pt-8 text-center text-energy-light opacity-70">
+                <p>© 2023 EnergySavvy. All rights reserved. Helping you save energy, one home at a time.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Usage history chart
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            const usageChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM', '12 AM'],
+                    datasets: [{
+                        label: 'Energy Usage (kW)',
+                        data: [1.2, 2.5, 3.1, 4.2, 5.8, 3.5, 1.8],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#0ea5e9',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' kW';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Simulate real-time updates
+            setInterval(() => {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('current-time').textContent = timeString;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

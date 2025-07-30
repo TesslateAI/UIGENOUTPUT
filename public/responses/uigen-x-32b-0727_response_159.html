@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameCraft - Game Development Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a',
+                        'darker-bg': '#0a0f1f',
+                        'panel-bg': '#1e293b',
+                        'accent': '#3b82f6',
+                        'accent-light': '#60a5fa',
+                        'text-light': '#f1f5f9',
+                        'text-muted': '#94a3b8',
+                        'border': '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            overflow: hidden;
+        }
+        
+        .scene-grid {
+            background-image: 
+                linear-gradient(rgba(51, 65, 85, 0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(51, 65, 85, 0.5) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .tool-button {
+            transition: all 0.2s ease;
+        }
+        
+        .tool-button:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .tool-button.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+        }
+        
+        .inspector-item {
+            transition: all 0.2s ease;
+        }
+        
+        .inspector-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .game-object {
+            transition: all 0.2s ease;
+        }
+        
+        .game-object:hover {
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        
+        .game-object.selected {
+            box-shadow: 0 0 0 2px #3b82f6, 0 0 0 4px rgba(59, 130, 246, 0.3);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .property-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        
+        .tab-button {
+            position: relative;
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #3b82f6;
+        }
+        
+        .dropzone {
+            border: 2px dashed #334155;
+            transition: all 0.3s ease;
+        }
+        
+        .dropzone.active {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- Top Toolbar -->
+    <div class="bg-darker-bg border-b border-border h-16 px-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center">
+                <i class="fas fa-gamepad text-accent text-xl mr-2"></i>
+                <h1 class="text-xl font-bold">GameCraft</h1>
+            </div>
+            
+            <div class="flex space-x-1">
+                <button class="tool-button px-3 py-1.5 rounded-md flex items-center">
+                    <i class="fas fa-file mr-2 text-text-muted"></i>
+                    New
+                </button>
+                <button class="tool-button px-3 py-1.5 rounded-md flex items-center">
+                    <i class="fas fa-folder-open mr-2 text-text-muted"></i>
+                    Open
+                </button>
+                <button class="tool-button px-3 py-1.5 rounded-md flex items-center">
+                    <i class="fas fa-save mr-2 text-text-muted"></i>
+                    Save
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <button class="tool-button w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fas fa-undo text-text-muted"></i>
+            </button>
+            <button class="tool-button w-8 h-8 rounded-full flex items-center justify-center">
+                <i class="fas fa-redo text-text-muted"></i>
+            </button>
+            <button class="tool-button px-4 py-1.5 rounded-md flex items-center bg-accent hover:bg-accent-light">
+                <i class="fas fa-play mr-2"></i>
+                Play
+            </button>
+            <div class="w-px h-6 bg-border mx-2"></div>
+            <button class="tool-button px-4 py-1.5 rounded-md flex items-center">
+                <i class="fas fa-cog mr-2 text-text-muted"></i>
+                Settings
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content Area -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Left Sidebar - Game Objects Panel -->
+        <div class="w-64 bg-darker-bg border-r border-border flex flex-col">
+            <div class="p-3 border-b border-border">
+                <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wider mb-2">Scene Hierarchy</h2>
+                <div class="relative">
+                    <input type="text" placeholder="Search objects..." class="w-full bg-panel-bg border border-border rounded-md py-1.5 px-3 text-sm focus:outline-none focus:border-accent">
+                    <i class="fas fa-search absolute right-3 top-2.5 text-text-muted text-xs"></i>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto scrollbar-hide p-2">
+                <div class="mb-2">
+                    <div class="text-xs text-text-muted uppercase tracking-wider px-2 py-1.5">Main Scene</div>
+                    <div class="game-object selected bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-cube text-accent mr-2"></i>
+                            <span class="text-sm">Player Character</span>
+                        </div>
+                    </div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-mountain text-green-400 mr-2"></i>
+                            <span class="text-sm">Mountain</span>
+                        </div>
+                    </div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-tree text-green-500 mr-2"></i>
+                            <span class="text-sm">Forest Area</span>
+                        </div>
+                    </div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-house text-yellow-400 mr-2"></i>
+                            <span class="text-sm">House</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <div class="text-xs text-text-muted uppercase tracking-wider px-2 py-1.5">UI Elements</div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-window-restore text-blue-400 mr-2"></i>
+                            <span class="text-sm">Main Menu</span>
+                        </div>
+                    </div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-crosshairs text-red-400 mr-2"></i>
+                            <span class="text-sm">Target Indicator</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <div class="text-xs text-text-muted uppercase tracking-wider px-2 py-1.5">Prefabs</div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-box text-purple-400 mr-2"></i>
+                            <span class="text-sm">Enemy Prefab</span>
+                        </div>
+                    </div>
+                    <div class="game-object bg-panel-bg rounded-md p-2 mb-1 cursor-pointer">
+                        <div class="flex items-center">
+                            <i class="fas fa-bomb text-orange-400 mr-2"></i>
+                            <span class="text-sm">Explosion Effect</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-2 border-t border-border">
+                <button class="w-full py-2 rounded-md bg-panel-bg hover:bg-accent hover:text-white flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add New Object
+                </button>
+            </div>
+        </div>
+        
+        <!-- Center Area - Scene Editor -->
+        <div class="flex-1 relative overflow-hidden">
+            <div class="absolute inset-0 scene-grid">
+                <div class="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black opacity-20"></div>
+            </div>
+            
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+                <div class="bg-white rounded-full w-full h-full flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-dark-bg">Player</div>
+                        <div class="text-sm text-text-muted mt-2">Position: (0, 0, 0)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="absolute top-1/3 left-1/4 transform -translate-x-1/2 w-48 h-48">
+                <div class="bg-gray-700 rounded-lg w-full h-full flex items-center justify-center">
+                    <div class="text-center">
+                        <i class="fas fa-mountain text-3xl text-green-400 mb-2"></i>
+                        <div class="text-sm">Mountain</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="absolute top-1/4 right-1/4 w-32 h-32">
+                <div class="bg-gray-800 rounded-lg w-full h-full flex items-center justify-center">
+                    <i class="fas fa-tree text-2xl text-green-500"></i>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-1/3 right-1/3 w-24 h-24">
+                <div class="bg-gray-600 rounded-lg w-full h-full flex items-center justify-center">
+                    <i class="fas fa-house text-2xl text-yellow-400"></i>
+                </div>
+            </div>
+            
+            <!-- Grid lines -->
+            <div class="absolute inset-0">
+                <div class="absolute top-0 left-0 w-full h-px bg-border"></div>
+                <div class="absolute top-1/4 left-0 w-full h-px bg-border"></div>
+                <div class="absolute top-1/2 left-0 w-full h-px bg-border"></div>
+                <div class="absolute top-3/4 left-0 w-full h-px bg-border"></div>
+                <div class="absolute top-0 left-0 w-px h-full bg-border"></div>
+                <div class="absolute left-1/4 top-0 w-px h-full bg-border"></div>
+                <div class="absolute left-1/2 top-0 w-px h-full bg-border"></div>
+                <div class="absolute left-3/4 top-0 w-px h-full bg-border"></div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar - Inspector Panel -->
+        <div class="w-80 bg-darker-bg border-l border-border flex flex-col">
+            <div class="p-3 border-b border-border">
+                <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wider">Inspector</h2>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-cube text-accent mr-2"></i>
+                        Player Character
+                    </h3>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-4 mb-3">
+                        <h4 class="text-sm font-medium text-text-muted mb-2">Transform</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Position X</label>
+                                <input type="text" value="0.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Position Y</label>
+                                <input type="text" value="0.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Position Z</label>
+                                <input type="text" value="0.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-4 mb-3">
+                        <h4 class="text-sm font-medium text-text-muted mb-2">Rotation</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">X</label>
+                                <input type="text" value="0.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Y</label>
+                                <input type="text" value="0.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Z</label>
+                                <input type="text" value="0.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-4 mb-3">
+                        <h4 class="text-sm font-medium text-text-muted mb-2">Scale</h4>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">X</label>
+                                <input type="text" value="1.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Y</label>
+                                <input type="text" value="1.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="text-xs text-text-muted mb-1 block">Z</label>
+                                <input type="text" value="1.00" class="property-input w-full bg-dark-bg border border-border rounded py-1.5 px-2 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-paint-brush text-purple-400 mr-2"></i>
+                        Materials
+                    </h3>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-4 mb-3">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-sm">Body Material</div>
+                            <div class="w-6 h-6 rounded bg-blue-500 border border-border"></div>
+                        </div>
+                        <div class="text-xs text-text-muted mb-2">Standard Shader</div>
+                        <div class="text-xs text-text-muted">Metallic: 0.2, Smoothness: 0.5</div>
+                    </div>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-sm">Eye Material</div>
+                            <div class="w-6 h-6 rounded bg-yellow-400 border border-border"></div>
+                        </div>
+                        <div class="text-xs text-text-muted mb-2">Standard Shader</div>
+                        <div class="text-xs text-text-muted">Metallic: 0.0, Smoothness: 0.8</div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-plug text-green-400 mr-2"></i>
+                        Components
+                    </h3>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-3 mb-2 flex items-center">
+                        <i class="fas fa-bolt text-yellow-400 mr-2"></i>
+                        <span class="text-sm">Rigidbody</span>
+                    </div>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-3 mb-2 flex items-center">
+                        <i class="fas fa-arrows-alt text-blue-400 mr-2"></i>
+                        <span class="text-sm">Box Collider</span>
+                    </div>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-3 mb-2 flex items-center">
+                        <i class="fas fa-camera text-purple-400 mr-2"></i>
+                        <span class="text-sm">Character Controller</span>
+                    </div>
+                    
+                    <div class="inspector-item bg-panel-bg rounded-md p-3 flex items-center">
+                        <i class="fas fa-code text-red-400 mr-2"></i>
+                        <span class="text-sm">Player Script</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-3 border-t border-border">
+                <button class="w-full py-2 rounded-md bg-panel-bg hover:bg-accent hover:text-white flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Component
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Toolbar -->
+    <div class="bg-darker-bg border-t border-border h-10 px-4 flex items-center justify-between">
+        <div class="flex items-center text-xs text-text-muted">
+            <div class="flex items-center mr-4">
+                <i class="fas fa-map-marker-alt text-accent mr-1"></i>
+                <span>Scene: Main</span>
+            </div>
+            <div class="flex items-center mr-4">
+                <i class="fas fa-layer-group text-green-400 mr-1"></i>
+                <span>Layer: Default</span>
+            </div>
+            <div class="flex items-center">
+                <i class="fas fa-cube text-purple-400 mr-1"></i>
+                <span>Objects: 24</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <div class="text-xs text-text-muted">Grid Size: 10</div>
+            <div class="relative">
+                <select class="bg-panel-bg border border-border rounded py-1.5 px-3 text-sm focus:outline-none focus:border-accent">
+                    <option>1x1</option>
+                    <option>5x5</option>
+                    <option selected>10x10</option>
+                    <option>20x20</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Simple interactivity for the UI
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game object selection
+            const gameObjects = document.querySelectorAll('.game-object');
+            gameObjects.forEach(obj => {
+                obj.addEventListener('click', function() {
+                    gameObjects.forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+            
+            // Tool buttons
+            const toolButtons = document.querySelectorAll('.tool-button');
+            toolButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    if(!this.classList.contains('active')) {
+                        toolButtons.forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                    }
+                });
+            });
+            
+            // Add component button
+            const addComponentBtn = document.querySelector('.inspector-item:last-child');
+            addComponentBtn.addEventListener('click', function() {
+                alert('Component added! In a real application, this would open a component selection dialog.');
+            });
+        });
+    </script>
+</body>
+</html>

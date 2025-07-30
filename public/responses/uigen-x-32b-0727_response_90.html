@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHome Energy Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'energy-dark': '#0f172a',
+                        'energy-light': '#1e293b',
+                        'energy-accent': '#0d9488',
+                        'energy-accent-light': '#14b8a6',
+                        'energy-text': '#f1f5f9',
+                        'energy-text-secondary': '#94a3b8',
+                        'energy-card': '#1e293b',
+                        'energy-success': '#10b981',
+                        'energy-warning': '#f59e0b',
+                        'energy-danger': '#ef4444',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        :root {
+            --token-bg-dark: #0f172a;
+            --token-bg-light: #1e293b;
+            --token-accent: #0d9488;
+            --token-accent-light: #14b8a6;
+            --token-text: #f1f5f9;
+            --token-text-secondary: #94a3b8;
+            --token-card: #1e293b;
+            --token-success: #10b981;
+            --token-warning: #f59e0b;
+            --token-danger: #ef4444;
+        }
+        
+        body {
+            background-color: var(--token-bg-dark);
+            color: var(--token-text);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .card {
+            background: var(--token-bg-light);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .appliance-card {
+            border-left: 4px solid var(--token-accent);
+        }
+        
+        .appliance-card.off {
+            border-left-color: var(--token-text-secondary);
+        }
+        
+        .appliance-card.warning {
+            border-left-color: var(--token-warning);
+        }
+        
+        .appliance-card.danger {
+            border-left-color: var(--token-danger);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--token-accent);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .energy-meter {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(180deg, #0d9488, #14b8a6);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .energy-meter-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .energy-meter-label {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            color: white;
+        }
+        
+        .energy-meter-max {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 0.9rem;
+            color: white;
+        }
+        
+        .energy-meter-min {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-size: 0.9rem;
+            color: white;
+        }
+        
+        .nav-link {
+            position: relative;
+            padding: 8px 0;
+            color: var(--token-text-secondary);
+            transition: color 0.3s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--token-text);
+        }
+        
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--token-accent);
+            border-radius: 3px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .appliance-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .appliance-icon.light {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--token-success);
+        }
+        
+        .appliance-icon.ac {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .appliance-icon.fridge {
+            background: rgba(139, 92, 246, 0.1);
+            color: #8b5cf6;
+        }
+        
+        .appliance-icon.oven {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--token-danger);
+        }
+        
+        .appliance-icon.washing {
+            background: rgba(14, 165, 233, 0.1);
+            color: #0ea5e9;
+        }
+        
+        .appliance-icon.robo {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--token-warning);
+        }
+        
+        .usage-badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .usage-badge.high {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--token-danger);
+        }
+        
+        .usage-badge.medium {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--token-warning);
+        }
+        
+        .usage-badge.low {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--token-success);
+        }
+        
+        .glow {
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px rgba(13, 148, 136, 0.5);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(13, 148, 136, 0.8);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-energy-dark text-energy-text">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-energy-dark/90 backdrop-blur-md border-b border-energy-light">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-energy-accent flex items-center justify-center mr-3">
+                        <i class="fas fa-bolt text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">SmartHome Energy</h1>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#" class="nav-link active">Dashboard</a>
+                    <a href="#" class="nav-link">Appliances</a>
+                    <a href="#" class="nav-link">History</a>
+                    <a href="#" class="nav-link">Settings</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <i class="fas fa-bell text-energy-text-secondary text-xl"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-energy-accent flex items-center justify-center text-sm font-semibold">
+                        JD
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-text-secondary text-sm">Current Usage</p>
+                        <h2 class="text-3xl font-bold mt-2">2.4 <span class="text-lg">kW</span></h2>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                        <i class="fas fa-bolt text-green-400 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm">
+                        <span class="text-green-400 mr-2"><i class="fas fa-arrow-down"></i> 12%</span>
+                        <span class="text-energy-text-secondary">from yesterday</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-text-secondary text-sm">Today's Cost</p>
+                        <h2 class="text-3xl font-bold mt-2">$4.25</h2>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <i class="fas fa-dollar-sign text-blue-400 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm">
+                        <span class="text-green-400 mr-2"><i class="fas fa-arrow-down"></i> 8%</span>
+                        <span class="text-energy-text-secondary">from yesterday</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-text-secondary text-sm">Today's Consumption</p>
+                        <h2 class="text-3xl font-bold mt-2">18.2 <span class="text-lg">kWh</span></h2>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-yellow-400 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm">
+                        <span class="text-red-400 mr-2"><i class="fas fa-arrow-up"></i> 3%</span>
+                        <span class="text-energy-text-secondary">from yesterday</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-energy-text-secondary text-sm">Carbon Saved</p>
+                        <h2 class="text-3xl font-bold mt-2">2.1 <span class="text-lg">kg</span></h2>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                        <i class="fas fa-leaf text-purple-400 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm">
+                        <span class="text-green-400 mr-2"><i class="fas fa-arrow-up"></i> 15%</span>
+                        <span class="text-energy-text-secondary">from last week</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Energy Meter -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">Energy Usage Meter</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg bg-energy-accent/10 text-energy-accent">Live</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-energy-light text-energy-text-secondary">24H</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-energy-light text-energy-text-secondary">7D</button>
+                        </div>
+                    </div>
+                    <div class="energy-meter">
+                        <div class="energy-meter-min">0 kW</div>
+                        <div class="energy-meter-max">10 kW</div>
+                        <div class="energy-meter-value">2.4 kW</div>
+                        <div class="energy-meter-label">Current Consumption</div>
+                    </div>
+                </div>
+                
+                <!-- Usage History Chart -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">Usage History</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg bg-energy-light text-energy-text-secondary">Today</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-energy-accent/10 text-energy-accent">Week</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-energy-light text-energy-text-secondary">Month</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Appliance Control -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">Appliance Control</h2>
+                        <button class="text-energy-accent text-sm flex items-center">
+                            <i class="fas fa-plus mr-1"></i> Add Device
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Appliance 1 -->
+                        <div class="appliance-card card p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="appliance-icon light">
+                                        <i class="fas fa-lightbulb text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold">Living Room Lights</h3>
+                                        <p class="text-sm text-energy-text-secondary">24W • 4 devices</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="usage-badge low">0.2 kW</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Appliance 2 -->
+                        <div class="appliance-card card p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="appliance-icon ac">
+                                        <i class="fas fa-snowflake text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold">Living Room AC</h3>
+                                        <p class="text-sm text-energy-text-secondary">1.8 kW • 22°C</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="usage-badge medium">1.8 kW</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Appliance 3 -->
+                        <div class="appliance-card card p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="appliance-icon fridge">
+                                        <i class="fas fa-fridge text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold">Kitchen Fridge</h3>
+                                        <p class="text-sm text-energy-text-secondary">120W • 4°C</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="usage-badge low">0.12 kW</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Appliance 4 -->
+                        <div class="appliance-card card p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="appliance-icon oven">
+                                        <i class="fas fa-oven text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold">Kitchen Oven</h3>
+                                        <p class="text-sm text-energy-text-secondary">2.2 kW • Off</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="usage-badge low">0 kW</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Appliance 5 -->
+                        <div class="appliance-card card p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="appliance-icon washing">
+                                        <i class="fas fa-washing-machine text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold">Washing Machine</h3>
+                                        <p class="text-sm text-energy-text-secondary">2.0 kW • Off</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <span class="usage-badge low">0 kW</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Energy Tips -->
+                <div class="card p-6">
+                    <h2 class="text-xl font-bold mb-6">Energy Saving Tips</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-1">
+                                <i class="fas fa-lightbulb text-green-400 text-sm"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="font-semibold">Unplug devices</h3>
+                                <p class="text-sm text-energy-text-secondary mt-1">Unplug electronics when not in use to avoid "vampire" energy consumption.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-1">
+                                <i class="fas fa-thermometer-half text-green-400 text-sm"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="font-semibold">Optimize AC</h3>
+                                <p class="text-sm text-energy-text-secondary mt-1">Set your AC to 24°C in summer and 20°C in winter for optimal efficiency.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0 mt-1">
+                                <i class="fas fa-bolt text-green-400 text-sm"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="font-semibold">Use timers</h3>
+                                <p class="text-sm text-energy-text-secondary mt-1">Schedule appliances to run during off-peak hours to save on energy costs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="card p-6 mb-8">
+            <h2 class="text-xl font-bold mb-6">Recent Activity</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-energy-text-secondary text-sm border-b border-energy-light">
+                            <th class="pb-3">Device</th>
+                            <th class="pb-3">Action</th>
+                            <th class="pb-3">Time</th>
+                            <th class="pb-3">Energy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-energy-light/30">
+                            <td class="py-3 flex items-center">
+                                <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-lightbulb text-green-400"></i>
+                                </div>
+                                <span>Living Room Lights</span>
+                            </td>
+                            <td class="py-3">Turned on</td>
+                            <td class="py-3">10:24 AM</td>
+                            <td class="py-3">0.2 kW</td>
+                        </tr>
+                        <tr class="border-b border-energy-light/30">
+                            <td class="py-3 flex items-center">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-snowflake text-blue-400"></i>
+                                </div>
+                                <span>Living Room AC</span>
+                            </td>
+                            <td class="py-3">Temperature adjusted to 23°C</td>
+                            <td class="py-3">09:45 AM</td>
+                            <td class="py-3">1.8 kW</td>
+                        </tr>
+                        <tr class="border-b border-energy-light/30">
+                            <td class="py-3 flex items-center">
+                                <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-fridge text-purple-400"></i>
+                                </div>
+                                <span>Kitchen Fridge</span>
+                            </td>
+                            <td class="py-3">Defrost completed</td>
+                            <td class="py-3">08:15 AM</td>
+                            <td class="py-3">0.12 kW</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 flex items-center">
+                                <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-oven text-yellow-400"></i>
+                                </div>
+                                <span>Kitchen Oven</span>
+                            </td>
+                            <td class="py-3">Turned off</td>
+                            <td class="py-3">07:30 AM</td>
+                            <td class="py-3">0 kW</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="border-t border-energy-light py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-lg bg-energy-accent flex items-center justify-center mr-3">
+                        <i class="fas fa-bolt text-white"></i>
+                    </div>
+                    <span class="font-semibold">SmartHome Energy</span>
+                </div>
+                <div class="text-sm text-energy-text-secondary">
+                    © 2023 SmartHome Energy. All rights reserved.
+                </div>
+                <div class="flex space-x-4 mt-4 md:mt-0">
+                    <a href="#" class="text-energy-text-secondary hover:text-energy-text"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-energy-text-secondary hover:text-energy-text"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-energy-text-secondary hover:text-energy-text"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="text-energy-text-secondary hover:text-energy-text"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Initialize Chart.js
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            
+            // Sample data for the chart
+            const data = {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    {
+                        label: 'Current Week',
+                        data: [12.4, 14.2, 15.8, 16.3, 18.2, 15.5, 13.7],
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Previous Week',
+                        data: [13.2, 15.1, 14.7, 16.8, 17.5, 14.2, 12.9],
+                        borderColor: '#94a3b8',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            };
+            
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f1f5f9'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 20
+                        }
+                    }
+                }
+            };
+            
+            const usageChart = new Chart(ctx, config);
+            
+            // Simulate live energy usage updates
+            setInterval(() => {
+                const meterValue = document.querySelector('.energy-meter-value');
+                const randomValue = (Math.random() * 2 + 1.5).toFixed(1);
+                meterValue.textContent = `${randomValue} kW`;
+                
+                // Update chart with new data point
+                const now = new Date();
+                const day = now.getDay();
+                const newData = [...data.datasets[0].data];
+                newData[day] = (Math.random() * 5 + 10).toFixed(1);
+                
+                data.datasets[0].data = newData;
+                usageChart.update();
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

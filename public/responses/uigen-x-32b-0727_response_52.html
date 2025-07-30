@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudVault - File Browser</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f8fafc;
+        }
+        
+        .folder-item:hover {
+            background-color: rgba(14, 165, 233, 0.1);
+        }
+        
+        .file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .file-preview {
+            transition: all 0.2s ease;
+        }
+        
+        .file-preview:hover {
+            transform: scale(1.05);
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background-color: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #0ea5e9;
+            width: 65%;
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            min-width: 200px;
+        }
+        
+        .context-menu-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .context-menu-item:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .upload-dropzone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-dropzone.active {
+            border-color: #0ea5e9;
+            background-color: #f0f9ff;
+        }
+        
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .file-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+        
+        .folder-tree li {
+            position: relative;
+        }
+        
+        .folder-tree li:before {
+            content: "";
+            position: absolute;
+            top: 16px;
+            left: -16px;
+            width: 12px;
+            height: 1px;
+            background-color: #cbd5e1;
+        }
+        
+        .folder-tree li:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -16px;
+            width: 1px;
+            height: 100%;
+            background-color: #cbd5e1;
+        }
+        
+        .folder-tree > li:first-child:after {
+            top: 16px;
+            height: calc(100% - 16px);
+        }
+        
+        .folder-tree > li:last-child:after {
+            height: 16px;
+        }
+        
+        .folder-tree ul {
+            padding-left: 24px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Top Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-primary-500 w-8 h-8 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-cloud text-white"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold text-gray-900">CloudVault</span>
+                    </div>
+                    <nav class="ml-6 flex space-x-4">
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium bg-primary-50 text-primary-600">Files</a>
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700">Shared</a>
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700">Recent</a>
+                        <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700">Trash</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="p-1 rounded-full text-gray-500 hover:text-gray-700 focus:outline-none">
+                            <i class="fas fa-bell text-xl"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                            <span class="text-primary-600 font-medium">JD</span>
+                        </div>
+                        <span class="ml-2 text-sm font-medium text-gray-700">John Doe</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Sidebar -->
+            <aside class="lg:w-64 flex-shrink-0">
+                <div class="bg-white rounded-xl shadow-sm p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">Folders</h2>
+                        <button class="text-primary-500 hover:text-primary-700">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <ul class="folder-tree space-y-1">
+                        <li>
+                            <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer">
+                                <i class="fas fa-folder text-yellow-400 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">Documents</span>
+                            </div>
+                            <ul>
+                                <li>
+                                    <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer ml-4">
+                                        <i class="fas fa-folder text-yellow-400 mr-2"></i>
+                                        <span class="text-sm font-medium text-gray-700">Projects</span>
+                                    </div>
+                                </li>
+                                <li>
+                                    <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer ml-4">
+                                        <i class="fas fa-folder text-yellow-400 mr-2"></i>
+                                        <span class="text-sm font-medium text-gray-700">Personal</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer">
+                                <i class="fas fa-folder text-blue-400 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">Images</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer">
+                                <i class="fas fa-folder text-green-400 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">Videos</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer">
+                                <i class="fas fa-folder text-purple-400 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">Music</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="folder-item flex items-center py-2 px-3 rounded-lg cursor-pointer">
+                                <i class="fas fa-folder text-pink-400 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">Downloads</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="mt-6 bg-white rounded-xl shadow-sm p-4">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Storage</h2>
+                    <div class="mb-2">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>15.2 GB of 25 GB used</span>
+                            <span>65%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                    <button class="w-full mt-3 bg-primary-50 text-primary-600 hover:bg-primary-100 text-sm font-medium py-2 px-4 rounded-lg transition">
+                        Upgrade Storage
+                    </button>
+                </div>
+            </aside>
+            
+            <!-- Main Content Area -->
+            <div class="flex-1">
+                <!-- Toolbar -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">My Files</h1>
+                            <p class="text-gray-500">Documents, images, videos, and more</p>
+                        </div>
+                        <div class="mt-4 sm:mt-0 flex space-x-3">
+                            <button class="flex items-center bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg transition">
+                                <i class="fas fa-search mr-2"></i>
+                                <span>Search</span>
+                            </button>
+                            <button class="flex items-center bg-primary-500 text-white hover:bg-primary-600 px-4 py-2 rounded-lg transition">
+                                <i class="fas fa-plus mr-2"></i>
+                                <span>New Folder</span>
+                            </button>
+                            <button id="upload-btn" class="flex items-center bg-secondary-500 text-white hover:bg-secondary-600 px-4 py-2 rounded-lg transition">
+                                <i class="fas fa-upload mr-2"></i>
+                                <span>Upload</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- File Grid -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            <span>128 items</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="file-grid">
+                            <!-- Folders -->
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-yellow-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-folder text-yellow-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Projects</span>
+                                    <span class="text-xs text-gray-500">24 items</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-blue-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-folder text-blue-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Client Files</span>
+                                    <span class="text-xs text-gray-500">18 items</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Files -->
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Annual Report.pdf</span>
+                                    <span class="text-xs text-gray-500">2.4 MB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-file-excel text-green-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Budget.xlsx</span>
+                                    <span class="text-xs text-gray-500">1.1 MB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-file-image text-purple-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Landscape.jpg</span>
+                                    <span class="text-xs text-gray-500">4.2 MB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-file-video text-pink-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Presentation.mp4</span>
+                                    <span class="text-xs text-gray-500">24.8 MB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-file-word text-blue-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Proposal.docx</span>
+                                    <span class="text-xs text-gray-500">0.8 MB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="file-item bg-white border border-gray-200 rounded-xl p-4 cursor-pointer transition">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
+                                        <i class="fas fa-file-archive text-orange-500 text-2xl"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 text-center truncate w-full">Assets.zip</span>
+                                    <span class="text-xs text-gray-500">15.3 MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="mt-6 bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <i class="fas fa-upload text-primary-500"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-900">You uploaded <span class="text-primary-600">presentation.pptx</span></p>
+                                <p class="text-sm text-gray-500">2 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i class="fas fa-share-alt text-green-500"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-900">You shared <span class="text-primary-600">project_docs</span> with Sarah</p>
+                                <p class="text-sm text-gray-500">5 hours ago</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i class="fas fa-file-download text-blue-500"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-900">Mike downloaded <span class="text-primary-600">budget.xlsx</span></p>
+                                <p class="text-sm text-gray-500">Yesterday</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Upload Files</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="upload-dropzone p-8 text-center cursor-pointer">
+                <i class="fas fa-cloud-upload-alt text-4xl text-primary-500 mb-3"></i>
+                <p class="font-medium text-gray-700">Drag & drop files here</p>
+                <p class="text-sm text-gray-500 mt-1">or</p>
+                <label for="file-input" class="mt-3 inline-block bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
+                    Browse Files
+                </label>
+                <input id="file-input" type="file" class="hidden" multiple>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-upload" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">
+                    Upload Files
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Upload modal functionality
+            const uploadBtn = document.getElementById('upload-btn');
+            const uploadModal = document.getElementById('upload-modal');
+            const closeModal = document.getElementById('close-modal');
+            const cancelUpload = document.getElementById('cancel-upload');
+            const dropzone = document.querySelector('.upload-dropzone');
+            const fileInput = document.getElementById('file-input');
+            
+            // Open modal
+            uploadBtn.addEventListener('click', () => {
+                uploadModal.classList.remove('hidden');
+            });
+            
+            // Close modal
+            function closeModalFunc() {
+                uploadModal.classList.add('hidden');
+            }
+            
+            closeModal.addEventListener('click', closeModalFunc);
+            cancelUpload.addEventListener('click', closeModalFunc);
+            
+            // File input trigger
+            dropzone.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    // In a real app, you would handle the files here
+                    alert(`Selected ${this.files.length} file(s)`);
+                }
+            });
+            
+            // Drag and drop functionality
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropzone.classList.add('active');
+            }
+            
+            function unhighlight() {
+                dropzone.classList.remove('active');
+            }
+            
+            // Handle dropped files
+            dropzone.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            function handleFiles(files) {
+                // In a real app, you would handle the files here
+                alert(`Dropped ${files.length} file(s)`);
+            }
+            
+            // Context menu simulation
+            const fileItems = document.querySelectorAll('.file-item');
+            fileItems.forEach(item => {
+                item.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    
+                    // In a real app, you would show a context menu
+                    alert('Context menu would appear here with options for this file');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

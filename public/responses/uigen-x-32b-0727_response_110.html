@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Patient Outcomes Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'health-blue': '#1e40af',
+                        'health-green': '#10b981',
+                        'health-amber': '#f59e0b',
+                        'health-purple': '#7e22ce',
+                        'health-gray': '#f8fafc',
+                        'health-dark': '#1e293b',
+                        'health-light': '#e2e8f0',
+                        'health-text': '#334155',
+                        'health-muted': '#64748b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            grid-template-rows: 60px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+        }
+        
+        .header {
+            grid-area: header;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: #f8fafc;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        
+        .kpi-card {
+            border-left: 4px solid;
+        }
+        
+        .kpi-card.blue {
+            border-left-color: #1e40af;
+        }
+        
+        .kpi-card.green {
+            border-left-color: #10b981;
+        }
+        
+        .kpi-card.amber {
+            border-left-color: #f59e0b;
+        }
+        
+        .kpi-card.purple {
+            border-left-color: #7e22ce;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .nav-link:hover .nav-icon, .nav-link.active .nav-icon {
+            transform: translateX(4px);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s;
+        }
+        
+        .sidebar-toggle {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                position: fixed;
+                left: -240px;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.active {
+                left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body class="font-sans text-health-text">
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar text-white">
+            <div class="p-6 border-b border-health-blue/20">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+                        <i class="fas fa-heart text-health-blue text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">HealthCarePro</h1>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <nav class="space-y-1">
+                    <a href="#" class="nav-link active flex items-center p-3 rounded-lg">
+                        <i class="nav-icon fas fa-chart-line mr-3 transition-transform"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                        <i class="nav-icon fas fa-users mr-3 transition-transform"></i>
+                        <span>Patients</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                        <i class="nav-icon fas fa-stethoscope mr-3 transition-transform"></i>
+                        <span>Outcomes</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                        <i class="nav-icon fas fa-file-medical mr-3 transition-transform"></i>
+                        <span>Reports</span>
+                    </a>
+                    <a href="#" class="nav-link flex items-center p-3 rounded-lg">
+                        <i class="nav-icon fas fa-cog mr-3 transition-transform"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+                
+                <div class="mt-8 pt-6 border-t border-health-blue/20">
+                    <div class="flex items-center p-3">
+                        <div class="w-10 h-10 rounded-full bg-health-blue/20 flex items-center justify-center">
+                            <i class="fas fa-user-md text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium">Dr. Sarah Johnson</p>
+                            <p class="text-sm text-health-light">Administrator</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6 py-4">
+            <div class="flex items-center">
+                <button class="sidebar-toggle mr-4 text-health-dark">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-xl font-semibold">Patient Outcomes Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-health-light">
+                        <i class="fas fa-bell text-health-muted"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-health-amber rounded-full"></span>
+                    </button>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-health-blue/10 flex items-center justify-center text-health-blue">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="ml-2 hidden md:block">Dr. Johnson</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-6">
+            <!-- Date Filter -->
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold">Patient Outcomes Overview</h3>
+                    <p class="text-health-muted">Monitor and analyze patient health metrics and treatment effectiveness</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="px-4 py-2 bg-white border border-health-light rounded-lg text-health-muted hover:bg-health-gray">
+                        <i class="fas fa-calendar mr-2"></i>Last 7 Days
+                    </button>
+                    <button class="px-4 py-2 bg-health-blue text-white rounded-lg hover:bg-health-blue/90">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                </div>
+            </div>
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="kpi-card blue card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-health-muted">Patient Satisfaction</p>
+                            <h3 class="text-2xl font-bold mt-1">94.2%</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                            <i class="fas fa-smile text-health-blue text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm text-health-green">
+                        <i class="fas fa-arrow-up mr-1"></i>
+                        <span>2.3% from last month</span>
+                    </div>
+                </div>
+                
+                <div class="kpi-card green card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-health-muted">Treatment Success</p>
+                            <h3 class="text-2xl font-bold mt-1">87.5%</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                            <i class="fas fa-check-circle text-health-green text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm text-health-green">
+                        <i class="fas fa-arrow-up mr-1"></i>
+                        <span>1.8% from last month</span>
+                    </div>
+                </div>
+                
+                <div class="kpi-card amber card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-health-muted">Readmission Rate</p>
+                            <h3 class="text-2xl font-bold mt-1">5.3%</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
+                            <i class="fas fa-arrow-trend-up text-health-amber text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm text-health-amber">
+                        <i class="fas fa-arrow-down mr-1"></i>
+                        <span>0.7% from last month</span>
+                    </div>
+                </div>
+                
+                <div class="kpi-card purple card p-5">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-health-muted">Avg. Recovery Time</p>
+                            <h3 class="text-2xl font-bold mt-1">14.2 days</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center">
+                            <i class="fas fa-clock text-health-purple text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm text-health-green">
+                        <i class="fas fa-arrow-down mr-1"></i>
+                        <span>1.2 days faster</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Treatment Success Chart -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Treatment Success by Condition</h3>
+                        <div class="text-health-muted text-sm">Last 30 days</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="successChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Patient Demographics -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Patient Demographics</h3>
+                        <div class="text-health-muted text-sm">Active Patients</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-24 h-24 rounded-full bg-health-blue/10 flex items-center justify-center mb-2">
+                                <div class="progress-ring w-20 h-20">
+                                    <svg class="w-full h-full" viewBox="0 0 100 100">
+                                        <circle class="progress-ring-circle" stroke="#1e40af" stroke-width="8" fill="transparent" r="40" cx="50" cy="50" 
+                                                stroke-dasharray="251.2" stroke-dashoffset="75.36"></circle>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p class="font-medium">1,240</p>
+                            <p class="text-sm text-health-muted">Total Patients</p>
+                        </div>
+                        
+                        <div class="flex flex-col items-center">
+                            <div class="w-24 h-24 rounded-full bg-health-green/10 flex items-center justify-center mb-2">
+                                <div class="progress-ring w-20 h-20">
+                                    <svg class="w-full h-full" viewBox="0 0 100 100">
+                                        <circle class="progress-ring-circle" stroke="#10b981" stroke-width="8" fill="transparent" r="40" cx="50" cy="50" 
+                                                stroke-dasharray="251.2" stroke-dashoffset="50.24"></circle>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p class="font-medium">68%</p>
+                            <p class="text-sm text-health-muted">Treatment Success</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Recovery Timeline -->
+                <div class="card p-5 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Recovery Timeline Analysis</h3>
+                        <div class="text-health-muted text-sm">Average days to recovery</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="recoveryChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Satisfaction Ratings -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Patient Satisfaction Ratings</h3>
+                        <div class="text-health-muted text-sm">Last quarter</div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Overall Satisfaction</span>
+                                <span class="text-sm font-medium">94%</span>
+                            </div>
+                            <div class="w-full bg-health-light rounded-full h-2">
+                                <div class="bg-health-green h-2 rounded-full" style="width: 94%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Nurse Communication</span>
+                                <span class="text-sm font-medium">92%</span>
+                            </div>
+                            <div class="w-full bg-health-light rounded-full h-2">
+                                <div class="bg-health-green h-2 rounded-full" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Doctor Communication</span>
+                                <span class="text-sm font-medium">89%</span>
+                            </div>
+                            <div class="w-full bg-health-light rounded-full h-2">
+                                <div class="bg-health-green h-2 rounded-full" style="width: 89%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm">Facility Cleanliness</span>
+                                <span class="text-sm font-medium">96%</span>
+                            </div>
+                            <div class="w-full bg-health-light rounded-full h-2">
+                                <div class="bg-health-green h-2 rounded-full" style="width: 96%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Patient Outcomes -->
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold">Recent Patient Outcomes</h3>
+                    <button class="text-health-blue text-sm font-medium">View All</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-health-muted text-sm border-b">
+                                <th class="pb-3">Patient</th>
+                                <th class="pb-3">Condition</th>
+                                <th class="pb-3">Treatment</th>
+                                <th class="pb-3">Duration</th>
+                                <th class="pb-3">Outcome</th>
+                                <th class="pb-3">Satisfaction</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-health-light">
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-health-blue/10 flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-health-blue"></i>
+                                        </div>
+                                        <span>Michael Anderson</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">Hypertension</td>
+                                <td class="py-3">Medication & Lifestyle</td>
+                                <td class="py-3">12 weeks</td>
+                                <td class="py-3">
+                                    <span class="px-2 py-1 bg-health-green/10 text-health-green rounded-full text-xs">Improved</span>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-star text-amber-400 mr-1"></i>
+                                        <span>4.8</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-health-light">
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-health-blue/10 flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-health-blue"></i>
+                                        </div>
+                                        <span>Sarah Johnson</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">Type 2 Diabetes</td>
+                                <td class="py-3">Insulin Therapy</td>
+                                <td class="py-3">8 weeks</td>
+                                <td class="py-3">
+                                    <span class="px-2 py-1 bg-health-green/10 text-health-green rounded-full text-xs">Stable</span>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-star text-amber-400 mr-1"></i>
+                                        <span>4.5</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-health-light">
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-health-blue/10 flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-health-blue"></i>
+                                        </div>
+                                        <span>Robert Chen</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">Asthma</td>
+                                <td class="py-3">Inhaler Therapy</td>
+                                <td class="py-3">6 weeks</td>
+                                <td class="py-3">
+                                    <span class="px-2 py-1 bg-health-amber/10 text-health-amber rounded-full text-xs">Partial Improvement</span>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-star text-amber-400 mr-1"></i>
+                                        <span>4.2</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-health-blue/10 flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-health-blue"></i>
+                                        </div>
+                                        <span>Emily Wilson</span>
+                                    </div>
+                                </td>
+                                <td class="py-3">Migraine</td>
+                                <td class="py-3">Medication & Therapy</td>
+                                <td class="py-3">10 weeks</td>
+                                <td class="py-3">
+                                    <span class="px-2 py-1 bg-health-green/10 text-health-green rounded-full text-xs">Improved</span>
+                                </td>
+                                <td class="py-3">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-star text-amber-400 mr-1"></i>
+                                        <span>4.9</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Toggle sidebar on mobile
+        document.querySelector('.sidebar-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Treatment Success Chart
+            const successCtx = document.getElementById('successChart').getContext('2d');
+            const successChart = new Chart(successCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Hypertension', 'Diabetes', 'Asthma', 'Arthritis', 'Migraine', 'Depression'],
+                    datasets: [{
+                        label: 'Success Rate (%)',
+                        data: [89, 82, 76, 78, 85, 88],
+                        backgroundColor: [
+                            'rgba(30, 64, 175, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(124, 58, 237, 0.7)',
+                            'rgba(30, 64, 175, 0.7)',
+                            'rgba(16, 185, 129, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(30, 64, 175)',
+                            'rgb(16, 185, 129)',
+                            'rgb(245, 158, 11)',
+                            'rgb(124, 58, 237)',
+                            'rgb(30, 64, 175)',
+                            'rgb(16, 185, 129)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Recovery Timeline Chart
+            const recoveryCtx = document.getElementById('recoveryChart').getContext('2d');
+            const recoveryChart = new Chart(recoveryCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Average Recovery Time (days)',
+                        data: [18.2, 16.5, 15.8, 14.2, 13.5, 12.8, 12.1, 11.5, 11.2, 10.8, 10.5, 10.2],
+                        fill: true,
+                        backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                        borderColor: 'rgb(30, 64, 175)',
+                        tension: 0.3,
+                        pointBackgroundColor: 'rgb(30, 64, 175)',
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

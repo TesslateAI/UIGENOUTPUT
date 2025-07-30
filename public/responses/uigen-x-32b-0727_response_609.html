@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Player | Modern Audio Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pod-dark': '#0f0f12',
+                        'pod-light': '#f5f5f7',
+                        'pod-accent': '#7c3aed',
+                        'pod-secondary': '#8b5cf6',
+                        'pod-text': '#e2e8f0',
+                        'pod-muted': '#94a3b8',
+                        'pod-card': '#1e293b',
+                        'pod-progress': '#4f46e5'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['DM Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:wght@100..900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f12;
+            color: #e2e8f0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .podcast-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #1e293b, #1a2435);
+        }
+        
+        .podcast-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(124, 58, 237, 0.2);
+        }
+        
+        .active-episode {
+            border-left: 3px solid #7c3aed;
+            background: rgba(30, 41, 59, 0.7);
+        }
+        
+        .play-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1);
+            color: #7c3aed;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: #334155;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #7c3aed;
+            width: 30%;
+            border-radius: 2px;
+        }
+        
+        .speed-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .speed-btn.active {
+            background: #7c3aed;
+            color: white;
+        }
+        
+        .waveform {
+            background: linear-gradient(90deg, #7c3aed, #8b5cf6, #7c3aed);
+            border-radius: 4px;
+        }
+        
+        .waveform-bar {
+            width: 3px;
+            background: #7c3aed;
+            border-radius: 2px;
+            animation: waveform 1.2s infinite ease-in-out;
+        }
+        
+        .waveform-bar:nth-child(2) { animation-delay: 0.1s; height: 60%; }
+        .waveform-bar:nth-child(3) { animation-delay: 0.2s; height: 80%; }
+        .waveform-bar:nth-child(4) { animation-delay: 0.3s; height: 45%; }
+        .waveform-bar:nth-child(5) { animation-delay: 0.4s; height: 70%; }
+        .waveform-bar:nth-child(6) { animation-delay: 0.5s; height: 55%; }
+        .waveform-bar:nth-child(7) { animation-delay: 0.6s; height: 90%; }
+        .waveform-bar:nth-child(8) { animation-delay: 0.7s; height: 65%; }
+        
+        @keyframes waveform {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.5); }
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #7c3aed;
+            cursor: pointer;
+        }
+        
+        .episode-item {
+            transition: all 0.2s ease;
+        }
+        
+        .episode-item:hover {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-pod-dark text-pod-text">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-pod-dark/90 backdrop-blur-md border-b border-slate-800">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-pod-accent flex items-center justify-center">
+                    <i class="fas fa-podcast text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold font-display">Audio<span class="text-pod-accent">Flow</span></h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-search text-pod-muted"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-sliders-h text-pod-muted"></i>
+                </button>
+                <button id="theme-toggle" class="p-2 rounded-lg hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-moon text-pod-muted"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Episode List -->
+            <div class="lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Latest Episodes</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 rounded-lg bg-pod-card hover:bg-slate-800 transition-colors">
+                            <i class="fas fa-filter mr-2"></i> Filter
+                        </button>
+                        <button class="px-4 py-2 rounded-lg bg-pod-card hover:bg-slate-800 transition-colors">
+                            <i class="fas fa-sort mr-2"></i> Sort
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-pod-card rounded-xl border border-slate-800 overflow-hidden">
+                    <div class="episode-list max-h-[500px] overflow-y-auto scrollbar-hide">
+                        <!-- Episode 1 -->
+                        <div class="episode-item active-episode p-4 border-b border-slate-800 flex items-center cursor-pointer">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center mr-4">
+                                <i class="fas fa-play text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold">The Future of Web Development</h3>
+                                <p class="text-sm text-pod-muted">Tech Talk • 45 min • Jun 12, 2023</p>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs px-2 py-1 rounded-full bg-violet-900/50 text-pod-accent">New</span>
+                                <button class="play-btn text-pod-muted hover:text-pod-accent">
+                                    <i class="fas fa-play-circle text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Episode 2 -->
+                        <div class="episode-item p-4 border-b border-slate-800 flex items-center cursor-pointer">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mr-4">
+                                <span class="text-white font-bold">2</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold">Design Systems in Practice</h3>
+                                <p class="text-sm text-pod-muted">Design Insights • 38 min • Jun 5, 2023</p>
+                            </div>
+                            <button class="play-btn text-pod-muted hover:text-pod-accent">
+                                <i class="fas fa-play-circle text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Episode 3 -->
+                        <div class="episode-item p-4 border-b border-slate-800 flex items-center cursor-pointer">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mr-4">
+                                <span class="text-white font-bold">3</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold">AI in Creative Industries</h3>
+                                <p class="text-sm text-pod-muted">Innovation • 52 min • May 29, 2023</p>
+                            </div>
+                            <button class="play-btn text-pod-muted hover:text-pod-accent">
+                                <i class="fas fa-play-circle text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Episode 4 -->
+                        <div class="episode-item p-4 border-b border-slate-800 flex items-center cursor-pointer">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mr-4">
+                                <span class="text-white font-bold">4</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold">Building Scalable APIs</h3>
+                                <p class="text-sm text-pod-muted">Backend Focus • 41 min • May 22, 2023</p>
+                            </div>
+                            <button class="play-btn text-pod-muted hover:text-pod-accent">
+                                <i class="fas fa-play-circle text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Episode 5 -->
+                        <div class="episode-item p-4 border-b border-slate-800 flex items-center cursor-pointer">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center mr-4">
+                                <span class="text-white font-bold">5</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold">UX Research Methods</h3>
+                                <p class="text-sm text-pod-muted">User Experience • 36 min • May 15, 2023</p>
+                            </div>
+                            <button class="play-btn text-pod-muted hover:text-pod-accent">
+                                <i class="fas fa-play-circle text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Episode 6 -->
+                        <div class="episode-item p-4 border-b border-slate-800 flex items-center cursor-pointer">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center mr-4">
+                                <span class="text-white font-bold">6</span>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold">Cloud Infrastructure Trends</h3>
+                                <p class="text-sm text-pod-muted">DevOps • 48 min • May 8, 2023</p>
+                            </div>
+                            <button class="play-btn text-pod-muted hover:text-pod-accent">
+                                <i class="fas fa-play-circle text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Player Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-pod-card rounded-xl border border-slate-800 p-6 sticky top-24">
+                    <!-- Current Episode -->
+                    <div class="mb-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center mr-4">
+                                <i class="fas fa-play text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">The Future of Web Development</h3>
+                                <p class="text-pod-muted text-sm">Tech Talk • Episode 1</p>
+                            </div>
+                        </div>
+                        
+                        <div class="waveform w-full h-2 rounded mb-2"></div>
+                        <div class="flex justify-between text-xs text-pod-muted mb-2">
+                            <span>12:45</span>
+                            <span>32:15</span>
+                        </div>
+                        
+                        <div class="progress-bar w-full mb-4">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Player Controls -->
+                    <div class="flex justify-center space-x-6 mb-6">
+                        <button class="text-pod-muted hover:text-pod-text">
+                            <i class="fas fa-step-backward text-xl"></i>
+                        </button>
+                        <button class="play-btn text-pod-accent hover:text-white">
+                            <i class="fas fa-play-circle text-3xl"></i>
+                        </button>
+                        <button class="text-pod-muted hover:text-pod-text">
+                            <i class="fas fa-step-forward text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Playback Speed -->
+                    <div class="mb-6">
+                        <h4 class="text-pod-muted text-sm mb-2">Playback Speed</h4>
+                        <div class="flex space-x-2">
+                            <button class="speed-btn px-3 py-1 rounded-lg bg-slate-800 text-pod-muted hover:bg-slate-700">0.5x</button>
+                            <button class="speed-btn px-3 py-1 rounded-lg bg-slate-800 text-pod-muted hover:bg-slate-700">0.75x</button>
+                            <button class="speed-btn px-3 py-1 rounded-lg bg-pod-accent text-white">1x</button>
+                            <button class="speed-btn px-3 py-1 rounded-lg bg-slate-800 text-pod-muted hover:bg-slate-700">1.25x</button>
+                            <button class="speed-btn px-3 py-1 rounded-lg bg-slate-800 text-pod-muted hover:bg-slate-700">1.5x</button>
+                            <button class="speed-btn px-3 py-1 rounded-lg bg-slate-800 text-pod-muted hover:bg-slate-700">2x</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Volume Control -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-volume-down text-pod-muted"></i>
+                            <input type="range" min="0" max="100" value="80" class="volume-slider w-24 accent-pod-accent">
+                            <i class="fas fa-volume-up text-pod-muted"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-lg hover:bg-slate-800">
+                                <i class="fas fa-list text-pod-muted"></i>
+                            </button>
+                            <button class="p-2 rounded-lg hover:bg-slate-800">
+                                <i class="fas fa-cog text-pod-muted"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Episodes -->
+                <div class="mt-8 bg-pod-card rounded-xl border border-slate-800 p-6">
+                    <h3 class="font-bold text-lg mb-4">Upcoming Episodes</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold text-sm">2</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium">Design Systems in Practice</h4>
+                                <p class="text-sm text-pod-muted">Tomorrow • 9:00 AM</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition-colors">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold text-sm">3</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium">AI in Creative Industries</h4>
+                                <p class="text-sm text-pod-muted">Jun 15 • 11:30 AM</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="mt-12 py-8 border-t border-slate-800">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-lg bg-pod-accent flex items-center justify-center">
+                            <i class="fas fa-podcast text-white text-sm"></i>
+                        </div>
+                        <span class="font-bold">Audio<span class="text-pod-accent">Flow</span></span>
+                    </div>
+                    <p class="text-sm text-pod-muted mt-2">Premium podcast experience</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-pod-muted hover:text-pod-text transition-colors">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-pod-muted hover:text-pod-text transition-colors">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-pod-muted hover:text-pod-text transition-colors">
+                        <i class="fab fa-spotify"></i>
+                    </a>
+                    <a href="#" class="text-pod-muted hover:text-pod-text transition-colors">
+                        <i class="fab fa-apple"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t border-slate-800 text-center text-sm text-pod-muted">
+                <p>© 2023 AudioFlow. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = themeToggle.querySelector('i');
+            
+            themeToggle.addEventListener('click', () => {
+                if (document.body.classList.contains('light')) {
+                    document.body.classList.remove('light');
+                    document.body.classList.add('bg-pod-dark', 'text-pod-text');
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                } else {
+                    document.body.classList.remove('bg-pod-dark', 'text-pod-text');
+                    document.body.classList.add('light', 'bg-pod-light', 'text-pod-dark');
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                }
+            });
+            
+            // Playback controls
+            const playBtn = document.querySelector('.play-btn');
+            const playIcon = playBtn.querySelector('i');
+            const waveformBars = document.querySelectorAll('.waveform-bar');
+            
+            playBtn.addEventListener('click', () => {
+                if (playIcon.classList.contains('fa-play-circle')) {
+                    playIcon.classList.remove('fa-play-circle');
+                    playIcon.classList.add('fa-pause-circle');
+                    
+                    // Animate waveform
+                    waveformBars.forEach(bar => {
+                        bar.style.animationPlayState = 'running';
+                    });
+                } else {
+                    playIcon.classList.remove('fa-pause-circle');
+                    playIcon.classList.add('fa-play-circle');
+                    
+                    // Pause waveform
+                    waveformBars.forEach(bar => {
+                        bar.style.animationPlayState = 'paused';
+                    });
+                }
+            });
+            
+            // Speed buttons
+            const speedBtns = document.querySelectorAll('.speed-btn');
+            
+            speedBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    speedBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+            
+            // Episode selection
+            const episodeItems = document.querySelectorAll('.episode-item');
+            
+            episodeItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    episodeItems.forEach(i => i.classList.remove('active-episode'));
+                    item.classList.add('active-episode');
+                    
+                    // Update player with selected episode
+                    const title = item.querySelector('h3').textContent;
+                    const type = item.querySelector('p').textContent.split(' • ')[0];
+                    
+                    document.querySelector('.active-episode h3').textContent = title;
+                    document.querySelector('.active-episode p').textContent = type + ' • Episode ' + item.querySelector('.w-12').textContent;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

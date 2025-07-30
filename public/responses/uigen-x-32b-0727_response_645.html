@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SleepInsight | Sleep Tracking Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-blue': '#0f172a',
+                        'midnight': '#1e293b',
+                        'slate': '#334155',
+                        'light-slate': '#64748b',
+                        'calm-blue': '#3b82f6',
+                        'soft-blue': '#60a5fa',
+                        'light-blue': '#dbeafe',
+                        'moonlight': '#f1f5f9',
+                        'ocean': '#0ea5e9',
+                        'teal': '#14b8a6',
+                        'sleepy-purple': '#7e22ce',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'card': '1.5rem',
+                        'pill': '9999px',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        .sleep-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .sleep-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .pattern-highlight {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%);
+        }
+        
+        .sleep-stage {
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        .sleep-stage-rem {
+            background: linear-gradient(90deg, #0ea5e9, #3b82f6);
+        }
+        
+        .sleep-stage-deep {
+            background: linear-gradient(90deg, #14b8a6, #0d9488);
+        }
+        
+        .sleep-stage-light {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        
+        .sleep-stage-wake {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-deep-blue/90 backdrop-blur-sm border-b border-slate/20">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-calm-blue to-sleepy-purple flex items-center justify-center">
+                        <i class="fas fa-moon text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">Sleep<span class="text-calm-blue">Insight</span></h1>
+                </div>
+                
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">Dashboard</a>
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">History</a>
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">Analysis</a>
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">Settings</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 rounded-full hover:bg-midnight transition-colors">
+                        <i class="fas fa-bell text-light-slate"></i>
+                    </button>
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-calm-blue to-ocean flex items-center justify-center text-white font-semibold">
+                        JD
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Summary Section -->
+        <section class="mb-12">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold">Sleep Dashboard</h2>
+                    <p class="text-light-slate">Track your sleep patterns and improve your rest quality</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <button class="px-6 py-3 bg-gradient-to-r from-calm-blue to-ocean rounded-pill font-medium hover:opacity-90 transition-opacity">
+                        <i class="fas fa-plus mr-2"></i> Add Sleep Log
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Sleep Summary Card -->
+                <div class="sleep-card rounded-card p-6 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-light-slate text-sm">Last Night</h3>
+                            <p class="text-3xl font-bold mt-2">7h 24m</p>
+                            <p class="text-teal text-sm mt-1">+18m from last week</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-calm-blue/20 to-ocean/20 flex items-center justify-center">
+                            <i class="fas fa-bed text-calm-blue text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sleep Quality Card -->
+                <div class="sleep-card rounded-card p-6 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-light-slate text-sm">Sleep Quality</h3>
+                            <p class="text-3xl font-bold mt-2">86%</p>
+                            <p class="text-teal text-sm mt-1">Excellent</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal/20 to-calm-blue/20 flex items-center justify-center">
+                            <i class="fas fa-star text-teal text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Wake Up Card -->
+                <div class="sleep-card rounded-card p-6 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-light-slate text-sm">Wake Up Time</h3>
+                            <p class="text-3xl font-bold mt-2">6:42 AM</p>
+                            <p class="text-amber-400 text-sm mt-1">30m earlier than average</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400/20 to-amber-600/20 flex items-center justify-center">
+                            <i class="fas fa-sun text-amber-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sleep Pattern Visualization -->
+        <section class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Sleep Patterns</h2>
+                <div class="flex space-x-2">
+                    <button class="px-4 py-2 bg-midnight rounded-pill text-light-slate hover:text-white transition-colors">Week</button>
+                    <button class="px-4 py-2 bg-gradient-to-r from-calm-blue to-ocean rounded-pill font-medium">Month</button>
+                    <button class="px-4 py-2 bg-midnight rounded-pill text-light-slate hover:text-white transition-colors">Year</button>
+                </div>
+            </div>
+            
+            <div class="sleep-card rounded-card p-6">
+                <div class="h-80">
+                    <canvas id="sleepChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sleep Analysis -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold mb-6">Sleep Analysis</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Sleep Stages -->
+                <div class="sleep-card rounded-card p-6">
+                    <h3 class="text-xl font-semibold mb-4">Sleep Stages</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-light-slate">REM Sleep</span>
+                                <span class="font-medium">124 min</span>
+                            </div>
+                            <div class="sleep-stage sleep-stage-rem w-full"></div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-light-slate">Deep Sleep</span>
+                                <span class="font-medium">68 min</span>
+                            </div>
+                            <div class="sleep-stage sleep-stage-deep w-full"></div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-light-slate">Light Sleep</span>
+                                <span class="font-medium">210 min</span>
+                            </div>
+                            <div class="sleep-stage sleep-stage-light w-full"></div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-light-slate">Wake Time</span>
+                                <span class="font-medium">28 min</span>
+                            </div>
+                            <div class="sleep-stage sleep-stage-wake w-full"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-highlight rounded-lg p-4 mt-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-lightbulb text-amber-400 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-semibold mb-1">Pattern Insight</h4>
+                                <p class="text-light-slate text-sm">Your REM sleep has increased by 15% this month, which is great for memory consolidation and cognitive function.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sleep Recommendations -->
+                <div class="sleep-card rounded-card p-6">
+                    <h3 class="text-xl font-semibold mb-4">Sleep Recommendations</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start p-4 bg-midnight rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-calm-blue/10 flex items-center justify-center mr-4">
+                                <i class="fas fa-moon text-calm-blue"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Consistent Bedtime</h4>
+                                <p class="text-light-slate text-sm">Try going to bed at 11:30 PM every night to regulate your sleep-wake cycle.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start p-4 bg-midnight rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-teal/10 flex items-center justify-center mr-4">
+                                <i class="fas fa-utensils text-teal"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Dinner Timing</h4>
+                                <p class="text-light-slate text-sm">Avoid heavy meals after 7 PM to improve sleep quality.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start p-4 bg-midnight rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center mr-4">
+                                <i class="fas fa-sun text-amber-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Morning Light Exposure</h4>
+                                <p class="text-light-slate text-sm">Get 15 minutes of natural light within 30 minutes of waking to regulate your circadian rhythm.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h4 class="font-semibold mb-3">Weekly Sleep Trends</h4>
+                        <div class="h-40">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sleep Goals -->
+        <section>
+            <h2 class="text-2xl font-bold mb-6">Sleep Goals</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="sleep-card rounded-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">7 Hours Sleep</h3>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-calm-blue to-ocean flex items-center justify-center">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-light-slate text-sm mb-4">Achieved 5 of 7 days this week</p>
+                    <div class="w-full bg-midnight rounded-full h-2.5">
+                        <div class="bg-calm-blue h-2.5 rounded-full" style="width: 71%"></div>
+                    </div>
+                </div>
+                
+                <div class="sleep-card rounded-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">90% Efficiency</h3>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-calm-blue to-ocean flex items-center justify-center">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-light-slate text-sm mb-4">Current: 86% (3 days remaining)</p>
+                    <div class="w-full bg-midnight rounded-full h-2.5">
+                        <div class="bg-teal h-2.5 rounded-full" style="width: 86%"></div>
+                    </div>
+                </div>
+                
+                <div class="sleep-card rounded-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Morning Routine</h3>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-calm-blue to-ocean flex items-center justify-center">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                    </div>
+                    <p class="text-light-slate text-sm mb-4">Complete 5-day streak</p>
+                    <div class="w-full bg-midnight rounded-full h-2.5">
+                        <div class="bg-amber-400 h-2.5 rounded-full" style="width: 67%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-16 py-8 border-t border-slate/20">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-calm-blue to-sleepy-purple flex items-center justify-center">
+                            <i class="fas fa-moon text-white text-sm"></i>
+                        </div>
+                        <h2 class="text-lg font-bold">Sleep<span class="text-calm-blue">Insight</span></h2>
+                    </div>
+                    <p class="text-light-slate text-sm mt-2">Track, analyze, and improve your sleep quality</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-light-slate hover:text-white transition-colors">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-light-slate text-sm">
+                <p>© 2023 SleepInsight. All rights reserved. Designed for better rest.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize sleep chart
+        const sleepCtx = document.getElementById('sleepChart').getContext('2d');
+        const sleepChart = new Chart(sleepCtx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Sleep Duration (hours)',
+                    data: [6.5, 7.2, 6.8, 7.5, 7.0, 8.2, 7.8],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 5,
+                        max: 9,
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Initialize trend chart
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        const trendChart = new Chart(trendCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [{
+                    label: 'Sleep Quality',
+                    data: [78, 82, 85, 86],
+                    backgroundColor: 'rgba(20, 184, 166, 0.7)',
+                    borderColor: 'rgba(20, 184, 166, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 70,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Add fade-in animation to cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.fade-in');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Wallet - Cryptocurrency Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'wallet-dark': '#0f172a',
+                        'wallet-card': '#1e293b',
+                        'wallet-border': '#334155',
+                        'wallet-text': '#e2e8f0',
+                        'wallet-muted': '#94a3b8',
+                        'wallet-accent': '#0ea5e9',
+                        'wallet-positive': '#10b981',
+                        'wallet-negative': '#ef4444',
+                        'wallet-glow': '#1e3a8a'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .card {
+            background: linear-gradient(145deg, #1e293b, #1a2435);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+        
+        .glow-border {
+            position: relative;
+        }
+        
+        .glow-border::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 16px;
+            border: 1px solid rgba(30, 58, 138, 0.3);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .crypto-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .transaction-row {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .transaction-row:hover {
+            background: rgba(30, 41, 59, 0.8);
+            transform: translateX(5px);
+        }
+        
+        .positive-change {
+            color: #10b981;
+        }
+        
+        .negative-change {
+            color: #ef4444;
+        }
+        
+        .chart-container {
+            height: 120px;
+            position: relative;
+        }
+        
+        .chart-line {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .chart-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            transform: translate(-50%, 50%);
+        }
+        
+        .chart-line::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
+        }
+        
+        .chart-line::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.3), transparent);
+            animation: lineGlow 2s infinite;
+        }
+        
+        @keyframes lineGlow {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+            100% { opacity: 0.3; }
+        }
+        
+        .tab-active {
+            background: rgba(14, 165, 233, 0.1);
+            color: #0ea5e9;
+            border-bottom: 2px solid #0ea5e9;
+        }
+        
+        .tab-inactive {
+            background: transparent;
+            color: #94a3b8;
+        }
+        
+        .tab-inactive:hover {
+            color: #e2e8f0;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+        
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-wallet-dark">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-wallet-dark/90 backdrop-blur-md border-b border-wallet-border">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-xl bg-wallet-accent flex items-center justify-center mr-3">
+                    <i class="fas fa-wallet text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold">Nexus<span class="text-wallet-accent">Wallet</span></h1>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-6">
+                <div class="flex space-x-1">
+                    <button class="tab-active px-4 py-2 rounded-lg text-sm font-medium">Dashboard</button>
+                    <button class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium">Portfolio</button>
+                    <button class="tab-inactive px-4 py-2 rounded-lg text-sm font-medium">Transactions</button>
+                </div>
+                
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-wallet-card">
+                        <i class="fas fa-bell text-wallet-muted"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-wallet-accent to-wallet-glow flex items-center justify-center text-white font-semibold">
+                        JD
+                    </div>
+                    <span class="hidden md:block text-wallet-muted">John Doe</span>
+                </div>
+            </div>
+            
+            <button class="md:hidden text-wallet-muted">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+    </header>
+    
+    <!-- Mobile Menu -->
+    <div class="mobile-menu fixed top-0 right-0 h-full w-64 bg-wallet-card z-50 p-6">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold">Nexus<span class="text-wallet-accent">Wallet</span></h2>
+            <button class="close-menu text-wallet-muted">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <nav class="space-y-4">
+            <a href="#" class="block py-3 px-4 rounded-lg bg-wallet-accent/10 text-wallet-accent">Dashboard</a>
+            <a href="#" class="block py-3 px-4 rounded-lg hover:bg-wallet-card">Portfolio</a>
+            <a href="#" class="block py-3 px-4 rounded-lg hover:bg-wallet-card">Transactions</a>
+            <a href="#" class="block py-3 px-4 rounded-lg hover:bg-wallet-card">Settings</a>
+        </nav>
+        
+        <div class="mt-12 pt-6 border-t border-wallet-border">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-wallet-accent to-wallet-glow flex items-center justify-center text-white font-semibold">
+                    JD
+                </div>
+                <div>
+                    <p class="font-medium">John Doe</p>
+                    <p class="text-sm text-wallet-muted">john@example.com</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <main class="container mx-auto px-4 py-8">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-wallet-muted text-sm">Total Balance</p>
+                        <p class="text-2xl font-bold mt-1">$24,568.75</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-wallet-accent/10 text-wallet-accent">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center">
+                    <span class="positive-change flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 2.3%
+                    </span>
+                    <span class="text-wallet-muted text-sm ml-2">Last 24h</span>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-wallet-muted text-sm">Bitcoin</p>
+                        <p class="text-2xl font-bold mt-1">$12,450.20</p>
+                    </div>
+                    <div class="crypto-icon bg-yellow-500/20 text-yellow-500">
+                        <i class="fab fa-bitcoin"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center">
+                    <span class="positive-change flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 1.8%
+                    </span>
+                    <span class="text-wallet-muted text-sm ml-2">Last 24h</span>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-wallet-muted text-sm">Ethereum</p>
+                        <p class="text-2xl font-bold mt-1">$5,670.45</p>
+                    </div>
+                    <div class="crypto-icon bg-purple-500/20 text-purple-500">
+                        <i class="fab fa-ethereum"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center">
+                    <span class="positive-change flex items-center">
+                        <i class="fas fa-arrow-up mr-1"></i> 3.1%
+                    </span>
+                    <span class="text-wallet-muted text-sm ml-2">Last 24h</span>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-wallet-muted text-sm">Solana</p>
+                        <p class="text-2xl font-bold mt-1">$3,245.60</p>
+                    </div>
+                    <div class="crypto-icon bg-blue-500/20 text-blue-500">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center">
+                    <span class="negative-change flex items-center">
+                        <i class="fas fa-arrow-down mr-1"></i> 0.7%
+                    </span>
+                    <span class="text-wallet-muted text-sm ml-2">Last 24h</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Asset Performance Chart -->
+        <div class="card p-6 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Portfolio Value</h2>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-sm rounded-lg bg-wallet-card">1D</button>
+                    <button class="px-3 py-1 text-sm rounded-lg bg-wallet-accent/10 text-wallet-accent">1W</button>
+                    <button class="px-3 py-1 text-sm rounded-lg bg-wallet-card">1M</button>
+                    <button class="px-3 py-1 text-sm rounded-lg bg-wallet-card">1Y</button>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-line">
+                    <div class="chart-point" style="left: 0%; bottom: 30%;"></div>
+                    <div class="chart-point" style="left: 15%; bottom: 50%;"></div>
+                    <div class="chart-point" style="left: 30%; bottom: 40%;"></div>
+                    <div class="chart-point" style="left: 45%; bottom: 65%;"></div>
+                    <div class="chart-point" style="left: 60%; bottom: 45%;"></div>
+                    <div class="chart-point" style="left: 75%; bottom: 70%;"></div>
+                    <div class="chart-point" style="left: 90%; bottom: 85%;"></div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-between">
+                <div>
+                    <p class="text-wallet-muted text-sm">Current Value</p>
+                    <p class="text-2xl font-bold">$24,568.75</p>
+                </div>
+                <div>
+                    <p class="text-wallet-muted text-sm">24h Change</p>
+                    <p class="text-xl font-bold positive-change">+$568.20</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Asset List -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Your Assets</h2>
+                    <button class="flex items-center text-wallet-accent">
+                        <i class="fas fa-plus mr-2"></i> Add Asset
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-wallet-card">
+                        <div class="flex items-center">
+                            <div class="crypto-icon bg-yellow-500/20 text-yellow-500 mr-4">
+                                <i class="fab fa-bitcoin"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Bitcoin</p>
+                                <p class="text-wallet-muted text-sm">BTC</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">$12,450.20</p>
+                            <p class="text-wallet-muted text-sm positive-change">+1.8%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-wallet-card">
+                        <div class="flex items-center">
+                            <div class="crypto-icon bg-purple-500/20 text-purple-500 mr-4">
+                                <i class="fab fa-ethereum"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Ethereum</p>
+                                <p class="text-wallet-muted text-sm">ETH</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">$5,670.45</p>
+                            <p class="text-wallet-muted text-sm positive-change">+3.1%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-wallet-card">
+                        <div class="flex items-center">
+                            <div class="crypto-icon bg-blue-500/20 text-blue-500 mr-4">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Solana</p>
+                                <p class="text-wallet-muted text-sm">SOL</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">$3,245.60</p>
+                            <p class="text-wallet-muted text-sm negative-change">-0.7%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-wallet-card">
+                        <div class="flex items-center">
+                            <div class="crypto-icon bg-green-500/20 text-green-500 mr-4">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Cardano</p>
+                                <p class="text-wallet-muted text-sm">ADA</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">$1,230.75</p>
+                            <p class="text-wallet-muted text-sm positive-change">+0.4%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-wallet-card">
+                        <div class="flex items-center">
+                            <div class="crypto-icon bg-pink-500/20 text-pink-500 mr-4">
+                                <i class="fas fa-diamond"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Polkadot</p>
+                                <p class="text-wallet-muted text-sm">DOT</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">$875.30</p>
+                            <p class="text-wallet-muted text-sm negative-change">-1.2%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transaction History -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Recent Transactions</h2>
+                    <button class="text-wallet-accent">View All</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="transaction-row p-4 flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 mr-4">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Sent to 0x4d5f...</p>
+                            <p class="text-wallet-muted text-sm">Bitcoin • Today, 10:24 AM</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium negative-change">-0.25 BTC</p>
+                            <p class="text-wallet-muted text-sm">$1,245.05</p>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-row p-4 flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 mr-4">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Received from 0x8a7d...</p>
+                            <p class="text-wallet-muted text-sm">Ethereum • Today, 8:45 AM</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium positive-change">+1.2 ETH</p>
+                            <p class="text-wallet-muted text-sm">$5,670.45</p>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-row p-4 flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 mr-4">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Swapped SOL to ADA</p>
+                            <p class="text-wallet-muted text-sm">Solana • Yesterday, 6:30 PM</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium">-0.5 SOL</p>
+                            <p class="text-wallet-muted text-sm">+1,230 ADA</p>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-row p-4 flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500 mr-4">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">NFT Purchase</p>
+                            <p class="text-wallet-muted text-sm">Polygon • Yesterday, 2:15 PM</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium negative-change">-0.8 MATIC</p>
+                            <p class="text-wallet-muted text-sm">$42.50</p>
+                        </div>
+                    </div>
+                    
+                    <div class="transaction-row p-4 flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500 mr-4">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Staking Reward</p>
+                            <p class="text-wallet-muted text-sm">Cardano • Yesterday, 12:00 AM</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium positive-change">+120 ADA</p>
+                            <p class="text-wallet-muted text-sm">$246.15</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="mt-12 py-8 border-t border-wallet-border">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-xl bg-wallet-accent flex items-center justify-center mr-3">
+                        <i class="fas fa-wallet text-white text-sm"></i>
+                    </div>
+                    <h2 class="text-lg font-bold">Nexus<span class="text-wallet-accent">Wallet</span></h2>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-wallet-muted hover:text-wallet-text">Privacy</a>
+                    <a href="#" class="text-wallet-muted hover:text-wallet-text">Terms</a>
+                    <a href="#" class="text-wallet-muted hover:text-wallet-text">Support</a>
+                    <a href="#" class="text-wallet-muted hover:text-wallet-text">Status</a>
+                </div>
+                
+                <div class="mt-4 md:mt-0 flex space-x-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-wallet-card flex items-center justify-center hover:bg-wallet-accent/10">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-wallet-card flex items-center justify-center hover:bg-wallet-accent/10">
+                        <i class="fab fa-discord"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-wallet-card flex items-center justify-center hover:bg-wallet-accent/10">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-wallet-muted text-sm">
+                © 2023 Nexus Wallet. All rights reserved. Cryptocurrency trading involves risk.
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const menuButton = document.querySelector('header button');
+            const closeMenuButton = document.querySelector('.close-menu');
+            const mobileMenu = document.querySelector('.mobile-menu');
+            
+            if (menuButton) {
+                menuButton.addEventListener('click', () => {
+                    mobileMenu.classList.add('open');
+                });
+            }
+            
+            if (closeMenuButton) {
+                closeMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.remove('open');
+                });
+            }
+            
+            // Tab switching
+            const tabs = document.querySelectorAll('.tab-active, .tab-inactive');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('tab-active'));
+                    tabs.forEach(t => t.classList.add('tab-inactive'));
+                    tab.classList.remove('tab-inactive');
+                    tab.classList.add('tab-active');
+                });
+            });
+            
+            // Simulate chart animation
+            const chartPoints = document.querySelectorAll('.chart-point');
+            chartPoints.forEach(point => {
+                point.style.transition = 'transform 0.5s ease';
+            });
+            
+            setInterval(() => {
+                chartPoints.forEach(point => {
+                    const randomOffset = Math.random() * 20 - 10;
+                    const newBottom = Math.min(100, Math.max(0, parseInt(point.style.bottom) + randomOffset));
+                    point.style.bottom = `${newBottom}%`;
+                });
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

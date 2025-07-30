@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        
+        .attendance-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .attendance-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .student-row:hover {
+            background-color: rgba(2, 132, 199, 0.05);
+        }
+        
+        .present {
+            background-color: rgba(20, 184, 166, 0.1);
+            border-left: 4px solid #14b8a6;
+        }
+        
+        .absent {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+        }
+        
+        .late {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .chart-bar {
+            width: 40px;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.8s ease;
+        }
+        
+        .animate-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+        
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+        
+        .delay-300 {
+            animation-delay: 0.3s;
+        }
+        
+        .delay-400 {
+            animation-delay: 0.4s;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-primary-600 text-white p-2 rounded-lg">
+                            <i class="fas fa-clipboard-list text-xl"></i>
+                        </div>
+                        <h1 class="ml-3 text-xl font-bold text-gray-800">AttendancePro</h1>
+                    </div>
+                    <nav class="ml-10 hidden md:flex space-x-8">
+                        <a href="#" class="text-primary-600 font-medium border-b-2 border-primary-600 px-1 pt-1">Dashboard</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 font-medium px-1 pt-1">Classes</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 font-medium px-1 pt-1">Students</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 font-medium px-1 pt-1">Reports</a>
+                    </nav>
+                </div>
+                <div class="flex items-center">
+                    <div class="ml-3 relative">
+                        <div class="flex items-center space-x-4">
+                            <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">
+                                <i class="fas fa-bell h-6 w-6"></i>
+                            </button>
+                            <div class="flex items-center">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User profile">
+                                <span class="ml-2 text-sm font-medium text-gray-700 hidden md:block">Ms. Johnson</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Classroom Attendance</h2>
+                <p class="mt-1 text-gray-600">Track and manage student attendance for your classes</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-3">
+                <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-filter mr-2"></i> Filter
+                </button>
+                <button class="px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 flex items-center">
+                    <i class="fas fa-plus mr-2"></i> New Class
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="attendance-card bg-white rounded-xl p-6 animate-in">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-primary-100 text-primary-600">
+                        <i class="fas fa-users text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Total Students</p>
+                        <p class="text-2xl font-bold text-gray-900">32</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="attendance-card bg-white rounded-xl p-6 animate-in delay-100">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-green-100 text-green-600">
+                        <i class="fas fa-check-circle text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Present Today</p>
+                        <p class="text-2xl font-bold text-gray-900">28</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="attendance-card bg-white rounded-xl p-6 animate-in delay-200">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-clock text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Late Students</p>
+                        <p class="text-2xl font-bold text-gray-900">3</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="attendance-card bg-white rounded-xl p-6 animate-in delay-300">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-red-100 text-red-600">
+                        <i class="fas fa-times-circle text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Absent Today</p>
+                        <p class="text-2xl font-bold text-gray-900">1</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Attendance List -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden animate-in delay-200">
+                    <div class="px-6 py-5 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-medium text-gray-900">Today's Attendance</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1.5 text-sm bg-primary-50 text-primary-700 rounded-lg font-medium">Mark All Present</button>
+                                <button class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg font-medium">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance %</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- Student 1 -->
+                                <tr class="student-row present">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="Student">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Alex Morgan</div>
+                                                <div class="text-sm text-gray-500">ID: SM1234</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-green-500 h-2 rounded-full" style="width: 92%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-500">92%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-comment"></i></button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Student 2 -->
+                                <tr class="student-row late">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="Student">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Jamie Smith</div>
+                                                <div class="text-sm text-gray-500">ID: SM1235</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Late</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-yellow-500 h-2 rounded-full" style="width: 85%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-500">85%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-comment"></i></button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Student 3 -->
+                                <tr class="student-row present">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="Student">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Taylor Johnson</div>
+                                                <div class="text-sm text-gray-500">ID: SM1236</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-green-500 h-2 rounded-full" style="width: 95%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-500">95%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-comment"></i></button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Student 4 -->
+                                <tr class="student-row absent">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="Student">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Jordan Lee</div>
+                                                <div class="text-sm text-gray-500">ID: SM1237</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Absent</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-red-500 h-2 rounded-full" style="width: 78%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-500">78%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-comment"></i></button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Student 5 -->
+                                <tr class="student-row present">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="Student">
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">Casey Brown</div>
+                                                <div class="text-sm text-gray-500">ID: SM1238</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-green-500 h-2 rounded-full" style="width: 90%"></div>
+                                            </div>
+                                            <span class="text-sm text-gray-500">90%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-primary-600 hover:text-primary-900 mr-3"><i class="fas fa-edit"></i></button>
+                                        <button class="text-gray-600 hover:text-gray-900"><i class="fas fa-comment"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-8">
+                <!-- Attendance Summary -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden animate-in delay-300">
+                    <div class="px-6 py-5 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Attendance Summary</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Current Week</p>
+                                <p class="text-2xl font-bold text-gray-900">89%</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-gray-500">Target</p>
+                                <p class="text-2xl font-bold text-gray-900">95%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between text-sm text-gray-500 mb-1">
+                                <span>Attendance Rate</span>
+                                <span>89%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-200">
+                                <div class="progress-fill bg-primary-600" style="width: 89%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-green-600">28</p>
+                                <p class="text-sm text-gray-500">Present</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-yellow-600">3</p>
+                                <p class="text-sm text-gray-500">Late</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-red-600">1</p>
+                                <p class="text-sm text-gray-500">Absent</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Weekly Trend</h4>
+                            <div class="flex items-end justify-between h-24">
+                                <div class="flex flex-col items-center">
+                                    <div class="chart-bar bg-green-500" style="height: 80px"></div>
+                                    <span class="text-xs text-gray-500 mt-1">Mon</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="chart-bar bg-green-500" style="height: 70px"></div>
+                                    <span class="text-xs text-gray-500 mt-1">Tue</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="chart-bar bg-green-500" style="height: 90px"></div>
+                                    <span class="text-xs text-gray-500 mt-1">Wed</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="chart-bar bg-green-500" style="height: 85px"></div>
+                                    <span class="text-xs text-gray-500 mt-1">Thu</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="chart-bar bg-yellow-500" style="height: 75px"></div>
+                                    <span class="text-xs text-gray-500 mt-1">Fri</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden animate-in delay-400">
+                    <div class="px-6 py-5 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Quick Actions</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="flex flex-col items-center justify-center p-4 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
+                                <div class="p-3 bg-primary-100 text-primary-600 rounded-lg mb-2">
+                                    <i class="fas fa-file-export text-xl"></i>
+                                </div>
+                                <span class="text-sm font-medium text-gray-700">Export Data</span>
+                            </button>
+                            
+                            <button class="flex flex-col items-center justify-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                                <div class="p-3 bg-green-100 text-green-600 rounded-lg mb-2">
+                                    <i class="fas fa-chart-bar text-xl"></i>
+                                </div>
+                                <span class="text-sm font-medium text-gray-700">View Reports</span>
+                            </button>
+                            
+                            <button class="flex flex-col items-center justify-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                <div class="p-3 bg-blue-100 text-blue-600 rounded-lg mb-2">
+                                    <i class="fas fa-plus-circle text-xl"></i>
+                                </div>
+                                <span class="text-sm font-medium text-gray-700">Add Student</span>
+                            </button>
+                            
+                            <button class="flex flex-col items-center justify-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                                <div class="p-3 bg-purple-100 text-purple-600 rounded-lg mb-2">
+                                    <i class="fas fa-cog text-xl"></i>
+                                </div>
+                                <span class="text-sm font-medium text-gray-700">Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="md:flex md:items-center md:justify-between">
+                <div class="flex justify-center md:justify-start">
+                    <div class="flex items-center">
+                        <div class="bg-primary-600 text-white p-2 rounded-lg">
+                            <i class="fas fa-clipboard-list text-xl"></i>
+                        </div>
+                        <span class="ml-2 text-lg font-bold text-gray-800">AttendancePro</span>
+                    </div>
+                </div>
+                <div class="mt-4 md:mt-0 md:order-1">
+                    <p class="text-center text-sm text-gray-500">
+                        &copy; 2023 AttendancePro. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple animation for the chart bars
+        document.addEventListener('DOMContentLoaded', function() {
+            const bars = document.querySelectorAll('.chart-bar');
+            bars.forEach(bar => {
+                const height = bar.style.height;
+                bar.style.height = '0';
+                setTimeout(() => {
+                    bar.style.height = height;
+                }, 300);
+            });
+            
+            // Add animation to the progress bar
+            const progressFill = document.querySelector('.progress-fill');
+            if (progressFill) {
+                progressFill.style.width = '0';
+                setTimeout(() => {
+                    progressFill.style.width = '89%';
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

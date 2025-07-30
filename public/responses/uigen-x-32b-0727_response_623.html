@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteZen - Modern Note-Taking App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4F46E5',
+                        'secondary': '#818CF8',
+                        'accent': '#0EA5E9',
+                        'dark-bg': '#0F172A',
+                        'dark-card': '#1E293B',
+                        'dark-border': '#334155',
+                        'light-bg': '#F8FAFC',
+                        'light-card': '#FFFFFF',
+                        'light-border': '#E2E8F0',
+                        'text-primary': '#1E293B',
+                        'text-secondary': '#64748B',
+                        'text-muted': '#94A3B8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --font-family-inter: 'Inter', sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-family-inter);
+            background-color: #F8FAFC;
+            color: #1E293B;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .dark body {
+            background-color: #0F172A;
+            color: #F1F5F9;
+        }
+        
+        .note-content {
+            min-height: 300px;
+        }
+        
+        .folder-item:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        
+        .dark .folder-item:hover {
+            background-color: rgba(79, 70, 229, 0.2);
+        }
+        
+        .note-item:hover {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+        
+        .dark .note-item:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        
+        .editor-toolbar button {
+            transition: all 0.2s ease;
+        }
+        
+        .editor-toolbar button:hover {
+            background-color: #E2E8F0;
+        }
+        
+        .dark .editor-toolbar button:hover {
+            background-color: #334155;
+        }
+        
+        .editor-toolbar button.active {
+            background-color: #4F46E5;
+            color: white;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-light-bg dark:bg-dark-bg">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-64 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col">
+            <div class="p-6 border-b border-light-border dark:border-dark-border">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-bold text-primary dark:text-secondary">
+                        <i class="fas fa-brain mr-2"></i>NoteZen
+                    </h1>
+                    <button id="theme-toggle" class="p-2 rounded-lg hover:bg-light-border dark:hover:bg-dark-border">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:block"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <button id="new-folder-btn" class="w-full flex items-center justify-center py-2 px-4 bg-primary text-white rounded-lg hover:bg-opacity-90 transition">
+                    <i class="fas fa-folder-plus mr-2"></i> New Folder
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto flex-grow">
+                <div class="px-4 py-2 text-xs font-semibold text-text-muted dark:text-text-muted uppercase tracking-wider">
+                    Folders
+                </div>
+                <div id="folders-container" class="space-y-1 px-2">
+                    <!-- Folders will be dynamically added here -->
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-light-border dark:border-dark-border">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-text-secondary dark:text-text-muted">
+                        <i class="fas fa-cloud mr-2"></i>Synced
+                    </div>
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <div class="bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button id="back-to-folder" class="mr-4 p-2 rounded-lg hover:bg-light-border dark:hover:bg-dark-border">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2 id="current-folder" class="text-xl font-semibold">All Notes</h2>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="new-note-btn" class="flex items-center py-2 px-4 bg-light-border dark:bg-dark-border rounded-lg hover:bg-opacity-80">
+                        <i class="fas fa-plus mr-2"></i> New Note
+                    </button>
+                    <button id="search-btn" class="p-2 rounded-lg hover:bg-light-border dark:hover:bg-dark-border">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-6">
+                <!-- Folder View -->
+                <div id="folder-view" class="fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Notes will be dynamically added here -->
+                    </div>
+                </div>
+                
+                <!-- Note Editor -->
+                <div id="note-editor" class="hidden fade-in">
+                    <div class="bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border overflow-hidden">
+                        <div class="p-4 border-b border-light-border dark:border-dark-border flex items-center justify-between">
+                            <input id="note-title" type="text" placeholder="Note Title" class="text-xl font-semibold bg-transparent border-b border-transparent focus:border-primary focus:outline-none w-full max-w-md">
+                            <div class="flex space-x-2">
+                                <button id="delete-note" class="p-2 text-text-muted dark:text-text-muted hover:text-red-500">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button id="save-note" class="p-2 bg-primary text-white rounded-lg hover:bg-opacity-90">
+                                    <i class="fas fa-save mr-2"></i> Save
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 border-b border-light-border dark:border-dark-border editor-toolbar flex flex-wrap gap-1">
+                            <button data-command="bold" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                            <button data-command="italic" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                            <button data-command="underline" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-underline"></i>
+                            </button>
+                            <div class="w-px h-6 bg-light-border dark:bg-dark-border mx-1"></div>
+                            <button data-command="insertUnorderedList" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-list-ul"></i>
+                            </button>
+                            <button data-command="insertOrderedList" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-list-ol"></i>
+                            </button>
+                            <div class="w-px h-6 bg-light-border dark:bg-dark-border mx-1"></div>
+                            <button data-command="createLink" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button data-command="insertImage" class="p-2 rounded hover:bg-light-border dark:hover:bg-dark-border">
+                                <i class="fas fa-image"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="note-content" class="note-content p-6 focus:outline-none min-h-[500px] bg-light-card dark:bg-dark-card" contenteditable="true">
+                            Start typing your note here...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme Toggle
+            const themeToggle = document.getElementById('theme-toggle');
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+            });
+            
+            // Initialize dark mode
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+            }
+            
+            // Sample data
+            const folders = [
+                { id: 1, name: 'Personal', color: 'bg-blue-500' },
+                { id: 2, name: 'Work', color: 'bg-emerald-500' },
+                { id: 3, name: 'Ideas', color: 'bg-amber-500' },
+                { id: 4, name: 'Travel', color: 'bg-rose-500' }
+            ];
+            
+            const notes = [
+                { 
+                    id: 1, 
+                    title: 'Meeting Notes', 
+                    content: 'Discussed project timeline and deliverables. Need to follow up with design team.', 
+                    folderId: 2,
+                    date: '2023-10-15'
+                },
+                { 
+                    id: 2, 
+                    title: 'Shopping List', 
+                    content: 'Milk, Eggs, Bread, Fruits, Vegetables', 
+                    folderId: 1,
+                    date: '2023-10-14'
+                },
+                { 
+                    id: 3, 
+                    title: 'Vacation Plans', 
+                    content: 'Book flights to Bali for next month. Need to arrange accommodation.', 
+                    folderId: 4,
+                    date: '2023-10-10'
+                },
+                { 
+                    id: 4, 
+                    title: 'Book Ideas', 
+                    content: 'Sci-fi novel about AI consciousness. Main character is a developer...', 
+                    folderId: 3,
+                    date: '2023-10-05'
+                }
+            ];
+            
+            // DOM Elements
+            const foldersContainer = document.getElementById('folders-container');
+            const folderView = document.getElementById('folder-view');
+            const noteEditor = document.getElementById('note-editor');
+            const currentFolder = document.getElementById('current-folder');
+            const noteTitle = document.getElementById('note-title');
+            const noteContent = document.getElementById('note-content');
+            const backToFolder = document.getElementById('back-to-folder');
+            const newNoteBtn = document.getElementById('new-note-btn');
+            const saveNote = document.getElementById('save-note');
+            const deleteNote = document.getElementById('delete-note');
+            const editorToolbar = document.querySelector('.editor-toolbar');
+            
+            // Current state
+            let currentFolderId = 1;
+            let currentNoteId = null;
+            
+            // Render folders
+            function renderFolders() {
+                foldersContainer.innerHTML = '';
+                
+                // Add "All Notes" folder
+                const allNotesFolder = document.createElement('div');
+                allNotesFolder.className = 'folder-item flex items-center py-3 px-4 rounded-lg cursor-pointer';
+                allNotesFolder.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center mr-3">
+                        <i class="fas fa-layer-group text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-medium">All Notes</div>
+                        <div class="text-xs text-text-muted dark:text-text-muted">${notes.length} notes</div>
+                    </div>
+                `;
+                allNotesFolder.addEventListener('click', () => {
+                    currentFolderId = 'all';
+                    renderNotes();
+                });
+                foldersContainer.appendChild(allNotesFolder);
+                
+                // Add other folders
+                folders.forEach(folder => {
+                    const folderElement = document.createElement('div');
+                    folderElement.className = 'folder-item flex items-center py-3 px-4 rounded-lg cursor-pointer';
+                    folderElement.innerHTML = `
+                        <div class="w-8 h-8 rounded-full ${folder.color} flex items-center justify-center mr-3">
+                            <i class="fas fa-folder text-white"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">${folder.name}</div>
+                            <div class="text-xs text-text-muted dark:text-text-muted">${notes.filter(n => n.folderId === folder.id).length} notes</div>
+                        </div>
+                    `;
+                    folderElement.addEventListener('click', () => {
+                        currentFolderId = folder.id;
+                        renderNotes();
+                    });
+                    foldersContainer.appendChild(folderElement);
+                });
+            }
+            
+            // Render notes
+            function renderNotes() {
+                folderView.innerHTML = '';
+                
+                const filteredNotes = currentFolderId === 'all' 
+                    ? notes 
+                    : notes.filter(note => note.folderId === currentFolderId);
+                
+                if (filteredNotes.length === 0) {
+                    folderView.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-full text-center p-8">
+                            <div class="w-24 h-24 rounded-full bg-light-border dark:bg-dark-border flex items-center justify-center mb-6">
+                                <i class="fas fa-file-alt text-4xl text-text-muted dark:text-text-muted"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">No notes found</h3>
+                            <p class="text-text-secondary dark:text-text-muted mb-6">Create a new note to get started</p>
+                            <button id="create-first-note" class="py-2 px-6 bg-primary text-white rounded-lg hover:bg-opacity-90">
+                                Create Note
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('create-first-note').addEventListener('click', createNewNote);
+                    return;
+                }
+                
+                filteredNotes.forEach(note => {
+                    const noteElement = document.createElement('div');
+                    noteElement.className = 'note-item bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border overflow-hidden slide-in';
+                    noteElement.innerHTML = `
+                        <div class="p-5">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mr-4">
+                                    <div class="w-12 h-12 rounded-lg bg-${folders.find(f => f.id === note.folderId)?.color.replace('bg-', '')} bg-opacity-20 flex items-center justify-center">
+                                        <i class="fas fa-file-alt text-${folders.find(f => f.id === note.folderId)?.color.replace('bg-', '')}"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold truncate">${note.title}</div>
+                                    <div class="text-sm text-text-secondary dark:text-text-muted mt-2 line-clamp-2">${note.content}</div>
+                                    <div class="text-xs text-text-muted dark:text-text-muted mt-3">${note.date}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-5 py-3 bg-light-border dark:bg-dark-border flex justify-end">
+                            <button class="text-sm text-primary dark:text-secondary hover:underline view-note" data-id="${note.id}">
+                                Open
+                            </button>
+                        </div>
+                    `;
+                    noteElement.querySelector('.view-note').addEventListener('click', () => {
+                        openNote(note.id);
+                    });
+                    folderView.appendChild(noteElement);
+                });
+            }
+            
+            // Open note for editing
+            function openNote(noteId) {
+                const note = notes.find(n => n.id === noteId);
+                if (!note) return;
+                
+                currentNoteId = noteId;
+                noteTitle.value = note.title;
+                noteContent.innerHTML = note.content;
+                currentFolder.textContent = folders.find(f => f.id === note.folderId)?.name || 'Uncategorized';
+                
+                folderView.classList.add('hidden');
+                noteEditor.classList.remove('hidden');
+            }
+            
+            // Create new note
+            function createNewNote() {
+                const newNote = {
+                    id: notes.length > 0 ? Math.max(...notes.map(n => n.id)) + 1 : 1,
+                    title: 'Untitled Note',
+                    content: '',
+                    folderId: currentFolderId === 'all' ? 1 : currentFolderId,
+                    date: new Date().toISOString().split('T')[0]
+                };
+                
+                notes.push(newNote);
+                openNote(newNote.id);
+            }
+            
+            // Save note
+            function saveNoteContent() {
+                if (!currentNoteId) return;
+                
+                const noteIndex = notes.findIndex(n => n.id === currentNoteId);
+                if (noteIndex !== -1) {
+                    notes[noteIndex].title = noteTitle.value;
+                    notes[noteIndex].content = noteContent.innerHTML;
+                    notes[noteIndex].date = new Date().toISOString().split('T')[0];
+                    
+                    // Show success message
+                    const originalText = saveNote.innerHTML;
+                    saveNote.innerHTML = '<i class="fas fa-check mr-2"></i> Saved!';
+                    saveNote.classList.add('bg-green-500');
+                    
+                    setTimeout(() => {
+                        saveNote.innerHTML = originalText;
+                        saveNote.classList.remove('bg-green-500');
+                    }, 2000);
+                }
+            }
+            
+            // Delete note
+            function deleteCurrentNote() {
+                if (!currentNoteId) return;
+                
+                const noteIndex = notes.findIndex(n => n.id === currentNoteId);
+                if (noteIndex !== -1) {
+                    notes.splice(noteIndex, 1);
+                    renderNotes();
+                    noteEditor.classList.add('hidden');
+                    folderView.classList.remove('hidden');
+                    currentNoteId = null;
+                }
+            }
+            
+            // Toolbar functionality
+            function setupToolbar() {
+                editorToolbar.addEventListener('click', (e) => {
+                    const button = e.target.closest('button');
+                    if (!button) return;
+                    
+                    const command = button.dataset.command;
+                    
+                    if (command === 'createLink') {
+                        const url = prompt('Enter URL:');
+                        if (url) {
+                            document.execCommand(command, false, url);
+                        }
+                    } else if (command === 'insertImage') {
+                        const url = prompt('Enter image URL:');
+                        if (url) {
+                            document.execCommand('insertImage', false, url);
+                        }
+                    } else {
+                        document.execCommand(command, false, null);
+                    }
+                    
+                    // Toggle active state for formatting buttons
+                    if (['bold', 'italic', 'underline'].includes(command)) {
+                        button.classList.toggle('active');
+                    }
+                });
+            }
+            
+            // Event Listeners
+            newNoteBtn.addEventListener('click', createNewNote);
+            backToFolder.addEventListener('click', () => {
+                noteEditor.classList.add('hidden');
+                folderView.classList.remove('hidden');
+                currentNoteId = null;
+            });
+            saveNote.addEventListener('click', saveNoteContent);
+            deleteNote.addEventListener('click', deleteCurrentNote);
+            
+            // Initialize
+            renderFolders();
+            renderNotes();
+            setupToolbar();
+            
+            // Auto-save when leaving the note
+            window.addEventListener('beforeunload', (e) => {
+                if (currentNoteId) {
+                    saveNoteContent();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

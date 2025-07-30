@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizational Chart Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #0f172a;
+            --color-bg-card: #1e293b;
+            --color-bg-card-alt: #334155;
+            --color-text-light: #f1f5f9;
+            --color-text-muted: #94a3b8;
+            --color-border: #334155;
+            --color-primary: #6366f1;
+            --color-primary-hover: #4f46e5;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+        }
+        
+        body {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+        }
+        
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .org-node {
+            position: relative;
+            min-width: 200px;
+            background: var(--color-bg-card);
+            border-radius: 0.75rem;
+            border: 1px solid var(--color-border);
+            padding: 1rem;
+            cursor: grab;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .org-node:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .org-node.dragging {
+            opacity: 0.6;
+            transform: scale(0.98);
+        }
+        
+        .org-node-line {
+            position: absolute;
+            height: 2px;
+            background: var(--color-border);
+            z-index: -1;
+        }
+        
+        .org-node-line::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: var(--color-border);
+            transform: rotate(90deg);
+        }
+        
+        .node-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            background: var(--color-bg-card-alt);
+            color: var(--color-text-muted);
+            margin-right: 0.75rem;
+        }
+        
+        .node-icon.manager {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--color-primary);
+        }
+        
+        .node-icon.employee {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--color-success);
+        }
+        
+        .node-icon.executive {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--color-warning);
+        }
+        
+        .node-icon.founder {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--color-danger);
+        }
+        
+        .connection {
+            position: absolute;
+            background: var(--color-border);
+            z-index: -1;
+        }
+        
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: var(--color-border);
+        }
+        
+        .connection-line::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: var(--color-border);
+            transform: rotate(90deg);
+        }
+        
+        .connection-point {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            position: absolute;
+            cursor: crosshair;
+            z-index: 10;
+        }
+        
+        .connection-point:hover {
+            transform: scale(1.2);
+        }
+        
+        .context-menu {
+            position: absolute;
+            background: var(--color-bg-card);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+            min-width: 200px;
+            overflow: hidden;
+        }
+        
+        .context-menu-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .context-menu-item:hover {
+            background: var(--color-bg-card-alt);
+        }
+        
+        .edit-input {
+            background: var(--color-bg-card-alt);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: var(--color-text-light);
+            width: 100%;
+        }
+        
+        .edit-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        
+        .drag-over {
+            background: rgba(99, 102, 241, 0.1);
+            border: 2px dashed var(--color-primary);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-6xl w-full">
+        <button id="open-modal" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
+            Open Organizational Chart Editor
+        </button>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <div id="modal-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <!-- Modal Content -->
+        <div class="modal-content bg-[var(--color-bg-card)] rounded-2xl w-full max-w-6xl shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="border-b border-[var(--color-border)] p-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold">Organizational Chart Editor</h2>
+                    <p class="text-[var(--color-text-muted)] mt-1">Drag and drop to restructure your organization</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="save-chart" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                    <button id="close-modal" class="p-2 rounded-lg hover:bg-[var(--color-bg-card-alt)]">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Toolbar -->
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <button id="add-node" class="flex items-center gap-2 px-4 py-2 bg-[var(--color-bg-card-alt)] hover:bg-[var(--color-border)] rounded-lg">
+                        <i class="fas fa-plus"></i> Add Node
+                    </button>
+                    <button id="add-connection" class="flex items-center gap-2 px-4 py-2 bg-[var(--color-bg-card-alt)] hover:bg-[var(--color-border)] rounded-lg">
+                        <i class="fas fa-link"></i> Add Connection
+                    </button>
+                    <button id="delete-node" class="flex items-center gap-2 px-4 py-2 bg-[var(--color-bg-card-alt)] hover:bg-[var(--color-border)] rounded-lg">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                    <div class="ml-auto flex gap-2">
+                        <button id="zoom-in" class="p-2 rounded-lg hover:bg-[var(--color-bg-card-alt)]">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button id="zoom-out" class="p-2 rounded-lg hover:bg-[var(--color-bg-card-alt)]">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button id="reset-zoom" class="p-2 rounded-lg hover:bg-[var(--color-bg-card-alt)]">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Chart Container -->
+                <div id="chart-container" class="relative min-h-[60vh] bg-[var(--color-bg-dark)] rounded-xl border border-[var(--color-border)] p-8 overflow-auto scrollbar-hide">
+                    <!-- Nodes will be added here dynamically -->
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="border-t border-[var(--color-border)] p-6 flex justify-end">
+                <div class="flex gap-3">
+                    <button class="px-6 py-2 border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-bg-card-alt)]">
+                        Cancel
+                    </button>
+                    <button id="export-chart" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg">
+                        Export as PNG
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-menu-item" data-action="rename">
+            <i class="fas fa-edit"></i> Rename
+        </div>
+        <div class="context-menu-item" data-action="add-child">
+            <i class="fas fa-plus"></i> Add Child
+        </div>
+        <div class="context-menu-item" data-action="add-sibling">
+            <i class="fas fa-indent"></i> Add Sibling
+        </div>
+        <div class="border-t border-[var(--color-border)] my-1"></div>
+        <div class="context-menu-item text-[var(--color-danger)]" data-action="delete">
+            <i class="fas fa-trash"></i> Delete
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const modalBackdrop = document.getElementById('modal-backdrop');
+            const openModalBtn = document.getElementById('open-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+            const chartContainer = document.getElementById('chart-container');
+            const contextMenu = document.getElementById('context-menu');
+            const addNodeBtn = document.getElementById('add-node');
+            const addConnectionBtn = document.getElementById('add-connection');
+            const deleteNodeBtn = document.getElementById('delete-node');
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const resetZoomBtn = document.getElementById('reset-zoom');
+            const saveChartBtn = document.getElementById('save-chart');
+            const exportChartBtn = document.getElementById('export-chart');
+            
+            // State
+            let nodes = [];
+            let connections = [];
+            let selectedNode = null;
+            let isDragging = false;
+            let dragStartX, dragStartY;
+            let scale = 1;
+            let offsetX = 0;
+            let offsetY = 0;
+            let tempConnection = null;
+            
+            // Sample initial data
+            const initialData = [
+                {
+                    id: '1',
+                    type: 'executive',
+                    name: 'CEO',
+                    position: 'Chief Executive Officer',
+                    x: 400,
+                    y: 100
+                },
+                {
+                    id: '2',
+                    type: 'manager',
+                    name: 'CTO',
+                    position: 'Chief Technology Officer',
+                    x: 200,
+                    y: 250
+                },
+                {
+                    id: '3',
+                    type: 'manager',
+                    name: 'CFO',
+                    position: 'Chief Financial Officer',
+                    x: 600,
+                    y: 250
+                },
+                {
+                    id: '4',
+                    type: 'employee',
+                    name: 'Dev Lead',
+                    position: 'Development Lead',
+                    x: 100,
+                    y: 400
+                },
+                {
+                    id: '5',
+                    type: 'employee',
+                    name: 'QA Lead',
+                    position: 'Quality Assurance Lead',
+                    x: 300,
+                    y: 400
+                },
+                {
+                    id: '6',
+                    type: 'employee',
+                    name: 'Accountant',
+                    position: 'Senior Accountant',
+                    x: 500,
+                    y: 400
+                },
+                {
+                    id: '7',
+                    type: 'employee',
+                    name: 'Analyst',
+                    position: 'Financial Analyst',
+                    x: 700,
+                    y: 400
+                }
+            ];
+            
+            const initialConnections = [
+                { from: '1', to: '2' },
+                { from: '1', to: '3' },
+                { from: '2', to: '4' },
+                { from: '2', to: '5' },
+                { from: '3', to: '6' },
+                { from: '3', to: '7' }
+            ];
+            
+            // Initialize
+            function init() {
+                nodes = initialData.map(node => ({ ...node }));
+                connections = initialConnections.map(conn => ({ ...conn }));
+                renderChart();
+                setupEventListeners();
+            }
+            
+            // Render the chart
+            function renderChart() {
+                chartContainer.innerHTML = '';
+                
+                // Render connections first (so they appear behind nodes)
+                connections.forEach(conn => {
+                    const fromNode = nodes.find(n => n.id === conn.from);
+                    const toNode = nodes.find(n => n.id === conn.to);
+                    
+                    if (fromNode && toNode) {
+                        const connectionEl = document.createElement('div');
+                        connectionEl.className = 'connection';
+                        
+                        // Calculate positions
+                        const fromX = fromNode.x + 100;
+                        const fromY = fromNode.y + 50;
+                        const toX = toNode.x;
+                        const toY = toNode.y + 50;
+                        
+                        // Calculate angle
+                        const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
+                        
+                        // Connection line
+                        const line = document.createElement('div');
+                        line.className = 'connection-line';
+                        line.style.width = `${Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2))}px`;
+                        line.style.left = `${fromX}px`;
+                        line.style.top = `${fromY}px`;
+                        line.style.transform = `rotate(${angle}deg)`;
+                        
+                        connectionEl.appendChild(line);
+                        chartContainer.appendChild(connectionEl);
+                    }
+                });
+                
+                // Render nodes
+                nodes.forEach(node => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'org-node';
+                    nodeEl.style.left = `${node.x}px`;
+                    nodeEl.style.top = `${node.y}px`;
+                    nodeEl.dataset.id = node.id;
+                    
+                    // Add classes for dragging
+                    nodeEl.classList.add('cursor-move');
+                    
+                    // Node content
+                    const iconClass = `node-icon ${node.type}`;
+                    nodeEl.innerHTML = `
+                        <div class="flex items-center mb-2">
+                            <div class="${iconClass}">
+                                <i class="fas ${getTypeIcon(node.type)}"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold">${node.name}</div>
+                                <div class="text-xs text-[var(--color-text-muted)]">${node.position}</div>
+                            </div>
+                        </div>
+                        <div class="connection-point" style="left: -6px; top: 50%; transform: translateY(-50%);"></div>
+                        <div class="connection-point" style="right: -6px; top: 50%; transform: translateY(-50%);"></div>
+                    `;
+                    
+                    chartContainer.appendChild(nodeEl);
+                });
+            }
+            
+            // Get icon based on node type
+            function getTypeIcon(type) {
+                switch(type) {
+                    case 'executive': return 'fa-crown';
+                    case 'manager': return 'fa-user-tie';
+                    case 'employee': return 'fa-user';
+                    case 'founder': return 'fa-star';
+                    default: return 'fa-user';
+                }
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+                // Modal controls
+                openModalBtn.addEventListener('click', () => modalBackdrop.classList.remove('hidden'));
+                closeModalBtn.addEventListener('click', closeChart);
+                
+                // Chart interactions
+                chartContainer.addEventListener('click', (e) => {
+                    if (e.target === chartContainer) {
+                        selectedNode = null;
+                        updateSelection();
+                    }
+                });
+                
+                // Node selection
+                chartContainer.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('org-node')) {
+                        selectedNode = e.target.dataset.id;
+                        updateSelection();
+                    }
+                });
+                
+                // Context menu
+                chartContainer.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    
+                    if (e.target.classList.contains('org-node')) {
+                        selectedNode = e.target.dataset.id;
+                        updateSelection();
+                        
+                        // Position context menu
+                        contextMenu.style.left = `${e.pageX}px`;
+                        contextMenu.style.top = `${e.pageY}px`;
+                        contextMenu.classList.remove('hidden');
+                    }
+                });
+                
+                // Context menu actions
+                document.querySelectorAll('.context-menu-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const action = e.target.closest('.context-menu-item').dataset.action;
+                        handleContextAction(action);
+                        contextMenu.classList.add('hidden');
+                    });
+                });
+                
+                // Toolbar buttons
+                addNodeBtn.addEventListener('click', addNewNode);
+                addConnectionBtn.addEventListener('click', addNewConnection);
+                deleteNodeBtn.addEventListener('click', deleteSelectedNode);
+                
+                // Zoom controls
+                zoomInBtn.addEventListener('click', () => {
+                    scale = Math.min(scale + 0.1, 2);
+                    updateChartTransform();
+                });
+                
+                zoomOutBtn.addEventListener('click', () => {
+                    scale = Math.max(scale - 0.1, 0.5);
+                    updateChartTransform();
+                });
+                
+                resetZoomBtn.addEventListener('click', () => {
+                    scale = 1;
+                    offsetX = 0;
+                    offsetY = 0;
+                    updateChartTransform();
+                });
+                
+                // Save and export
+                saveChartBtn.addEventListener('click', saveChart);
+                exportChartBtn.addEventListener('click', exportChart);
+            }
+            
+            // Update node selection
+            function updateSelection() {
+                nodes.forEach(node => {
+                    const nodeEl = document.querySelector(`.org-node[data-id="${node.id}"]`);
+                    if (node.id === selectedNode) {
+                        nodeEl.classList.add('ring-2', 'ring-indigo-500');
+                    } else {
+                        nodeEl.classList.remove('ring-2', 'ring-indigo-500');
+                    }
+                });
+            }
+            
+            // Handle context menu actions
+            function handleContextAction(action) {
+                const node = nodes.find(n => n.id === selectedNode);
+                if (!node) return;
+                
+                switch(action) {
+                    case 'rename':
+                        renameNode(node);
+                        break;
+                    case 'add-child':
+                        addNewNode(node.x + 200, node.y);
+                        break;
+                    case 'add-sibling':
+                        addNewNode(node.x + 100, node.y - 100);
+                        break;
+                    case 'delete':
+                        deleteNode(node.id);
+                        break;
+                }
+            }
+            
+            // Add a new node
+            function addNewNode(x = null, y = null) {
+                const newNode = {
+                    id: `node-${Date.now()}`,
+                    type: 'employee',
+                    name: 'New Employee',
+                    position: 'Position',
+                    x: x || 300,
+                    y: y || 300
+                };
+                
+                nodes.push(newNode);
+                renderChart();
+            }
+            
+            // Add a new connection
+            function addNewConnection() {
+                if (!selectedNode) {
+                    alert('Please select a node first');
+                    return;
+                }
+                
+                // In a real app, this would show a connection tool
+                // For simplicity, we'll just connect to a random node
+                const otherNodes = nodes.filter(n => n.id !== selectedNode);
+                if (otherNodes.length > 0) {
+                    const randomNode = otherNodes[Math.floor(Math.random() * otherNodes.length)];
+                    connections.push({ from: selectedNode, to: randomNode.id });
+                    renderChart();
+                }
+            }
+            
+            // Delete selected node
+            function deleteSelectedNode() {
+                if (!selectedNode) {
+                    alert('Please select a node to delete');
+                    return;
+                }
+                
+                deleteNode(selectedNode);
+            }
+            
+            // Delete a node and its connections
+            function deleteNode(nodeId) {
+                // Remove node from nodes array
+                nodes = nodes.filter(n => n.id !== nodeId);
+                
+                // Remove connections to/from this node
+                connections = connections.filter(conn => 
+                    conn.from !== nodeId && conn.to !== nodeId
+                );
+                
+                if (selectedNode === nodeId) {
+                    selectedNode = null;
+                }
+                
+                renderChart();
+            }
+            
+            // Rename a node
+            function renameNode(node) {
+                const newName = prompt('Enter new name:', node.name);
+                if (newName !== null) {
+                    node.name = newName;
+                    renderChart();
+                }
+            }
+            
+            // Update chart transform (zoom/pan)
+            function updateChartTransform() {
+                chartContainer.style.transform = `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`;
+            }
+            
+            // Save chart data
+            function saveChart() {
+                // In a real app, this would send data to a server
+                alert('Chart saved successfully!');
+                console.log('Saving chart data:', { nodes, connections });
+            }
+            
+            // Export chart as image
+            function exportChart() {
+                // This would require a library like html2canvas in a real app
+                alert('Export functionality would be implemented in a production environment');
+            }
+            
+            // Close modal
+            function closeChart() {
+                modalBackdrop.classList.add('hidden');
+            }
+            
+            // Initialize the app
+            init();
+        });
+    </script>
+</body>
+</html>

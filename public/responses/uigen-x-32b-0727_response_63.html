@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Reader Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'comic-dark': '#0f172a',
+                        'comic-darker': '#0a0f1f',
+                        'comic-panel': '#1e293b',
+                        'comic-accent': '#f59e0b',
+                        'comic-text': '#e2e8f0',
+                        'comic-muted': '#94a3b8',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['"Comic Neue"', 'cursive'],
+                    },
+                    animation: {
+                        'page-turn': 'pageTurn 0.5s ease-out',
+                    },
+                    keyframes: {
+                        pageTurn: {
+                            '0%': { transform: 'translateX(0)' },
+                            '50%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Comic+Neue:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+        
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        .comic-page {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .comic-panel {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .zoom-controls {
+            transition: all 0.3s ease;
+        }
+        
+        .zoom-controls:hover {
+            background-color: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+        }
+        
+        .page-indicator {
+            background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), transparent);
+        }
+        
+        .comic-nav-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .comic-nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+        }
+        
+        .full-screen {
+            transition: all 0.3s ease;
+        }
+        
+        .full-screen.active {
+            background-color: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        .comic-reader {
+            transition: background-color 0.3s ease;
+        }
+        
+        .comic-reader.full-screen {
+            background-color: #0a0f1f;
+        }
+        
+        .page-turn-animation {
+            animation: pageTurn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="font-sans bg-comic-dark">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-comic-darker/90 backdrop-blur-sm border-b border-comic-panel">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <i class="fas fa-book-open text-comic-accent text-xl mr-2"></i>
+                    <h1 class="text-xl font-bold text-comic-text">Comic Reader Pro</h1>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button id="settings-btn" class="p-2 rounded-full hover:bg-comic-panel transition-colors">
+                    <i class="fas fa-cog text-comic-muted"></i>
+                </button>
+                <button id="bookmark-btn" class="p-2 rounded-full hover:bg-comic-panel transition-colors">
+                    <i class="fas fa-bookmark text-comic-muted"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="comic-reader min-h-screen flex flex-col">
+        <!-- Comic Info Bar -->
+        <div class="bg-comic-darker border-b border-comic-panel py-3 px-4 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-bold text-comic-text">The Last Stand</h2>
+                <p class="text-comic-muted text-sm">Issue #12 • Page <span id="current-page">1</span> of 24</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="flex items-center text-comic-muted">
+                    <i class="fas fa-star text-yellow-400 mr-1"></i>
+                    <span>4.8</span>
+                </div>
+                <div class="flex items-center text-comic-muted">
+                    <i class="fas fa-heart text-red-500 mr-1"></i>
+                    <span>1.2K</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Comic Navigation -->
+        <div class="flex justify-between px-6 py-4">
+            <button id="first-page" class="comic-nav-btn px-4 py-2 bg-comic-panel rounded-lg flex items-center text-comic-text hover:bg-comic-accent hover:text-comic-dark">
+                <i class="fas fa-fast-backward mr-2"></i> First
+            </button>
+            <button id="prev-page" class="comic-nav-btn px-4 py-2 bg-comic-panel rounded-lg flex items-center text-comic-text hover:bg-comic-accent hover:text-comic-dark">
+                <i class="fas fa-arrow-left mr-2"></i> Prev
+            </button>
+            <button id="next-page" class="comic-nav-btn px-4 py-2 bg-comic-accent text-comic-dark rounded-lg flex items-center font-medium hover:bg-amber-600">
+                Next <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+            <button id="last-page" class="comic-nav-btn px-4 py-2 bg-comic-panel rounded-lg flex items-center text-comic-text hover:bg-comic-accent hover:text-comic-dark">
+                Last <i class="fas fa-fast-forward ml-2"></i>
+            </button>
+        </div>
+        
+        <!-- Comic Page -->
+        <div class="flex-grow flex items-center justify-center p-4">
+            <div class="comic-panel w-full max-w-4xl bg-comic-darker rounded-xl overflow-hidden relative">
+                <!-- Zoom Controls -->
+                <div class="zoom-controls absolute top-4 right-4 bg-comic-panel/80 backdrop-blur-sm rounded-lg p-2 flex space-x-2 z-10">
+                    <button id="zoom-out" class="p-2 rounded hover:bg-comic-accent hover:text-comic-dark">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="zoom-reset" class="p-2 rounded hover:bg-comic-accent hover:text-comic-dark">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button id="zoom-in" class="p-2 rounded hover:bg-comic-accent hover:text-comic-dark">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                </div>
+                
+                <!-- Full-screen Button -->
+                <button id="full-screen-btn" class="full-screen-btn absolute bottom-4 right-4 bg-comic-panel/80 backdrop-blur-sm rounded-full p-3 hover:bg-comic-accent hover:text-comic-dark transition-colors">
+                    <i class="fas fa-expand"></i>
+                </button>
+                
+                <!-- Comic Image -->
+                <div class="relative">
+                    <img id="comic-image" src="https://images.unsplash.com/photo-1558195839-7f000d165558?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80" 
+                         alt="Comic Page" 
+                         class="w-full max-h-[80vh] object-contain comic-page"
+                         style="transform-origin: center;">
+                </div>
+                
+                <!-- Page Indicator -->
+                <div class="page-indicator absolute bottom-0 left-0 right-0 py-2 px-4 flex justify-between items-center text-comic-text">
+                    <span class="text-sm">The Last Stand #12</span>
+                    <span class="text-sm">Page <span id="page-indicator">1</span> of 24</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chapter Navigation -->
+        <div class="py-4 px-6 border-t border-comic-panel">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="font-medium text-comic-text">Previous Chapter</h3>
+                    <p class="text-comic-muted text-sm">Issue #11: Shadows Fall</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="px-4 py-2 bg-comic-panel rounded-lg text-comic-text hover:bg-comic-accent hover:text-comic-dark">
+                        <i class="fas fa-list mr-2"></i> Table of Contents
+                    </button>
+                    <button class="px-4 py-2 bg-comic-accent text-comic-dark rounded-lg font-medium">
+                        <i class="fas fa-download mr-2"></i> Download
+                    </button>
+                </div>
+                <div class="text-right">
+                    <h3 class="font-medium text-comic-text">Next Chapter</h3>
+                    <p class="text-comic-muted text-sm">Issue #13: Dawn Breaks</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Full-screen Overlay -->
+    <div id="full-screen-overlay" class="fixed inset-0 bg-black/95 z-50 hidden items-center justify-center p-4">
+        <div class="w-full max-w-6xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">The Last Stand #12</h2>
+                <button id="exit-full-screen" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                    <i class="fas fa-times text-white"></i>
+                </button>
+            </div>
+            <img id="full-screen-image" src="https://images.unsplash.com/photo-1558195839-7f000d165558?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80" 
+                 alt="Full-screen Comic Page" 
+                 class="w-full max-h-[85vh] object-contain">
+            <div class="mt-4 flex justify-center space-x-4">
+                <button id="prev-page-full" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                    <i class="fas fa-arrow-left text-white"></i>
+                </button>
+                <button id="next-page-full" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                    <i class="fas fa-arrow-right text-white"></i>
+                </button>
+                <button id="zoom-controls-full" class="p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                    <i class="fas fa-search-plus text-white"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const comicImage = document.getElementById('comic-image');
+            const fullScreenImage = document.getElementById('full-screen-image');
+            const fullScreenBtn = document.getElementById('full-screen-btn');
+            const exitFullScreenBtn = document.getElementById('exit-full-screen');
+            const fullScreenOverlay = document.getElementById('full-screen-overlay');
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const zoomResetBtn = document.getElementById('zoom-reset');
+            const prevPageBtn = document.getElementById('prev-page');
+            const nextPageBtn = document.getElementById('next-page');
+            const firstPageBtn = document.getElementById('first-page');
+            const lastPageBtn = document.getElementById('last-page');
+            const currentPageEl = document.getElementById('current-page');
+            const pageIndicatorEl = document.getElementById('page-indicator');
+            const comicReader = document.querySelector('.comic-reader');
+            
+            // State
+            let currentPage = 1;
+            const totalPages = 24;
+            let currentZoom = 1;
+            const maxZoom = 3;
+            const minZoom = 0.5;
+            
+            // Initialize
+            updatePageInfo();
+            
+            // Event Listeners
+            fullScreenBtn.addEventListener('click', () => {
+                fullScreenOverlay.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            });
+            
+            exitFullScreenBtn.addEventListener('click', () => {
+                fullScreenOverlay.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            });
+            
+            zoomInBtn.addEventListener('click', () => {
+                if (currentZoom < maxZoom) {
+                    currentZoom += 0.2;
+                    updateZoom();
+                }
+            });
+            
+            zoomOutBtn.addEventListener('click', () => {
+                if (currentZoom > minZoom) {
+                    currentZoom -= 0.2;
+                    updateZoom();
+                }
+            });
+            
+            zoomResetBtn.addEventListener('click', () => {
+                currentZoom = 1;
+                updateZoom();
+            });
+            
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updatePage();
+                }
+            });
+            
+            nextPageBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updatePage();
+                }
+            });
+            
+            firstPageBtn.addEventListener('click', () => {
+                currentPage = 1;
+                updatePage();
+            });
+            
+            lastPageBtn.addEventListener('click', () => {
+                currentPage = totalPages;
+                updatePage();
+            });
+            
+            // Full-screen navigation
+            document.getElementById('prev-page-full').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updatePageInFullScreen();
+                }
+            });
+            
+            document.getElementById('next-page-full').addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updatePageInFullScreen();
+                }
+            });
+            
+            document.getElementById('zoom-controls-full').addEventListener('click', () => {
+                if (currentZoom < maxZoom) {
+                    currentZoom += 0.2;
+                    updateZoom();
+                }
+            });
+            
+            // Functions
+            function updateZoom() {
+                comicImage.style.transform = `scale(${currentZoom})`;
+                fullScreenImage.style.transform = `scale(${currentZoom})`;
+            }
+            
+            function updatePage() {
+                // Add animation class
+                comicImage.classList.add('page-turn-animation');
+                
+                // Remove animation class after it completes
+                setTimeout(() => {
+                    comicImage.classList.remove('page-turn-animation');
+                }, 500);
+                
+                // Update page info
+                updatePageInfo();
+            }
+            
+            function updatePageInFullScreen() {
+                // Update image
+                fullScreenImage.src = `https://picsum.photos/seed/page-${currentPage}/1200/800`;
+                
+                // Update page info
+                updatePageInfo();
+            }
+            
+            function updatePageInfo() {
+                currentPageEl.textContent = currentPage;
+                pageIndicatorEl.textContent = currentPage;
+            }
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (fullScreenOverlay.classList.contains('hidden')) {
+                    // Normal mode
+                    if (e.key === 'ArrowLeft') {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            updatePage();
+                        }
+                    } else if (e.key === 'ArrowRight') {
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            updatePage();
+                        }
+                    } else if (e.key === '+') {
+                        if (currentZoom < maxZoom) {
+                            currentZoom += 0.2;
+                            updateZoom();
+                        }
+                    } else if (e.key === '-') {
+                        if (currentZoom > minZoom) {
+                            currentZoom -= 0.2;
+                            updateZoom();
+                        }
+                    } else if (e.key === '0') {
+                        currentZoom = 1;
+                        updateZoom();
+                    } else if (e.key === 'f') {
+                        fullScreenOverlay.classList.remove('hidden');
+                        document.body.classList.add('overflow-hidden');
+                    }
+                } else {
+                    // Full-screen mode
+                    if (e.key === 'Escape') {
+                        fullScreenOverlay.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    } else if (e.key === 'ArrowLeft') {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            updatePageInFullScreen();
+                        }
+                    } else if (e.key === 'ArrowRight') {
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            updatePageInFullScreen();
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

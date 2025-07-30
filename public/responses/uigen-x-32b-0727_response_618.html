@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurePass Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'security-blue': '#0f3d75',
+                        'security-teal': '#1a7f7f',
+                        'security-green': '#1a7f5f',
+                        'security-yellow': '#7f7f1a',
+                        'security-red': '#7f1a1a',
+                        'security-gray': '#1a1a1a',
+                        'security-light': '#f0f5ff'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        
+        .password-strength-bar {
+            height: 6px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .password-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .password-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .vault {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .reveal-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .reveal-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .strength-weak { background-color: #7f1a1a; width: 25%; }
+        .strength-medium { background-color: #7f7f1a; width: 50%; }
+        .strength-strong { background-color: #1a7f5f; width: 75%; }
+        .strength-very-strong { background-color: #1a7f7f; width: 100%; }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .copy-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <!-- Navigation -->
+    <nav class="bg-security-gray/90 backdrop-blur-md sticky top-0 z-50 border-b border-security-teal/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="h-8 w-8 rounded-full bg-security-teal flex items-center justify-center">
+                            <i class="fas fa-lock text-white"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-bold text-white">SecurePass</span>
+                    </div>
+                    <div class="hidden md:ml-10 md:flex md:space-x-8">
+                        <a href="#" class="text-security-light hover:text-white px-3 py-2 rounded-md text-sm font-medium">Vault</a>
+                        <a href="#" class="text-security-light hover:text-white px-3 py-2 rounded-md text-sm font-medium">Generator</a>
+                        <a href="#" class="text-security-light hover:text-white px-3 py-2 rounded-md text-sm font-medium">Settings</a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button class="bg-security-teal hover:bg-security-teal/80 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Add Password
+                    </button>
+                    <div class="ml-4 flex items-center">
+                        <div class="relative">
+                            <div class="h-8 w-8 rounded-full bg-security-blue flex items-center justify-center text-white cursor-pointer">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- Left Column - Password Form -->
+            <div class="w-full md:w-1/3">
+                <div class="bg-security-gray/80 rounded-xl p-6 shadow-xl border border-security-teal/20">
+                    <h2 class="text-2xl font-bold text-white mb-6">Add New Password</h2>
+                    
+                    <form id="passwordForm">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-security-light mb-2" for="service">Service/Website</label>
+                            <input type="text" id="service" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-security-teal" placeholder="e.g., google.com">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-security-light mb-2" for="username">Username/Email</label>
+                            <input type="text" id="username" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-security-teal" placeholder="user@example.com">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-security-light mb-2" for="password">Password</label>
+                            <div class="relative">
+                                <input type="password" id="password" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-security-teal" placeholder="Enter your password">
+                                <button type="button" class="reveal-btn absolute right-3 top-1/2 transform -translate-y-1/2 text-security-light hover:text-white">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-security-light mb-1">
+                                    <span>Password Strength:</span>
+                                    <span id="strengthText" class="font-medium">Weak</span>
+                                </div>
+                                <div class="w-full bg-security-gray/30 rounded-full h-2">
+                                    <div id="strengthBar" class="password-strength-bar strength-weak h-2 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-security-light mb-2" for="notes">Notes</label>
+                            <textarea id="notes" rows="3" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-security-teal" placeholder="Additional information"></textarea>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-security-light mb-2" for="category">Category</label>
+                            <select id="category" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-security-teal">
+                                <option value="personal">Personal</option>
+                                <option value="work">Work</option>
+                                <option value="finance">Finance</option>
+                                <option value="social">Social Media</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-security-teal hover:bg-security-teal/80 text-white font-medium py-3 rounded-lg transition duration-200">
+                            Save Password
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Password Generator -->
+                <div class="mt-6 bg-security-gray/80 rounded-xl p-6 shadow-xl border border-security-teal/20">
+                    <h2 class="text-2xl font-bold text-white mb-4">Password Generator</h2>
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-security-light" for="generatedPassword">Generated Password</label>
+                            <button class="copy-btn text-xs bg-security-gray/50 hover:bg-security-gray/70 text-security-light px-2 py-1 rounded">
+                                <i class="fas fa-copy mr-1"></i> Copy
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="generatedPassword" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white font-mono" value="Xk7#9qP!2$fR5" readonly>
+                            <button class="reveal-btn absolute right-3 top-1/2 transform -translate-y-1/2 text-security-light hover:text-white">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-security-light mb-2">Length</label>
+                            <input type="range" min="8" max="32" value="16" class="w-full" id="passwordLength">
+                            <div class="text-center text-sm text-security-light mt-1" id="lengthValue">16</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-security-light mb-2">Complexity</label>
+                            <select id="complexity" class="w-full bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="extreme">Extreme</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="uppercase" class="w-4 h-4 text-security-teal bg-security-gray/50 border-security-teal/30 rounded focus:ring-security-teal" checked>
+                        <label for="uppercase" class="ml-2 text-sm text-security-light">Include Uppercase Letters</label>
+                    </div>
+                    
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="numbers" class="w-4 h-4 text-security-teal bg-security-gray/50 border-security-teal/30 rounded focus:ring-security-teal" checked>
+                        <label for="numbers" class="ml-2 text-sm text-security-light">Include Numbers</label>
+                    </div>
+                    
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="symbols" class="w-4 h-4 text-security-teal bg-security-gray/50 border-security-teal/30 rounded focus:ring-security-teal" checked>
+                        <label for="symbols" class="ml-2 text-sm text-security-light">Include Symbols</label>
+                    </div>
+                    
+                    <button id="generateBtn" class="w-full bg-security-blue hover:bg-security-blue/80 text-white font-medium py-2 rounded-lg transition duration-200">
+                        Generate New Password
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Right Column - Password Vault -->
+            <div class="w-full md:w-2/3">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">Your Password Vault</h2>
+                    <div class="flex space-x-2">
+                        <div class="relative">
+                            <input type="text" placeholder="Search passwords..." class="bg-security-gray/50 border border-security-teal/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-security-teal">
+                            <i class="fas fa-search absolute right-3 top-3 text-security-light"></i>
+                        </div>
+                        <button class="bg-security-gray/50 hover:bg-security-gray/70 text-security-light px-3 py-2 rounded-lg">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="vault rounded-xl p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-white">Personal</h3>
+                        <span class="text-sm text-security-teal">12 items</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Password Item -->
+                        <div class="password-item bg-security-gray/50 rounded-lg p-4 border border-security-teal/10">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center mr-3">
+                                            <i class="fab fa-google text-blue-400"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-white">Google Account</h4>
+                                            <p class="text-sm text-security-light">user@example.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="copy-btn text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-red-400 p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="text-xs text-security-light">
+                                    <span>Last used: 2 days ago</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 bg-security-gray/30 rounded-full h-1.5 mr-2">
+                                        <div class="password-strength-bar strength-very-strong h-1.5 rounded-full"></div>
+                                    </div>
+                                    <span class="text-xs text-security-green">Strong</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Item -->
+                        <div class="password-item bg-security-gray/50 rounded-lg p-4 border border-security-teal/10">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 rounded-lg bg-red-500/20 flex items-center justify-center mr-3">
+                                            <i class="fab fa-facebook text-red-400"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-white">Facebook</h4>
+                                            <p class="text-sm text-security-light">user@example.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="copy-btn text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-red-400 p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="text-xs text-security-light">
+                                    <span>Last used: 1 week ago</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 bg-security-gray/30 rounded-full h-1.5 mr-2">
+                                        <div class="password-strength-bar strength-medium h-1.5 rounded-full"></div>
+                                    </div>
+                                    <span class="text-xs text-security-yellow">Medium</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Item -->
+                        <div class="password-item bg-security-gray/50 rounded-lg p-4 border border-security-teal/10">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 rounded-lg bg-yellow-500/20 flex items-center justify-center mr-3">
+                                            <i class="fab fa-amazon text-yellow-400"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-white">Amazon</h4>
+                                            <p class="text-sm text-security-light">user@example.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="copy-btn text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-red-400 p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="text-xs text-security-light">
+                                    <span>Last used: 3 days ago</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 bg-security-gray/30 rounded-full h-1.5 mr-2">
+                                        <div class="password-strength-bar strength-strong h-1.5 rounded-full"></div>
+                                    </div>
+                                    <span class="text-xs text-security-green">Strong</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vault rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-white">Work</h3>
+                        <span class="text-sm text-security-teal">8 items</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Password Item -->
+                        <div class="password-item bg-security-gray/50 rounded-lg p-4 border border-security-teal/10">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 rounded-lg bg-purple-500/20 flex items-center justify-center mr-3">
+                                            <i class="fas fa-laptop-house text-purple-400"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-white">Company Portal</h4>
+                                            <p class="text-sm text-security-light">user@company.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="copy-btn text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-red-400 p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="text-xs text-security-light">
+                                    <span>Last used: Today</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 bg-security-gray/30 rounded-full h-1.5 mr-2">
+                                        <div class="password-strength-bar strength-very-strong h-1.5 rounded-full"></div>
+                                    </div>
+                                    <span class="text-xs text-security-green">Very Strong</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Item -->
+                        <div class="password-item bg-security-gray/50 rounded-lg p-4 border border-security-teal/10">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 rounded-lg bg-green-500/20 flex items-center justify-center mr-3">
+                                            <i class="fas fa-server text-green-400"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-white">Internal Server</h4>
+                                            <p class="text-sm text-security-light">admin@internal</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="copy-btn text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-white p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-security-light hover:text-red-400 p-2 rounded-lg bg-security-gray/30">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div class="text-xs text-security-light">
+                                    <span>Last used: 5 days ago</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-24 bg-security-gray/30 rounded-full h-1.5 mr-2">
+                                        <div class="password-strength-bar strength-strong h-1.5 rounded-full"></div>
+                                    </div>
+                                    <span class="text-xs text-security-green">Strong</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password strength indicator
+            const passwordInput = document.getElementById('password');
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+            
+            if (passwordInput) {
+                passwordInput.addEventListener('input', function() {
+                    const password = passwordInput.value;
+                    let strength = 0;
+                    
+                    // Check password length
+                    if (password.length >= 8) strength += 1;
+                    if (password.length >= 12) strength += 1;
+                    
+                    // Check for mixed case
+                    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 1;
+                    
+                    // Check for numbers
+                    if (/\d/.test(password)) strength += 1;
+                    
+                    // Check for special characters
+                    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                    
+                    // Update strength bar and text
+                    strengthBar.className = 'password-strength-bar h-2 rounded-full';
+                    
+                    if (password.length === 0) {
+                        strengthBar.style.width = '0%';
+                        strengthText.textContent = '';
+                    } else if (strength <= 2) {
+                        strengthBar.classList.add('strength-weak');
+                        strengthText.textContent = 'Weak';
+                        strengthText.className = 'font-medium text-security-red';
+                    } else if (strength === 3) {
+                        strengthBar.classList.add('strength-medium');
+                        strengthText.textContent = 'Medium';
+                        strengthText.className = 'font-medium text-security-yellow';
+                    } else if (strength === 4) {
+                        strengthBar.classList.add('strength-strong');
+                        strengthText.textContent = 'Strong';
+                        strengthText.className = 'font-medium text-security-green';
+                    } else {
+                        strengthBar.classList.add('strength-very-strong');
+                        strengthText.textContent = 'Very Strong';
+                        strengthText.className = 'font-medium text-security-teal';
+                    }
+                });
+            }
+            
+            // Password reveal functionality
+            const revealButtons = document.querySelectorAll('.reveal-btn');
+            revealButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const input = this.previousElementSibling;
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                    } else {
+                        input.type = 'password';
+                        this.innerHTML = '<i class="fas fa-eye"></i>';
+                    }
+                });
+            });
+            
+            // Password generator
+            const generateBtn = document.getElementById('generateBtn');
+            const generatedPassword = document.getElementById('generatedPassword');
+            const passwordLength = document.getElementById('passwordLength');
+            const lengthValue = document.getElementById('lengthValue');
+            
+            if (generateBtn) {
+                generateBtn.addEventListener('click', function() {
+                    const length = parseInt(passwordLength.value);
+                    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
+                    let newPassword = "";
+                    
+                    for (let i = 0; i < length; i++) {
+                        const randomIndex = Math.floor(Math.random() * charset.length);
+                        newPassword += charset[randomIndex];
+                    }
+                    
+                    generatedPassword.value = newPassword;
+                });
+            }
+            
+            if (passwordLength) {
+                passwordLength.addEventListener('input', function() {
+                    lengthValue.textContent = this.value;
+                });
+            }
+            
+            // Form submission
+            const passwordForm = document.getElementById('passwordForm');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // In a real app, you would save to a database
+                    alert('Password saved successfully!');
+                    passwordForm.reset();
+                });
+            }
+            
+            // Copy functionality
+            const copyButtons = document.querySelectorAll('.copy-btn');
+            copyButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const text = this.closest('.vault').querySelector('input[type="text"]').value;
+                    navigator.clipboard.writeText(text).then(() => {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-check mr-1"></i> Copied!';
+                        setTimeout(() => {
+                            this.innerHTML = originalText;
+                        }, 2000);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

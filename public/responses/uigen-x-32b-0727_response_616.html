@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitFlow - Build Better Habits</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#0d9488',
+                        'primary-light': '#5eead4',
+                        'primary-dark': '#0f766e',
+                        'secondary': '#0ea5e9',
+                        'accent': '#f97316',
+                        'dark': '#0f172a',
+                        'light': '#f8fafc',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .streak-bar {
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .streak-day {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .streak-day.completed {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .streak-day.missed {
+            background-color: #e2e8f0;
+            color: #94a3b8;
+        }
+        
+        .streak-day.current {
+            background-color: #0d9488;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+        
+        .habit-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .habit-card.active {
+            border-left-color: #0d9488;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s;
+            transform-origin: 50% 50%;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(13, 148, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                    <i class="fas fa-fire text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-display font-bold ml-3 text-dark">HabitFlow</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="font-medium text-primary hover:text-primary-dark">Dashboard</a>
+                <a href="#" class="font-medium text-slate-600 hover:text-primary">Habits</a>
+                <a href="#" class="font-medium text-slate-600 hover:text-primary">Statistics</a>
+                <a href="#" class="font-medium text-slate-600 hover:text-primary">Reminders</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full bg-slate-100 hover:bg-slate-200">
+                    <i class="fas fa-bell text-slate-600"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-white font-semibold">
+                    JS
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-16">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="md:w-1/2 mb-8 md:mb-0">
+                    <h2 class="text-4xl font-display font-bold text-dark mb-4">Build Better Habits, <span class="text-primary">One Day at a Time</span></h2>
+                    <p class="text-lg text-slate-600 mb-6">Track your daily routines, visualize your streaks, and stay motivated with personalized reminders.</p>
+                    <div class="flex space-x-4">
+                        <button class="px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors">
+                            Start Tracking
+                        </button>
+                        <button class="px-6 py-3 bg-white text-primary font-semibold rounded-lg border border-primary hover:bg-primary hover:text-white transition-colors">
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div class="w-64 h-64 rounded-full bg-primary-light opacity-20 absolute -top-8 -left-8"></div>
+                        <div class="w-64 h-64 rounded-full bg-primary-light opacity-20 absolute -bottom-8 -right-8"></div>
+                        <div class="relative bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-semibold text-dark">Today's Habits</h3>
+                                <span class="text-sm text-slate-500">June 15</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-center p-3 bg-slate-50 rounded-lg">
+                                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white mr-3">
+                                        <i class="fas fa-dumbbell"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Morning Workout</p>
+                                        <p class="text-xs text-slate-500">Current streak: 7 days</p>
+                                    </div>
+                                    <button class="ml-auto text-slate-400 hover:text-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center p-3 bg-slate-50 rounded-lg">
+                                    <div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white mr-3">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Read 30 minutes</p>
+                                        <p class="text-xs text-slate-500">Current streak: 12 days</p>
+                                    </div>
+                                    <button class="ml-auto text-slate-400 hover:text-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center p-3 bg-slate-50 rounded-lg">
+                                    <div class="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white mr-3">
+                                        <i class="fas fa-moon"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Sleep by 11 PM</p>
+                                        <p class="text-xs text-slate-500">Current streak: 3 days</p>
+                                    </div>
+                                    <button class="ml-auto text-slate-400 hover:text-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-primary-light flex items-center justify-center text-primary mr-4">
+                            <i class="fas fa-fire text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 text-sm">Current Streak</p>
+                            <p class="text-2xl font-bold">15 days</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center text-success mr-4">
+                            <i class="fas fa-check-circle text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 text-sm">Habits Completed</p>
+                            <p class="text-2xl font-bold">8/10</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center text-secondary mr-4">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 text-sm">Consistency</p>
+                            <p class="text-2xl font-bold">82%</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center text-accent mr-4">
+                            <i class="fas fa-medal text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 text-sm">Achievements</p>
+                            <p class="text-2xl font-bold">7</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Habits Section -->
+        <section class="mb-16">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-display font-bold text-dark">Your Daily Habits</h2>
+                <button class="px-4 py-2 bg-primary text-white rounded-lg flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Habit
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Habit 1 -->
+                <div class="habit-card bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-semibold text-lg">Morning Workout</h3>
+                            <p class="text-slate-500 text-sm">Every day at 7:00 AM</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Current streak</span>
+                            <span class="font-semibold">7 days</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5">
+                            <div class="streak-bar bg-primary h-2.5 rounded-full" style="width: 70%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="flex space-x-1">
+                            <div class="streak-day completed">14</div>
+                            <div class="streak-day completed">15</div>
+                            <div class="streak-day completed">16</div>
+                            <div class="streak-day completed">17</div>
+                            <div class="streak-day completed">18</div>
+                            <div class="streak-day completed">19</div>
+                            <div class="streak-day current">20</div>
+                        </div>
+                        <button class="px-3 py-1 bg-primary text-white rounded-lg text-sm flex items-center">
+                            <i class="fas fa-check mr-1"></i> Done
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Habit 2 -->
+                <div class="habit-card bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-semibold text-lg">Read 30 minutes</h3>
+                            <p class="text-slate-500 text-sm">Every day at 8:30 PM</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-white">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Current streak</span>
+                            <span class="font-semibold">12 days</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5">
+                            <div class="streak-bar bg-secondary h-2.5 rounded-full" style="width: 85%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="flex space-x-1">
+                            <div class="streak-day completed">14</div>
+                            <div class="streak-day completed">15</div>
+                            <div class="streak-day completed">16</div>
+                            <div class="streak-day completed">17</div>
+                            <div class="streak-day completed">18</div>
+                            <div class="streak-day completed">19</div>
+                            <div class="streak-day current">20</div>
+                        </div>
+                        <button class="px-3 py-1 bg-secondary text-white rounded-lg text-sm flex items-center">
+                            <i class="fas fa-check mr-1"></i> Done
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Habit 3 -->
+                <div class="habit-card bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-semibold text-lg">Sleep by 11 PM</h3>
+                            <p class="text-slate-500 text-sm">Every day</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center text-white">
+                            <i class="fas fa-moon"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Current streak</span>
+                            <span class="font-semibold">3 days</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5">
+                            <div class="streak-bar bg-accent h-2.5 rounded-full" style="width: 30%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="flex space-x-1">
+                            <div class="streak-day missed">14</div>
+                            <div class="streak-day missed">15</div>
+                            <div class="streak-day completed">16</div>
+                            <div class="streak-day completed">17</div>
+                            <div class="streak-day completed">18</div>
+                            <div class="streak-day missed">19</div>
+                            <div class="streak-day current">20</div>
+                        </div>
+                        <button class="px-3 py-1 bg-accent text-white rounded-lg text-sm flex items-center">
+                            <i class="fas fa-check mr-1"></i> Done
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reminders Section -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-display font-bold text-dark mb-6">Upcoming Reminders</h2>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-primary-light flex items-center justify-center text-primary mr-3">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Morning Workout</h3>
+                            <p class="text-slate-500 text-sm">7:00 AM • Today</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="p-2 text-slate-500 hover:text-primary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="p-2 text-slate-500 hover:text-danger">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-secondary mr-3">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Read 30 minutes</h3>
+                            <p class="text-slate-500 text-sm">8:30 PM • Today</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="p-2 text-slate-500 hover:text-primary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="p-2 text-slate-500 hover:text-danger">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
+                            <i class="fas fa-water"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Drink water</h3>
+                            <p class="text-slate-500 text-sm">9:00 AM, 1:00 PM, 5:00 PM • Daily</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="p-2 text-slate-500 hover:text-primary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="p-2 text-slate-500 hover:text-danger">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add Habit Modal -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="addHabitModal">
+            <div class="bg-white rounded-xl w-full max-w-md p-6 fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-display font-bold">Add New Habit</h3>
+                    <button id="closeModal" class="text-slate-500 hover:text-slate-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form>
+                    <div class="mb-4">
+                        <label class="block text-slate-700 mb-2">Habit Name</label>
+                        <input type="text" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Morning Meditation">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-slate-700 mb-2">Category</label>
+                        <select class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option>Health & Fitness</option>
+                            <option>Learning & Growth</option>
+                            <option>Mindfulness</option>
+                            <option>Productivity</option>
+                            <option>Relationships</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-slate-700 mb-2">Reminder Time</label>
+                        <div class="flex space-x-2">
+                            <input type="time" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <div class="flex items-end">
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary">
+                                    <span class="ml-2 text-slate-600">Daily</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-slate-700 mb-2">Goal</label>
+                        <div class="flex space-x-2">
+                            <input type="number" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. 7 days">
+                            <span class="flex items-center px-3 text-slate-500">in a row</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancelAdd" class="px-4 py-2 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Add Habit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                            <i class="fas fa-fire text-white text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-display font-bold ml-3">HabitFlow</h2>
+                    </div>
+                    <p class="text-slate-300 mb-4">Build better habits and transform your life with our intuitive habit tracking app.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-slate-300 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-slate-300 hover:text-white">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-slate-300 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-slate-300 hover:text-white">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Features</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-300 hover:text-white">Habit Tracking</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Streak Visualization</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Reminders</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Statistics & Reports</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Achievements</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-300 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Guides</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Community</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">Support</a></li>
+                        <li><a href="#" class="text-slate-300 hover:text-white">API</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Subscribe</h3>
+                    <p class="text-slate-300 mb-4">Get tips and motivation delivered to your inbox.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full focus:outline-none text-dark">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg hover:bg-primary-dark">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-700 mt-8 pt-8 text-center text-slate-400">
+                <p>© 2023 HabitFlow. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Modal functionality
+        const addHabitModal = document.getElementById('addHabitModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelAdd = document.getElementById('cancelAdd');
+        const addHabitBtn = document.querySelector('.habit-card + button');
+        
+        addHabitBtn.addEventListener('click', () => {
+            addHabitModal.classList.remove('hidden');
+        });
+        
+        closeModal.addEventListener('click', () => {
+            addHabitModal.classList.add('hidden');
+        });
+        
+        cancelAdd.addEventListener('click', () => {
+            addHabitModal.classList.add('hidden');
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === addHabitModal) {
+                addHabitModal.classList.add('hidden');
+            }
+        });
+        
+        // Habit completion toggle
+        document.querySelectorAll('.habit-card button').forEach(button => {
+            button.addEventListener('click', function() {
+                const card = this.closest('.habit-card');
+                const icon = this.querySelector('i');
+                
+                if (icon.classList.contains('fa-check-circle')) {
+                    icon.classList.remove('fa-check-circle');
+                    icon.classList.add('fa-circle');
+                    this.classList.remove('bg-success');
+                    this.classList.add('bg-slate-200');
+                    this.classList.remove('text-white');
+                    this.classList.add('text-slate-500');
+                    card.classList.remove('active');
+                } else {
+                    icon.classList.remove('fa-circle');
+                    icon.classList.add('fa-check-circle');
+                    this.classList.remove('bg-slate-200');
+                    this.classList.add('bg-success');
+                    this.classList.remove('text-slate-500');
+                    this.classList.add('text-white');
+                    card.classList.add('active');
+                }
+            });
+        });
+        
+        // Simulate streak progress
+        setInterval(() => {
+            const bars = document.querySelectorAll('.streak-bar');
+            bars.forEach(bar => {
+                const currentWidth = parseInt(bar.style.width);
+                if (currentWidth < 100) {
+                    bar.style.width = (currentWidth + 0.1) + '%';
+                }
+            });
+        }, 100);
+    </script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectFlow - Modern Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4f46e5',
+                        'primary-light': '#818cf8',
+                        'primary-dark': '#3730a3',
+                        'secondary': '#0ea5e9',
+                        'accent': '#8b5cf6',
+                        'light-bg': '#f8fafc',
+                        'dark-bg': '#0f172a',
+                        'card-bg': '#ffffff',
+                        'border': '#e2e8f0',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'column': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .kanban-column {
+            min-height: 500px;
+            background: rgba(241, 245, 249, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        
+        .kanban-task {
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .kanban-task:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .drag-over {
+            background-color: rgba(79, 70, 229, 0.1);
+            border: 2px dashed #4f46e5;
+        }
+        
+        .task-priority-high {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .task-priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .task-priority-low {
+            border-left: 4px solid #10b981;
+        }
+        
+        .task-priority-none {
+            border-left: 4px solid #cbd5e1;
+        }
+        
+        .animate-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .add-task-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .add-task-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-light-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-primary w-8 h-8 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-tasks text-white"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold text-dark-bg">ProjectFlow</span>
+                    </div>
+                    <nav class="ml-10 flex space-x-8">
+                        <a href="#" class="text-primary font-medium border-b-2 border-primary px-1 pt-1">Dashboard</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 font-medium px-1 pt-1">Projects</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 font-medium px-1 pt-1">Team</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-700 font-medium px-1 pt-1">Reports</a>
+                    </nav>
+                </div>
+                <div class="flex items-center">
+                    <div class="ml-3 relative">
+                        <div class="flex items-center space-x-4">
+                            <button class="bg-primary text-white px-4 py-2 rounded-lg font-medium flex items-center">
+                                <i class="fas fa-plus mr-2"></i> New Task
+                            </button>
+                            <div class="relative">
+                                <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white">
+                                    <span class="font-semibold">JD</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-dark-bg">Website Redesign Project</h1>
+                <p class="text-gray-600 mt-2">Track and manage all tasks for the website redesign</p>
+            </div>
+            <div class="flex space-x-3">
+                <button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center">
+                    <i class="fas fa-filter mr-2"></i> Filter
+                </button>
+                <button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium flex items-center">
+                    <i class="fas fa-sort mr-2"></i> Sort
+                </button>
+            </div>
+        </div>
+
+        <!-- Kanban Board -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- To Do Column -->
+            <div class="kanban-column rounded-xl p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
+                        <h2 class="font-semibold text-lg">To Do</h2>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">5</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4" id="todo-column">
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-high animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Create wireframes for homepage</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">High</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Design initial wireframes for the new homepage layout</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 text-xs">
+                                    JD
+                                </div>
+                                <div class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-800 text-xs ml-2">
+                                    AM
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Due: Tomorrow</span>
+                        </div>
+                    </div>
+                    
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-medium animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Research competitors</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Medium</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Analyze top 5 competitor websites for inspiration</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-xs">
+                                    TS
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Due: Sep 12</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-task-btn w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-200">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+            
+            <!-- In Progress Column -->
+            <div class="kanban-column rounded-xl p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                        <h2 class="font-semibold text-lg">In Progress</h2>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">3</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4" id="progress-column">
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-high animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Develop header component</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">High</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Create responsive header with navigation and search</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 text-xs">
+                                    JD
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Due: Today</span>
+                        </div>
+                    </div>
+                    
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-low animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Create style guide</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Low</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Document design system and component styles</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-800 text-xs">
+                                    AM
+                                </div>
+                                <div class="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-800 text-xs ml-2">
+                                    RK
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Due: Sep 15</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-task-btn w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-200">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+            
+            <!-- Review Column -->
+            <div class="kanban-column rounded-xl p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
+                        <h2 class="font-semibold text-lg">Review</h2>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">2</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4" id="review-column">
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-medium animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Homepage content review</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Medium</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Proofread and finalize homepage content</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 text-xs">
+                                    JD
+                                </div>
+                                <div class="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-800 text-xs ml-2">
+                                    MJ
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Due: Sep 10</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-task-btn w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-200">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+            
+            <!-- Done Column -->
+            <div class="kanban-column rounded-xl p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
+                        <h2 class="font-semibold text-lg">Done</h2>
+                        <span class="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">4</span>
+                    </div>
+                    <button class="text-gray-500 hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4" id="done-column">
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-low animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Project kickoff meeting</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Low</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Hold initial project meeting with stakeholders</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-xs">
+                                    TS
+                                </div>
+                                <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 text-xs ml-2">
+                                    PR
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Completed: Sep 5</span>
+                        </div>
+                    </div>
+                    
+                    <div class="kanban-task bg-white rounded-lg p-4 task-priority-medium animate-in" draggable="true">
+                        <div class="flex justify-between">
+                            <h3 class="font-medium text-gray-800">Define project requirements</h3>
+                            <div class="flex space-x-2">
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Medium</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Document all requirements for the website redesign</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-800 text-xs">
+                                    AM
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">Completed: Sep 3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-task-btn w-full mt-4 py-3 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center hover:bg-gray-200">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Task Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Add New Task</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="task-title">Task Title</label>
+                    <input type="text" id="task-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="What needs to be done?">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="task-description">Description</label>
+                    <textarea id="task-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Add details..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="task-priority">Priority</label>
+                        <select id="task-priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="task-due">Due Date</label>
+                        <input type="date" id="task-due" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-medium mb-2">Assign to</label>
+                    <div class="flex space-x-2">
+                        <div class="flex items-center">
+                            <input type="radio" id="assign-self" name="assign" checked class="mr-2">
+                            <label for="assign-self">Me</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="assign-team" name="assign" class="mr-2">
+                            <label for="assign-team">Team</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-task" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Add Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Drag and drop functionality
+            const draggables = document.querySelectorAll('.kanban-task');
+            const columns = document.querySelectorAll('.kanban-column > div');
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => {
+                    draggable.classList.add('dragging');
+                });
+                
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('dragging');
+                });
+            });
+            
+            columns.forEach(column => {
+                column.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const afterElement = getDragAfterElement(column, e.clientY);
+                    const draggable = document.querySelector('.dragging');
+                    
+                    if (afterElement == null) {
+                        column.appendChild(draggable);
+                    } else {
+                        column.insertBefore(draggable, afterElement);
+                    }
+                    
+                    // Add animation to the moved task
+                    draggable.classList.add('animate-in');
+                    setTimeout(() => {
+                        draggable.classList.remove('animate-in');
+                    }, 300);
+                });
+            });
+            
+            function getDragAfterElement(column, y) {
+                const draggableElements = [...column.querySelectorAll('.kanban-task:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // Modal functionality
+            const modal = document.getElementById('task-modal');
+            const openModalBtn = document.querySelectorAll('.add-task-btn');
+            const closeModalBtn = document.getElementById('close-modal');
+            const cancelBtn = document.getElementById('cancel-task');
+            
+            openModalBtn.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                });
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

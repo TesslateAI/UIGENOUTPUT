@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Services Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-open {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-in-progress {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .status-resolved {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+        
+        .status-closed {
+            background-color: #f1f5f9;
+            color: #64748b;
+        }
+        
+        .map-container {
+            height: 400px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-marker {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .map-marker::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .form-input:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #0ea5e9;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-city text-white text-xl"></i>
+                    </div>
+                    <span class="ml-3 text-xl font-bold text-primary-800">CityConnect</span>
+                </div>
+                
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-secondary-600 hover:text-primary-600 font-medium">Home</a>
+                    <a href="#" class="text-primary-600 font-medium border-b-2 border-primary-600 pb-1">Report</a>
+                    <a href="#" class="text-secondary-600 hover:text-primary-600 font-medium">Dashboard</a>
+                    <a href="#" class="text-secondary-600 hover:text-primary-600 font-medium">History</a>
+                </nav>
+                
+                <div class="flex items-center">
+                    <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-user mr-2"></i>Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- Hero Section -->
+        <section class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-secondary-900 mb-4">
+                City Services <span class="text-primary-600">Reporting</span> Platform
+            </h1>
+            <p class="text-xl text-secondary-600 max-w-2xl mx-auto mb-10">
+                Report issues, track progress, and stay informed about city services
+            </p>
+        </section>
+
+        <!-- Reporting Form -->
+        <section class="bg-white rounded-xl p-6 mb-16 card">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-secondary-900 mb-6">Report an Issue</h2>
+                    <form id="reportForm" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-700 mb-2">Issue Type</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="issueType" value="pothole" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                    <span class="ml-2 text-secondary-700">Pothole</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="issueType" value="streetlight" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                    <span class="ml-2 text-secondary-700">Streetlight</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="issueType" value="tree" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                    <span class="ml-2 text-secondary-700">Tree Maintenance</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="issueType" value="other" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                                    <span class="ml-2 text-secondary-700">Other</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-700 mb-2">Location</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <input type="text" placeholder="Street" class="form-input w-full px-4 py-3 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                </div>
+                                <div>
+                                    <input type="text" placeholder="Address" class="form-input w-full px-4 py-3 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-700 mb-2">Description</label>
+                            <textarea rows="4" placeholder="Describe the issue in detail..." class="form-input w-full px-4 py-3 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-secondary-700 mb-2">Attachments (optional)</label>
+                            <div class="flex items-center justify-center w-full">
+                                <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-secondary-300 rounded-lg cursor-pointer bg-secondary-50 hover:bg-secondary-100">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i class="fas fa-cloud-upload-alt text-secondary-400 text-2xl mb-2"></i>
+                                        <p class="text-sm text-secondary-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                        <p class="text-xs text-secondary-500">PNG, JPG, PDF (MAX. 5MB)</p>
+                                    </div>
+                                    <input type="file" class="hidden" />
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-paper-plane mr-2"></i> Submit Report
+                        </button>
+                    </form>
+                </div>
+                
+                <div>
+                    <div class="bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl p-8 text-white h-full">
+                        <h3 class="text-xl font-bold mb-4">Report an Issue</h3>
+                        <p class="mb-6 opacity-90">Our team works around the clock to address all reports. Submit your issue below and track its progress in real-time.</p>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="bg-white bg-opacity-20 p-2 rounded-lg mr-4">
+                                    <i class="fas fa-map-marker-alt text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Location Tracking</h4>
+                                    <p class="text-sm opacity-80">Attach photos and videos for better issue identification</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="bg-white bg-opacity-20 p-2 rounded-lg mr-4">
+                                    <i class="fas fa-bolt text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Real-time Updates</h4>
+                                    <p class="text-sm opacity-80">Get instant notifications about your report status</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <div class="bg-white bg-opacity-20 p-2 rounded-lg mr-4">
+                                    <i class="fas fa-chart-line text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Progress Tracking</h4>
+                                    <p class="text-sm opacity-80">Monitor your issue from submission to resolution</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 pt-6 border-t border-white border-opacity-30">
+                            <h4 class="font-semibold mb-3">Quick Stats</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm">Response Time</span>
+                                        <span class="text-sm font-medium">4.2 hours</span>
+                                    </div>
+                                    <div class="progress-bar bg-white bg-opacity-20">
+                                        <div class="progress-fill" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm">Resolution Rate</span>
+                                        <span class="text-sm font-medium">92%</span>
+                                    </div>
+                                    <div class="progress-bar bg-white bg-opacity-20">
+                                        <div class="progress-fill" style="width: 92%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm">Satisfaction</span>
+                                        <span class="text-sm font-medium">4.7/5</span>
+                                    </div>
+                                    <div class="progress-bar bg-white bg-opacity-20">
+                                        <div class="progress-fill" style="width: 94%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-bug text-primary-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-secondary-900">1,248</p>
+                        <p class="text-secondary-600">Issues Reported</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-secondary-900">92%</p>
+                        <p class="text-secondary-600">Resolved Issues</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-clock text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-bold text-secondary-900">4.2h</p>
+                        <p class="text-secondary-600">Avg. Response Time</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Map and Reports Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+            <!-- Map Section -->
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-secondary-900">City Service Map</h2>
+                    <div class="flex space-x-2">
+                        <button class="text-secondary-500 hover:text-primary-600">
+                            <i class="fas fa-layer-group"></i>
+                        </button>
+                        <button class="text-secondary-500 hover:text-primary-600">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="map-container">
+                    <!-- Map placeholder with markers -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt text-5xl text-primary-500 mb-4"></i>
+                            <p class="text-secondary-600">Interactive City Map</p>
+                            <p class="text-sm text-secondary-500 mt-2">View and interact with reported issues on the map</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Map markers -->
+                    <div class="map-marker" style="top: 30%; left: 40%; transform: translate(-50%, -50%);">
+                        <span class="text-xs">Pothole</span>
+                    </div>
+                    <div class="map-marker" style="top: 60%; left: 70%; transform: translate(-50%, -50%);">
+                        <span class="text-xs">Streetlight</span>
+                    </div>
+                    <div class="map-marker" style="top: 45%; left: 25%; transform: translate(-50%, -50%);">
+                        <span class="text-xs">Tree</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Reports -->
+            <div class="bg-white rounded-xl p-6 card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-secondary-900">Recent Reports</h2>
+                    <div class="relative">
+                        <select class="form-input pl-10 pr-4 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none">
+                            <option>All Issues</option>
+                            <option>Potholes</option>
+                            <option>Streetlights</option>
+                            <option>Tree Maintenance</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-3 text-secondary-400"></i>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="border-b border-secondary-100 pb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="status-badge status-open">Open</span>
+                                <h3 class="font-semibold text-lg mt-2">Pothole on Main Street</h3>
+                                <p class="text-secondary-600 mt-1">Located at 123 Main St, reported 2 hours ago</p>
+                            </div>
+                            <span class="text-sm text-secondary-500">2 hours ago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b border-secondary-100 pb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="status-badge status-in-progress">In Progress</span>
+                                <h3 class="font-semibold text-lg mt-2">Broken Streetlight</h3>
+                                <p class="text-secondary-600 mt-1">456 Oak Ave, reported 5 hours ago</p>
+                            </div>
+                            <span class="text-sm text-secondary-500">5 hours ago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b border-secondary-100 pb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="status-badge status-resolved">Resolved</span>
+                                <h3 class="font-semibold text-lg mt-2">Tree Maintenance Needed</h3>
+                                <p class="text-secondary-600 mt-1">789 Pine St, reported yesterday</p>
+                            </div>
+                            <span class="text-sm text-secondary-500">1 day ago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b border-secondary-100 pb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="status-badge status-closed">Closed</span>
+                                <h3 class="font-semibold text-lg mt-2">Drainage Issue</h3>
+                                <p class="text-secondary-600 mt-1">101 Elm Blvd, reported 2 days ago</p>
+                            </div>
+                            <span class="text-sm text-secondary-500">2 days ago</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="status-badge status-open">Open</span>
+                                <h3 class="font-semibold text-lg mt-2">Broken Pavement</h3>
+                                <p class="text-secondary-600 mt-1">202 Cedar Dr, reported 3 days ago</p>
+                            </div>
+                            <span class="text-sm text-secondary-500">3 days ago</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="w-full mt-6 py-3 border border-secondary-300 rounded-lg font-medium text-secondary-700 hover:bg-secondary-50 transition-colors">
+                    View All Reports
+                </button>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold text-secondary-900 mb-8 text-center">How Our System Works</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl p-6 card text-center">
+                    <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-bug text-primary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-3">Report an Issue</h3>
+                    <p class="text-secondary-600">Use our reporting form to submit details about any city service problem you notice.</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 card text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-bolt text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-3">Our Team Actives</h3>
+                    <p class="text-secondary-600">Our dedicated team reviews reports and dispatches crews to address issues promptly.</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 card text-center">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-check-circle text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-3">Track Progress</h3>
+                    <p class="text-secondary-600">Monitor the status of your report in real-time through our dashboard.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-secondary-900 text-white py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-city text-white text-xl"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-bold">CityConnect</span>
+                    </div>
+                    <p class="text-secondary-300 mb-4">
+                        Making city services better through efficient reporting and tracking.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-secondary-300 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-secondary-300 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-secondary-300 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-secondary-300 hover:text-white">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Report an Issue</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">View Reports</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Service Status</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Community Forum</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Contact Us</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Guide for Reporting</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">FAQs</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Safety Guidelines</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">Emergency Services</a></li>
+                        <li><a href="#" class="text-secondary-300 hover:text-white">City Service Hours</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
+                    <ul class="space-y-2 text-secondary-300">
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-3"></i>
+                            <span>123 City Center, New York, NY 10001</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-phone-alt mr-3"></i>
+                            <span>(212) 555-1234</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope mr-3"></i>
+                            <span>reports@cityconnect.com</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-secondary-800 mt-8 pt-8 text-center text-secondary-400">
+                <p>&copy; 2023 CityConnect Services. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Form submission
+        document.getElementById('reportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thank you for your report! Our team will review it shortly.');
+            this.reset();
+        });
+        
+        // Animation for elements
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('.card');
+            animatedElements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+                el.classList.add('animate-fade-in');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamSync - Collaboration Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        neutral: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .document-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .collaborator-avatar {
+            position: relative;
+        }
+        
+        .collaborator-avatar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #0ea5e9;
+            transition: width 0.5s ease;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .active-tab {
+            background-color: #e0f2fe;
+            color: #0ea5e9;
+            border-bottom: 3px solid #0ea5e9;
+        }
+        
+        .editor-toolbar button {
+            transition: all 0.2s ease;
+        }
+        
+        .editor-toolbar button:hover {
+            background-color: #e2e8f0;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar bg-white w-64 flex flex-col border-r border-neutral-200">
+            <div class="p-6 border-b border-neutral-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-neutral-800">TeamSync</h1>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-6">
+                    <h3 class="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-3 mb-2">Navigation</h3>
+                    <ul>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <i class="fas fa-home mr-3 text-neutral-500"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-primary-600 bg-primary-50 rounded-lg">
+                                <i class="fas fa-file-alt mr-3 text-primary-500"></i>
+                                <span>Documents</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <i class="fas fa-calendar-alt mr-3 text-neutral-500"></i>
+                                <span>Calendar</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <i class="fas fa-tasks mr-3 text-neutral-500"></i>
+                                <span>Projects</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <i class="fas fa-users mr-3 text-neutral-500"></i>
+                                <span>Team</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="px-4 mb-6">
+                    <h3 class="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-3 mb-2">Teams</h3>
+                    <ul>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-primary-500 mr-3"></div>
+                                <span>Design Team</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-green-500 mr-3"></div>
+                                <span>Development</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-yellow-500 mr-3"></div>
+                                <span>Marketing</span>
+                            </a>
+                        </li>
+                        <li class="mb-1">
+                            <a href="#" class="flex items-center px-3 py-2 text-neutral-700 hover:bg-primary-50 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-purple-500 mr-3"></div>
+                                <span>Support</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="px-4">
+                    <h3 class="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-3 mb-2">Storage</h3>
+                    <div class="mb-2">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>15.2 GB of 50 GB used</span>
+                            <span>30%</span>
+                        </div>
+                        <div class="progress-bar bg-neutral-200">
+                            <div class="progress-fill" style="width: 30%"></div>
+                        </div>
+                    </div>
+                    <button class="w-full text-center text-primary-600 hover:text-primary-800 text-sm font-medium py-2 rounded-lg bg-primary-50">
+                        Upgrade Storage
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-neutral-200">
+                <div class="flex items-center">
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                            <span class="font-semibold text-primary-700">JD</span>
+                        </div>
+                        <div class="notification-dot"></div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-neutral-800">John Doe</p>
+                        <p class="text-xs text-neutral-500">Admin</p>
+                    </div>
+                    <button class="ml-auto text-neutral-500 hover:text-neutral-700">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-white border-b border-neutral-200">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <div class="flex items-center">
+                        <button class="mr-4 text-neutral-500 hover:text-neutral-700">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h2 class="text-xl font-semibold text-neutral-800">Shared Documents</h2>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="text-neutral-500 hover:text-neutral-700">
+                                <i class="fas fa-bell text-xl"></i>
+                            </button>
+                            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </div>
+                        
+                        <div class="relative">
+                            <button class="text-neutral-500 hover:text-neutral-700">
+                                <i class="fas fa-envelope text-xl"></i>
+                            </button>
+                            <span class="absolute top-0 right-0 w-2 h-2 bg-primary-500 rounded-full"></span>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                <span class="font-semibold text-primary-700 text-sm">JD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content Area -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto">
+                    <!-- Document List -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-neutral-800">Recent Documents</h3>
+                            <button class="flex items-center text-primary-600 hover:text-primary-800 font-medium">
+                                <i class="fas fa-plus mr-2"></i>
+                                New Document
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Document Card 1 -->
+                            <div class="document-card bg-white rounded-xl border border-neutral-200 shadow-sm p-5 transition-all duration-300 cursor-pointer">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded mr-2">Template</span>
+                                        <h4 class="font-semibold text-neutral-800">Project Proposal</h4>
+                                    </div>
+                                    <div class="text-neutral-400">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-sm text-neutral-500 mb-4">Updated 2 hours ago by Sarah Johnson</p>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs">MJ</div>
+                                        </div>
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs">SJ</div>
+                                        </div>
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-xs">AK</div>
+                                        </div>
+                                        <div class="text-xs text-neutral-500">+2</div>
+                                    </div>
+                                    
+                                    <div class="text-xs text-neutral-500 flex items-center">
+                                        <i class="far fa-comment mr-1"></i>
+                                        <span>3</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Document Card 2 -->
+                            <div class="document-card bg-white rounded-xl border border-neutral-200 shadow-sm p-5 transition-all duration-300 cursor-pointer">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded mr-2">Draft</span>
+                                        <h4 class="font-semibold text-neutral-800">Q3 Marketing Plan</h4>
+                                    </div>
+                                    <div class="text-neutral-400">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-sm text-neutral-500 mb-4">Updated 5 hours ago by Michael Chen</p>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs">MJ</div>
+                                        </div>
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-700 text-xs">TC</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-xs text-neutral-500 flex items-center">
+                                        <i class="far fa-comment mr-1"></i>
+                                        <span>7</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Document Card 3 -->
+                            <div class="document-card bg-white rounded-xl border border-neutral-200 shadow-sm p-5 transition-all duration-300 cursor-pointer">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-purple-800 bg-purple-100 rounded mr-2">Final</span>
+                                        <h4 class="font-semibold text-neutral-800">User Research Report</h4>
+                                    </div>
+                                    <div class="text-neutral-400">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-sm text-neutral-500 mb-4">Updated yesterday by Emma Wilson</p>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs">MJ</div>
+                                        </div>
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs">SJ</div>
+                                        </div>
+                                        <div class="collaborator-avatar">
+                                            <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 text-xs">RJ</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-xs text-neutral-500 flex items-center">
+                                        <i class="far fa-comment mr-1"></i>
+                                        <span>12</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Document Editor -->
+                    <div class="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                        <!-- Editor Header -->
+                        <div class="border-b border-neutral-200 px-6 py-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-neutral-800">Project Proposal</h3>
+                                    <p class="text-sm text-neutral-500">Updated 2 hours ago</p>
+                                </div>
+                                
+                                <div class="flex space-x-2">
+                                    <button class="px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 rounded-lg">
+                                        <i class="fas fa-share-alt mr-2"></i> Share
+                                    </button>
+                                    <button class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">
+                                        <i class="fas fa-save mr-2"></i> Save
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 flex items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="collaborator-avatar">
+                                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs">MJ</div>
+                                    </div>
+                                    <div class="collaborator-avatar">
+                                        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xs">SJ</div>
+                                    </div>
+                                    <div class="collaborator-avatar">
+                                        <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-xs">AK</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="ml-4 text-sm text-neutral-500">
+                                    <span>3 collaborators</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Editor Toolbar -->
+                        <div class="editor-toolbar border-b border-neutral-200 px-4 py-2 flex items-center">
+                            <div class="flex space-x-1 mr-4">
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-strikethrough"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex space-x-1 mr-4">
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-heading"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-list-ol"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex space-x-1 mr-4">
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-table"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex space-x-1">
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-quote-right"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-code"></i>
+                                </button>
+                                <button class="p-2 rounded-lg">
+                                    <i class="fas fa-highlighter"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Document Content -->
+                        <div class="p-6">
+                            <div class="prose max-w-none">
+                                <h1 class="text-3xl font-bold mb-6">Project Proposal: Q3 Product Launch</h1>
+                                
+                                <p class="mb-4">
+                                    This proposal outlines the plan for launching our new product line in Q3. The initiative aims to capitalize on emerging market trends and strengthen our position in the industry.
+                                </p>
+                                
+                                <h2 class="text-2xl font-semibold mt-8 mb-4">Project Overview</h2>
+                                
+                                <p class="mb-4">
+                                    The new product line will consist of three complementary products designed to solve common customer pain points. Each product will be developed with our latest technology platform and user-centered design principles.
+                                </p>
+                                
+                                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg my-6">
+                                    <p class="font-medium text-blue-800">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        Important: All team members must review the updated Q2 financial projections before the next meeting.
+                                    </p>
+                                </div>
+                                
+                                <h2 class="text-2xl font-semibold mt-8 mb-4">Timeline</h2>
+                                
+                                <table class="min-w-full divide-y divide-neutral-200 mb-6">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Phase</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Start Date</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">End Date</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Owner</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-neutral-200">
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium text-neutral-900">Research & Planning</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Jul 1, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Jul 15, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Sarah Johnson</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium text-neutral-900">Design & Prototyping</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Jul 16, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Aug 10, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Michael Chen</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium text-neutral-900">Development</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Aug 11, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Sep 5, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Development Team</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium text-neutral-900">Testing & QA</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Sep 6, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Sep 25, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">QA Team</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-medium text-neutral-900">Launch</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Sep 26, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Oct 5, 2023</td>
+                                            <td class="px-4 py-3 text-sm text-neutral-500">Marketing Team</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                
+                                <h2 class="text-2xl font-semibold mt-8 mb-4">Budget Allocation</h2>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                    <div class="border border-neutral-200 rounded-lg p-4">
+                                        <p class="text-sm text-neutral-500 mb-1">R&D</p>
+                                        <p class="text-xl font-semibold">$125,000</p>
+                                        <div class="mt-2">
+                                            <div class="progress-bar bg-neutral-200">
+                                                <div class="progress-fill" style="width: 65%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="border border-neutral-200 rounded-lg p-4">
+                                        <p class="text-sm text-neutral-500 mb-1">Design</p>
+                                        <p class="text-xl font-semibold">$45,000</p>
+                                        <div class="mt-2">
+                                            <div class="progress-bar bg-neutral-200">
+                                                <div class="progress-fill" style="width: 45%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="border border-neutral-200 rounded-lg p-4">
+                                        <p class="text-sm text-neutral-500 mb-1">Marketing</p>
+                                        <p class="text-xl font-semibold">$75,000</p>
+                                        <div class="mt-2">
+                                            <div class="progress-bar bg-neutral-200">
+                                                <div class="progress-fill" style="width: 30%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button class="px-6 py-3 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">
+                                        Add Comment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-neutral-800 mb-6">Recent Activity</h3>
+                        
+                        <div class="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                            <div class="border-b border-neutral-200">
+                                <div class="flex justify-between items-center px-6 py-4">
+                                    <p class="text-sm font-medium text-neutral-800">Activity Timeline</p>
+                                    <button class="text-sm text-primary-600 hover:text-primary-800 font-medium">
+                                        View All
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="divide-y divide-neutral-100">
+                                <!-- Activity Item 1 -->
+                                <div class="px-6 py-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0 mr-4">
+                                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                <i class="fas fa-file-edit text-green-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-neutral-800">Sarah Johnson updated the document</p>
+                                            <p class="text-sm text-neutral-500">"Project Proposal"</p>
+                                            <p class="text-xs text-neutral-400 mt-1">2 hours ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Item 2 -->
+                                <div class="px-6 py-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0 mr-4">
+                                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <i class="fas fa-comment-alt text-blue-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-neutral-800">Michael Chen commented</p>
+                                            <p class="text-sm text-neutral-500">"I've added the new market analysis data. Please review when you have a moment."</p>
+                                            <p class="text-xs text-neutral-400 mt-1">4 hours ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Item 3 -->
+                                <div class="px-6 py-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0 mr-4">
+                                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                                <i class="fas fa-plus-circle text-purple-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-neutral-800">You created a new document</p>
+                                            <p class="text-sm text-neutral-500">"Q3 Marketing Strategy Draft"</p>
+                                            <p class="text-xs text-neutral-400 mt-1">Yesterday</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Item 4 -->
+                                <div class="px-6 py-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0 mr-4">
+                                            <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                                                <i class="fas fa-user-plus text-yellow-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-neutral-800">You added a new team member</p>
+                                            <p class="text-sm text-neutral-500">Alex Kim joined the "Development" team</p>
+                                            <p class="text-xs text-neutral-400 mt-1">2 days ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Simple animations and interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Document card hover effect
+            const cards = document.querySelectorAll('.document-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.classList.add('shadow-md');
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.classList.remove('shadow-md');
+                });
+            });
+            
+            // Simulate progress bar animation
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.transition = 'width 1s ease-in-out';
+                    bar.style.width = width;
+                }, 300);
+            });
+            
+            // Simulate comment count animation
+            const commentCounts = document.querySelectorAll('.text-xs span');
+            commentCounts.forEach(count => {
+                const target = parseInt(count.textContent);
+                count.textContent = '0';
+                let i = 0;
+                setInterval(() => {
+                    i++;
+                    if (i > target) {
+                        clearInterval();
+                        return;
+                    }
+                    count.textContent = i;
+                }, 50);
+            });
+        });
+    </script>
+</body>
+</html>

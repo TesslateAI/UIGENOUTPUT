@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmony Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-bg-dark: #0f0f12;
+            --color-bg-medium: #1a1a1f;
+            --color-bg-light: #25252b;
+            --color-text-light: #f5f5f7;
+            --color-text-light-muted: rgba(245, 245, 247, 0.7);
+            --color-primary: #8b5cf6;
+            --color-primary-light: #a78bfa;
+            --color-accent: #ec4899;
+            --color-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            overflow-x: hidden;
+        }
+
+        .font-manrope {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: var(--color-bg-light);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-light);
+        }
+
+        .visualizer-bar {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scaleY(1); opacity: 0.8; }
+            50% { transform: scaleY(1.2); opacity: 1; }
+            100% { transform: scaleY(1); opacity: 0.8; }
+        }
+
+        .progress-bar {
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--color-bg-light);
+            outline: none;
+        }
+
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            cursor: pointer;
+        }
+
+        .playlist-item:hover {
+            background: var(--color-bg-light);
+        }
+
+        .playlist-item.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-left: 3px solid var(--color-primary);
+        }
+
+        .play-btn {
+            transition: all 0.3s ease;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--color-bg-light);
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--color-text-light);
+            cursor: pointer;
+        }
+
+        .now-playing {
+            transition: transform 0.3s ease;
+        }
+
+        .now-playing:hover {
+            transform: scale(1.02);
+        }
+
+        .song-card {
+            transition: all 0.3s ease;
+        }
+
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .visualizer-container {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .visualizer-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
+            animation: moveGradient 10s linear infinite;
+        }
+
+        @keyframes moveGradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-dark)] text-[var(--color-text-light)] min-h-screen">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 py-4 bg-[var(--color-bg-dark)]/80 backdrop-blur-md border-b border-[var(--color-border)]">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1 class="font-manrope text-2xl font-bold">Harmony Player</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-[var(--color-bg-light)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+                <button class="p-2 rounded-full hover:bg-[var(--color-bg-light)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-24 pb-16 container mx-auto px-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Playlist Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-[var(--color-bg-medium)] rounded-2xl p-6 border border-[var(--color-border)]">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-manrope text-xl font-bold">Playlist</h2>
+                        <button id="add-song" class="bg-[var(--color-primary)] hover:bg-[var(--color-primary-light)] text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Song
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                        <!-- Playlist items will be added here dynamically -->
+                        <div class="playlist-item active flex items-center p-3 rounded-lg cursor-pointer">
+                            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold">A</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate">Blinding Lights</h3>
+                                <p class="text-sm text-[var(--color-text-light-muted)] truncate">The Weeknd</p>
+                            </div>
+                            <div class="text-sm text-[var(--color-text-light-muted)]">3:20</div>
+                        </div>
+                        
+                        <div class="playlist-item flex items-center p-3 rounded-lg cursor-pointer">
+                            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold">B</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate">Levitating</h3>
+                                <p class="text-sm text-[var(--color-text-light-muted)] truncate">Dua Lipa</p>
+                            </div>
+                            <div class="text-sm text-[var(--color-text-light-muted)]">3:23</div>
+                        </div>
+                        
+                        <div class="playlist-item flex items-center p-3 rounded-lg cursor-pointer">
+                            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold">C</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate">Save Your Tears</h3>
+                                <p class="text-sm text-[var(--color-text-light-muted)] truncate">The Weeknd</p>
+                            </div>
+                            <div class="text-sm text-[var(--color-text-light-muted)]">3:35</div>
+                        </div>
+                        
+                        <div class="playlist-item flex items-center p-3 rounded-lg cursor-pointer">
+                            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold">D</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate">Montero</h3>
+                                <p class="text-sm text-[var(--color-text-light-muted)] truncate">Lil Nas X</p>
+                            </div>
+                            <div class="text-sm text-[var(--color-text-light-muted)]">2:17</div>
+                        </div>
+                        
+                        <div class="playlist-item flex items-center p-3 rounded-lg cursor-pointer">
+                            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold">E</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate">Good 4 U</h3>
+                                <p class="text-sm text-[var(--color-text-light-muted)] truncate">Olivia Rodrigo</p>
+                            </div>
+                            <div class="text-sm text-[var(--color-text-light-muted)]">2:58</div>
+                        </div>
+                        
+                        <div class="playlist-item flex items-center p-3 rounded-lg cursor-pointer">
+                            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mr-3">
+                                <span class="text-white font-bold">F</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate">Stay</h3>
+                                <p class="text-sm text-[var(--color-text-light-muted)] truncate">The Kid LAROI, Justin Bieber</p>
+                            </div>
+                            <div class="text-sm text-[var(--color-text-light-muted)]">2:21</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Player Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-[var(--color-bg-medium)] rounded-2xl p-8 border border-[var(--color-border)]">
+                    <div class="flex flex-col md:flex-row items-center justify-between mb-8">
+                        <div class="now-playing w-full md:w-1/3 h-48 md:h-auto bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] rounded-xl flex items-center justify-center mb-6 md:mb-0">
+                            <div class="text-center">
+                                <div class="text-4xl font-bold mb-2">Blinding Lights</div>
+                                <div class="text-lg">The Weeknd</div>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full md:w-2/3 flex flex-col items-center md:items-end">
+                            <div class="flex items-center space-x-4 mb-4">
+                                <button class="prev-btn text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <button class="play-btn bg-[var(--color-primary)] hover:bg-[var(--color-primary-light)] text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.22 4.22l3.59 3.59m0 0l3.59 3.59m-3.59-3.59h1.22m0 0h1.22m-1.22 1.22l-3.59-3.59m0 0l-3.59 3.59m3.59-3.59v1.22m0 0v1.22m0-1.22l-3.59-3.59" />
+                                    </svg>
+                                </button>
+                                <button class="next-btn text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="w-full max-w-md">
+                                <div class="flex justify-between text-sm text-[var(--color-text-light-muted)] mb-2">
+                                    <span>1:24</span>
+                                    <span>3:20</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="40" class="progress-bar w-full">
+                            </div>
+                            
+                            <div class="flex items-center justify-between mt-6 w-full max-w-md">
+                                <div class="flex items-center space-x-2">
+                                    <button class="text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="text-[var(--color-text-light-muted)] hover:text-[var(--color-text-light)] transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <span class="text-sm text-[var(--color-text-light-muted)] mr-2">Volume</span>
+                                    <input type="range" min="0" max="100" value="80" class="volume-slider w-32">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visualizer -->
+                    <div class="visualizer-container mb-8">
+                        <div class="visualizer-bg"></div>
+                        <div class="absolute inset-0 flex items-end justify-center">
+                            <div class="flex space-x-1">
+                                <!-- Visualizer bars will be added here dynamically -->
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 30%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 60%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 45%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 70%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 50%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 80%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 65%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 90%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 75%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 55%"></div>
+                                <div class="visualizer-bar w-4 bg-[var(--color-primary)] rounded-t-md" style="height: 40%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recently Played -->
+                    <div class="mt-8">
+                        <h2 class="font-manrope text-xl font-bold mb-4">Recently Played</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="song-card bg-[var(--color-bg-light)] rounded-xl p-4 flex items-center cursor-pointer">
+                                <div class="w-16 h-16 rounded-md bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mr-4">
+                                    <span class="text-white font-bold text-lg">1</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Levitating</h3>
+                                    <p class="text-sm text-[var(--color-text-light-muted)]">Dua Lipa</p>
+                                </div>
+                            </div>
+                            
+                            <div class="song-card bg-[var(--color-bg-light)] rounded-xl p-4 flex items-center cursor-pointer">
+                                <div class="w-16 h-16 rounded-md bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mr-4">
+                                    <span class="text-white font-bold text-lg">2</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Save Your Tears</h3>
+                                    <p class="text-sm text-[var(--color-text-light-muted)]">The Weeknd</p>
+                                </div>
+                            </div>
+                            
+                            <div class="song-card bg-[var(--color-bg-light)] rounded-xl p-4 flex items-center cursor-pointer">
+                                <div class="w-16 h-16 rounded-md bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mr-4">
+                                    <span class="text-white font-bold text-lg">3</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Good 4 U</h3>
+                                    <p class="text-sm text-[var(--color-text-light-muted)]">Olivia Rodrigo</p>
+                                </div>
+                            </div>
+                            
+                            <div class="song-card bg-[var(--color-bg-light)] rounded-xl p-4 flex items-center cursor-pointer">
+                                <div class="w-16 h-16 rounded-md bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mr-4">
+                                    <span class="text-white font-bold text-lg">4</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Montero</h3>
+                                    <p class="text-sm text-[var(--color-text-light-muted)]">Lil Nas X</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <button class="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center shadow-lg hover:shadow-xl transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // Toggle play/pause button
+        const playBtn = document.querySelector('.play-btn');
+        playBtn.addEventListener('click', function() {
+            const icon = playBtn.querySelector('svg');
+            if (icon.getAttribute('d').includes('M4.22 4.22l3.59 3.59m0 0l3.59 3.59m-3.59-3.59h1.22m0 0h1.22m-1.22 1.22l-3.59-3.59m0 0l-3.59 3.59m3.59-3.59v1.22m0 0v1.22m0-1.22l-3.59-3.59"')) {
+                icon.setAttribute('d', 'M4.22 4.22l3.59 3.59m0 0l3.59 3.59m-3.59-3.59h1.22m0 0h1.22m-1.22 1.22l-3.59-3.59m0 0l-3.59 3.59m3.59-3.59v1.22m0 0v1.22m0-1.22l-3.59-3.59');
+            } else {
+                icon.setAttribute('d', 'M4.22 4.22l3.59 3.59m0 0l3.59 3.59m-3.59-3.59h1.22m0 0h1.22m-1.22 1.22l-3.59-3.59m0 0l-3.59 3.59m3.59-3.59v1.22m0 0v1.22m0-1.22l-3.59-3.59');
+            }
+        });
+
+        // Playlist item click
+        const playlistItems = document.querySelectorAll('.playlist-item');
+        playlistItems.forEach(item => {
+            item.addEventListener('click', function() {
+                playlistItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update now playing section
+                const title = this.querySelector('h3').textContent;
+                const artist = this.querySelector('p').textContent;
+                document.querySelector('.now-playing h3').textContent = title;
+                document.querySelector('.now-playing div').textContent = artist;
+            });
+        });
+
+        // Simulate visualizer animation
+        const visualizerBars = document.querySelectorAll('.visualizer-bar');
+        setInterval(() => {
+            visualizerBars.forEach(bar => {
+                const randomHeight = Math.floor(Math.random() * 80) + 20;
+                bar.style.height = `${randomHeight}%`;
+            });
+        }, 1000);
+
+        // Add song functionality
+        const addSongBtn = document.getElementById('add-song');
+        addSongBtn.addEventListener('click', function() {
+            alert('Add song functionality would open a file dialog in a real application');
+        });
+    </script>
+</body>
+</html>

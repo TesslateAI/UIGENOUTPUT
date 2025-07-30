@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Tools Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,900;1,500;1,600;1,700;1,900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary-bg: #0f0f0f;
+            --color-primary-bg-alt: #1a1a1a;
+            --color-text-base: #f0f0f0;
+            --color-text-muted: #a0a0a0;
+            --color-text-dark: #333;
+            --color-accent: #4f46e5;
+            --color-accent-light: #818cf8;
+            --color-neutral-dark-1: #2d2d2d;
+            --color-neutral-dark-2: #1e1e1e;
+            --color-neutral-dark-3: #1a1a1a;
+            --color-border-dark: #333333;
+            --color-icon-bg: #252525;
+            --color-button-icon-bg: #2d2d2d;
+            --font-primary: 'Inter', sans-serif;
+            --font-secondary: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-primary-bg);
+            color: var(--color-text-base);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-jakarta {
+            font-family: var(--font-secondary);
+        }
+
+        .gallery-item {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .gallery-item img {
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+        }
+
+        .lightbox img {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: 8px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            background: rgba(0, 0, 0, 0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lightbox-close:hover {
+            background: var(--color-accent);
+            transform: rotate(90deg);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 2rem;
+            background: rgba(0, 0, 0, 0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lightbox-nav:hover {
+            background: var(--color-accent);
+        }
+
+        .lightbox-prev {
+            left: 20px;
+        }
+
+        .lightbox-next {
+            right: 20px;
+        }
+
+        .filter-btn {
+            transition: all 0.3s ease;
+            border-radius: 20px;
+            padding: 8px 20px;
+        }
+
+        .filter-btn:hover {
+            background: var(--color-accent);
+        }
+
+        .filter-btn.active {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .category-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--color-accent);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        @media (max-width: 640px) {
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-primary-bg)] text-[var(--color-text-base)] font-jakarta">
+    <!-- Header -->
+    <header class="py-6 px-4 md:px-8 border-b border-[var(--color-border-dark)]">
+        <div class="container mx-auto max-w-screen-xl flex justify-between items-center">
+            <div class="text-2xl font-bold">
+                <span class="text-[var(--color-accent)]">Build</span>Tools Gallery
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="hover:text-[var(--color-accent)] transition-colors">Home</a>
+                <a href="#" class="hover:text-[var(--color-accent)] transition-colors">Gallery</a>
+                <a href="#" class="hover:text-[var(--color-accent)] transition-colors">About</a>
+                <a href="#" class="hover:text-[var(--color-accent)] transition-colors">Contact</a>
+            </nav>
+            <button class="md:hidden text-[var(--color-text-base)]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-16 md:py-24 px-4 md:px-8">
+        <div class="container mx-auto max-w-screen-xl">
+            <div class="text-center max-w-3xl mx-auto animate-on-scroll">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                    Modern <span class="text-[var(--color-accent)]">Build Tools</span> Gallery
+                </h1>
+                <p class="text-lg text-[var(--color-text-muted)] mb-10 max-w-2xl mx-auto">
+                    Explore our curated collection of essential build tools with detailed insights and visual demonstrations.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button class="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg font-medium hover:bg-[var(--color-accent-light)] transition-colors">
+                        View Tools
+                    </button>
+                    <button class="px-6 py-3 border border-[var(--color-border-dark)] text-[var(--color-text-base)] rounded-lg font-medium hover:bg-[var(--color-neutral-dark-1)] transition-colors">
+                        Learn More
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section class="py-12 md:py-20 px-4 md:px-8 bg-[var(--color-primary-bg-alt)]">
+        <div class="container mx-auto max-w-screen-xl">
+            <div class="text-center mb-16 animate-on-scroll">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Filter by Category</h2>
+                <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto">
+                    Browse our collection of build tools organized by category
+                </p>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex flex-wrap justify-center gap-3 mb-12 animate-on-scroll">
+                <button class="filter-btn active" data-filter="all">All Tools</button>
+                <button class="filter-btn" data-filter="compilers">Compilers</button>
+                <button class="filter-btn" data-filter="bundlers">Bundlers</button>
+                <button class="filter-btn" data-filter="package-managers">Package Managers</button>
+                <button class="filter-btn" data-filter="task-runners">Task Runners</button>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div class="gallery-grid animate-on-scroll">
+                <!-- Item 1 -->
+                <div class="gallery-item" data-category="compilers">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Compiler Tool" 
+                             class="w-full h-64 object-cover cursor-pointer"
+                             data-full="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+                        <span class="category-badge">Compilers</span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">Advanced Compiler Suite</h3>
+                        <p class="text-[var(--color-text-muted)] mb-4">Optimized for modern web development with enhanced performance and debugging capabilities.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm bg-[var(--color-neutral-dark-1)] px-3 py-1 rounded">JavaScript</span>
+                            <button class="view-details text-[var(--color-accent)] hover:text-[var(--color-accent-light)] transition-colors">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="gallery-item" data-category="bundlers">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Bundler Tool" 
+                             class="w-full h-64 object-cover cursor-pointer"
+                             data-full="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+                        <span class="category-badge">Bundlers</span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">Modern Bundler Pro</h3>
+                        <p class="text-[var(--color-text-muted)] mb-4">Efficient module bundler with tree shaking and code splitting for optimized applications.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm bg-[var(--color-neutral-dark-1)] px-3 py-1 rounded">JavaScript</span>
+                            <button class="view-details text-[var(--color-accent)] hover:text-[var(--color-accent-light)] transition-colors">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="gallery-item" data-category="package-managers">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1586769852836-bc069f19e1b6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Package Manager" 
+                             class="w-full h-64 object-cover cursor-pointer"
+                             data-full="https://images.unsplash.com/photo-1586769852836-bc069f19e1b6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+                        <span class="category-badge">Package Managers</span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">Dependency Manager X</h3>
+                        <p class="text-[var(--color-text-muted)] mb-4">Smart package manager with intelligent caching and zero-configuration setup.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm bg-[var(--color-neutral-dark-1)] px-3 py-1 rounded">Node.js</span>
+                            <button class="view-details text-[var(--color-accent)] hover:text-[var(--color-accent-light)] transition-colors">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item 4 -->
+                <div class="gallery-item" data-category="task-runners">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Task Runner" 
+                             class="w-full h-64 object-cover cursor-pointer"
+                             data-full="https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+                        <span class="category-badge">Task Runners</span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">Automation Toolkit</h3>
+                        <p class="text-[var(--color-text-muted)] mb-4">Comprehensive task runner for automating development workflows and deployments.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm bg-[var(--color-neutral-dark-1)] px-3 py-1 rounded">JavaScript</span>
+                            <button class="view-details text-[var(--color-accent)] hover:text-[var(--color-accent-light)] transition-colors">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item 5 -->
+                <div class="gallery-item" data-category="compilers">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Compiler Tool" 
+                             class="w-full h-64 object-cover cursor-pointer"
+                             data-full="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+                        <span class="category-badge">Compilers</span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">TypeScript Compiler</h3>
+                        <p class="text-[var(--color-text-muted)] mb-4">Advanced TypeScript compiler with enhanced diagnostics and smart type inference.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm bg-[var(--color-neutral-dark-1)] px-3 py-1 rounded">TypeScript</span>
+                            <button class="view-details text-[var(--color-accent)] hover:text-[var(--color-accent-light)] transition-colors">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item 6 -->
+                <div class="gallery-item" data-category="bundlers">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                             alt="Bundler Tool" 
+                             class="w-full h-64 object-cover cursor-pointer"
+                             data-full="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+                        <span class="category-badge">Bundlers</span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">Webpack Pro</h3>
+                        <p class="text-[var(--color-text-muted)] mb-4">Powerful bundler with extensive plugin ecosystem and optimized asset management.</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm bg-[var(--color-neutral-dark-1)] px-3 py-1 rounded">JavaScript</span>
+                            <button class="view-details text-[var(--color-accent)] hover:text-[var(--color-accent-light)] transition-colors">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lightbox -->
+    <div class="lightbox">
+        <div class="lightbox-content">
+            <div class="lightbox-close">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <img id="lightbox-image" src="" alt="Lightbox image">
+            <div class="lightbox-nav lightbox-prev">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </div>
+            <div class="lightbox-nav lightbox-next">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-12 px-4 md:px-8 border-t border-[var(--color-border-dark)]">
+        <div class="container mx-auto max-w-screen-xl">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="text-2xl font-bold mb-4">
+                        <span class="text-[var(--color-accent)]">Build</span>Tools Gallery
+                    </div>
+                    <p class="text-[var(--color-text-muted)] mb-4">
+                        Showcasing the essential tools modern developers need to build amazing applications.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Categories</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Compilers</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Bundlers</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Package Managers</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Task Runners</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Linters</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Documentation</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Tutorials</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">API Reference</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Community</a></li>
+                        <li><a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Subscribe</h4>
+                    <p class="text-[var(--color-text-muted)] mb-4">Get the latest updates on new tools and features.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 w-full bg-[var(--color-neutral-dark-1)] rounded-l-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]">
+                        <button class="bg-[var(--color-accent)] text-white px-4 rounded-r-lg">Join</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-[var(--color-border-dark)] mt-12 pt-8 text-center text-[var(--color-text-muted)]">
+                <p>© 2023 BuildTools Gallery. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Filter functionality
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const galleryItems = document.querySelectorAll('.gallery-item');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    button.classList.add('active');
+                    
+                    const filter = button.getAttribute('data-filter');
+                    
+                    galleryItems.forEach(item => {
+                        if (filter === 'all' || item.getAttribute('data-category') === filter) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            });
+            
+            // Lightbox functionality
+            const lightbox = document.querySelector('.lightbox');
+            const lightboxImage = document.getElementById('lightbox-image');
+            const lightboxClose = document.querySelector('.lightbox-close');
+            const lightboxPrev = document.querySelector('.lightbox-prev');
+            const lightboxNext = document.querySelector('.lightbox-next');
+            
+            // Get all gallery images
+            const galleryImages = document.querySelectorAll('.gallery-item img');
+            
+            let currentIndex = 0;
+            
+            // Open lightbox
+            galleryImages.forEach((img, index) => {
+                img.addEventListener('click', () => {
+                    lightboxImage.src = img.getAttribute('data-full');
+                    lightboxImage.alt = img.alt;
+                    currentIndex = index;
+                    lightbox.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                });
+            });
+            
+            // Close lightbox
+            lightboxClose.addEventListener('click', () => {
+                lightbox.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            });
+            
+            // Navigation
+            lightboxPrev.addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+                lightboxImage.src = galleryImages[currentIndex].getAttribute('data-full');
+                lightboxImage.alt = galleryImages[currentIndex].alt;
+            });
+            
+            lightboxNext.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % galleryImages.length;
+                lightboxImage.src = galleryImages[currentIndex].getAttribute('data-full');
+                lightboxImage.alt = galleryImages[currentIndex].alt;
+            });
+            
+            // Close lightbox when clicking outside the image
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) {
+                    lightbox.classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Close lightbox with ESC key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+                    lightbox.classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoTrack - Portfolio Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-bg-primary: #0f172a;
+            --color-bg-secondary: #1e293b;
+            --color-bg-tertiary: #334155;
+            --color-bg-card: #1e293b;
+            --color-bg-accent-transparent: rgba(99, 102, 241, 0.1);
+            
+            --color-border-primary: #334155;
+            --color-border-secondary: #475569;
+            
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #cbd5e1;
+            --color-text-muted: #94a3b8;
+            --color-text-accent: #6366f1;
+            
+            --color-accent-purple: #8b5cf6;
+            --color-accent-blue: #3b82f6;
+            --color-accent-green: #10b981;
+            --color-accent-red: #ef4444;
+            
+            --font-body: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-family: var(--font-body);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        
+        .gradient-text-purple {
+            background-image: linear-gradient(90deg, var(--color-accent-purple), #a78bfa);
+        }
+        
+        .gradient-text-blue {
+            background-image: linear-gradient(90deg, var(--color-accent-blue), #60a5fa);
+        }
+        
+        .card {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border-primary);
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .ticker {
+            animation: ticker 30s linear infinite;
+        }
+        
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        
+        .crypto-item {
+            transition: all 0.3s ease;
+        }
+        
+        .crypto-item:hover {
+            background-color: var(--color-bg-secondary);
+        }
+        
+        .positive {
+            color: var(--color-accent-green);
+        }
+        
+        .negative {
+            color: var(--color-accent-red);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg-primary)]/90 backdrop-blur-md border-b border-[var(--color-border-primary)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-[var(--color-accent-purple)] to-[var(--color-accent-blue)] flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <span class="ml-2 text-xl font-bold">CryptoTrack</span>
+                    </div>
+                    <div class="hidden md:block ml-10">
+                        <div class="flex space-x-4">
+                            <a href="#" class="text-[var(--color-text-primary)] hover:text-[var(--color-accent-blue)] px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] px-3 py-2 rounded-md text-sm font-medium">Portfolio</a>
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] px-3 py-2 rounded-md text-sm font-medium">Markets</a>
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] px-3 py-2 rounded-md text-sm font-medium">News</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="relative ml-3">
+                        <div class="flex items-center space-x-4">
+                            <button class="p-1 rounded-full text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] focus:outline-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                            </button>
+                            <div class="relative">
+                                <button id="user-menu-button" class="flex items-center text-sm rounded-full focus:outline-none">
+                                    <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User profile">
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="pt-16">
+        <!-- Hero Section -->
+        <section class="py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end">
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-bold">Your <span class="gradient-text gradient-text-purple">Crypto</span> Portfolio</h1>
+                        <p class="mt-2 text-[var(--color-text-secondary)]">Track, analyze, and manage your cryptocurrency investments in real-time</p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <div class="relative">
+                            <input type="text" placeholder="Search assets..." class="bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-lg py-2 px-4 pl-10 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-blue)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[var(--color-text-muted)] absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Portfolio Summary -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-muted)] text-sm">Total Portfolio Value</p>
+                                <h3 class="text-2xl font-bold mt-1">$42,567.89</h3>
+                            </div>
+                            <div class="bg-[var(--color-bg-tertiary)] p-3 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[var(--color-accent-green)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-[var(--color-accent-green)] font-medium">+2.3%</span>
+                            <span class="text-[var(--color-text-muted)] ml-2">24h change</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-muted)] text-sm">24h Volume</p>
+                                <h3 class="text-2xl font-bold mt-1">$1.24B</h3>
+                            </div>
+                            <div class="bg-[var(--color-bg-tertiary)] p-3 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[var(--color-accent-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-[var(--color-accent-green)] font-medium">+5.1%</span>
+                            <span class="text-[var(--color-text-muted)] ml-2">vs last week</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-muted)] text-sm">Active Assets</p>
+                                <h3 class="text-2xl font-bold mt-1">12</h3>
+                            </div>
+                            <div class="bg-[var(--color-bg-tertiary)] p-3 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[var(--color-accent-purple)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-[var(--color-accent-green)] font-medium">+3 this week</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Charts and Portfolio -->
+        <section class="py-8 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Portfolio Chart -->
+                    <div class="lg:col-span-2 card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Portfolio Value</h2>
+                            <div class="flex space-x-2">
+                                <button class="text-xs px-3 py-1 rounded-lg bg-[var(--color-bg-secondary)]">1D</button>
+                                <button class="text-xs px-3 py-1 rounded-lg bg-[var(--color-bg-secondary)]">1W</button>
+                                <button class="text-xs px-3 py-1 rounded-lg bg-[var(--color-accent-blue)]">1M</button>
+                                <button class="text-xs px-3 py-1 rounded-lg bg-[var(--color-bg-secondary)]">1Y</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Market Ticker -->
+                    <div class="card p-6">
+                        <h2 class="text-xl font-bold mb-4">Market Activity</h2>
+                        <div class="overflow-hidden">
+                            <div class="flex space-x-4 pb-4">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">B</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Bitcoin</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">E</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Ethereum</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">S</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Solana</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">X</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">XRP</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">D</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Dogecoin</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">L</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Cardano</span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-4">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">B</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Bitcoin</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">E</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Ethereum</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">S</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Solana</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">X</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">XRP</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">D</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Dogecoin</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                        <span class="text-sm font-bold">L</span>
+                                    </div>
+                                    <span class="mt-1 text-sm">Cardano</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Portfolio Assets -->
+                <div class="mt-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">Your Assets</h2>
+                        <button class="text-sm text-[var(--color-accent-blue)] flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Asset
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-4">
+                        <!-- Bitcoin -->
+                        <div class="card p-4 crypto-item">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                    <span class="text-sm font-bold">B</span>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h3 class="font-medium">Bitcoin</h3>
+                                    <p class="text-[var(--color-text-muted)] text-sm">BTC</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">$41,234.56</span>
+                                    <span class="ml-2 positive text-sm">+1.2%</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm">
+                                <span class="text-[var(--color-text-muted)]">1.2 BTC</span>
+                                <span class="ml-4 text-[var(--color-text-muted)]">Value: $50,000.00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Ethereum -->
+                        <div class="card p-4 crypto-item">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                    <span class="text-sm font-bold">E</span>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h3 class="font-medium">Ethereum</h3>
+                                    <p class="text-[var(--color-text-muted)] text-sm">ETH</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">$2,876.34</span>
+                                    <span class="ml-2 negative text-sm">-0.8%</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm">
+                                <span class="text-[var(--color-text-muted)]">3.2 ETH</span>
+                                <span class="ml-4 text-[var(--color-text-muted)]">Value: $9,204.29</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Solana -->
+                        <div class="card p-4 crypto-item">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                    <span class="text-sm font-bold">S</span>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h3 class="font-medium">Solana</h3>
+                                    <p class="text-[var(--color-text-muted)] text-sm">SOL</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">$98.76</span>
+                                    <span class="ml-2 positive text-sm">+3.4%</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm">
+                                <span class="text-[var(--color-text-muted)]">45 SOL</span>
+                                <span class="ml-4 text-[var(--color-text-muted)]">Value: $4,444.20</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Cardano -->
+                        <div class="card p-4 crypto-item">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                    <span class="text-sm font-bold">C</span>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h3 class="font-medium">Cardano</h3>
+                                    <p class="text-[var(--color-text-muted)] text-sm">ADA</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">$0.45</span>
+                                    <span class="ml-2 positive text-sm">+1.7%</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm">
+                                <span class="text-[var(--color-text-muted)]">1,200 ADA</span>
+                                <span class="ml-4 text-[var(--color-text-muted)]">Value: $540.00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Ripple -->
+                        <div class="card p-4 crypto-item">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+                                    <span class="text-sm font-bold">X</span>
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <h3 class="font-medium">Ripple</h3>
+                                    <p class="text-[var(--color-text-muted)] text-sm">XRP</p>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">$0.62</span>
+                                    <span class="ml-2 negative text-sm">-0.3%</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm">
+                                <span class="text-[var(--color-text-muted)]">85 XRP</span>
+                                <span class="ml-4 text-[var(--color-text-muted)]">Value: $52.70</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Performance Section -->
+        <section class="py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-8">Performance</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="card p-6">
+                        <h3 class="text-lg font-bold mb-4">Asset Allocation</h3>
+                        <div class="chart-container">
+                            <canvas id="allocationChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <h3 class="text-lg font-bold mb-4">24h Performance</h3>
+                        <div class="flex items-end justify-between h-40">
+                            <div class="flex flex-col items-center">
+                                <div class="w-8 bg-gradient-to-t from-[var(--color-accent-purple)] to-[var(--color-bg-tertiary)] rounded-t-lg" style="height: 80px;"></div>
+                                <span class="mt-2 text-sm">BTC</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-8 bg-gradient-to-t from-[var(--color-accent-blue)] to-[var(--color-bg-tertiary)] rounded-t-lg" style="height: 120px;"></div>
+                                <span class="mt-2 text-sm">ETH</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-8 bg-gradient-to-t from-[var(--color-accent-green)] to-[var(--color-bg-tertiary)] rounded-t-lg" style="height: 150px;"></div>
+                                <span class="mt-2 text-sm">SOL</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-8 bg-gradient-to-t from-[var(--color-accent-blue)] to-[var(--color-bg-tertiary)] rounded-t-lg" style="height: 180px;"></div>
+                                <span class="mt-2 text-sm">ADA</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-8 bg-gradient-to-t from-[var(--color-accent-red)] to-[var(--color-bg-tertiary)] rounded-t-lg" style="height: 60px;"></div>
+                                <span class="mt-2 text-sm">XRP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="py-8 px-4 sm:px-6 lg:px-8 border-t border-[var(--color-border-primary)]">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-[var(--color-accent-purple)] to-[var(--color-accent-blue)] flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <span class="ml-2 text-lg font-bold">CryptoTrack</span>
+                </div>
+                <div class="mt-4 md:mt-0 text-sm text-[var(--color-text-muted)]">
+                    © 2023 CryptoTrack. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Portfolio value chart
+            const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+            const portfolioChart = new Chart(portfolioCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Portfolio Value',
+                        data: [35000, 37000, 38500, 40000, 41000, 41500, 42500],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Asset allocation chart
+            const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+            const allocationChart = new Chart(allocationCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Bitcoin', 'Ethereum', 'Solana', 'Cardano', 'Ripple'],
+                    datasets: [{
+                        data: [35, 25, 20, 12, 8],
+                        backgroundColor: [
+                            '#8b5cf6',
+                            '#3b82f6',
+                            '#10b981',
+                            '#60a5fa',
+                            '#ef4444'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#cbd5e1',
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Simulate real-time price updates
+            setInterval(() => {
+                // Update prices with random fluctuations
+                const btcPrice = document.querySelectorAll('.positive')[0].querySelector('span');
+                const ethPrice = document.querySelectorAll('.negative')[0].querySelector('span');
+                const solPrice = document.querySelectorAll('.positive')[1].querySelector('span');
+                const adaPrice = document.querySelectorAll('.positive')[2].querySelector('span');
+                const xrpPrice = document.querySelectorAll('.negative')[1].querySelector('span');
+                
+                // Apply small random changes
+                const btcChange = (Math.random() * 0.02) - 0.01; // -1% to +1%
+                const ethChange = (Math.random() * 0.03) - 0.015; // -1.5% to +1.5%
+                const solChange = (Math.random() * 0.04) - 0.02; // -2% to +2%
+                const adaChange = (Math.random() * 0.03) - 0.015; // -1.5% to +1.5%
+                const xrpChange = (Math.random() * 0.02) - 0.01; // -1% to +1%
+                
+                // Update prices
+                btcPrice.textContent = `$${(41234.56 * (1 + btcChange)).toFixed(2)}`;
+                ethPrice.textContent = `$${(2876.34 * (1 + ethChange)).toFixed(2)}`;
+                solPrice.textContent = `$${(98.76 * (1 + solChange)).toFixed(2)}`;
+                adaPrice.textContent = `$${(0.45 * (1 + adaChange)).toFixed(2)}`;
+                xrpPrice.textContent = `$${(0.62 * (1 + xrpChange)).toFixed(2)}`;
+                
+                // Update change indicators
+                const btcChangeEl = btcPrice.nextElementSibling;
+                const ethChangeEl = ethPrice.nextElementSibling;
+                const solChangeEl = solPrice.nextElementSibling;
+                const adaChangeEl = adaPrice.nextElementSibling;
+                const xrpChangeEl = xrpPrice.nextElementSibling;
+                
+                // Determine color based on change
+                function updateChangeIndicator(element, value) {
+                    if (value >= 0) {
+                        element.className = 'ml-2 positive text-sm';
+                        element.textContent = `+${value.toFixed(2)}%`;
+                    } else {
+                        element.className = 'ml-2 negative text-sm';
+                        element.textContent = `${value.toFixed(2)}%`;
+                    }
+                }
+                
+                // Update change indicators
+                updateChangeIndicator(btcChangeEl, btcChange);
+                updateChangeIndicator(ethChangeEl, ethChange);
+                updateChangeEl(solChangeEl, solChange);
+                updateChangeEl(adaChangeEl, adaChange);
+                updateChangeEl(xrpChangeEl, xrpChange);
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Personal Finance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        secondary: {
+                            50: '#f5f9fc',
+                            100: '#e2e8f0',
+                            200: '#cbd5e1',
+                            300: '#94a3b8',
+                            400: '#64748b',
+                            500: '#475569',
+                            600: '#334155',
+                            700: '#1e293b',
+                            800: '#0f172a',
+                            900: '#020617',
+                        },
+                        accent: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .dark body {
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+        
+        .card {
+            background: linear-gradient(145deg, #ffffff, #f1f5f9);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .dark .card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .transaction-row:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .dark .transaction-row:hover {
+            background-color: #1e293b;
+        }
+        
+        .goal-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .goal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .dark .goal-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .dark .sidebar {
+            background-color: #1e293b;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            background-color: #e2e8f0;
+        }
+        
+        .dark .nav-link:hover {
+            background-color: #334155;
+        }
+        
+        .nav-link.active {
+            background-color: #dbeafe;
+            color: #0ea5e9;
+        }
+        
+        .dark .nav-link.active {
+            background-color: #0c4a6e;
+            color: white;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .dark .stat-card:hover {
+            background-color: #1e293b;
+        }
+        
+        .blur-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.05;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="dark:bg-secondary-900">
+    <!-- Background elements -->
+    <div class="blur-circle bg-primary-500 w-[500px] h-[500px] top-[-150px] left-[-150px]"></div>
+    <div class="blur-circle bg-accent-500 w-[600px] h-[600px] bottom-[-200px] right-[-200px]"></div>
+    
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 min-h-screen py-6 px-4 hidden md:block">
+            <div class="flex items-center mb-10">
+                <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xl mr-3">F</div>
+                <h1 class="text-xl font-bold text-secondary-800 dark:text-white">FinTrack</h1>
+            </div>
+            
+            <nav class="space-y-1">
+                <a href="#" class="nav-link active flex items-center px-4 py-3 rounded-lg text-secondary-700 dark:text-white">
+                    <i class="fas fa-home mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-link flex items-center px-4 py-3 rounded-lg text-secondary-600 dark:text-secondary-300">
+                    <i class="fas fa-chart-pie mr-3"></i>
+                    Budgets
+                </a>
+                <a href="#" class="nav-link flex items-center px-4 py-3 rounded-lg text-secondary-600 dark:text-secondary-300">
+                    <i class="fas fa-money-bill-wave mr-3"></i>
+                    Transactions
+                </a>
+                <a href="#" class="nav-link flex items-center px-4 py-3 rounded-lg text-secondary-600 dark:text-secondary-300">
+                    <i class="fas fa-tasks mr-3"></i>
+                    Goals
+                </a>
+                <a href="#" class="nav-link flex items-center px-4 py-3 rounded-lg text-secondary-600 dark:text-secondary-300">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    Reports
+                </a>
+                <a href="#" class="nav-link flex items-center px-4 py-3 rounded-lg text-secondary-600 dark:text-secondary-300">
+                    <i class="fas fa-cog mr-3"></i>
+                    Settings
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-10">
+                <div class="bg-secondary-800 dark:bg-secondary-800 rounded-xl p-4">
+                    <div class="flex items-center mb-3">
+                        <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">JD</div>
+                        <div class="ml-3">
+                            <p class="font-medium text-sm">John Doe</p>
+                            <p class="text-xs text-secondary-500 dark:text-secondary-400">john@example.com</p>
+                        </div>
+                    </div>
+                    <button class="w-full bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition">
+                        Upgrade to Pro
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 p-4 md:p-8">
+            <!-- Top Bar -->
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-secondary-800 dark:text-white">Dashboard</h1>
+                    <p class="text-secondary-500 dark:text-secondary-400">Welcome back, John! Here's your financial overview</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="w-10 h-10 rounded-full bg-secondary-100 dark:bg-secondary-700 flex items-center justify-center">
+                            <i class="fas fa-bell text-secondary-600 dark:text-secondary-300"></i>
+                        </button>
+                        <span class="absolute top-0 right-0 w-3 h-3 bg-danger rounded-full"></span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold mr-2">JD</div>
+                        <span class="text-secondary-700 dark:text-white font-medium hidden md:block">John Doe</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-secondary-500 dark:text-secondary-400">Total Balance</p>
+                            <h3 class="text-2xl font-bold mt-1">$24,568.00</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                            <i class="fas fa-wallet text-primary-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-success flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 12.5% from last month
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="stat-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-secondary-500 dark:text-secondary-400">Income</p>
+                            <h3 class="text-2xl font-bold mt-1">$8,200.00</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <i class="fas fa-arrow-down text-success text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-success flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 5.2% from last month
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="stat-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-secondary-500 dark:text-secondary-400">Expenses</p>
+                            <h3 class="text-2xl font-bold mt-1">$3,842.50</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <i class="fas fa-arrow-up text-danger text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-danger flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 3.1% from last month
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="stat-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-secondary-500 dark:text-secondary-400">Savings Rate</p>
+                            <h3 class="text-2xl font-bold mt-1">28.5%</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-accent-100 dark:bg-accent-900/30 flex items-center justify-center">
+                            <i class="fas fa-piggy-bank text-accent-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-success flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 2.7% from last month
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Goal Tracking -->
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-secondary-800 dark:text-white">Financial Goals</h2>
+                            <button class="text-primary-500 hover:text-primary-700 flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add Goal
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-5">
+                            <!-- Goal 1 -->
+                            <div class="goal-card card p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-semibold text-lg">Emergency Fund</h3>
+                                        <p class="text-secondary-500 dark:text-secondary-400 text-sm mt-1">$12,000 / $20,000</p>
+                                    </div>
+                                    <span class="text-success text-sm font-medium">60%</span>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                        <div class="progress-fill bg-success" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-between text-sm">
+                                    <span class="text-secondary-500 dark:text-secondary-400">Target: Dec 2023</span>
+                                    <span class="font-medium">$1,200 this month</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Goal 2 -->
+                            <div class="goal-card card p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-semibold text-lg">Vacation Fund</h3>
+                                        <p class="text-secondary-500 dark:text-secondary-400 text-sm mt-1">$4,500 / $10,000</p>
+                                    </div>
+                                    <span class="text-warning text-sm font-medium">45%</span>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                        <div class="progress-fill bg-warning" style="width: 45%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-between text-sm">
+                                    <span class="text-secondary-500 dark:text-secondary-400">Target: Aug 2024</span>
+                                    <span class="font-medium">$850 this month</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Goal 3 -->
+                            <div class="goal-card card p-5">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-semibold text-lg">New Car</h3>
+                                        <p class="text-secondary-500 dark:text-secondary-400 text-sm mt-1">$8,000 / $25,000</p>
+                                    </div>
+                                    <span class="text-primary-500 text-sm font-medium">32%</span>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                        <div class="progress-fill bg-primary-500" style="width: 32%"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex justify-between text-sm">
+                                    <span class="text-secondary-500 dark:text-secondary-400">Target: Jun 2025</span>
+                                    <span class="font-medium">$2,000 this month</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Transactions -->
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-secondary-800 dark:text-white">Recent Transactions</h2>
+                            <button class="text-primary-500 hover:text-primary-700 flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add Transaction
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left text-secondary-500 dark:text-secondary-400 text-sm border-b">
+                                        <th class="pb-3">Description</th>
+                                        <th class="pb-3">Category</th>
+                                        <th class="pb-3">Date</th>
+                                        <th class="pb-3 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="transaction-row text-sm border-b">
+                                        <td class="py-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
+                                                    <i class="fas fa-shopping-cart text-blue-500"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Amazon Purchase</p>
+                                                    <p class="text-secondary-500 dark:text-secondary-400 text-xs">Shopping</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4">
+                                            <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">Shopping</span>
+                                        </td>
+                                        <td class="py-4 text-secondary-500 dark:text-secondary-400">Jun 12, 2023</td>
+                                        <td class="py-4 text-right font-medium text-danger">-$89.99</td>
+                                    </tr>
+                                    <tr class="transaction-row text-sm border-b">
+                                        <td class="py-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-md bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3">
+                                                    <i class="fas fa-money-check-alt text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Salary Deposit</p>
+                                                    <p class="text-secondary-500 dark:text-secondary-400 text-xs">Income</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4">
+                                            <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">Income</span>
+                                        </td>
+                                        <td class="py-4 text-secondary-500 dark:text-secondary-400">Jun 10, 2023</td>
+                                        <td class="py-4 text-right font-medium text-success">+$4,200.00</td>
+                                    </tr>
+                                    <tr class="transaction-row text-sm border-b">
+                                        <td class="py-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-md bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-3">
+                                                    <i class="fas fa-utensils text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Dinner at Restaurant</p>
+                                                    <p class="text-secondary-500 dark:text-secondary-400 text-xs">Dining</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4">
+                                            <span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-xs">Dining</span>
+                                        </td>
+                                        <td class="py-4 text-secondary-500 dark:text-secondary-400">Jun 8, 2023</td>
+                                        <td class="py-4 text-right font-medium text-danger">-$64.30</td>
+                                    </tr>
+                                    <tr class="transaction-row text-sm border-b">
+                                        <td class="py-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-md bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
+                                                    <i class="fas fa-gas-pump text-purple-500"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Gas Station</p>
+                                                    <p class="text-secondary-500 dark:text-secondary-400 text-xs">Transportation</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4">
+                                            <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">Transportation</span>
+                                        </td>
+                                        <td class="py-4 text-secondary-500 dark:text-secondary-400">Jun 5, 2023</td>
+                                        <td class="py-4 text-right font-medium text-danger">-$45.00</td>
+                                    </tr>
+                                    <tr class="transaction-row text-sm">
+                                        <td class="py-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-md bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mr-3">
+                                                    <i class="fas fa-heartbeat text-pink-500"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-medium">Gym Membership</p>
+                                                    <p class="text-secondary-500 dark:text-secondary-400 text-xs">Health</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4">
+                                            <span class="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full text-xs">Health</span>
+                                        </td>
+                                        <td class="py-4 text-secondary-500 dark:text-secondary-400">Jun 1, 2023</td>
+                                        <td class="py-4 text-right font-medium text-danger">-$35.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="space-y-6">
+                    <!-- Budget Overview -->
+                    <div class="card p-6">
+                        <h2 class="text-xl font-bold text-secondary-800 dark:text-white mb-6">Budget Overview</h2>
+                        
+                        <div class="space-y-5">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Housing</span>
+                                    <span>$1,200 / $1,500</span>
+                                </div>
+                                <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                    <div class="progress-fill bg-primary-500" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Food & Dining</span>
+                                    <span>$450 / $600</span>
+                                </div>
+                                <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                    <div class="progress-fill bg-success" style="width: 75%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Transportation</span>
+                                    <span>$180 / $300</span>
+                                </div>
+                                <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                    <div class="progress-fill bg-warning" style="width: 60%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Entertainment</span>
+                                    <span>$90 / $200</span>
+                                </div>
+                                <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                    <div class="progress-fill bg-danger" style="width: 45%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Utilities</span>
+                                    <span>$120 / $150</span>
+                                </div>
+                                <div class="progress-bar bg-secondary-200 dark:bg-secondary-700">
+                                    <div class="progress-fill bg-accent-500" style="width: 80%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full mt-6 py-2.5 bg-secondary-100 dark:bg-secondary-700 hover:bg-secondary-200 dark:hover:bg-secondary-600 rounded-lg text-secondary-700 dark:text-white font-medium transition">
+                            View Full Budget Report
+                        </button>
+                    </div>
+                    
+                    <!-- Spending Chart -->
+                    <div class="card p-6">
+                        <h2 class="text-xl font-bold text-secondary-800 dark:text-white mb-6">Spending by Category</h2>
+                        
+                        <div class="chart-container">
+                            <canvas id="spendingChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="card p-6">
+                        <h2 class="text-xl font-bold text-secondary-800 dark:text-white mb-6">Quick Actions</h2>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="p-4 bg-secondary-100 dark:bg-secondary-700 rounded-lg flex flex-col items-center justify-center hover:bg-secondary-200 dark:hover:bg-secondary-600 transition">
+                                <i class="fas fa-plus-circle text-primary-500 text-2xl mb-2"></i>
+                                <span class="text-sm font-medium">Add Money</span>
+                            </button>
+                            <button class="p-4 bg-secondary-100 dark:bg-secondary-700 rounded-lg flex flex-col items-center justify-center hover:bg-secondary-200 dark:hover:bg-secondary-600 transition">
+                                <i class="fas fa-arrow-circle-down text-success text-2xl mb-2"></i>
+                                <span class="text-sm font-medium">Transfer</span>
+                            </button>
+                            <button class="p-4 bg-secondary-100 dark:bg-secondary-700 rounded-lg flex flex-col items-center justify-center hover:bg-secondary-200 dark:hover:bg-secondary-600 transition">
+                                <i class="fas fa-chart-pie text-warning text-2xl mb-2"></i>
+                                <span class="text-sm font-medium">Reports</span>
+                            </button>
+                            <button class="p-4 bg-secondary-100 dark:bg-secondary-700 rounded-lg flex flex-col items-center justify-center hover:bg-secondary-200 dark:hover:bg-secondary-600 transition">
+                                <i class="fas fa-cog text-accent-500 text-2xl mb-2"></i>
+                                <span class="text-sm font-medium">Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize spending chart
+        const ctx = document.getElementById('spendingChart').getContext('2d');
+        const spendingChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Housing', 'Food', 'Transport', 'Entertainment', 'Utilities', 'Healthcare'],
+                datasets: [{
+                    data: [35, 20, 15, 10, 12, 8],
+                    backgroundColor: [
+                        '#22c55e',
+                        '#0ea5e9',
+                        '#f59e0b',
+                        '#ef4444',
+                        '#8b5cf6',
+                        '#ec4899'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#64748b',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+        
+        // Toggle dark mode
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+            });
+        }
+        
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
+</body>
+</html>

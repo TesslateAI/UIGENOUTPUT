@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Home - Smart Home Automation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0a0a12',
+                        'glass': 'rgba(20, 20, 30, 0.7)',
+                        'accent': '#00f0ff',
+                        'accent-dark': '#00c4d0',
+                        'card-bg': 'rgba(15, 15, 25, 0.5)',
+                        'text-primary': '#f0f0f0',
+                        'text-secondary': '#a0a0b0',
+                        'warning': '#ff6b6b',
+                        'success': '#00d9a9'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'mono': ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0a0a12;
+            color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        
+        .glass-card {
+            background: rgba(15, 15, 25, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .device-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .device-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+        
+        .node {
+            position: absolute;
+            width: 120px;
+            height: 80px;
+            background: rgba(10, 15, 30, 0.7);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .node:hover {
+            background: rgba(15, 20, 40, 0.7);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.2);
+        }
+        
+        .node-header {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #00f0ff;
+        }
+        
+        .node-content {
+            font-size: 0.7rem;
+            color: #a0a0b0;
+        }
+        
+        .connection {
+            position: absolute;
+            background: rgba(0, 240, 255, 0.2);
+            border-radius: 6px;
+            z-index: 1;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #00d9a9;
+            box-shadow: 0 0 8px #00d9a9;
+        }
+        
+        .status-offline {
+            background: #ff6b6b;
+        }
+        
+        .status-warning {
+            background: #ffd166;
+        }
+        
+        .conflict-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff6b6b;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .animate-pulse-fast {
+            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-dark-bg text-text-primary">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-dark-bg/80 border-b border-white/10">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
+                    <i class="fas fa-microchip text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">Nexus<span class="text-accent">Home</span></h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="text-text-primary hover:text-accent transition-colors">Dashboard</a>
+                <a href="#" class="text-text-primary hover:text-accent transition-colors">Devices</a>
+                <a href="#" class="text-text-primary hover:text-accent transition-colors">Automation</a>
+                <a href="#" class="text-text-primary hover:text-accent transition-colors">Schedules</a>
+                <a href="#" class="text-text-primary hover:text-accent transition-colors">Alerts</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <div class="w-10 h-10 rounded-full bg-card-bg flex items-center justify-center cursor-pointer">
+                        <i class="fas fa-bell text-text-secondary"></i>
+                    </div>
+                    <span class="absolute top-0 right-0 w-3 h-3 bg-warning rounded-full border-2 border-dark-bg"></span>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
+                    <span class="font-bold">AD</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Dashboard Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold mb-2">Smart Home Dashboard</h2>
+                <p class="text-text-secondary">Monitor and control all your smart devices in one place</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-3">
+                <button class="glass-card px-4 py-2 flex items-center space-x-2 hover:bg-accent/10 transition-colors">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Device</span>
+                </button>
+                <button class="glass-card px-4 py-2 flex items-center space-x-2 hover:bg-accent/10 transition-colors">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Automation</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-card p-5">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-text-secondary">Online Devices</p>
+                        <p class="text-2xl font-bold mt-2">24/30</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                        <i class="fas fa-plug text-accent text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-success">
+                        <span class="status-indicator status-online"></span>
+                        <span>24 devices online</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-5">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-text-secondary">Energy Usage</p>
+                        <p class="text-2xl font-bold mt-2">1.2kW</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                        <i class="fas fa-bolt text-accent text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-text-secondary">
+                        <span class="status-indicator status-warning"></span>
+                        <span>Optimal energy consumption</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-5">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-text-secondary">Automation Triggers</p>
+                        <p class="text-2xl font-bold mt-2">8 Active</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                        <i class="fas fa-cogs text-accent text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-success">
+                        <span class="status-indicator status-online"></span>
+                        <span>All triggers operational</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-5">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-text-secondary">Conflict Alerts</p>
+                        <p class="text-2xl font-bold mt-2">3</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-warning text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center text-sm text-warning">
+                        <span class="status-indicator status-warning"></span>
+                        <span>Requires attention</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Device Status Section -->
+            <div class="lg:col-span-2">
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Connected Devices</h3>
+                        <div class="flex space-x-2">
+                            <button class="text-text-secondary hover:text-accent">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                            <button class="text-text-secondary hover:text-accent">
+                                <i class="fas fa-sort"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Device Card 1 -->
+                        <div class="device-card glass-card p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold">Living Room Lights</h4>
+                                    <p class="text-sm text-text-secondary">Smart Lighting</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                    <i class="fas fa-lightbulb text-purple-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex justify-center items-center">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
+                                    <i class="fas fa-lightbulb text-2xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <span class="text-xs text-text-secondary">24 devices</span>
+                                <span class="text-xs text-success">All online</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Device Card 2 -->
+                        <div class="device-card glass-card p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold">Security System</h4>
+                                    <p class="text-sm text-text-secondary">Smart Home</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                    <i class="fas fa-shield-alt text-blue-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex justify-center items-center">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                                    <i class="fas fa-lock text-2xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <span class="text-xs text-text-secondary">8 devices</span>
+                                <span class="text-xs text-success">All online</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Device Card 3 -->
+                        <div class="device-card glass-card p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold">Kitchen AC</h4>
+                                    <p class="text-sm text-text-secondary">Climate Control</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                    <i class="fas fa-thermometer-half text-green-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex justify-center items-center">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
+                                    <i class="fas fa-thermometer text-2xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <span class="text-xs text-text-secondary">3 devices</span>
+                                <span class="text-xs text-warning">2 offline</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Device Card 4 -->
+                        <div class="device-card glass-card p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold">Smart Lock</h4>
+                                    <p class="text-sm text-text-secondary">Entry System</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                    <i class="fas fa-lock text-yellow-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex justify-center items-center">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-700 flex items-center justify-center">
+                                    <i class="fas fa-door-closed text-2xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <span class="text-xs text-text-secondary">1 device</span>
+                                <span class="text-xs text-success">Online</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Device Card 5 -->
+                        <div class="device-card glass-card p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold">Sprinklers</h4>
+                                    <p class="text-sm text-text-secondary">Safety System</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                                    <i class="fas fa-fire text-red-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex justify-center items-center">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+                                    <i class="fas fa-bolt text-2xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <span class="text-xs text-text-secondary">6 devices</span>
+                                <span class="text-xs text-warning">1 offline</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Device Card 6 -->
+                        <div class="device-card glass-card p-4 flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-bold">Cameras</h4>
+                                    <p class="text-sm text-text-secondary">Security</p>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                    <i class="fas fa-video text-indigo-400"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex justify-center items-center">
+                                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center">
+                                    <i class="fas fa-camera text-2xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <span class="text-xs text-text-secondary">4 devices</span>
+                                <span class="text-xs text-success">All online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Automation & Alerts Section -->
+            <div class="space-y-6">
+                <!-- Automation Editor -->
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Automation Editor</h3>
+                        <button class="text-text-secondary hover:text-accent">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="automation-canvas" class="relative h-80 bg-dark-bg rounded-xl border border-white/10">
+                        <!-- Nodes will be positioned absolutely -->
+                        <div class="node" style="top: 100px; left: 50px;">
+                            <div class="node-header">Trigger</div>
+                            <div class="node-content">Sunrise</div>
+                        </div>
+                        
+                        <div class="node" style="top: 100px; left: 250px;">
+                            <div class="node-header">Action</div>
+                            <div class="node-content">Lights On</div>
+                        </div>
+                        
+                        <div class="node" style="top: 100px; left: 450px;">
+                            <div class="node-header">Condition</div>
+                            <div class="node-content">Brightness</div>
+                        </div>
+                        
+                        <div class="node" style="top: 250px; left: 50px;">
+                            <div class="node-header">Trigger</div>
+                            <div class="node-content">Motion</div>
+                        </div>
+                        
+                        <div class="node" style="top: 250px; left: 250px;">
+                            <div class="node-header">Action</div>
+                            <div class="node-content">Record Video</div>
+                        </div>
+                        
+                        <div class="connection" style="top: 140px; left: 150px; width: 100px; height: 40px;"></div>
+                        <div class="connection" style="top: 140px; left: 350px; width: 100px; height: 40px;"></div>
+                        <div class="connection" style="top: 300px; left: 150px; width: 100px; height: 40px;"></div>
+                        
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center cursor-crosshair">
+                            <i class="fas fa-plus text-accent"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-between">
+                        <div>
+                            <span class="text-sm text-text-secondary">Automation:</span>
+                            <span class="font-medium">Living Room Lights</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-text-secondary">Status:</span>
+                            <span class="font-medium text-success">Active</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sunrise/Sunset Triggers -->
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Sunrise/Sunset Triggers</h3>
+                        <button class="text-text-secondary hover:text-accent">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 glass-card rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                                    <i class="fas fa-sun text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">Morning Lights</h4>
+                                    <p class="text-sm text-text-secondary">6:45 AM - 7:30 AM</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs text-success">Active</span>
+                                <button class="text-text-secondary hover:text-accent">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 glass-card rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center">
+                                    <i class="fas fa-moon text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">Night Lights</h4>
+                                    <p class="text-sm text-text-secondary">10:00 PM - 7:00 AM</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs text-warning">Needs adjustment</span>
+                                <button class="text-text-secondary hover:text-accent">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Conflict Alerts -->
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold">Conflict Alerts</h3>
+                        <span class="text-xs bg-warning/20 text-warning px-2 py-1 rounded">3 active</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 glass-card rounded-lg relative">
+                            <div class="conflict-badge">1</div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">Lighting Conflict</h4>
+                                    <p class="text-sm text-text-secondary mt-1">Living Room lights activated by both schedule and motion</p>
+                                    <div class="flex items-center mt-2 text-xs text-text-secondary">
+                                        <i class="far fa-clock mr-1"></i>
+                                        <span>Detected 2 min ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 glass-card rounded-lg relative">
+                            <div class="conflict-badge">2</div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-yellow-400"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">Security Overlap</h4>
+                                    <p class="text-sm text-text-secondary mt-1">Front door lock activated during scheduled recording</p>
+                                    <div class="flex items-center mt-2 text-xs text-text-secondary">
+                                        <i class="far fa-clock mr-1"></i>
+                                        <span>Detected 1 hour ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 glass-card rounded-lg">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-purple-400"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium">Energy Anomaly</h4>
+                                    <p class="text-sm text-text-secondary mt-1">Unusual power consumption detected in kitchen area</p>
+                                    <div class="flex items-center mt-2 text-xs text-text-secondary">
+                                        <i class="far fa-clock mr-1"></i>
+                                        <span>Detected yesterday</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full mt-4 glass-card py-2 text-accent hover:bg-accent/10 transition-colors">
+                        View All Alerts
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="border-t border-white/10 mt-12 py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
+                        <i class="fas fa-microchip text-sm"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">Nexus<span class="text-accent">Home</span></h3>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-text-secondary hover:text-accent">Documentation</a>
+                    <a href="#" class="text-text-secondary hover:text-accent">Support</a>
+                    <a href="#" class="text-text-secondary hover:text-accent">API</a>
+                    <a href="#" class="text-text-secondary hover:text-accent">Community</a>
+                </div>
+                
+                <div class="mt-4 md:mt-0 text-sm text-text-secondary">
+                    © 2023 NexusHome. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Simple drag functionality for nodes
+        document.querySelectorAll('.node').forEach(node => {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            node.onmousedown = dragMouseDown;
+            
+            function dragMouseDown(e) {
+                e.preventDefault();
+                // Get the mouse cursor position at startup
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function elementDrag(e) {
+                e.preventDefault();
+                // Calculate the new cursor position
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // Set the element's new position
+                node.style.top = (node.offsetTop - pos2) + "px";
+                node.style.left = (node.offsetLeft - pos1) + "px";
+            }
+            
+            function closeDragElement() {
+                // Stop moving when mouse button is released
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        });
+        
+        // Add animation to elements on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        document.querySelectorAll('.glass-card').forEach(card => {
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

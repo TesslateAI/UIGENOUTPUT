@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        neutral: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 80px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        .header {
+            grid-area: header;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: #f1f5f9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        
+        .transaction-row:hover {
+            background-color: #f8fafc;
+        }
+        
+        .positive {
+            color: #10b981;
+        }
+        
+        .negative {
+            color: #ef4444;
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+        
+        .sidebar-link {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.05);
+            border-left: 3px solid #0ea5e9;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                bottom: 0;
+                z-index: 50;
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.open {
+                transform: translateX(280px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar text-white">
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center">
+                        <i class="fas fa-building text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">SecureBank</h1>
+                </div>
+            </div>
+            
+            <nav class="p-4 space-y-1">
+                <a href="#" class="sidebar-link active flex items-center p-3 rounded-lg">
+                    <i class="fas fa-home mr-3 text-primary-300"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-wallet mr-3 text-secondary-300"></i>
+                    <span>Accounts</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-exchange-alt mr-3 text-amber-300"></i>
+                    <span>Transfers</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-credit-card mr-3 text-purple-300"></i>
+                    <span>Cards</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-chart-line mr-3 text-emerald-300"></i>
+                    <span>Investments</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-file-invoice-dollar mr-3 text-rose-300"></i>
+                    <span>Bills</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-cog mr-3 text-slate-300"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+                        <span class="font-semibold">JD</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">John Doe</p>
+                        <p class="text-sm text-slate-400">john.doe@example.com</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6 py-4">
+            <div class="flex items-center">
+                <button id="menu-toggle" class="md:hidden mr-4 text-slate-600">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-xl font-semibold text-slate-800">Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 text-slate-500 hover:text-slate-700">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full"></span>
+                </div>
+                <div class="relative">
+                    <button class="p-2 text-slate-500 hover:text-slate-700">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-primary-500 rounded-full"></span>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span class="font-semibold text-primary-700">JD</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-6 overflow-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Account Summary -->
+                <div class="lg:col-span-2">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-slate-800">Account Summary</h3>
+                            <button class="text-primary-600 hover:text-primary-800 font-medium">
+                                View All Accounts <i class="fas fa-chevron-right ml-1 text-sm"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="p-4 rounded-lg bg-gradient-to-br from-primary-50 to-primary-100">
+                                <div class="text-slate-500 text-sm">Checking Account</div>
+                                <div class="text-2xl font-bold mt-1">$12,456.78</div>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-green-500 text-sm flex items-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> 2.3%
+                                    </span>
+                                    <span class="text-slate-500 text-sm ml-2">since last month</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 rounded-lg bg-gradient-to-br from-secondary-50 to-secondary-100">
+                                <div class="text-slate-500 text-sm">Savings Account</div>
+                                <div class="text-2xl font-bold mt-1">$24,890.21</div>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-green-500 text-sm flex items-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> 1.8%
+                                    </span>
+                                    <span class="text-slate-500 text-sm ml-2">since last month</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100">
+                                <div class="text-slate-500 text-sm">Investment Account</div>
+                                <div class="text-2xl font-bold mt-1">$42,365.43</div>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-green-500 text-sm flex items-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> 5.7%
+                                    </span>
+                                    <span class="text-slate-500 text-sm ml-2">since last month</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div>
+                    <div class="card p-6">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-6">Quick Actions</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="p-4 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mb-2">
+                                    <i class="fas fa-exchange-alt text-primary-600"></i>
+                                </div>
+                                <span class="font-medium">Transfer</span>
+                            </button>
+                            
+                            <button class="p-4 rounded-lg bg-secondary-50 hover:bg-secondary-100 transition-colors flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 rounded-full bg-secondary-100 flex items-center justify-center mb-2">
+                                    <i class="fas fa-credit-card text-secondary-600"></i>
+                                </div>
+                                <span class="font-medium">Pay Bills</span>
+                            </button>
+                            
+                            <button class="p-4 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+                                    <i class="fas fa-plus-circle text-amber-600"></i>
+                                </div>
+                                <span class="font-medium">Deposit</span>
+                            </button>
+                            
+                            <button class="p-4 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors flex flex-col items-center justify-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                                    <i class="fas fa-file-invoice-dollar text-purple-600"></i>
+                                </div>
+                                <span class="font-medium">Statements</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts and Transactions -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <!-- Spending Chart -->
+                <div class="lg:col-span-2">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-slate-800">Spending Overview</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm rounded-lg bg-primary-100 text-primary-700 font-medium">Month</button>
+                                <button class="px-3 py-1 text-sm rounded-lg text-slate-500 hover:bg-slate-100">Quarter</button>
+                                <button class="px-3 py-1 text-sm rounded-lg text-slate-500 hover:bg-slate-100">Year</button>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <canvas id="spendingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Transactions -->
+                <div>
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-slate-800">Recent Transactions</h3>
+                            <button class="text-primary-600 hover:text-primary-800 font-medium">
+                                View All <i class="fas fa-chevron-right ml-1 text-sm"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="transaction-row flex items-center justify-between p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-shopping-cart text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Amazon Purchase</p>
+                                        <p class="text-sm text-slate-500">Today, 10:30 AM</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium negative">-$89.99</p>
+                                    <p class="text-sm text-slate-500">Shopping</p>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-row flex items-center justify-between p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-money-check-alt text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Salary Deposit</p>
+                                        <p class="text-sm text-slate-500">Yesterday, 9:00 AM</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium positive">+$4,200.00</p>
+                                    <p class="text-sm text-slate-500">Income</p>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-row flex items-center justify-between p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-utensils text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Dinner at Bistro</p>
+                                        <p class="text-sm text-slate-500">May 12, 7:45 PM</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium negative">-$64.50</p>
+                                    <p class="text-sm text-slate-500">Dining</p>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-row flex items-center justify-between p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-gas-pump text-amber-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Gas Station</p>
+                                        <p class="text-sm text-slate-500">May 11, 5:15 PM</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium negative">-$45.75</p>
+                                    <p class="text-sm text-slate-500">Transportation</p>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-row flex items-center justify-between p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-heartbeat text-rose-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Gym Membership</p>
+                                        <p class="text-sm text-slate-500">May 10, 8:00 AM</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium negative">-$39.99</p>
+                                    <p class="text-sm text-slate-500">Health</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Full Transaction History -->
+            <div class="mt-6">
+                <div class="card overflow-hidden">
+                    <div class="p-6 border-b border-slate-100">
+                        <h3 class="text-lg font-semibold text-slate-800">Transaction History</h3>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="py-3 px-6 text-left text-sm font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                                    <th class="py-3 px-6 text-left text-sm font-medium text-slate-500 uppercase tracking-wider">Description</th>
+                                    <th class="py-3 px-6 text-left text-sm font-medium text-slate-500 uppercase tracking-wider">Category</th>
+                                    <th class="py-3 px-6 text-left text-sm font-medium text-slate-500 uppercase tracking-wider">Account</th>
+                                    <th class="py-3 px-6 text-right text-sm font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 15, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Amazon Purchase</div>
+                                        <div class="text-sm text-slate-500">Electronics</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Shopping</td>
+                                    <td class="py-4 px-6 text-sm">Checking •••• 4582</td>
+                                    <td class="py-4 px-6 text-right font-medium negative">-$129.99</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 14, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Salary Deposit</div>
+                                        <div class="text-sm text-slate-500">Monthly Salary</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Income</td>
+                                    <td class="py-4 px-6 text-sm">Checking •••• 4582</td>
+                                    <td class="py-4 px-6 text-right font-medium positive">+$4,200.00</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 12, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Dinner at Bistro</div>
+                                        <div class="text-sm text-slate-500">Reservation #3456</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Dining</td>
+                                    <td class="py-4 px-6 text-sm">Credit Card •••• 2341</td>
+                                    <td class="py-4 px-6 text-right font-medium negative">-$64.50</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 11, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Gas Station</div>
+                                        <div class="text-sm text-slate-500">Shell Gas</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Transportation</td>
+                                    <td class="py-4 px-6 text-sm">Credit Card •••• 2341</td>
+                                    <td class="py-4 px-6 text-right font-medium negative">-$45.75</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 10, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Gym Membership</div>
+                                        <div class="text-sm text-slate-500">Monthly Payment</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Health</td>
+                                    <td class="py-4 px-6 text-sm">Checking •••• 4582</td>
+                                    <td class="py-4 px-6 text-right font-medium negative">-$39.99</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 8, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Online Transfer</div>
+                                        <div class="text-sm text-slate-500">To Savings Account</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Transfer</td>
+                                    <td class="py-4 px-6 text-sm">Checking •••• 4582</td>
+                                    <td class="py-4 px-6 text-right font-medium negative">-$1,000.00</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 text-sm text-slate-500">May 5, 2023</td>
+                                    <td class="py-4 px-6">
+                                        <div class="font-medium">Netflix Subscription</div>
+                                        <div class="text-sm text-slate-500">Monthly Payment</div>
+                                    </td>
+                                    <td class="py-4 px-6 text-sm">Entertainment</td>
+                                    <td class="py-4 px-6 text-sm">Credit Card •••• 2341</td>
+                                    <td class="py-4 px-6 text-right font-medium negative">-$15.99</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="p-4 border-t border-slate-100 flex items-center justify-between">
+                        <div class="text-sm text-slate-500">
+                            Showing 1 to 7 of 42 transactions
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded text-slate-500 hover:bg-slate-100">
+                                Previous
+                            </button>
+                            <button class="px-3 py-1 rounded bg-primary-600 text-white">
+                                1
+                            </button>
+                            <button class="px-3 py-1 rounded text-slate-500 hover:bg-slate-100">
+                                2
+                            </button>
+                            <button class="px-3 py-1 rounded text-slate-500 hover:bg-slate-100">
+                                3
+                            </button>
+                            <button class="px-3 py-1 rounded text-slate-500 hover:bg-slate-100">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Toggle mobile menu
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('open');
+        });
+        
+        // Initialize spending chart
+        const ctx = document.getElementById('spendingChart').getContext('2d');
+        const spendingChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                datasets: [{
+                    label: 'Income',
+                    data: [3200, 3400, 3800, 3600, 4200, 4000, 4300],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }, {
+                    label: 'Expenses',
+                    data: [2800, 2900, 3100, 3300, 3000, 3200, 3100],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

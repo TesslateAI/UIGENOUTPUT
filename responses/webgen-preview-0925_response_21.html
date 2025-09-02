@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow – Project Management Dashboard</title>
+    <meta name="description" content="TaskFlow – a sleek Kanban board dashboard for project management with draggable task cards, due‑date indicators and beautiful static‑photos UI.">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=General+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            /* Color Tokens – a fresh teal palette */
+            --token-white: rgb(255, 255, 255);
+            --token-black: rgb(0, 0, 0);
+            --token-gray-900: rgb(51, 51, 51);
+            --token-gray-800: rgb(77, 77, 77);
+            --token-gray-700: rgb(97, 97, 97);
+            --token-gray-600: rgb(117, 117, 117);
+            --token-gray-500: rgb(137, 137, 137);
+            --token-gray-400: rgb(157, 157, 157);
+            --token-gray-300: rgb(177, 177, 177);
+            --token-gray-200: rgb(197, 197, 197);
+            --token-gray-100: rgb(217, 217, 217);
+            --token-gray-50: rgb(245, 245, 245);
+            --token-primary: rgb(0, 150, 136);               /* teal */
+            --token-primary-dark: rgb(0, 120, 110);
+            --token-primary-light: rgb(220, 240, 235);
+            --token-primary-glow: rgb(0, 200, 180);
+            --token-primary-border: rgba(0, 150, 136, 0.2);
+            --token-background: rgb(250, 250, 250);
+            --token-primary-bg: rgb(0, 220, 210);
+        }
+
+        body {
+            font-family: 'General Sans', sans-serif;
+            background-color: var(--token-background);
+            color: var(--token-gray-900);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'General Sans', sans-serif;
+        }
+
+        .font-jakarta {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Animation Setup */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .animate-on-scroll.delay-100 { transition-delay: .1s; }
+        .animate-on-scroll.delay-200 { transition-delay: .2s; }
+        .animate-on-scroll.delay-300 { transition-delay: .3s; }
+        .animate-on-scroll.delay-400 { transition-delay: .4s; }
+        .animate-on-scroll.delay-500 { transition-delay: .5s; }
+
+        /* Marquee Animation */
+        .marquee-container {
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12.5%, black 87.5%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 12.5%, black 87.5%, transparent 100%);
+        }
+        .marquee-content {
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Card Hover Glow */
+        .card-glow::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1rem;
+            background: radial-gradient(50% 50% at 50% 50%, var(--token-primary-glow) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+        .card-container:hover .card-glow {
+            opacity: .5;
+        }
+
+        /* Mobile Nav Transition */
+        #mobile-menu {
+            transition: transform .3s ease-in-out, opacity .3s ease-in-out;
+        }
+        #mobile-menu.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Draggable Card Styles */
+        .draggable-card {
+            cursor: grab;
+            user-select: none;
+            position: relative;
+            z-index: 10;
+        }
+        .draggable-card:active {
+            cursor: grabbing;
+        }
+        .draggable-card .card-glow::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1rem;
+            background: radial-gradient(50% 50% at 50% 50%, var(--token-primary-glow) 0%, rgba(255,255,255,0) 100%);
+            opacity: .3;
+            transition: opacity .3s ease;
+        }
+        .draggable-card .card-glow::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 1rem;
+            background: radial-gradient(50% 50% at 50% 50%, var(--token-primary-glow) 0%, rgba(255,255,255,0) 100%);
+            opacity: .1;
+            transition: opacity .3s ease;
+        }
+        .draggable-card .card-content {
+            transition: transform .2s cubic-bezier(.12,.23,.5,1);
+        }
+        .draggable-card.dragging .card-content {
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-[var(--token-background)] text-[var(--token-gray-900)]">
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--token-primary)]">
+                        <i data-lucide="layout-dashboard" class="h-6 w-6 text-[var(--token-background)]"></i>
+                    </div>
+                    <span class="font-jakarta text-2xl font-bold text-[var(--token-background)]">TaskFlow</span>
+                </a>
+
+                <!-- Desktop Nav -->
+                <div class="hidden lg:flex items-center gap-8">
+                    <a href="#" class="text-base font-medium text-[var(--token-gray-800)] hover:text-[var(--token-primary)] transition-colors">Home</a>
+                    <a href="#" class="text-base font-medium text-[var(--token-gray-800)] hover:text-[var(--token-primary)] transition-colors">Features</a>
+                    <a href="#" class="text-base font-medium text-[var(--token-gray-800)] hover:text-[var(--token-primary)] transition-colors">Pricing</a>
+                    <a href="#" class="text-base font-medium text-[var(--token-gray-800)] hover:text-[var(--token-primary)] transition-colors">Contact</a>
+                </div>
+
+                <!-- CTA Button -->
+                <a href="#" class="hidden lg:inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--token-primary)] px-6 py-3 text-base font-semibold text-[var(--token-background)] transition-transform hover:scale-105">
+                    Get Started
+                    <i data-lucide="arrow-right" class="h-5 w-5"></i>
+                </a>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-button" class="lg:hidden z-50">
+                    <div class="space-y-1.5">
+                        <span class="block h-0.5 w-6 bg-[var(--token-gray-800)] transition-transform duration-300"></span>
+                        <span class="block h-0.5 w-6 bg-[var(--token-gray-800)] transition-transform duration-300"></span>
+                    </div>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden absolute top-0 left-0 w-full h-full bg-[var(--token-gray-900)]/95 backdrop-blur-lg pt-24 px-8">
+            <div class="flex flex-col items-center gap-8 text-center">
+                <a href="#" class="text-2xl font-medium text-[var(--token-gray-200)]">Home</a>
+                <a href="#" class="text-2xl font-medium text-[var(--token-gray-200)]">Features</a>
+                <a href="#" class="text-2xl font-medium text-[var(--token-gray-200)]">Pricing</a>
+                <a href="#" class="text-2xl font-medium text-[var(--token-gray-200)]">Contact</a>
+                <a href="#" class="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--token-primary)] px-8 py-4 text-xl font-semibold text-[var(--token-background)]">
+                    Get Started
+                    <i data-lucide="arrow-right" class="h-5 w-5"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[var(--token-primary-border)] rounded-full opacity-50 blur-3xl"></div>
+            <div class="container mx-auto px-6 text-center">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex flex-col items-center gap-6 animate-on-scroll">
+                        <h1 class="font-sans font-medium text-4xl md:text-6xl lg:text-7xl !leading-tight tracking-tighter text-[var(--token-gray-900)]">
+                            Manage Your Projects with Ease
+                        </h1>
+                        <p class="text-lg md:text-xl text-[var(--token-gray-700)] max-w-2xl mx-auto">
+                            A sleek Kanban board that lets you drag tasks, track due dates, and stay on top of your workflow—all with beautiful static‑photos.
+                        </p>
+                    </div>
+
+                    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 animate-on-scroll delay-100">
+                        <a href="#" class="flex items-center gap-3 rounded-xl bg-[var(--token-primary)] px-6 py-4 text-base font-semibold text-[var(--token-background)] transition-transform hover:scale-105">
+                            Get Started
+                            <i data-lucide="arrow-right" class="h-5 w-5"></i>
+                        </a>
+                        <a href="#" class="flex items-center gap-2 text-base font-medium text-[var(--token-gray-800)] hover:text-[var(--token-primary)] transition-colors">
+                            Watch Demo
+                            <i data-lucide="play-circle" class="h-6 w-6 text-[var(--token-primary)]"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Hero Image -->
+                <div class="relative mt-16 lg:mt-24 animate-on-scroll delay-200">
+                    <div class="relative w-full max-w-5xl mx-auto p-1.5 rounded-2xl border border-[var(--token-primary-border)] bg-[var(--token-background)] shadow-2xl shadow-black/10">
+                        <div class="absolute -top-10 -left-10 w-40 h-40 bg-[var(--token-primary-light)] rounded-2xl blur-2xl opacity-50"></div>
+                        <div class="absolute -bottom-10 -right-10 w-56 h-56 bg-[var(--token-primary-light)] rounded-3xl blur-2xl opacity-50"></div>
+                        <img src="https://static.photos/technology/1200x630/123" alt="Kanban board on a laptop" class="relative w-full h-auto rounded-xl border border-[var(--token-primary-border)]">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Logos Section -->
+        <section class="py-12 bg-[var(--token-background)]">
+            <div class="container mx-auto px-6">
+                <h2 class="text-center text-sm font-medium text-[var(--token-gray-700)] mb-8 animate-on-scroll">Trusted by leading teams</h2>
+                <div class="relative w-full overflow-hidden marquee-container">
+                    <div class="flex marquee-content">
+                        <div class="flex items-center justify-around flex-shrink-0 w-full gap-16 lg:gap-24 px-8">
+                            <span class="font-bold text-2xl text-gray-400">Acme Corp.</span>
+                            <span class="font-bold text-2xl text-gray-400">Beta Studios</span>
+                            <span class="font-bold text-2xl text-gray-400">Creative Labs</span>
+                            <span class="font-bold text-2xl text-gray-400">DevCo</span>
+                            <span class="font-bold text-2xl text-gray-400">FutureWorks</span>
+                            <span class="font-bold text-2xl text-gray-400">GrowthHub</span>
+                        </div>
+                        <div class="flex items-center justify-around flex-shrink-0 w-full gap-16 lg:gap-24 px-8" aria-hidden="true">
+                            <span class="font-bold text-2xl text-gray-400">Acme Corp.</span>
+                            <span class="font-bold text-2xl text-gray-400">Beta Studios</span>
+                            <span class="font-bold text-2xl text-gray-400">Creative Labs</span>
+                            <span class="font-bold text-2xl text-gray-400">DevCo</span>
+                            <span class="font-bold text-2xl text-gray-400">FutureWorks</span>
+                            <span class="font-bold text-2xl text-gray-400">GrowthHub</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kanban Board Section -->
+        <section class="py-24 lg:py-48 bg-[var(--token-background)]">
+            <div class="container mx-auto px-6 text-center">
+                <div class="max-w-3xl mx-auto">
+                    <h2 class="text-4xl lg:text-6xl font-semibold tracking-tight text-[var(--token-gray-900)] animate-on-scroll">Drag‑and‑Drop Kanban Board</h2>
+                    <p class="mt-6 text-lg text-[var(--token-gray-700)] animate-on-scroll delay-100">
+                        Move tasks between columns, set due dates, and visualize progress in real time.
+                    </p>
+                </div>
+
+                <!-- Kanban Columns -->
+                <div class="mt-16 max-w-6xl mx-auto animate-on-scroll delay-200">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Column 1 – To Do -->
+                        <div class="bg-[var(--token-gray-50)] p-4 rounded-xl border border-[var(--token-primary-border)]">
+                            <h3 class="font-jakarta text-xl font-medium text-[var(--token-gray-900)] mb-4">To Do</h3>
+                            <div class="space-y-3">
+                                <!-- Task Card 1 -->
+                                <div class="draggable-card bg-[var(--token-primary-light)] p-4 rounded-lg cursor-grab" data-draggable="true">
+                                    <div class="card-glow::before"></div>
+                                    <div class="card-content flex flex-col gap-2">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-jakarta font-medium text-[var(--token-gray-900)]">Design UI Mockups</h4>
+                                                <p class="text-sm text-[var(--token-gray-600)]">Due: <span class="text-[var(--token-primary)]">Oct 22, 2026</span></p>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <img src="https://static.photos/abstract/320x240/123" alt="abstract" class="w-6 h-6 rounded">
+                                                <img src="https://static.photos/technology/200x200/123" alt="tech" class="w-6 h-6 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Task Card 2 -->
+                                <div class="draggable-card bg-[var(--token-primary-light)] p-4 rounded-lg cursor-grab" data-draggable="true">
+                                    <div class="card-glow::before"></div>
+                                    <div class="card-content flex flex-col gap-2">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-jakarta font-medium text-[var(--token-gray-900)]">Write API Docs</h4>
+                                                <p class="text-sm text-[var(--token-gray-600)]">Due: <span class="text-[var(--token-primary)]">Oct 25, 2026</span></p>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <img src="https://static.photos/nature/320x240/123" alt="nature" class="w-6 h-6 rounded">
+                                                <img src="https://static.photos/office/200x200/123" alt="office" class="w-6 h-6 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 2 – In Progress -->
+                        <div class="bg-[var(--token-gray-50)] p-4 rounded-xl border border-[var(--token-primary-border)]">
+                            <h3 class="font-jakarta text-xl font-medium text-[var(--token-gray-900)] mb-4">In Progress</h3>
+                            <div class="space-y-3">
+                                <!-- Task Card 3 -->
+                                <div class="draggable-card bg-[var(--token-primary-light)] p-4 rounded-lg cursor-grab" data-draggable="true">
+                                    <div class="card-glow::before"></div>
+                                    <div class="card-content flex flex-col gap-2">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-jakarta font-medium text-[var(--token-gray-900)]">Frontend Development</h4>
+                                                <p class="text-sm text-[var(--token-gray-600)]">Due: <span class="text-[var(--token-primary)]">Nov 10, 2026</span></p>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <img src="https://static.photos/technology/320x240/123" alt="tech" class="w-6 h-6 rounded">
+                                                <img src="https://static.photos/abstract/200x200/123" alt="abstract" class="w-6 h-6 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Task Card 4 -->
+                                <div class="draggable-card bg-[var(--token-primary-light)] p-4 rounded-lg cursor-grab" data-draggable="true">
+                                    <div class="card-glow::before"></div>
+                                    <div class="card-content flex flex-col gap-2">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-jakarta font-medium text-[var(--token-gray-900)]">Backend Setup</h4>
+                                                <p class="text-sm text-[var(--token-gray-600)]">Due: <span class="text-[var(--token-primary)]">Oct 30, 2026</span></p>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <img src="https://static.photos/office/320x240/123" alt="office" class="w-6 h-6 rounded">
+                                                <img src="https://static.photos/industry/200x200/123" alt="industry" class="w-6 h-6 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 3 – Done -->
+                        <div class="bg-[var(--token-gray-50)] p-4 rounded-xl border border-[var(--token-primary-border)]">
+                            <h3 class="font-jakarta text-xl font-medium text-[var(--token-gray-900)] mb-4">Done</h3>
+                            <div class="space-y-3">
+                                <!-- Task Card 5 -->
+                                <div class="draggable-card bg-[var(--token-primary-light)] p-4 rounded-lg cursor-grab" data-draggable="true">
+                                    <div class="card-glow::before"></div>
+                                    <div class="card-content flex flex-col gap-2">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-jakarta font-medium text-[var(--token-gray-900)]">QA Testing</h4>
+                                                <p class="text-sm text-[var(--token-gray-600)]">Due: <span class="text-[var(--token-primary)]">Nov 5, 2026</span></p>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <img src="https://static.photos/technology/320x240/123" alt="tech" class="w-6 h-6 rounded">
+                                                <img src="https://static.photos/abstract/200x200/123" alt="abstract" class="w-6 h-6 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-24 lg:py-48 bg-[var(--token-background)]">
+            <div class="container mx-auto px-6">
+                <div class="max-w-3xl mx-auto text-center">
+                    <div class="inline-flex items-center gap-2 rounded-full bg-[var(--token-primary-light)] px-4 py-1 text-sm font-medium text-[var(--token-primary)] animate-on-scroll">
+                        <i data-lucide="star" class="h-4 w-4"></i>
+                        2026 Launch
+                    </div>
+                    <h2 class="mt-4 text-4xl lg:text-6xl font-semibold tracking-tight text-[var(--token-gray-900)] animate-on-scroll delay-100">All‑in‑One Project Management</h2>
+                    <p class="mt-6 text-lg text-[var(--token-gray-700)] animate-on-scroll delay-200">
+                        From task tracking to deadline alerts, everything you need is right at your fingertips.
+                    </p>
+                </div>
+
+                <div class="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Feature Card 1 -->
+                    <div class="bg-[var(--token-gray-50)] p-8 rounded-2xl border border-[var(--token-primary-border)] flex flex-col gap-6 animate-on-scroll">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--token-primary-light)]">
+                                <i data-lucide="calendar" class="h-6 w-6 text-[var(--token-primary)]"></i>
+                            </div>
+                            <h3 class="text-xl font-medium text-[var(--token-gray-900)]">Due‑Date Reminders</h3>
+                        </div>
+                        <p class="text-[var(--token-gray-700)]">Set deadlines and get alerts before they expire.</p>
+                        <div class="h-40 rounded-lg overflow-hidden">
+                            <img src="https://static.photos/technology/640x360/123" alt="calendar" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    <!-- Feature Card 2 -->
+                    <div class="bg-[var(--token-gray-50)] p-8 rounded-2xl border border-[var(--token-primary-border)] flex flex-col gap-6 animate-on-scroll delay-100">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--token-primary-light)]">
+                                <i data-lucide="drag" class="h-6 w-6 text-[var(--token-primary)]"></i>
+                            </div>
+                            <h3 class="text-xl font-medium text-[var(--token-gray-900)]">Drag‑and‑Drop Tasks</h3>
+                        </div>
+                        <p class="text-[var(--token-gray-700)]">Move cards between columns with a simple click.</p>
+                        <div class="h-40 rounded-lg overflow-hidden">
+                            <img src="https://static.photos/office/640x360/123" alt="drag" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    <!-- Feature Card 3 -->
+                    <div class="bg-[var(--token-gray-50)] p-8 rounded-2xl border border-[var(--token-primary-border)] flex flex-col gap-6 animate-on-scroll delay-200">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--token-primary-light)]">
+                                <i data-lucide="chart-line" class="h-6 w-6 text-[var(--token-primary)]"></i>
+                            </div>
+                            <h3 class="text-xl font-medium text-[var(--token-gray-900)]">Progress Analytics</h3>
+                        </div>
+                        <p class="text-[var(--token-gray-700)]">Visualize your team’s workflow and performance.</p>
+                        <div class="h-40 rounded-lg overflow-hidden">
+                            <img src="https://static.photos/abstract/640x360/123" alt="analytics" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="py-24 lg:py-48 bg-[var(--token-background)]">
+            <div class="container mx-auto px-6">
+                <div class="max-w-4xl mx-auto text-center">
+                    <div class="flex items-center justify-center gap-4 animate-on-scroll">
+                        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--token-primary)]">
+                            <i data-lucide="mail" class="h-8 w-8 text-[var(--token-background)]"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-4xl lg:text-6xl font-semibold tracking-tight text-[var(--token-gray-900)]">Stay Updated</h2>
+                            <p class="mt-2 text-lg text-[var(--token-gray-700)]">Subscribe for the latest features and releases.</p>
+                        </div>
+                    </div>
+                    <form class="mt-8 max-w-lg mx-auto flex flex-col sm:flex-row gap-3 animate-on-scroll delay-100">
+                        <input type="email" placeholder="Enter your email" class="w-full flex-grow px-6 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--token-primary)] focus:ring-2 focus:ring-[var(--token-primary)]/20 transition">
+                        <button type="submit" class="flex-shrink-0 px-6 py-4 rounded-xl bg-[var(--token-primary)] text-[var(--token-background)] font-semibold transition-transform hover:scale-105">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--token-gray-900)] text-[var(--token-gray-200)] py-16 lg:py-24">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col lg:flex-row gap-12 lg:gap-8">
+                <!-- Left Side -->
+                <div class="lg:w-1/3 flex flex-col gap-6">
+                    <a href="#" class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--token-primary)]">
+                            <i data-lucide="layout-dashboard" class="h-6 w-6 text-[var(--token-background)]"></i>
+                        </div>
+                        <span class="font-jakarta text-2xl font-bold text-[var(--token-background)]">TaskFlow</span>
+                    </a>
+                    <p class="text-[var(--token-gray-400)]">The all‑in‑one Kanban board for modern teams.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-8 h-8 flex items-center justify-center rounded-full border border-[var(--token-gray-700)] hover:bg-[var(--token-primary-light)] transition-colors"><i data-lucide="twitter" class="h-4 w-4"></i></a>
+                        <a href="#" class="w-8 h-8 flex items-center justify-center rounded-full border border-[var(--token-gray-700)] hover:bg-[var(--token-primary-light)] transition-colors"><i data-lucide="instagram" class="h-4 w-4"></i></a>
+                        <a href="#" class="w-8 h-8 flex items-center justify-center rounded-full border border-[var(--token-gray-700)] hover:bg-[var(--token-primary-light)] transition-colors"><i data-lucide="linkedin" class="h-4 w-4"></i></a>
+                    </div>
+                </div>
+
+                <!-- Right Side -->
+                <div class="lg:w-2/3 flex flex-col md:flex-row gap-8">
+                    <div class="flex flex-col md:flex-row gap-8 md:gap-12">
+                        <div>
+                            <h4 class="font-jakarta font-semibold text-lg">Pages</h4>
+                            <ul class="mt-4 space-y-3">
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">Home</a></li>
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">Features</a></li>
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">Pricing</a></li>
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">Contact</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-jakarta font-semibold text-lg">Resources</h4>
+                            <ul class="mt-4 space-y-3">
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">Blog</a></li>
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">Help Center</a></li>
+                                <li><a href="#" class="text-[var(--token-gray-400)] hover:text-white">API Docs</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <h4 class="font-jakarta font-semibold text-lg">Newsletter</h4>
+                        <p class="mt-4 text-[var(--token-gray-400)]">Get the latest updates and new features.</p>
+                        <form class="mt-4 flex flex-col sm:flex-row gap-3">
+                            <input type="email" placeholder="Enter your email" class="w-full flex-grow px-4 py-3 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--token-primary)] focus:ring-2 focus:ring-[var(--token-primary)]/20 transition">
+                            <button type="submit" class="px-6 py-3 rounded-xl bg-[var(--token-primary)] text-[var(--token-background)] font-semibold transition-transform hover:scale-105">Subscribe</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-20 pt-10 border-t border-[var(--token-gray-800)]">
+            <div class="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                <p class="text-center md:text-left text-[var(--token-gray-500)]">© 2026 TaskFlow. All rights reserved.</p>
+                <div class="flex items-center gap-4">
+                    <a href="#" class="text-[var(--token-gray-500)] hover:text-white"><i data-lucide="twitter" class="h-5 w-5"></i></a>
+                    <a href="#" class="text-[var(--token-gray-500)] hover:text-white"><i data-lucide="instagram" class="h-5 w-5"></i></a>
+                    <a href="#" class="text-[var(--token-gray-500)] hover:text-white"><i data-lucide="linkedin" class="h-5 w-5"></i></a>
+                </div>
+                <p class="text-[var(--token-gray-500)] text-sm">Built with <a href="https://tesslate.com" class="underline hover:text-white">Tesslate</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Lucide Icons
+        lucide.createIcons();
+
+        // On-Scroll Animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, { threshold: .1 });
+
+        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+
+        // Mobile Menu Toggle
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuSpans = menuButton.querySelectorAll('span');
+
+        menuButton.addEventListener('click', () => {
+            const isOpen = !mobileMenu.classList.contains('hidden');
+            mobileMenu.classList.toggle('hidden');
+            menuSpans[0].classList.toggle('rotate-45', !isOpen);
+            menuSpans[0].classList.toggle('translate-y-2', !isOpen);
+            menuSpans[1].classList.toggle('-rotate-45', !isOpen);
+        });
+
+        // Header Scroll Effect
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                header.style.backdropFilter = 'blur(10px)';
+            } else {
+                header.style.backgroundColor = 'transparent';
+                header.style.backdropFilter = 'none';
+            }
+        });
+
+        // Draggable Cards
+        document.querySelectorAll('.draggable-card').forEach(card => {
+            let isDragging = false, offsetX, offsetY;
+
+            card.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                card.classList.add('dragging');
+                offsetX = e.clientX - card.getBoundingClientRect().left;
+                offsetY = e.clientY - card.getBoundingClientRect().top;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                isDragging = false;
+                card.classList.remove('dragging');
+            });
+
+            card.addEventListener('mouseup', () => {
+                isDragging = false;
+                card.classList.remove('dragging');
+            });
+
+            card.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const currentX = e.clientX - card.getBoundingClientRect().left - offsetX;
+                const currentY = e.clientY - card.getBoundingClientRect().top - offsetY;
+                card.style.position = 'fixed';
+                card.style.left = `${currentX}px`;
+                card.style.top = `${currentY}px`;
+            });
+        });
+    </script>
+</body>
+</html>

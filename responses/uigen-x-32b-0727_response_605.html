@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --color-primary: #0f172a; /* Deep navy */
+            --color-secondary: #0ea5e9; /* Sky blue */
+            --color-accent: #8b5cf6; /* Violet */
+            --color-light: #f8fafc; /* Light background */
+            --color-dark: #0f172a; /* Dark text */
+            --color-muted: #64748b; /* Muted text */
+            --color-border: #e2e8f0; /* Light border */
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: var(--color-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .editor-container {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .toolbar-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .toolbar-btn:hover {
+            background-color: var(--color-secondary);
+            color: white;
+        }
+        
+        .markdown-input, .preview {
+            min-height: 400px;
+            max-height: 60vh;
+        }
+        
+        .preview {
+            background-color: white;
+        }
+        
+        .preview-content {
+            max-width: 800px;
+        }
+        
+        .preview-content h1, .preview-content h2, .preview-content h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-content pre {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        
+        .preview-content code {
+            background-color: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+        
+        .preview-content blockquote {
+            border-left: 4px solid var(--color-accent);
+            padding-left: 1rem;
+            margin-left: 0;
+            color: var(--color-muted);
+        }
+        
+        .preview-content ul, .preview-content ol {
+            padding-left: 2rem;
+        }
+        
+        .preview-content li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .preview-content a {
+            color: var(--color-secondary);
+            text-decoration: underline;
+        }
+        
+        .preview-content img {
+            max-width: 100%;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .preview-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        
+        .preview-content th, .preview-content td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .preview-content th {
+            background-color: #f1f5f9;
+        }
+        
+        .preview-content tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
+        .preview-content tr:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .status-bar {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .word-count {
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle {
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark-mode {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .preview {
+            background-color: #1e293b;
+        }
+        
+        .dark-mode .preview-content {
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .preview-content h1, 
+        .dark-mode .preview-content h2, 
+        .dark-mode .preview-content h3 {
+            color: #f8fafc;
+        }
+        
+        .dark-mode .preview-content pre {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .preview-content code {
+            background-color: #1e293b;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .preview-content blockquote {
+            border-left: 4px solid var(--color-accent);
+            color: #94a3b8;
+        }
+        
+        .dark-mode .preview-content a {
+            color: var(--color-secondary);
+        }
+        
+        .dark-mode .status-bar {
+            background-color: #1e293b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="editor-container w-full max-w-6xl bg-white rounded-xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
+            <div class="flex justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold flex items-center">
+                        <i class="fas fa-edit mr-3"></i>Markdown Editor
+                    </h1>
+                    <p class="text-indigo-200 mt-1">Write beautiful content with live preview</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="theme-toggle" class="theme-toggle w-10 h-10 rounded-full flex items-center justify-center">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="export-btn" class="bg-white text-indigo-600 px-4 py-2 rounded-lg font-medium hover:bg-indigo-50 transition-colors">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toolbar -->
+        <div class="bg-gray-50 border-b border-gray-200 p-2 flex flex-wrap gap-1">
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="bold">
+                <i class="fas fa-bold"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="italic">
+                <i class="fas fa-italic"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="heading">
+                <i class="fas fa-heading"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="quote">
+                <i class="fas fa-quote-right"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="code">
+                <i class="fas fa-code"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="link">
+                <i class="fas fa-link"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="image">
+                <i class="fas fa-image"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="list-ul">
+                <i class="fas fa-list-ul"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="list-ol">
+                <i class="fas fa-list-ol"></i>
+            </button>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="table">
+                <i class="fas fa-table"></i>
+            </button>
+            <div class="flex-grow"></div>
+            <button class="toolbar-btn px-3 py-2 rounded-lg text-gray-600 hover:text-white" data-command="clean">
+                <i class="fas fa-eraser"></i> Clean
+            </button>
+        </div>
+        
+        <!-- Editor Area -->
+        <div class="flex flex-col md:flex-row">
+            <!-- Markdown Input -->
+            <div class="w-full md:w-1/2 border-r border-gray-200">
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-700">Markdown Input</h2>
+                </div>
+                <textarea id="markdown-input" class="markdown-input w-full h-full p-6 focus:outline-none resize-none" placeholder="Start writing in Markdown...">
+# Welcome to the Markdown Editor
+
+## Features
+- **Real-time preview**
+- **Formatting toolbar**
+- **Dark/light mode**
+- **Export functionality**
+
+### Code Example

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus VR - Immersive Gaming Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'vr-dark': '#0a0a12',
+                        'vr-darker': '#050508',
+                        'vr-light': '#e0e0ff',
+                        'vr-accent': '#00f3ff',
+                        'vr-accent2': '#ff00c8',
+                        'vr-card': '#121220'
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        exo: ['Exo 2', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'neon-pulse': 'neonPulse 2s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        neonPulse: {
+                            '0%, 100%': { 
+                                'text-shadow': '0 0 5px rgba(0, 243, 255, 0.5), 0 0 10px rgba(0, 243, 255, 0.3), 0 0 15px rgba(0, 243, 255, 0.2)',
+                                'box-shadow': '0 0 5px rgba(0, 243, 255, 0.5), 0 0 10px rgba(0, 243, 255, 0.3)'
+                            },
+                            '50%': { 
+                                'text-shadow': '0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.6), 0 0 30px rgba(0, 243, 255, 0.4)',
+                                'box-shadow': '0 0 10px rgba(0, 243, 255, 0.8), 0 0 20px rgba(0, 243, 255, 0.6)'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a12;
+            color: #e0e0ff;
+            overflow-x: hidden;
+        }
+        
+        .vr-grid {
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        
+        .vr-card {
+            background: linear-gradient(145deg, #121220, #0d0d1a);
+            border: 1px solid rgba(0, 243, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .vr-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 243, 255, 0.2);
+            border-color: rgba(0, 243, 255, 0.3);
+        }
+        
+        .neon-text {
+            text-shadow: 0 0 5px rgba(0, 243, 255, 0.5), 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        
+        .neon-button {
+            background: linear-gradient(45deg, #0a0a12, #121220);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .neon-button:hover {
+            background: linear-gradient(45deg, #0d0d1a, #1a1a30);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            border-color: rgba(0, 243, 255, 0.6);
+        }
+        
+        .glow {
+            position: relative;
+        }
+        
+        .glow::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(0, 243, 255, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .glow:hover::after {
+            opacity: 1;
+        }
+        
+        .parallax {
+            perspective: 1px;
+            height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        .parallax-layer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+        
+        .parallax-layer-base {
+            transform: translateZ(0);
+        }
+        
+        .parallax-layer-back {
+            transform: translateZ(-1px) scale(2);
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .hamburger line {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform-origin: center;
+        }
+        
+        .hamburger.open .line1 {
+            transform: translateY(7px) rotate(45deg);
+        }
+        
+        .hamburger.open .line2 {
+            opacity: 0;
+        }
+        
+        .hamburger.open .line3 {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+        
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .pulse-slow {
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .neon-pulse {
+            animation: neonPulse 2s ease-in-out infinite;
+        }
+        
+        .terminal-text {
+            font-family: 'Courier New', monospace;
+            color: #00f3ff;
+            text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+        }
+        
+        .vr-helmet {
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .vr-helmet::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 10px;
+            background: #0a0a12;
+            border-radius: 5px;
+        }
+        
+        .vr-helmet::after {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            border: 2px solid #00f3ff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="font-exo">
+    <!-- Parallax Background -->
+    <div class="parallax">
+        <div class="parallax-layer parallax-layer-back">
+            <div class="vr-grid absolute inset-0"></div>
+        </div>
+        <div class="parallax-layer parallax-layer-base">
+            <!-- Main content -->
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 py-4 px-6 bg-vr-dark/90 backdrop-blur-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-vr-accent flex items-center justify-center mr-3">
+                    <i class="fas fa-vr-cardboard text-vr-darker text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-orbitron font-bold neon-text">NEXUS VR</h1>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <nav class="hidden md:flex space-x-8">
+                <a href="#home" class="text-vr-light hover:text-vr-accent transition-colors font-medium">Home</a>
+                <a href="#games" class="text-vr-light hover:text-vr-accent transition-colors font-medium">Games</a>
+                <a href="#experiences" class="text-vr-light hover:text-vr-accent transition-colors font-medium">Experiences</a>
+                <a href="#book" class="text-vr-light hover:text-vr-accent transition-colors font-medium">Book Now</a>
+                <a href="#about" class="text-vr-light hover:text-vr-accent transition-colors font-medium">About</a>
+            </nav>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-button" class="md:hidden hamburger">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <line class="line1" x1="3" y1="12" x2="21" y2="12" stroke="#e0e0ff" stroke-width="2"/>
+                    <line class="line2" x1="3" y1="6" x2="21" y2="6" stroke="#e0e0ff" stroke-width="2"/>
+                    <line class="line3" x1="3" y1="18" x2="21" y2="18" stroke="#e0e0ff" stroke-width="2"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 right-0 bg-vr-card shadow-lg py-4">
+            <div class="container mx-auto flex flex-col space-y-3">
+                <a href="#home" class="block text-vr-light hover:text-vr-accent transition-colors font-medium py-2">Home</a>
+                <a href="#games" class="block text-vr-light hover:text-vr-accent transition-colors font-medium py-2">Games</a>
+                <a href="#experiences" class="block text-vr-light hover:text-vr-accent transition-colors font-medium py-2">Experiences</a>
+                <a href="#book" class="block text-vr-light hover:text-vr-accent transition-colors font-medium py-2">Book Now</a>
+                <a href="#about" class="block text-vr-light hover:text-vr-accent transition-colors font-medium py-2">About</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center relative overflow-hidden pt-16">
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-block px-4 py-2 bg-vr-card rounded-full mb-6 animate-on-scroll">
+                    <span class="text-vr-accent font-bold">NEW EXPERIENCE!</span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-orbitron font-bold mb-6 neon-text animate-on-scroll">
+                    ENTER THE <span class="text-vr-accent">VR</span> UNIVERSE
+                </h1>
+                <p class="text-xl text-vr-light/80 max-w-2xl mx-auto mb-10 animate-on-scroll" style="animation-delay: 0.2s;">
+                    Experience mind-bending virtual worlds, battle aliens, and explore unknown dimensions in our state-of-the-art VR center.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4 animate-on-scroll" style="animation-delay: 0.4s;">
+                    <a href="#book" class="neon-button px-8 py-4 rounded-lg text-lg font-bold inline-block">
+                        <i class="fas fa-calendar-alt mr-2"></i> Book Your Session
+                    </a>
+                    <a href="#experiences" class="px-8 py-4 rounded-lg text-lg font-bold inline-block border border-vr-accent/30 hover:border-vr-accent/60 transition-colors">
+                        Explore Experiences
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VR Helmet Floating -->
+        <div class="vr-helmet absolute top-1/4 left-1/4 w-24 h-24 opacity-30"></div>
+        <div class="vr-helmet absolute top-1/3 right-1/4 w-32 h-32 opacity-20"></div>
+        <div class="vr-helmet absolute bottom-1/4 left-1/3 w-28 h-28 opacity-25"></div>
+    </section>
+
+    <!-- Games Section -->
+    <section id="games" class="py-20 bg-vr-darker">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-orbitron font-bold mb-4 neon-text">POPULAR GAMES</h2>
+                <p class="text-vr-light/80 max-w-2xl mx-auto">Choose from our curated collection of the most immersive VR experiences</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Game Card 1 -->
+                <div class="vr-card rounded-xl p-6 animate-on-scroll">
+                    <div class="w-full h-48 rounded-lg bg-gradient-to-br from-vr-accent/10 to-vr-accent2/10 flex items-center justify-center mb-4">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">🎮</div>
+                            <h3 class="text-xl font-bold">Cyber City Chase</h3>
+                        </div>
+                    </div>
+                    <p class="text-vr-light/80 mb-4">Navigate futuristic cityscapes in high-speed chases through neon-lit streets.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-vr-accent font-medium">45 min playtime</span>
+                        <button class="text-vr-accent hover:text-vr-accent2 transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Game Card 2 -->
+                <div class="vr-card rounded-xl p-6 animate-on-scroll" style="animation-delay: 0.1s;">
+                    <div class="w-full h-48 rounded-lg bg-gradient-to-br from-vr-accent2/10 to-vr-accent/10 flex items-center justify-center mb-4">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">👾</div>
+                            <h3 class="text-xl font-bold">Neon Raiders</h3>
+                        </div>
+                    </div>
+                    <p class="text-vr-light/80 mb-4">Defend your base from hordes of cybernetic monsters in this action-packed arena.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-vr-accent font-medium">30 min playtime</span>
+                        <button class="text-vr-accent hover:text-vr-accent2 transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Game Card 3 -->
+                <div class="vr-card rounded-xl p-6 animate-on-scroll" style="animation-delay: 0.2s;">
+                    <div class="w-full h-48 rounded-lg bg-gradient-to-br from-vr-accent/10 to-vr-accent2/10 flex items-center justify-center mb-4">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">🚀</div>
+                            <h3 class="text-xl font-bold">Stellar Odyssey</h3>
+                        </div>
+                    </div>
+                    <p class="text-vr-light/80 mb-4">Journey through space on a quest to find lost civilizations and ancient artifacts.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-vr-accent font-medium">60 min playtime</span>
+                        <button class="text-vr-accent hover:text-vr-accent2 transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experiences Section -->
+    <section id="experiences" class="py-20">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-orbitron font-bold mb-4 neon-text">EXPERIENCE ZONES</h2>
+                <p class="text-vr-light/80 max-w-2xl mx-auto">Step into unique VR environments designed for maximum immersion</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="vr-card rounded-2xl p-8 h-full">
+                    <div class="flex items-start mb-8">
+                        <div class="w-16 h-16 rounded-full bg-vr-accent/10 flex items-center justify-center mr-6">
+                            <i class="fas fa-robot text-2xl text-vr-accent"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-orbitron font-bold mb-2">AI-Powered NPCs</h3>
+                            <p class="text-vr-light/80">Interact with intelligent non-player characters that adapt to your behavior.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start mb-8">
+                        <div class="w-16 h-16 rounded-full bg-vr-accent2/10 flex items-center justify-center mr-6">
+                            <i class="fas fa-eye text-2xl text-vr-accent2"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-orbitron font-bold mb-2">360° Visuals</h3>
+                            <p class="text-vr-light/80">Experience game worlds from every angle with our high-resolution displays.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 rounded-full bg-vr-accent/10 flex items-center justify-center mr-6">
+                            <i class="fas fa-bolt text-2xl text-vr-accent"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-orbitron font-bold mb-2">Haptic Feedback</h3>
+                            <p class="text-vr-light/80">Feel the impact of virtual actions with our advanced haptic suit technology.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <div class="vr-card rounded-2xl overflow-hidden h-full">
+                        <div class="w-full h-96 bg-gradient-to-br from-vr-accent/10 to-vr-accent2/10 flex items-center justify-center">
+                            <div class="text-center p-8">
+                                <div class="text-8xl mb-4">🌌</div>
+                                <h3 class="text-3xl font-orbitron font-bold mb-2">Cosmic Explorer</h3>
+                                <p class="text-vr-light/80">Step onto a cosmic journey through uncharted space</p>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                <span class="text-sm">Ready to explore?</span>
+                            </div>
+                            <button class="w-full neon-button py-3 rounded-lg font-bold">
+                                <i class="fas fa-rocket mr-2"></i> Launch Experience
+                            </button>
+                        </div>
+                    </div>
+                    <div class="absolute -top-4 -right-4 w-16 h-16 bg-vr-accent rounded-full flex items-center justify-center text-vr-darker font-bold text-xl">
+                        NEW!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Booking Section -->
+    <section id="book" class="py-20 bg-vr-darker">
+        <div class="container mx-auto px-6">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-4xl font-orbitron font-bold mb-4 neon-text">BOOK YOUR SESSION</h2>
+                <p class="text-vr-light/80 max-w-2xl mx-auto mb-12">Reserve your spot for an unforgettable VR experience</p>
+                
+                <div class="bg-vr-card rounded-2xl p-8 max-w-3xl mx-auto">
+                    <form class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-vr-light/80 mb-2">First Name</label>
+                                <input type="text" class="w-full bg-vr-dark border border-vr-accent/20 rounded-lg px-4 py-3 focus:outline-none focus:border-vr-accent">
+                            </div>
+                            <div>
+                                <label class="block text-vr-light/80 mb-2">Last Name</label>
+                                <input type="text" class="w-full bg-vr-dark border border-vr-accent/20 rounded-lg px-4 py-3 focus:outline-none focus:border-vr-accent">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-vr-light/80 mb-2">Email Address</label>
+                            <input type="email" class="w-full bg-vr-dark border border-vr-accent/20 rounded-lg px-4 py-3 focus:outline-none focus:border-vr-accent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-vr-light/80 mb-2">Phone Number</label>
+                            <input type="tel" class="w-full bg-vr-dark border border-vr-accent/20 rounded-lg px-4 py-3 focus:outline-none focus:border-vr-accent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-vr-light/80 mb-2">Preferred Date & Time</label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <select class="w-full bg-vr-dark border border-vr-accent/20 rounded-lg px-4 py-3 focus:outline-none focus:border-vr-accent">
+                                    <option>Select Date</option>
+                                    <option>Today, 10:00 AM</option>
+                                    <option>Today, 2:00 PM</option>
+                                    <option>Tomorrow, 11:00 AM</option>
+                                </select>
+                                <select class="w-full bg-vr-dark border border-vr-accent/20 rounded-lg px-4 py-3 focus:outline-none focus:border-vr-accent">
+                                    <option>Select Game</option>
+                                    <option>Cyber City Chase</option>
+                                    <option>Neon Raiders</option>
+                                    <option>Stellar Odyssey</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded bg-vr-dark border-vr-accent/20 text-vr-accent focus:ring-vr-accent">
+                                <span class="ml-2 text-vr-light/80">I agree to the terms and conditions</span>
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="w-full neon-button py-4 rounded-lg font-bold text-lg mt-4">
+                            <i class="fas fa-lock mr-2"></i> Secure Your Booking
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-20">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-orbitron font-bold mb-4 neon-text">VR ADVENTURERS</h2>
+                <p class="text-vr-light/80 max-w-2xl mx-auto">What our guests say about their experience</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="vr-card p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-vr-accent/10 flex items-center justify-center mr-4">
+                            <span class="text-lg">👤</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Alex Johnson</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-vr-light/80 italic">"The VR experience was absolutely mind-blowing! I've never felt so immersed in a game before. The haptic feedback made every action feel real."</p>
+                </div>
+                
+                <!-- Testimonial 2 -->
+                <div class="vr-card p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-vr-accent2/10 flex items-center justify-center mr-4">
+                            <span class="text-lg">👩</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Sarah Williams</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-vr-light/80 italic">"Booking a session here was the best decision I made this weekend. The game selection is diverse, and the tech is top-notch. Will definitely come back!"</p>
+                </div>
+                
+                <!-- Testimonial 3 -->
+                <div class="vr-card p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-vr-accent/10 flex items-center justify-center mr-4">
+                            <span class="text-lg">👨</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">Michael Chen</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-vr-light/80 italic">"As a hardcore gamer, I was skeptical about VR, but this experience completely changed my perspective. The graphics are stunning and the gameplay is incredibly smooth."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 bg-gradient-to-r from-vr-accent/5 to-vr-accent2/5">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-4xl font-orbitron font-bold mb-6 neon-text">READY FOR YOUR VR ADVENTURE?</h2>
+            <p class="text-xl text-vr-light/80 max-w-2xl mx-auto mb-10">Join thousands of players experiencing the future of gaming today</p>
+            <a href="#book" class="inline-block neon-button px-10 py-5 rounded-lg text-lg font-bold">
+                <i class="fas fa-calendar-alt mr-3"></i> Book Now & Experience
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 bg-vr-darker border-t border-vr-accent/10">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-vr-accent flex items-center justify-center mr-3">
+                            <i class="fas fa-vr-cardboard text-vr-darker text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-orbitron font-bold neon-text">NEXUS VR</h3>
+                    </div>
+                    <p class="text-vr-light/70 mb-4">The premier VR gaming experience in town. Step into the future today.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-vr-light/70 hover:text-vr-accent transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-vr-light/70 hover:text-vr-accent transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-vr-light/70 hover:text-vr-accent transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-vr-light/70 hover:text-vr-accent transition-colors">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#home" class="text-vr-light/70 hover:text-vr-accent transition-colors">Home</a></li>
+                        <li><a href="#games" class="text-vr-light/70 hover:text-vr-accent transition-colors">Games</a></li>
+                        <li><a href="#experiences" class="text-vr-light/70 hover:text-vr-accent transition-colors">Experiences</a></li>
+                        <li><a href="#book" class="text-vr-light/70 hover:text-vr-accent transition-colors">Book Now</a></li>
+                        <li><a href="#about" class="text-vr-light/70 hover:text-vr-accent transition-colors">About Us</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Hours & Location</h4>
+                    <ul class="space-y-2">
+                        <li class="text-vr-light/70">Monday - Friday: 10AM - 10PM</li>
+                        <li class="text-vr-light/70">Saturday - Sunday: 9AM - 11PM</li>
+                        <li class="text-vr-light/70">Location: 123 Future Street, Cyber City</li>
+                        <li class="text-vr-light/70">Contact: (555) VR-EXPERIENCE</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Newsletter</h4>
+                    <p class="text-vr-light/70 mb-4">Subscribe for updates and special offers</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="flex-grow bg-vr-card border border-vr-accent/20 rounded-l-lg px-4 py-2 focus:outline-none">
+                        <button class="bg-vr-accent text-vr-darker px-4 py-2 rounded-r-lg font-bold">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-vr-accent/10 text-center text-vr-light/50">
+                <p>© 2023 Nexus VR. All rights reserved. Designed for the future.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+                mobileMenuButton.classList.toggle('open');
+            });
+            
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Parallax effect
+            document.addEventListener('mousemove', (e) => {
+                const x = (window.innerWidth - e.pageX * 2) / 50;
+                const y = (window.innerHeight - e.pageY * 2) / 50;
+                
+                document.querySelector('.parallax-layer-back').style.transform = 
+                    `translate3d(${x}px, ${y}px, -1px) scale(2)`;
+            });
+            
+            // Terminal typing effect
+            const terminal = document.querySelector('.terminal-text');
+            if (terminal) {
+                const text = "Welcome to the future of gaming. Ready to experience VR?";
+                let i = 0;
+                
+                setInterval(() => {
+                    if (i < text.length) {
+                        terminal.textContent = text.substring(0, i+1);
+                        i++;
+                    } else {
+                        terminal.textContent = text;
+                    }
+                }, 50);
+            }
+        });
+    </script>
+</body>
+</html>

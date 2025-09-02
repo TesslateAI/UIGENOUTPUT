@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Modal Dialog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #FFFFFF;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to allow scroll */
+            min-height: 100vh;
+            overflow: hidden; /* Prevent body scroll, let modal scroll */
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+        }
+
+        .modal-content {
+            background-color: #1A1A1A;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: hidden; /* For content inside modal */
+        }
+
+        .modal-content.open {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .modal-content .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: #FFFFFF;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 101;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .modal-content .close-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-content .close-button:focus {
+            outline: 2px solid #FFFFFF;
+            outline-offset: 2px;
+        }
+
+        .modal-content .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-content .modal-body {
+            padding: 1.5rem;
+            flex-grow: 1;
+            overflow-y: auto; /* Allow scrolling for long content */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        .modal-content .modal-body::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        .modal-content .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: right;
+        }
+
+        .modal-content button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease-out;
+            cursor: pointer;
+        }
+
+        .modal-content button.primary {
+            background-color: #FFFFFF;
+            color: #0A0A0A;
+            border: 1px solid #FFFFFF;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-content button.primary:hover {
+            background-color: #E0E0E0;
+            color: #0A0A0A;
+            border-color: #D0D0D0;
+            transform: translateY(-2px);
+        }
+
+        .modal-content button.primary:focus {
+            outline: 2px solid #FFFFFF;
+            outline-offset: 2px;
+        }
+
+        .modal-content button.secondary {
+            background-color: transparent;
+            color: #FFFFFF;
+            border: 1px solid #FFFFFF;
+            box-shadow: none;
+        }
+
+        .modal-content button.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #0A0A0A;
+            border-color: #D0D0D0;
+        }
+
+        .modal-content button.secondary:focus {
+            outline: 2px solid #FFFFFF;
+            outline-offset: 2px;
+        }
+
+        .modal-content button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="openModalBtn" class="px-8 py-4 bg-white text-black font-bold rounded-full shadow-lg hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50" aria-label="Open Modal">
+        Open Modal
+    </button>
+
+    <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription" tabindex="-1">
+        <div id="modalContent" class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="text-2xl font-semibold">Confirm Action</h2>
+                <button class="close-button" aria-label="Close modal" role="button">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="modalDescription">Are you sure you want to proceed with this action? This cannot be undone.</p>
+                <p class="text-sm text-gray-400 mt-2">This action will permanently delete your account and all associated data.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelModalBtn" class="secondary mr-4" disabled>Cancel</button>
+                <button id="confirmModalBtn" class="primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const openModalBtn = document.getElementById('openModalBtn');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalContent = document.getElementById('modalContent');
+            const closeButtons = document.querySelectorAll('.close-button');
+            const cancelModalBtn = document.getElementById('cancelModalBtn');
+            const confirmModalBtn = document.getElementById('confirmModalBtn');
+
+            let isAnimating = false;
+
+            // Function to open the modal
+            const openModal = () => {
+                if (isAnimating) return;
+                isAnimating = true;
+                modalOverlay.classList.add('open');
+                modalContent.classList.add('open');
+                // Remove aria-hidden from modal when open
+                modalOverlay.removeAttribute('aria-hidden');
+                modalContent.removeAttribute('aria-hidden');
+                // Set focus to the first focusable element in the modal
+                modalContent.querySelector('button.primary, button.secondary, [href], [tabindex="0"]').focus();
+            };
+
+            // Function to close the modal
+            const closeModal = () => {
+                if (isAnimating) return;
+                isAnimating = true;
+                // Disable cancel button when starting animation
+                cancelModalBtn.disabled = true;
+                // Add focus to the close button for accessibility
+                document.querySelector('.close-button').focus(); 
+            };
+
+            // Event Listeners
+            openModalBtn.addEventListener('click', openModal);
+            closeButtons.forEach(button => {
+                button.addEventListener('click', closeModal);
+            });
+            cancelModalBtn.addEventListener('click', closeModal);
+            confirmModalBtn.addEventListener('click', () => {
+                // Simulate action
+                alert('Action Confirmed!');
+                closeModal();
+            });
+
+            // Keyboard navigation for modal
+            modalOverlay.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                } else if (e.key === 'Tab') {
+                    const focusableElements = modalContent.querySelectorAll('button, [href], [tabindex="0"]');
+                    const firstFocusable = focusableElements[0];
+                    const lastFocusable = focusableElements[focusableElements.length - 1];
+
+                    if (e.shiftKey) { // Shift + Tab
+                        if (document.activeElement === firstFocusable) {
+                            e.preventDefault();
+                            lastFocusable.focus();
+                        }
+                    } else { // Tab
+                        if (document.activeElement === lastFocusable) {
+                            e.preventDefault();
+                            firstFocusable.focus();
+                        }
+                    }
+                }
+            });
+
+            // Ensure modal content is accessible
+            modalContent.setAttribute('tabindex', '-1'); // Make it not focusable by default
+            modalOverlay.setAttribute('aria-hidden', 'true'); // Initially hidden
+            modalContent.setAttribute('aria-hidden', 'true');
+
+            // When modal is open, set aria-hidden to false for the modal itself
+            modalOverlay.addEventListener('transitionend', () => {
+                if (modalOverlay.classList.contains('open')) {
+                    modalOverlay.setAttribute('aria-hidden', 'false');
+                    modalContent.setAttribute('aria-hidden', 'false');
+                } else {
+                    modalOverlay.setAttribute('aria-hidden', 'true');
+                    modalContent.setAttribute('aria-hidden', 'true');
+                }
+            });
+
+            // Initial state for accessibility
+            modalOverlay.addEventListener('transitionend', () => {
+                if (!modalOverlay.classList.contains('open')) {
+                    modalOverlay.setAttribute('aria-hidden', 'true');
+                    modalContent.setAttribute('aria-hidden', 'true');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VirtuStyle | Virtual Fitting Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-blue': '#1E3A8A',
+                        'light-blue': '#3B82F6',
+                        'vintage-cream': '#F8F5F0',
+                        'elegant-brown': '#5D4037',
+                        'accent-gold': '#D4AF37',
+                        'dark-gray': '#1F2937',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'playfair': ['Playfair Display', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F5F0;
+            color: #1F2937;
+        }
+        
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .try-on-canvas {
+            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .clothing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .gallery-item {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gallery-item.selected {
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #D4AF37;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .model-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&h=600&q=80') center/cover;
+            border-radius: 20px;
+        }
+        
+        .zoom-in {
+            transition: transform 0.3s ease;
+        }
+        
+        .zoom-in:hover {
+            transform: scale(1.05);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-vintage-cream">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-deep-blue flex items-center justify-center text-white font-bold text-xl">VS</div>
+                <h1 class="ml-3 text-2xl font-bold text-deep-blue">VirtuStyle</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="nav-link text-dark-gray font-medium">Home</a>
+                <a href="#" class="nav-link text-dark-gray font-medium">Collections</a>
+                <a href="#" class="nav-link text-dark-gray font-medium">About</a>
+                <a href="#" class="nav-link text-dark-gray font-medium">Contact</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-search text-dark-gray"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-shopping-cart text-dark-gray"></i>
+                </button>
+                <button class="md:hidden p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-bars text-dark-gray"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="py-12 md:py-20 bg-gradient-to-r from-deep-blue to-light-blue text-white">
+            <div class="container mx-auto px-4">
+                <div class="max-w-4xl mx-auto text-center">
+                    <h2 class="font-playfair text-4xl md:text-5xl font-bold mb-4">Virtual Fitting Room</h2>
+                    <p class="text-xl mb-8 opacity-90">Try on clothes without leaving your room. See how they look on you in real-time.</p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <button class="bg-accent-gold text-dark-gray font-bold py-3 px-8 rounded-full hover:bg-opacity-90 transition">
+                            Explore Collection
+                        </button>
+                        <button class="bg-white text-deep-blue font-bold py-3 px-8 rounded-full hover:bg-opacity-90 transition">
+                            How It Works
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Section -->
+        <section class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="font-playfair text-3xl md:text-4xl font-bold text-deep-blue mb-4">Summer Collection</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">Discover our latest designs curated for comfort and style</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Clothing Item 1 -->
+                    <div class="gallery-item border-2 border-gray-200 rounded-xl overflow-hidden cursor-pointer relative" onclick="selectClothing('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=600&h=600&q=80')">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80" style="background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=600&h=600&q=80')"></div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">Classic White Blouse</h3>
+                            <p class="text-gray-600 text-sm">Cotton, $45.00</p>
+                            <button class="mt-3 text-accent-gold font-bold">Try On</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Clothing Item 2 -->
+                    <div class="gallery-item border-2 border-gray-200 rounded-xl overflow-hidden cursor-pointer relative" onclick="selectClothing('https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&h=600&q=80')">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80" style="background-image: url('https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&h=600&q=80')"></div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">Floral Summer Dress</h3>
+                            <p class="text-gray-600 text-sm">Silk blend, $75.00</p>
+                            <button class="mt-3 text-accent-gold font-bold">Try On</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Clothing Item 3 -->
+                    <div class="gallery-item border-2 border-gray-200 rounded-xl overflow-hidden cursor-pointer relative" onclick="selectClothing('https://images.unsplash.com/photo-1543726212073-9d4df934f198?auto=format&fit=crop&w=600&h=600&q=80')">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80" style="background-image: url('https://images.unsplash.com/photo-1543726212073-9d4df934f198?auto=format&fit=crop&w=600&h=600&q=80')"></div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">Casual Shorts</h3>
+                            <p class="text-gray-600 text-sm">Denim, $35.00</p>
+                            <button class="mt-3 text-accent-gold font-bold">Try On</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Clothing Item 4 -->
+                    <div class="gallery-item border-2 border-gray-200 rounded-xl overflow-hidden cursor-pointer relative" onclick="selectClothing('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&h=600&q=80')">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80" style="background-image: url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&h=600&q=80')"></div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg">Summer Sweater</h3>
+                            <p class="text-gray-600 text-sm">Wool blend, $65.00</p>
+                            <button class="mt-3 text-accent-gold font-bold">Try On</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Try On Section -->
+        <section class="py-16 bg-gradient-to-br from-vintage-cream to-light-blue">
+            <div class="container mx-auto px-4">
+                <div class="max-w-6xl mx-auto">
+                    <div class="text-center mb-12">
+                        <h2 class="font-playfair text-3xl md:text-4xl font-bold text-deep-blue mb-4">Try On</h2>
+                        <p class="text-gray-600 max-w-2xl mx-auto">Select an item from the gallery to see it on our model in real-time</p>
+                    </div>
+                    
+                    <div class="flex flex-col lg:flex-row gap-8">
+                        <!-- Model Canvas -->
+                        <div class="w-full lg:w-1/2">
+                            <div class="try-on-canvas relative">
+                                <div class="model-overlay"></div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <div class="text-5xl font-playfair font-bold text-white mb-2">Summer Collection</div>
+                                        <div class="text-white opacity-90">Select an item to see it on the model</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Clothing Details -->
+                        <div class="w-full lg:w-1/2">
+                            <div class="bg-white rounded-xl shadow-lg p-6">
+                                <h3 class="font-playfair text-2xl font-bold text-deep-blue mb-6">Clothing Details</h3>
+                                
+                                <div class="mb-6">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-600">Current Selection</span>
+                                        <span class="font-bold text-accent-gold" id="selected-item">None</span>
+                                    </div>
+                                    
+                                    <div class="border-2 border-dashed border-gray-300 rounded-xl w-full h-64 flex items-center justify-center text-gray-400" id="clothing-preview">
+                                        <i class="fas fa-image text-4xl"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Color</label>
+                                        <div class="flex space-x-2">
+                                            <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-white"></div>
+                                            <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white"></div>
+                                            <div class="w-8 h-8 rounded-full bg-red-500 border-2 border-white"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Size</label>
+                                        <select class="w-full p-2 border border-gray-300 rounded">
+                                            <option>XS</option>
+                                            <option>S</option>
+                                            <option>M</option>
+                                            <option>L</option>
+                                            <option>XL</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="text-lg font-bold text-deep-blue">$45.00</span>
+                                        <span class="text-gray-500 line-through ml-2">$55.00</span>
+                                    </div>
+                                    <button class="bg-accent-gold text-dark-gray font-bold py-3 px-6 rounded-full hover:bg-opacity-90 transition">
+                                        Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="font-playfair text-3xl md:text-4xl font-bold text-deep-blue mb-4">How It Works</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">Our virtual fitting room makes shopping effortless and fun</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-vintage-cream p-6 rounded-xl shadow-lg text-center">
+                        <div class="w-16 h-16 bg-light-blue rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-tshirt text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-playfair text-xl font-bold text-deep-blue mb-2">Browse Collection</h3>
+                        <p class="text-gray-600">Explore our curated selection of summer styles</p>
+                    </div>
+                    
+                    <div class="bg-vintage-cream p-6 rounded-xl shadow-lg text-center">
+                        <div class="w-16 h-16 bg-light-blue rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-eye text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-playfair text-xl font-bold text-deep-blue mb-2">Try On Virtual</h3>
+                        <p class="text-gray-600">See how each piece looks on our model in real-time</p>
+                    </div>
+                    
+                    <div class="bg-vintage-cream p-6 rounded-xl shadow-lg text-center">
+                        <div class="w-16 h-16 bg-light-blue rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-shopping-cart text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-playfair text-xl font-bold text-deep-blue mb-2">Shop With Confidence</h3>
+                        <p class="text-gray-600">Add to cart with confidence that you'll love your purchase</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 bg-deep-blue text-white">
+            <div class="container mx-auto px-4 text-center">
+                <h2 class="font-playfair text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Shopping Experience?</h2>
+                <p class="text-xl mb-8 max-w-2xl mx-auto opacity-90">Join thousands of customers who have discovered the future of online shopping</p>
+                <button class="bg-accent-gold text-dark-gray font-bold py-3 px-8 rounded-full text-lg hover:bg-opacity-90 transition">
+                    Start Shopping Now
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark-gray text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-deep-blue flex items-center justify-center text-white font-bold text-xl">VS</div>
+                        <h3 class="ml-3 text-xl font-bold">VirtuStyle</h3>
+                    </div>
+                    <p class="text-gray-400">Virtual fitting rooms for the modern shopper. Try on clothes without leaving your room.</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-playfair text-lg font-bold mb-4">Shop</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">New Arrivals</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Best Sellers</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Collections</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Sale</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-playfair text-lg font-bold mb-4">Help</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Shipping</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Returns</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Size Guide</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-playfair text-lg font-bold mb-4">Contact</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-map-marker-alt mr-2"></i> 123 Fashion Ave, Style City
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-phone mr-2"></i> (123) 456-7890
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <i class="fas fa-envelope mr-2"></i> info@virtustyle.com
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2023 VirtuStyle. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Clothing selection function
+        function selectClothing(url) {
+            document.getElementById('selected-item').textContent = "Summer Sweater";
+            document.getElementById('clothing-preview').innerHTML = `
+                <div class="zoom-in" style="background-image: url('${url}'); background-size: cover; background-position: center;"></div>
+            `;
+            
+            // Update try-on canvas
+            const canvas = document.querySelector('.try-on-canvas');
+            canvas.classList.add('fade-in');
+            setTimeout(() => {
+                canvas.classList.remove('fade-in');
+                const overlay = document.querySelector('.clothing-overlay');
+                overlay.style.backgroundImage = `url('${url}')`;
+            }, 300);
+        }
+        
+        // Initialize with a default selection
+        window.onload = () => {
+            selectClothing('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&h=600&q=80');
+        };
+    </script>
+</body>
+</html>

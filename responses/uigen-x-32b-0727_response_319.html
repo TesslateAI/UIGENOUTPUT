@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftServe | High-Performance Web Hosting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-text-heading: #0D0D0D;
+            --color-text-body: #333333;
+            --color-text-inverted: #FFFFFF;
+            --color-text-inverted-muted: rgba(255, 255, 255, 0.7);
+            
+            --color-accent-primary: #2563EB; /* Blue for trust and reliability */
+            --color-accent-secondary: #10B981; /* Green for speed and growth */
+            
+            --color-background-light: #FFFFFF;
+            --color-background-off-white: #F9FAFB;
+            --color-background-dark: #1E293B;
+            --color-background-dark-alt: #334155;
+            
+            --color-border-light: #E5E7EB;
+            --color-border-dark-muted: rgba(255, 255, 255, 0.1);
+
+            --font-heading: 'Manrope', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--color-text-body);
+            background-color: var(--color-background-light);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-heading);
+            color: var(--color-text-heading);
+            font-weight: 700;
+        }
+        
+        .bg-accent-primary { background-color: var(--color-accent-primary); }
+        .text-accent-primary { color: var(--color-accent-primary); }
+        .border-accent-primary { border-color: var(--color-accent-primary); }
+
+        .bg-accent-secondary { background-color: var(--color-accent-secondary); }
+        .text-accent-secondary { color: var(--color-accent-secondary); }
+
+        .bg-off-white { background-color: var(--color-background-off-white); }
+        .bg-dark-section { background-color: var(--color-background-dark); }
+        .bg-dark-alt { background-color: var(--color-background-dark-alt); }
+
+        .text-inverted { color: var(--color-text-inverted); }
+        .text-inverted-muted { color: var(--color-text-inverted-muted); }
+        
+        .border-light { border-color: var(--color-border-light); }
+        .border-dark-muted { border-color: var(--color-border-dark-muted); }
+
+        /* Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .btn-slide-text .text-container {
+            transition: transform 0.3s ease-in-out;
+        }
+        .btn-slide-text:hover .text-top {
+            transform: translateY(-100%);
+        }
+        .btn-slide-text:hover .text-bottom {
+            transform: translateY(-100%);
+        }
+
+        /* Marquee animation */
+        .marquee-container {
+            overflow: hidden;
+            width: 100%;
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12.5%, black 87.5%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 12.5%, black 87.5%, transparent 100%);
+        }
+        .marquee-content {
+            display: flex;
+            animation: marquee 30s linear infinite;
+            will-change: transform;
+        }
+        .marquee-content > * {
+            flex-shrink: 0;
+            padding: 0 1.5rem;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Speed indicator */
+        .speed-indicator {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(90deg, var(--color-accent-secondary), var(--color-accent-primary));
+            border-radius: 9999px;
+            padding: 0.25rem;
+        }
+        .speed-indicator::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            transform: translateX(-100%);
+            animation: speed-pulse 2s infinite;
+        }
+        @keyframes speed-pulse {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Server status */
+        .server-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--color-accent-secondary);
+            margin-right: 8px;
+        }
+        .server-status.offline {
+            background-color: #EF4444;
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-background-light)]">
+
+    <!-- Header -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#" class="text-2xl font-bold text-[var(--color-text-heading)]">
+                    <span class="text-[var(--color-accent-primary)]">Swift</span>Serve
+                </a>
+
+                <nav class="hidden lg:flex space-x-8 items-center">
+                    <a href="#features" class="text-[var(--color-text-body)] hover:text-[var(--color-accent-primary)] transition-colors">Features</a>
+                    <a href="#plans" class="text-[var(--color-text-body)] hover:text-[var(--color-accent-primary)] transition-colors">Plans</a>
+                    <a href="#testimonials" class="text-[var(--color-text-body)] hover:text-[var(--color-accent-primary)] transition-colors">Testimonials</a>
+                    <a href="#faq" class="text-[var(--color-text-body)] hover:text-[var(--color-accent-primary)] transition-colors">FAQ</a>
+                    <a href="#plans" class="bg-[var(--color-accent-primary)] text-[var(--color-text-inverted)] px-6 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity">Get Started</a>
+                </nav>
+
+                <div class="lg:hidden">
+                    <button id="mobile-menu-button" class="text-[var(--color-text-heading)] focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white absolute top-20 left-0 right-0 shadow-lg">
+            <a href="#features" class="block px-4 py-3 text-[var(--color-text-body)] hover:bg-gray-100 hover:text-[var(--color-accent-primary)]">Features</a>
+            <a href="#plans" class="block px-4 py-3 text-[var(--color-text-body)] hover:bg-gray-100 hover:text-[var(--color-accent-primary)]">Plans</a>
+            <a href="#testimonials" class="block px-4 py-3 text-[var(--color-text-body)] hover:bg-gray-100 hover:text-[var(--color-accent-primary)]">Testimonials</a>
+            <a href="#faq" class="block px-4 py-3 text-[var(--color-text-body)] hover:bg-gray-100 hover:text-[var(--color-accent-primary)]">FAQ</a>
+            <a href="#plans" class="block px-4 py-3 text-center bg-[var(--color-accent-primary)] text-[var(--color-text-inverted)] m-4 rounded-full hover:opacity-90">Get Started</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="pt-32 pb-16 md:pt-40 md:pb-24 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col lg:flex-row items-center gap-12">
+                    <div class="lg:w-1/2 animate-on-scroll">
+                        <div class="inline-block bg-white px-4 py-1.5 rounded-full shadow-sm border border-[var(--color-border-light)] mb-6">
+                            <span class="text-sm font-medium text-[var(--color-text-body)]">99.9% Uptime Guarantee</span>
+                        </div>
+                        <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-[var(--color-text-heading)] mb-6">
+                            Lightning-Fast Hosting for <span class="text-[var(--color-accent-primary)]">Small Businesses</span>
+                        </h1>
+                        <p class="text-lg text-[var(--color-text-body)] mb-8 max-w-xl">
+                            SwiftServe delivers blazing-fast performance and rock-solid reliability for your e-commerce, blog, or portfolio. Get your business online in minutes.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <a href="#plans" class="btn-slide-text relative inline-flex items-center justify-center px-8 py-3.5 border border-[var(--color-accent-primary)] rounded-full text-base font-medium group">
+                                <span class="text-container flex flex-col">
+                                    <span class="text-top block">Get Started</span>
+                                    <span class="text-bottom block absolute top-0 left-0 w-full text-center">Get Started</span>
+                                </span>
+                            </a>
+                            <a href="#features" class="relative inline-flex items-center justify-center px-8 py-3.5 bg-white border border-[var(--color-border-light)] rounded-full text-base font-medium text-[var(--color-text-body)] hover:bg-gray-50">
+                                <span class="mr-2"><i class="fas fa-bolt text-[var(--color-accent-secondary)]"></i></span>
+                                See Features
+                            </a>
+                        </div>
+                    </div>
+                    <div class="lg:w-1/2 animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="relative">
+                            <div class="absolute -top-6 -right-6 w-32 h-32 bg-[var(--color-accent-primary)] rounded-full opacity-10"></div>
+                            <div class="absolute -bottom-6 -left-6 w-40 h-40 bg-[var(--color-accent-secondary)] rounded-full opacity-10"></div>
+                            <div class="relative bg-white p-6 rounded-2xl shadow-xl border border-[var(--color-border-light)]">
+                                <div class="flex justify-between items-center mb-6">
+                                    <div class="flex items-center">
+                                        <div class="server-status"></div>
+                                        <span class="text-sm font-medium text-green-600">All servers online</span>
+                                    </div>
+                                    <div class="text-sm text-[var(--color-text-body)]">Current Speed</div>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="flex justify-between text-sm text-[var(--color-text-body)] mb-2">
+                                        <span>Performance</span>
+                                        <span>98%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div class="bg-[var(--color-accent-secondary)] h-2.5 rounded-full" style="width: 98%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="flex justify-between text-sm text-[var(--color-text-body)] mb-2">
+                                        <span>Reliability</span>
+                                        <span>99.9%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div class="bg-[var(--color-accent-primary)] h-2.5 rounded-full" style="width: 99.9%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm text-[var(--color-text-body)]">
+                                        <i class="fas fa-globe mr-2 text-[var(--color-accent-primary)]"></i>
+                                        12 Global Data Centers
+                                    </div>
+                                    <div class="text-sm text-[var(--color-text-body)]">
+                                        <i class="fas fa-shield-alt mr-2 text-[var(--color-accent-secondary)]"></i>
+                                        256-bit Security
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-16 md:py-24 bg-[var(--color-background-light)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 animate-on-scroll">
+                    <span class="inline-block text-sm font-medium text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)] px-3 py-1 rounded-full mb-3">Why Choose Us</span>
+                    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text-heading)] mb-4">Powerful Features for <span class="text-[var(--color-accent-primary)]">Lightning Speed</span></h2>
+                    <p class="text-lg text-[var(--color-text-body)] max-w-2xl mx-auto">Everything you need to make your website load instantly and run smoothly 24/7.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-6">
+                            <i class="fas fa-bolt text-2xl text-[var(--color-accent-primary)]"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[var(--color-text-heading)] mb-3">Blazing Fast Performance</h3>
+                        <p class="text-[var(--color-text-body)] mb-4">SSD storage, global CDN, and optimized servers ensure your site loads in under 1 second.</p>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-[var(--color-text-body)]">
+                                <span class="speed-indicator mr-2"></span>
+                                <span>98% faster than competitors</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 2 -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                            <i class="fas fa-shield-alt text-2xl text-[var(--color-accent-secondary)]"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[var(--color-text-heading)] mb-3">Enterprise Security</h3>
+                        <p class="text-[var(--color-text-body)] mb-4">256-bit encryption, DDoS protection, and daily backups keep your data safe.</p>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-[var(--color-text-body)]">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-2"></i>
+                                <span>99.9% uptime guarantee</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 3 -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll" style="transition-delay: 0.2s;">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-6">
+                            <i class="fas fa-cogs text-2xl text-purple-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[var(--color-text-heading)] mb-3">One-Click Setup</h3>
+                        <p class="text-[var(--color-text-body)] mb-4">Get your site up and running in minutes with our intuitive control panel and templates.</p>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-[var(--color-text-body)]">
+                                <i class="fas fa-rocket text-purple-600 mr-2"></i>
+                                <span>Free migration assistance</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 4 -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll" style="transition-delay: 0.3s;">
+                        <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center mb-6">
+                            <i class="fas fa-chart-line text-2xl text-yellow-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[var(--color-text-heading)] mb-3">Scalable Infrastructure</h3>
+                        <p class="text-[var(--color-text-body)] mb-4">Grow without limits. Our infrastructure scales automatically with your traffic.</p>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-[var(--color-text-body)]">
+                                <i class="fas fa-expand-arrows-alt text-yellow-500 mr-2"></i>
+                                <span>Handles traffic spikes effortlessly</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 5 -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll" style="transition-delay: 0.4s;">
+                        <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-6">
+                            <i class="fas fa-headset text-2xl text-red-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[var(--color-text-heading)] mb-3">24/7 Expert Support</h3>
+                        <p class="text-[var(--color-text-body)] mb-4">Our team is always ready to help with any technical issues or questions.</p>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-[var(--color-text-body)]">
+                                <i class="fas fa-comments text-red-500 mr-2"></i>
+                                <span>Average response time: 2 minutes</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature 6 -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll" style="transition-delay: 0.5s;">
+                        <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-6">
+                            <i class="fas fa-money-bill-wave text-2xl text-indigo-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-[var(--color-text-heading)] mb-3">Transparent Pricing</h3>
+                        <p class="text-[var(--color-text-body)] mb-4">No hidden fees. All plans include everything you need to get started.</p>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-[var(--color-text-body)]">
+                                <i class="fas fa-tag text-indigo-600 mr-2"></i>
+                                <span>30-day money-back guarantee</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="py-16 md:py-24 bg-[var(--color-background-off-white)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 animate-on-scroll">
+                    <span class="inline-block text-sm font-medium text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)] px-3 py-1 rounded-full mb-3">Simple Process</span>
+                    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text-heading)] mb-4">Get Your Site Online in <span class="text-[var(--color-accent-primary)]">Minutes</span></h2>
+                    <p class="text-lg text-[var(--color-text-body)] max-w-2xl mx-auto">Our streamlined process makes launching your website incredibly easy.</p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row items-center gap-12">
+                    <div class="lg:w-1/2 animate-on-scroll">
+                        <div class="relative">
+                            <div class="absolute -top-6 -left-6 w-24 h-24 bg-[var(--color-accent-primary)] rounded-full opacity-10"></div>
+                            <div class="relative bg-white p-8 rounded-2xl shadow-lg border border-[var(--color-border-light)]">
+                                <div class="flex items-center mb-6">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                                        <span class="text-[var(--color-accent-primary)] font-bold">1</span>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-[var(--color-text-heading)]">Choose a Plan</h3>
+                                </div>
+                                <p class="text-[var(--color-text-body)] mb-6">Select the perfect plan for your needs. All plans include our powerful features.</p>
+                                
+                                <div class="flex items-center mb-6">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-4">
+                                        <span class="text-[var(--color-accent-secondary)] font-bold">2</span>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-[var(--color-text-heading)]">Set Up Your Site</h3>
+                                </div>
+                                <p class="text-[var(--color-text-body)] mb-6">Use our intuitive tools or templates to build your website in minutes.</p>
+                                
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+                                        <span class="text-purple-600 font-bold">3</span>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-[var(--color-text-heading)]">Launch & Grow</h3>
+                                </div>
+                                <p class="text-[var(--color-text-body)]">Go live instantly and watch your business grow with our reliable hosting.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:w-1/2 animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="bg-white p-1 rounded-2xl shadow-xl border border-[var(--color-border-light)]">
+                            <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-80 flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="fas fa-rocket text-5xl text-[var(--color-accent-primary)] mb-4"></div>
+                                    <p class="text-lg font-medium text-[var(--color-text-heading)]">Your Website Launching</p>
+                                    <p class="text-[var(--color-text-body)]">See your site go live in seconds</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="plans" class="py-16 md:py-24 bg-[var(--color-background-light)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 animate-on-scroll">
+                    <span class="inline-block text-sm font-medium text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)] px-3 py-1 rounded-full mb-3">Simple Pricing</span>
+                    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text-heading)] mb-4">Plans That <span class="text-[var(--color-accent-primary)]">Scale With You</span></h2>
+                    <p class="text-lg text-[var(--color-text-body)] max-w-2xl mx-auto">Choose the perfect plan for your small business. All plans include our premium features.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <!-- Basic Plan -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll">
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold text-[var(--color-text-heading)] mb-2">Starter</h3>
+                            <p class="text-[var(--color-text-body)] mb-6">Perfect for personal blogs and small sites</p>
+                            <div class="text-4xl font-bold text-[var(--color-text-heading)] mb-2">$9<span class="text-lg font-normal text-[var(--color-text-body)]">/mo</span></div>
+                            <p class="text-sm text-[var(--color-text-body)]">Billed annually or $12 month-to-month</p>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>1 Website</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>10GB Storage</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>100GB Bandwidth</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Basic Security</span>
+                            </li>
+                            <li class="flex items-center text-[var(--color-text-body)]">
+                                <i class="fas fa-times-circle text-gray-300 mr-3"></i>
+                                <span>Free SSL Certificate</span>
+                            </li>
+                            <li class="flex items-center text-[var(--color-text-body)]">
+                                <i class="fas fa-times-circle text-gray-300 mr-3"></i>
+                                <span>Priority Support</span>
+                            </li>
+                        </ul>
+                        <a href="#" class="block w-full text-center px-6 py-3 border border-[var(--color-accent-primary)] text-[var(--color-accent-primary)] font-medium rounded-full hover:bg-blue-50 transition-colors">Get Started</a>
+                    </div>
+                    
+                    <!-- Pro Plan (Popular) -->
+                    <div class="bg-white p-8 rounded-2xl border-2 border-[var(--color-accent-primary)] shadow-lg relative animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="absolute top-0 right-0 bg-[var(--color-accent-primary)] text-white text-xs font-bold px-4 py-1 rounded-bl-lg rounded-tr-2xl">MOST POPULAR</div>
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold text-[var(--color-text-heading)] mb-2">Pro</h3>
+                            <p class="text-[var(--color-text-body)] mb-6">Ideal for growing businesses and e-commerce</p>
+                            <div class="text-4xl font-bold text-[var(--color-text-heading)] mb-2">$29<span class="text-lg font-normal text-[var(--color-text-body)]">/mo</span></div>
+                            <p class="text-sm text-[var(--color-text-body)]">Billed annually or $35 month-to-month</p>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Unlimited Websites</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>50GB Storage</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>500GB Bandwidth</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Advanced Security</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Free SSL Certificate</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Priority Support</span>
+                            </li>
+                        </ul>
+                        <a href="#" class="block w-full text-center px-6 py-3 bg-[var(--color-accent-primary)] text-white font-medium rounded-full hover:opacity-90 transition-opacity">Get Started</a>
+                    </div>
+                    
+                    <!-- Business Plan -->
+                    <div class="bg-white p-8 rounded-2xl border border-[var(--color-border-light)] shadow-sm hover:shadow-md transition-shadow animate-on-scroll" style="transition-delay: 0.2s;">
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold text-[var(--color-text-heading)] mb-2">Business</h3>
+                            <p class="text-[var(--color-text-body)] mb-6">For established businesses with high traffic</p>
+                            <div class="text-4xl font-bold text-[var(--color-text-heading)] mb-2">$79<span class="text-lg font-normal text-[var(--color-text-body)]">/mo</span></div>
+                            <p class="text-sm text-[var(--color-text-body)]">Billed annually or $95 month-to-month</p>
+                        </div>
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Unlimited Websites</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>200GB Storage</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Unlimited Bandwidth</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Enterprise Security</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>Free SSL Certificate</span>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-[var(--color-accent-secondary)] mr-3"></i>
+                                <span>24/7 Dedicated Support</span>
+                            </li>
+                        </ul>
+                        <a href="#" class="block w-full text-center px-6 py-3 border border-[var(--color-accent-primary)] text-[var(--color-accent-primary)] font-medium rounded-full hover:bg-blue-50 transition-colors">Get Started</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials -->
+        <section id="testimonials" class="py-16 md:py-24 bg-[var(--color-background-dark)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 animate-on-scroll">
+                    <span class="inline-block text-sm font-medium text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)] px-3 py-1 rounded-full mb-3">Customer Love</span>
+                    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text-inverted)] mb-4">Trusted by <span class="text-[var(--color-accent-secondary)]">20,000+</span> Businesses</h2>
+                    <p class="text-lg text-[var(--color-text-inverted-muted)] max-w-2xl mx-auto">Don't just take our word for it. Here's what our customers say.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Testimonial 1 -->
+                    <div class="bg-[var(--color-background-dark-alt)] p-8 rounded-2xl border border-[var(--color-border-dark-muted)] animate-on-scroll">
+                        <div class="flex items-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
+                            <div>
+                                <h4 class="font-bold text-[var(--color-text-inverted)]">Sarah Johnson</h4>
+                                <p class="text-sm text-[var(--color-text-inverted-muted)]">E-commerce Owner</p>
+                            </div>
+                        </div>
+                        <p class="text-[var(--color-text-inverted-muted)] mb-6">"SwiftServe has transformed my online store. Pages load instantly, and my conversion rates have increased by 40% since switching. The support team is always there when I need them."</p>
+                        <div class="flex text-[var(--color-accent-secondary)]">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 2 -->
+                    <div class="bg-[var(--color-background-dark-alt)] p-8 rounded-2xl border border-[var(--color-border-dark-muted)] animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="flex items-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
+                            <div>
+                                <h4 class="font-bold text-[var(--color-text-inverted)]">Michael Chen</h4>
+                                <p class="text-sm text-[var(--color-text-inverted-muted)]">Web Designer</p>
+                            </div>
+                        </div>
+                        <p class="text-[var(--color-text-inverted-muted)] mb-6">"I've tried many hosting providers, but SwiftServe's speed and reliability are unmatched. My clients' sites consistently rank higher in search results since migrating here."</p>
+                        <div class="flex text-[var(--color-accent-secondary)]">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 3 -->
+                    <div class="bg-[var(--color-background-dark-alt)] p-8 rounded-2xl border border-[var(--color-border-dark-muted)] animate-on-scroll" style="transition-delay: 0.2s;">
+                        <div class="flex items-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-gray-300 mr-4"></div>
+                            <div>
+                                <h4 class="font-bold text-[var(--color-text-inverted)]">Emma Rodriguez</h4>
+                                <p class="text-sm text-[var(--color-text-inverted-muted)]">Small Business Owner</p>
+                            </div>
+                        </div>
+                        <p class="text-[var(--color-text-inverted-muted)] mb-6">"The 24/7 support saved me during a critical moment when my site was down. They got it back up in under 5 minutes! The uptime guarantee is not just a promise - it's a guarantee."</p>
+                        <div class="flex text-[var(--color-accent-secondary)]">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="py-16 md:py-24 bg-[var(--color-background-off-white)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    <div class="lg:w-1/3 animate-on-scroll">
+                        <span class="inline-block text-sm font-medium text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)] px-3 py-1 rounded-full mb-3">FAQs</span>
+                        <h2 class="text-3xl sm:text-4xl font-bold text-[var(--color-text-heading)] mb-4">Frequently Asked <span class="text-[var(--color-accent-primary)]">Questions</span></h2>
+                        <p class="text-[var(--color-text-body)] mb-8">Find answers to common questions about our hosting service.</p>
+                        <div class="bg-white p-6 rounded-2xl border border-[var(--color-border-light)]">
+                            <div class="flex items-center mb-4">
+                                <div class="server-status"></div>
+                                <span class="text-sm font-medium text-green-600">24/7 Support Available</span>
+                            </div>
+                            <p class="text-sm text-[var(--color-text-body)]">Can't find what you're looking for? Contact our support team anytime.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:w-2/3 animate-on-scroll" style="transition-delay: 0.1s;">
+                        <div class="space-y-4">
+                            <!-- FAQ 1 -->
+                            <div class="bg-white rounded-2xl border border-[var(--color-border-light)] overflow-hidden">
+                                <button class="faq-question w-full flex justify-between items-center text-left p-6 focus:outline-none">
+                                    <span class="text-lg font-medium text-[var(--color-text-heading)]">How fast is SwiftServe hosting?</span>
+                                    <span class="faq-icon text-[var(--color-accent-primary)] text-xl transform transition-transform duration-300">+</span>
+                                </button>
+                                <div class="faq-answer px-6 pb-6 text-[var(--color-text-body)] hidden">
+                                    <p>SwiftServe uses a global CDN and optimized infrastructure to deliver content at lightning speed. Our average load time is under 0.5 seconds, which is significantly faster than industry averages. This speed helps improve user experience and SEO rankings.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- FAQ 2 -->
+                            <div class="bg-white rounded-2xl border border-[var(--color-border-light)] overflow-hidden">
+                                <button class="faq-question w-full flex justify-between items-center text-left p-6 focus:outline-none">
+                                    <span class="text-lg font-medium text-[var(--color-text-heading)]">Can I upgrade or downgrade my plan later?</span>
+                                    <span class="faq-icon text-[var(--color-accent-primary)] text-xl transform transition-transform duration-300">+</span>
+                                </button>
+                                <div class="faq-answer px-6 pb-6 text-[var(--color-text-body)] hidden">
+                                    <p>Yes, you can upgrade or downgrade your plan at any time. When upgrading, you'll receive a prorated credit for the unused portion of your current plan. Downgrades take effect at the start of your next billing cycle.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- FAQ 3 -->
+                            <div class="bg-white rounded-2xl border border-[var(--color-border-light)] overflow-hidden">
+                                <button class="faq-question w-full flex justify-between items-center text-left p-6 focus:outline-none">
+                                    <span class="text-lg font-medium text-[var(--color-text-heading)]">What security measures do you have in place?</span>
+                                    <span class="faq-icon text-[var(--color-accent-primary)] text-xl transform transition-transform duration-300">+</span>
+                                </button>
+                                <div class="faq-answer px-6 pb-6 text-[var(--color-text-body)] hidden">
+                                    <p>We provide enterprise-grade security including 256-bit SSL encryption, DDoS protection, malware scanning, automatic security updates, and daily backups. All plans include a free SSL certificate to keep your data and customer information secure.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- FAQ 4 -->
+                            <div class="bg-white rounded-2xl border border-[var(--color-border-light)] overflow-hidden">
+                                <button class="faq-question w-full flex justify-between items-center text-left p-6 focus:outline-none">
+                                    <span class="text-lg font-medium text-[var(--color-text-heading)]">How does the 99.9% uptime guarantee work?</span>
+                                    <span class="faq-icon text-[var(--color-accent-primary)] text-xl transform transition-transform duration-300">+</span>
+                                </button>
+                                <div class="faq-answer px-6 pb-6 text-[var(--color-text-body)] hidden">
+                                    <p>If your site experiences downtime exceeding 0.1% of the month, we'll credit your account with 50% of the monthly cost for each hour of downtime. Our infrastructure is designed for maximum reliability with redundant systems and 24/7 monitoring.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- FAQ 5 -->
+                            <div class="bg-white rounded-2xl border border-[var(--color-border-light)] overflow-hidden">
+                                <button class="faq-question w-full flex justify-between items-center text-left p-6 focus:outline-none">
+                                    <span class="text-lg font-medium text-[var(--color-text-heading)]">Can I cancel my service anytime?</span>
+                                    <span class="faq-icon text-[var(--color-accent-primary)] text-xl transform transition-transform duration-300">+</span>
+                                </button>
+                                <div class="faq-answer px-6 pb-6 text-[var(--color-text-body)] hidden">
+                                    <p>Yes, you can cancel your service at any time. There are no cancellation fees. When you cancel, you'll continue to have access to your account until the end of your current billing period.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 md:py-24 bg-gradient-to-r from-[var(--color-accent-primary)] to-indigo-700">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl mx-auto text-center animate-on-scroll">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Ready to Launch Your Website?</h2>
+                    <p class="text-lg text-blue-100 mb-8 max-w-2xl mx-auto">Join thousands of satisfied customers who have chosen SwiftServe for their high-performance hosting needs.</p>
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        <a href="#plans" class="bg-white text-[var(--color-accent-primary)] px-8 py-3.5 rounded-full text-base font-bold hover:opacity-90 transition-opacity">Choose Your Plan</a>
+                        <a href="#faq" class="bg-transparent border-2 border-white text-white px-8 py-3.5 rounded-full text-base font-bold hover:bg-white hover:text-[var(--color-accent-primary)] transition-colors">Contact Sales</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-background-dark)] text-[var(--color-text-inverted-muted)] pt-16 pb-8">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <a href="#" class="text-2xl font-bold text-white mb-4 inline-block">
+                        <span class="text-[var(--color-accent-primary)]">Swift</span>Serve
+                    </a>
+                    <p class="text-sm mb-6">High-performance web hosting for small businesses and startups.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-[var(--color-text-inverted-muted)] hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-[var(--color-text-inverted-muted)] hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-[var(--color-text-inverted-muted)] hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-[var(--color-text-inverted-muted)] hover:text-white"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="text-lg font-semibold text-white mb-4">Company</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Press</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-lg font-semibold text-white mb-4">Resources</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Tutorials</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Reference</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Community</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Status</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-lg font-semibold text-white mb-4">Legal</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Cookie Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Security</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Compliance</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-[var(--color-border-dark-muted)] pt-8 text-center">
+                <p class="text-sm">© 2023 SwiftServe Hosting. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile Menu Toggle
+            const menuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (menuButton && mobileMenu) {
+                menuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // FAQ Accordion
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                const answer = item.querySelector('.faq-answer');
+                const icon = item.querySelector('.faq-icon');
+
+                if (question && answer && icon) {
+                    question.addEventListener('click', () => {
+                        const isOpen = answer.classList.contains('hidden');
+                        
+                        // Close all other answers
+                        faqItems.forEach(otherItem => {
+                            if (otherItem !== item) {
+                                otherItem.querySelector('.faq-answer').classList.add('hidden');
+                                otherItem.querySelector('.faq-icon').textContent = '+';
+                            }
+                        });
+
+                        if (isOpen) {
+                            answer.classList.remove('hidden');
+                            icon.textContent = '−';
+                        } else {
+                            answer.classList.add('hidden');
+                            icon.textContent = '+';
+                        }
+                    });
+                }
+            });
+
+            // Animate on Scroll
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

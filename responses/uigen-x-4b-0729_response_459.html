@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodExpress - Restaurant Browsing & Delivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'food-primary': '#FF6B35',
+                        'food-secondary': '#4A5568',
+                        'food-accent': '#2D3748',
+                        'food-light': '#F7FAFC',
+                        'food-dark': '#1A202C',
+                        'food-green': '#48BB78',
+                        'food-orange': '#ED8936',
+                        'food-pink': '#FC8181',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        :root {
+            --color-food-primary: #FF6B35;
+            --color-food-secondary: #4A5568;
+            --color-food-accent: #2D3748;
+            --color-food-light: #F7FAFC;
+            --color-food-dark: #1A202C;
+            --color-food-green: #48BB78;
+            --color-food-orange: #ED8936;
+            --color-food-pink: #FC8181;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F7FAFC;
+            color: #1A202C;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .food-item:hover {
+            transform: scale(1.03);
+        }
+        
+        .cart-item {
+            transition: all 0.3s ease;
+        }
+        
+        .cart-item:hover {
+            background-color: #F7FAFC;
+        }
+        
+        .category-btn.active {
+            background-color: #FF6B35;
+            color: white;
+        }
+        
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #FF6B35;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .cart-drawer {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .cart-drawer.hidden {
+            transform: translateX(100%);
+        }
+        
+        .cart-drawer.open {
+            transform: translateX(0);
+        }
+        
+        .cart-drawer-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .cart-drawer-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .cart-drawer-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .restaurant-image {
+            transition: transform 0.4s ease;
+        }
+        
+        .restaurant-card:hover .restaurant-image {
+            transform: scale(1.05);
+        }
+        
+        .rating-stars {
+            color: #FF6B35;
+        }
+        
+        .delivery-time {
+            background-color: #FF6B35;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .cart-total {
+            background-color: #FF6B35;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-food-light text-food-accent">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-food-primary flex items-center justify-center">
+                        <i class="fas fa-utensils text-white text-xl"></i>
+                    </div>
+                    <span class="ml-2 text-xl font-bold text-food-dark">FoodExpress</span>
+                </div>
+                
+                <!-- Search -->
+                <div class="hidden md:flex items-center w-1/3">
+                    <div class="relative w-full">
+                        <input type="text" placeholder="Search restaurants, dishes..." class="w-full py-2 pl-4 pr-10 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-food-primary focus:border-transparent">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <div class="flex items-center space-x-4">
+                    <button class="relative p-2 text-gray-600 hover:text-food-primary">
+                        <i class="fas fa-heart text-xl"></i>
+                    </button>
+                    <button id="cart-button" class="relative p-2 text-gray-600 hover:text-food-primary">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="cart-badge">3</span>
+                    </button>
+                    <button class="md:hidden p-2 text-gray-600">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-food-primary to-food-orange py-12">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto text-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Delicious Food Delivered to Your Door</h1>
+                <p class="text-xl text-white opacity-90 mb-8">Discover thousands of restaurants and enjoy your favorite dishes at home</p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button class="bg-white text-food-primary font-semibold py-3 px-8 rounded-full hover:bg-opacity-90 transition">
+                        <i class="fas fa-utensils mr-2"></i> Browse Restaurants
+                    </button>
+                    <button class="bg-transparent border-2 border-white text-white font-semibold py-3 px-8 rounded-full hover:bg-white hover:bg-opacity-10 transition">
+                        <i class="fas fa-play-circle mr-2"></i> How It Works
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Restaurant Categories -->
+    <section class="py-8 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl font-bold text-center mb-6">Restaurant Categories</h2>
+            <div class="flex flex-wrap justify-center gap-3">
+                <button class="category-btn active px-4 py-2 rounded-full border border-gray-300 font-medium">All</button>
+                <button class="category-btn px-4 py-2 rounded-full border border-gray-300 font-medium">Italian</button>
+                <button class="category-btn px-4 py-2 rounded-full border border-gray-300 font-medium">Mexican</button>
+                <button class="category-btn px-4 py-2 rounded-full border border-gray-300 font-medium">Indian</button>
+                <button class="category-btn px-4 py-2 rounded-full border border-gray-300 font-medium">Pizza</button>
+                <button class="category-btn px-4 py-2 rounded-full border border-gray-300 font-medium">Burger</button>
+                <button class="category-btn px-4 py-2 rounded-full border border-gray-300 font-medium">Healthy</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Restaurant Grid -->
+    <section class="py-12 bg-food-light">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold">Popular Restaurants</h2>
+                <a href="#" class="text-food-primary font-semibold flex items-center">
+                    View All <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Restaurant 1 -->
+                <div class="restaurant-card bg-white rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
+                             alt="Bella Italia" class="w-full h-48 object-cover restaurant-image">
+                        <div class="absolute top-4 right-4 delivery-time">
+                            <i class="fas fa-clock mr-1"></i> 20-30 min
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-lg">Bella Italia</h3>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                                <span class="text-gray-500 text-sm ml-1">4.7</span>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mt-2">Authentic Italian cuisine with a modern twist</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$12.99</span>
+                            <button class="view-menu-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                View Menu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Restaurant 2 -->
+                <div class="restaurant-card bg-white rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
+                             alt="Burger Palace" class="w-full h-48 object-cover restaurant-image">
+                        <div class="absolute top-4 right-4 delivery-time">
+                            <i class="fas fa-clock mr-1"></i> 15-25 min
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-lg">Burger Palace</h3>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                                <span class="text-gray-500 text-sm ml-1">4.3</span>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mt-2">America's favorite burger joint with gourmet options</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$14.50</span>
+                            <button class="view-menu-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                View Menu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Restaurant 3 -->
+                <div class="restaurant-card bg-white rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
+                             alt="Sakura Sushi" class="w-full h-48 object-cover restaurant-image">
+                        <div class="absolute top-4 right-4 delivery-time">
+                            <i class="fas fa-clock mr-1"></i> 25-40 min
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-lg">Sakura Sushi</h3>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <span class="text-gray-500 text-sm ml-1">4.9</span>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mt-2">Premium sushi with fresh ingredients and authentic flavors</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$18.75</span>
+                            <button class="view-menu-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                View Menu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Dishes -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold">Popular Dishes</h2>
+                <a href="#" class="text-food-primary font-semibold flex items-center">
+                    View All <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dish 1 -->
+                <div class="food-item bg-food-light rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">Margherita Pizza</h3>
+                                <p class="text-gray-600">Bella Italia</p>
+                            </div>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$12.99</span>
+                            <button class="add-to-cart-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dish 2 -->
+                <div class="food-item bg-food-light rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">Double Cheeseburger</h3>
+                                <p class="text-gray-600">Burger Palace</p>
+                            </div>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$14.50</span>
+                            <button class="add-to-cart-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dish 3 -->
+                <div class="food-item bg-food-light rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">Dragon Roll</h3>
+                                <p class="text-gray-600">Sakura Sushi</p>
+                            </div>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$18.75</span>
+                            <button class="add-to-cart-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dish 4 -->
+                <div class="food-item bg-food-light rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">Garlic Shrimp</h3>
+                                <p class="text-gray-600">Bella Italia</p>
+                            </div>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$16.25</span>
+                            <button class="add-to-cart-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dish 5 -->
+                <div class="food-item bg-food-light rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">Veggie Burger</h3>
+                                <p class="text-gray-600">Burger Palace</p>
+                            </div>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$13.50</span>
+                            <button class="add-to-cart-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dish 6 -->
+                <div class="food-item bg-food-light rounded-xl overflow-hidden shadow-md transition-all duration-300 animate-on-scroll">
+                    <div class="p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">Sashimi Platter</h3>
+                                <p class="text-gray-600">Sakura Sushi</p>
+                            </div>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="font-bold text-lg text-food-primary">$22.00</span>
+                            <button class="add-to-cart-btn bg-food-primary text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition">
+                                <i class="fas fa-plus mr-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-12 bg-food-light">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4">How FoodExpress Works</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Getting your food has never been easier. Follow these simple steps:</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md text-center animate-on-scroll">
+                    <div class="w-20 h-20 bg-food-primary bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-search text-food-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Search & Browse</h3>
+                    <p class="text-gray-600">Find your favorite restaurants or discover new cuisines</p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md text-center animate-on-scroll">
+                    <div class="w-20 h-20 bg-food-primary bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-utensils text-food-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Choose Your Dish</h3>
+                    <p class="text-gray-600">Browse the menu and add your favorite items to your cart</p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md text-center animate-on-scroll">
+                    <div class="w-20 h-20 bg-food-primary bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-truck text-food-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Fast Delivery</h3>
+                    <p class="text-gray-600">Enjoy your food delivered to your doorstep in minutes</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4">What Our Customers Say</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Don't just take our word for it. Here's what our users are saying:</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-food-light p-6 rounded-xl shadow-md animate-on-scroll">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-food-primary bg-opacity-10 flex items-center justify-center text-food-primary font-bold mr-3">SJ</div>
+                        <div>
+                            <h4 class="font-bold">Sarah Johnson</h4>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"FoodExpress has become my go-to for quick and delicious meals. The delivery is always fast and the food is amazing!"</p>
+                </div>
+                
+                <div class="bg-food-light p-6 rounded-xl shadow-md animate-on-scroll">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-food-primary bg-opacity-10 flex items-center justify-center text-food-primary font-bold mr-3">MR</div>
+                        <div>
+                            <h4 class="font-bold">Michael Rodriguez</h4>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"The variety of restaurants and dishes is incredible. I've tried everything from sushi to burgers - all amazing!"</p>
+                </div>
+                
+                <div class="bg-food-light p-6 rounded-xl shadow-md animate-on-scroll">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-food-primary bg-opacity-10 flex items-center justify-center text-food-primary font-bold mr-3">ET</div>
+                        <div>
+                            <h4 class="font-bold">Emily Thompson</h4>
+                            <div class="rating-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"The app is so easy to use. I love how I can customize my order and see the delivery time estimate."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cart Drawer -->
+    <div id="cart-drawer" class="cart-drawer fixed top-0 right-0 h-full w-full md:w-96 bg-white shadow-2xl z-50 transform translate-x-full">
+        <div class="h-full flex flex-col">
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Your Order</h3>
+                <button id="close-cart" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Cart Items -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="cart-items space-y-4">
+                    <!-- Cart Item 1 -->
+                    <div class="cart-item flex items-center p-3 rounded-lg">
+                        <div class="w-16 h-16 bg-food-primary bg-opacity-10 rounded-lg flex items-center justify-center text-food-primary font-bold mr-4">1</div>
+                        <div class="flex-1">
+                            <h4 class="font-bold">Margherita Pizza</h4>
+                            <p class="text-gray-600 text-sm">Bella Italia</p>
+                            <div class="flex items-center mt-1">
+                                <div class="rating-stars text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="far fa-star"></i>
+                                </div>
+                                <span class="text-gray-500 text-sm ml-2">4.3</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold">$12.99</p>
+                            <button class="remove-item text-gray-400 hover:text-red-500">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Cart Item 2 -->
+                    <div class="cart-item flex items-center p-3 rounded-lg">
+                        <div class="w-16 h-16 bg-food-primary bg-opacity-10 rounded-lg flex items-center justify-center text-food-primary font-bold mr-4">1</div>
+                        <div class="flex-1">
+                            <h4 class="font-bold">Double Cheeseburger</h4>
+                            <p class="text-gray-600 text-sm">Burger Palace</p>
+                            <div class="flex items-center mt-1">
+                                <div class="rating-stars text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                                <span class="text-gray-500 text-sm ml-2">4.5</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold">$14.50</p>
+                            <button class="remove-item text-gray-400 hover:text-red-500">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Order Summary -->
+                <div class="mt-8 p-4 bg-food-light rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span>Subtotal</span>
+                        <span class="font-bold">$27.49</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span>Delivery Fee</span>
+                        <span class="font-bold">$2.99</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span>Estimated Delivery</span>
+                        <span class="font-bold">25-35 min</span>
+                    </div>
+                    <div class="flex justify-between items-center font-bold text-lg pt-2 border-t border-gray-200">
+                        <span>Total</span>
+                        <span class="cart-total">$30.48</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Drawer Footer -->
+            <div class="p-4 border-t border-gray-200">
+                <button class="w-full bg-food-primary text-white py-3 rounded-lg font-semibold hover:bg-opacity-90 transition">
+                    <i class="fas fa-lock mr-2"></i> Pay Now
+                </button>
+                <p class="text-center text-gray-500 text-sm mt-2">Secure payment. Your food is prepared fresh and delivered promptly.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cart Overlay -->
+    <div id="cart-overlay" class="cart-drawer-overlay fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+
+    <!-- Footer -->
+    <footer class="bg-food-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-food-primary flex items-center justify-center">
+                            <i class="fas fa-utensils text-white text-xl"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold">FoodExpress</span>
+                    </div>
+                    <p class="text-gray-300 mb-4">Delivering delicious food to your doorstep since 2018.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white">Home</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Restaurants</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Menu</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Delivery</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">About Us</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Support</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">FAQ</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Newsletter</h4>
+                    <p class="text-gray-300 mb-4">Subscribe to get special offers and updates</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-gray-800">
+                        <button class="bg-food-primary px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2023 FoodExpress. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cart functionality
+            const cartButton = document.getElementById('cart-button');
+            const cartDrawer = document.getElementById('cart-drawer');
+            const cartOverlay = document.getElementById('cart-overlay');
+            const closeCart = document.getElementById('close-cart');
+            
+            // Toggle cart drawer
+            function toggleCart() {
+                cartDrawer.classList.toggle('open');
+                cartOverlay.classList.toggle('open');
+                document.body.classList.toggle('overflow-hidden');
+            }
+            
+            cartButton.addEventListener('click', toggleCart);
+            closeCart.addEventListener('click', toggleCart);
+            cartOverlay.addEventListener('click', toggleCart);
+            
+            // Add to cart functionality
+            const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+            const cartItems = document.querySelector('.cart-items');
+            
+            addToCartButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const itemText = this.textContent.trim();
+                    const newItem = document.createElement('div');
+                    newItem.className = 'cart-item flex items-center p-3 rounded-lg';
+                    newItem.innerHTML = `
+                        <div class="w-16 h-16 bg-food-primary bg-opacity-10 rounded-lg flex items-center justify-center text-food-primary font-bold mr-4">1</div>
+                        <div class="flex-1">
+                            <h4 class="font-bold">${itemText.split(' ')[0]}</h4>
+                            <p class="text-gray-600 text-sm">${itemText.split(' ')[1]}</p>
+                            <div class="flex items-center mt-1">
+                                <div class="rating-stars text-sm">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="far fa-star"></i>
+                                </div>
+                                <span class="text-gray-500 text-sm ml-2">4.3</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold">$${itemText.includes('$') ? parseFloat(itemText.match(/\$([\d.]+)/)[1]).toFixed(2) : '12.99'}</p>
+                            <button class="remove-item text-gray-400 hover:text-red-500">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    cartItems.appendChild(newItem);
+                    
+                    // Update cart badge
+                    const badge = document.querySelector('.cart-badge');
+                    badge.textContent = parseInt(badge.textContent) + 1;
+                    
+                    // Animate new item
+                    newItem.style.opacity = '0';
+                    newItem.style.transform = 'translateY(20px)';
+                    newItem.style.transition = 'all 0.3s ease';
+                    setTimeout(() => {
+                        newItem.style.opacity = '1';
+                        newItem.style.transform = 'translateY(0)';
+                    }, 10);
+                });
+            });
+            
+            // Remove item from cart
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.remove-item')) {
+                    const item = e.target.closest('.cart-item');
+                    if (item) {
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateX(100px)';
+                        item.style.transition = 'all 0.3s ease';
+                        setTimeout(() => {
+                            item.remove();
+                        }, 300);
+                        
+                        // Update cart badge
+                        const badge = document.querySelector('.cart-badge');
+                        badge.textContent = parseInt(badge.textContent) - 1;
+                    }
+                }
+            });
+            
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => observer.observe(el));
+            
+            // Category buttons
+            const categoryButtons = document.querySelectorAll('.category-btn');
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    categoryButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

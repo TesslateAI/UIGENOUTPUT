@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeCraft – Dark Mode Editor</title>
+    <meta name="description" content="A dark‑mode code editor UI with syntax highlighting, file tree sidebar, and integrated terminal output. Built with Tailwind CSS.">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-bg-main: #0a0a0a;
+            --color-bg-alt: #111111;
+            --color-bg-card: #171717;
+            --color-bg-input: #1e1e1e;
+            --color-bg-input-border: #2c2c2c;
+            --color-text-primary: #f5f5f5;
+            --color-text-secondary: #b3b3b3;
+            --color-text-muted: #a0a0a0;
+            --color-accent-primary: #2667e5;
+            --color-accent-secondary: #00bfa5;
+            --color-accent-bg: #2b2b2b;
+            --color-border-light: #2c2c2c;
+            --color-border-dark: #3a3a3a;
+            --color-border-medium: #464646;
+            --color-border-subtle: #5b5b5b;
+            --color-input-bg: #1e1e1e;
+            --color-input-border: #2c2c2c;
+            --color-input-placeholder: #757575;
+            --color-input-focus: #464646;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .6s cubic-bezier(.44,0,.56,1), transform .6s cubic-bezier(.44,0,.56,1);
+        }
+        .animate-on-scroll.is-visible { opacity:1; transform:translateY(0); }
+
+        .animate-on-scroll-scale {
+            opacity:0;
+            transform:scale(.9);
+            transition:opacity .6s cubic-bezier(.44,0,.56,1), transform .6s cubic-bezier(.44,0,.56,1);
+        }
+        .animate-on-scroll-scale.is-visible { opacity:1; transform:scale(1); }
+
+        .animate-on-scroll-x-left {
+            opacity:0;
+            transform:translateX(-50px);
+            transition:opacity .6s cubic-bezier(.44,0,.56,1), transform .6s cubic-bezier(.44,0,.56,1);
+        }
+        .animate-on-scroll-x-left.is-visible { opacity:1; transform:translateX(0); }
+
+        .animate-on-scroll-x-right {
+            opacity:0;
+            transform:translateX(50px);
+            transition:opacity .6s cubic-bezier(.44,0,.56,1), transform .6s cubic-bezier(.44,0,.56,1);
+        }
+        .animate-on-scroll-x-right.is-visible { opacity:1; transform:translateX(0); }
+
+        .animate-on-scroll-bottom-pulse {
+            opacity:0;
+            transform:translateY(80px) scale(.6);
+            transition:opacity .6s cubic-bezier(.44,0,.56,1), transform .6s cubic-bezier(.44,0,.56,1);
+        }
+        .animate-on-scroll-bottom-pulse.is-visible { opacity:1; transform:translateY(-40px) scale(1); }
+
+        .text-gradient-accent {
+            background-image: radial-gradient(circle at 50% 50%, var(--color-accent-primary) 0%, transparent 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color:transparent;
+        }
+        .text-gradient-accent-dark {
+            background-image: radial-gradient(circle at 50% 50%, var(--color-accent-secondary) 0%, transparent 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color:transparent;
+        }
+
+        .border-dashed-custom {
+            border-style:dashed;
+        }
+        .dashed-light { border-color:var(--color-border-light); }
+        .dashed-dark { border-color:var(--color-border-dark); }
+        .dashed-medium { border-color:var(--color-border-medium); }
+        .dashed-subtle { border-color:var(--color-border-subtle); }
+
+        .bg-blur-overlay {
+            position:absolute;
+            inset:0;
+            background-color:var(--color-bg-card);
+            backdrop-filter:blur(5px);
+            -webkit-backdrop-filter:blur(5px);
+            pointer-events:none;
+        }
+
+        .marquee-container {
+            overflow:hidden;
+            width:100%;
+            -webkit-mask-image:linear-gradient(to right,transparent 0%,black 12.5%,black 87.5%,transparent 100%);
+            mask-image:linear-gradient(to right,transparent 0%,black 12.5%,black 87.5%,transparent 100%);
+        }
+        .marquee-content {
+            display:flex;
+            width:max-content;
+            animation:marquee 30s linear infinite;
+        }
+        .marquee-content>* { flex-shrink:0; padding:0 2rem; }
+        @keyframes marquee {
+            0% { transform:translateX(0); }
+            100% { transform:translateX(-50%); }
+        }
+
+        .faq-item .faq-answer {
+            max-height:0;
+            overflow:hidden;
+            transition:max-height .3s ease-out,padding-top .3s ease-out,padding-bottom .3s ease-out;
+        }
+        .faq-item.open .faq-answer {
+            max-height:200px;
+            padding-top:.5rem;
+            padding-bottom:1rem;
+        }
+        .faq-item .faq-icon { transition:transform .3s ease-in-out; }
+        .faq-item.open .faq-icon { transform:rotate(45deg); }
+
+        .input-with-icon .input-icon-wrapper {
+            position:relative;
+            width:100%;
+        }
+        .input-with-icon .input-icon-wrapper .icon-default,
+        .input-with-icon .input-icon-wrapper .icon-optional {
+            position:absolute;
+            right:1.25rem;
+            top:50%;
+            transform:translateY(-50%);
+            font-size:1.25rem;
+            color:var(--color-text-secondary);
+            transition:color .2s;
+        }
+        .input-with-icon .input-icon-wrapper .icon-optional { right:1.75rem; color:var(--color-text-muted); }
+        .input-with-icon .input-icon-wrapper .icon-default.active,
+        .input-with-icon .input-icon-wrapper .icon-optional.active {
+            color:var(--color-accent-primary);
+        }
+        .input-with-icon .input-icon-wrapper .icon-input {
+            position:absolute;
+            right:1.25rem;
+            top:50%;
+            transform:translateY(-50%);
+            z-index:2;
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-main)] text-[var(--color-text-primary)] overflow-x-hidden">
+
+    <div id="main-content" class="min-h-screen w-full">
+
+        <!-- Header -->
+        <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-[var(--color-bg-main)]/80 backdrop-blur-md">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-20">
+                    <!-- Logo -->
+                    <a href="#" class="flex items-center gap-2">
+                        <svg class="w-8 h-8 text-[var(--color-accent-primary)]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="text-xl font-bold text-white">CodeCraft</span>
+                    </a>
+
+                    <!-- Desktop Nav -->
+                    <nav class="hidden lg:flex items-center space-x-8">
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Features</a>
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Pricing</a>
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Blog</a>
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Support</a>
+                    </nav>
+
+                    <!-- CTA -->
+                    <div class="hidden lg:flex items-center">
+                        <a href="#" class="px-6 py-2.5 text-sm font-medium text-white bg-[var(--color-accent-primary)] rounded-full hover:opacity-90 transition-opacity">Get Started</a>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <div class="lg:hidden">
+                        <button id="mobile-menu-button" class="p-2 rounded-md text-[var(--color-text-secondary)] hover:text-white focus:outline-none">
+                            <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden lg:hidden bg-[var(--color-bg-main)]">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 text-center">
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-[var(--color-bg-alt)]">Features</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-[var(--color-bg-alt)]">Pricing</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-[var(--color-bg-alt)]">Blog</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-[var(--color-bg-alt)]">Support</a>
+                    <a href="#" class="mt-4 block w-full text-center px-6 py-3 text-base font-medium text-white bg-[var(--color-accent-primary)] rounded-full hover:opacity-90 transition-opacity">Get Started</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="relative pt-32 pb-16 lg:pt-48 lg:pb-24 overflow-hidden bg-[var(--color-bg-main)]">
+            <div class="absolute inset-0">
+                <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1920&q=80" alt="Code editor background" class="w-full h-full object-cover opacity-10">
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--color-bg-main)]"></div>
+            </div>
+
+            <div class="relative max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl mx-auto text-center">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tighter mb-6 animate-on-scroll is-visible">
+                        <span class="text-gradient-accent">Write. Run. Deploy.</span>
+                    </h1>
+                    <p class="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-8 animate-on-scroll is-visible" style="transition-delay: .2s;">
+                        A powerful dark‑mode code editor with syntax highlighting, file tree, and an integrated terminal.
+                    </p>
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-4 animate-on-scroll is-visible" style="transition-delay: .4s;">
+                        <a href="#" class="px-8 py-3 text-base font-medium text-white bg-[var(--color-accent-primary)] rounded-full hover:opacity-90 transition-opacity flex items-center gap-2">
+                            Get Started
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </a>
+                        <div class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                            <svg class="w-5 h-5 text-[var(--color-accent-primary)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                            <span>Free for personal use</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Image -->
+                <div class="mt-16 lg:mt-24 animate-on-scroll-scale is-visible" style="transition-delay: .6s;">
+                    <div class="aspect-video bg-[var(--color-bg-alt)] rounded-2xl border border-[var(--color-border-dark)] shadow-2xl overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80" alt="Dark mode code editor" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- File Tree Sidebar -->
+        <section class="py-12 bg-[var(--color-bg-alt)]">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Left Panel (Sidebar) -->
+                    <aside class="w-full lg:w-1/4 animate-on-scroll is-visible" style="transition-delay: .2s;">
+                        <div class="bg-[var(--color-bg-card)] p-6 rounded-xl border border-[var(--color-border-dark)] shadow-lg">
+                            <h3 class="text-lg font-medium text-white mb-4">File Tree</h3>
+                            <ul class="space-y-2">
+                                <li><a href="#" class="text-[var(--color-text-secondary)] hover:text-white">src/</a></li>
+                                <ul class="ml-4 space-y-1">
+                                    <li><a href="#" class="text-[var(--color-text-secondary)] hover:text-white">components/</a></li>
+                                    <li><a href="#" class="text-[var(--color-text-secondary)] hover:text-white">pages/</a></li>
+                                    <li><a href="#" class="text-[var(--color-text-secondary)] hover:text-white">utils/</a></li>
+                                </ul>
+                                <li><a href="#" class="text-[var(--color-text-secondary)] hover:text-white">assets/</a></li>
+                                <li><a href="#" class="text-[var(--color-text-secondary)] hover:text-white">index.html</a></li>
+                            </ul>
+                        </div>
+                    </aside>
+
+                    <!-- Right Panel (Editor + Terminal) -->
+                    <main class="flex-1">
+                        <div class="bg-[var(--color-bg-card)] p-6 rounded-xl border border-[var(--color-border-dark)] shadow-lg animate-on-scroll is-visible" style="transition-delay: .4s;">
+                            <!-- Syntax‑highlighted code -->
+                            <pre class="language-javascript text-sm font-mono text-[var(--color-text-secondary)] whitespace-pre-wrap rounded">
+<span class="text-[var(--color-accent-primary)]">// Welcome to CodeCraft – your dark‑mode editor</span>
+<span class="text-[var(--color-text-primary)]">const</span> <span class="text-[var(--color-accent-primary)]">appName</span> <span class="text-[var(--color-text-primary)]">=</span> <span class="text-[var(--color-accent-primary)]">"CodeCraft"</span>;
+<span class="text-[var(--color-text-primary)]">const</span> <span class="text-[var(--color-accent-primary)]">version</span> <span class="text-[var(--color-text-primary)]">=</span> <span class="text-[var(--color-accent-primary)]">"v1.0"</span>;
+
+<span class="text-[var(--color-accent-primary)]">function</span> <span class="text-[var(--color-accent-primary)]">greetUser</span>() {
+    <span class="text-[var(--color-accent-primary)]">console</span>.log(<span class="text-[var(--color-accent-primary)]">`Hello, ${appName}! You're running ${version}.`</span>);
+}
+
+greetUser();
+                            </pre>
+                            <!-- Terminal Output -->
+                            <div class="mt-6 bg-[var(--color-bg-card)] border border-[var(--color-border-dark)] rounded-xl overflow-hidden">
+                                <div class="bg-[var(--color-accent-bg)] text-[var(--color-accent-primary)] text-xs px-2 py-1 flex justify-between items-center">
+                                    <span>Terminal</span>
+                                    <span>12:45 PM</span>
+                                </div>
+                                <div class="p-4 text-xs text-[var(--color-text-secondary)] space-y-2 overflow-y-auto max-h-48">
+                                    <div><span class="text-[var(--color-accent-primary)]">[INFO]</span> CodeCraft started successfully.</div>
+                                    <div><span class="text-[var(--color-accent-primary)]">[INFO]</span> File tree loaded.</div>
+                                    <div><span class="text-[var(--color-accent-primary)]">[INFO]</span> Syntax highlighting enabled.</div>
+                                    <div><span class="text-[var(--color-accent-primary)]">[INFO]</span> Terminal ready.</div>
+                                    <div><span class="text-[var(--color-accent-primary)]">[INFO]</span> Press Ctrl+D to exit.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-16 lg:py-24 bg-[var(--color-bg-main)]">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 animate-on-scroll is-visible">
+                    <h2 class="text-3xl sm:text-4xl font-medium tracking-tight mb-4">All the tools you need</h2>
+                    <p class="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto">From syntax highlighting to an integrated terminal – everything you need to write, run, and deploy code.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-border-light)] border border-[var(--color-border-light)] rounded-xl overflow-hidden">
+                    <div class="p-6 bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.1s;">
+                        <div class="text-[var(--color-accent-primary)] text-2xl mb-3">💡</div>
+                        <h3 class="font-medium text-white mb-2">Syntax Highlighting</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Smart colouring for JavaScript, CSS, HTML, and more.</p>
+                    </div>
+                    <div class="p-6 bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.2s;">
+                        <div class="text-[var(--color-accent-primary)] text-2xl mb-3">📁</div>
+                        <h3 class="font-medium text-white mb-2">File Tree</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Organise your project files with a clean sidebar.</p>
+                    </div>
+                    <div class="p-6 bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.3s;">
+                        <div class="text-[var(--color-accent-primary)] text-2xl mb-3">💻</div>
+                        <h3 class="font-medium text-white mb-2">Integrated Terminal</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Run commands directly from the editor.</p>
+                    </div>
+                    <div class="p-6 bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.4s;">
+                        <div class="text-[var(--color-accent-primary)] text-2xl mb-3">⚡</div>
+                        <h3 class="font-medium text-white mb-2">Performance</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Fast rendering with minimal lag.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section class="py-16 lg:py-24 bg-[var(--color-bg-alt)]">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 animate-on-scroll is-visible">
+                    <h2 class="text-3xl sm:text-4xl font-medium tracking-tight mb-4">What developers say</h2>
+                    <p class="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto">Thousands of developers love CodeCraft for its sleek UI and powerful features.</p>
+                </div>
+                <div class="relative animate-on-scroll is-visible" style="transition-delay:.2s;">
+                    <div id="testimonial-slider" class="overflow-hidden">
+                        <div id="testimonial-track" class="flex transition-transform duration-500 ease-in-out">
+                            <!-- Testimonial 1 -->
+                            <div class="w-full flex-shrink-0 px-2">
+                                <div class="bg-[var(--color-bg-card)] p-8 rounded-xl border border-[var(--color-border-dark)] shadow-lg">
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <img src="https://images.unsplash.com/photo-1502767089025-6572583495b0?auto=format&fit=crop&w=200&q=80" alt="Developer 1" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium text-white">Alex Johnson</h4>
+                                            <p class="text-xs text-[var(--color-text-secondary)]">Full‑Stack Engineer</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-[var(--color-text-secondary)] italic">"CodeCraft’s dark mode is perfect for long coding sessions – the syntax highlighting makes everything crystal clear."</p>
+                                </div>
+                            </div>
+                            <!-- Testimonial 2 -->
+                            <div class="w-full flex-shrink-0 px-2">
+                                <div class="bg-[var(--color-bg-card)] p-8 rounded-xl border border-[var(--color-border-dark)] shadow-lg">
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80" alt="Developer 2" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium text-white">Maria Gomez</h4>
+                                            <p class="text-xs text-[var(--color-text-secondary)]">Front‑End Designer</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-[var(--color-text-secondary)] italic">"The integrated terminal lets me test scripts without leaving the editor – a huge productivity boost!"</p>
+                                </div>
+                            </div>
+                            <!-- Testimonial 3 -->
+                            <div class="w-full flex-shrink-0 px-2">
+                                <div class="bg-[var(--color-bg-card)] p-8 rounded-xl border border-[var(--color-border-dark)] shadow-lg">
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80" alt="Developer 3" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium text-white">Liam Patel</h4>
+                                            <p class="text-xs text-[var(--color-text-secondary)]">DevOps Engineer</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-[var(--color-text-secondary)] italic">"I love the file tree – it keeps my project structure always in view and the UI is super clean."</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-8 right-0 flex gap-3">
+                        <button id="prev-testimonial" class="w-10 h-10 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-text-secondary)] hover:text-white transition-colors flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <button id="next-testimonial" class="w-10 h-10 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-text-secondary)] hover:text-white transition-colors flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="py-16 lg:py-24 bg-[var(--color-bg-main)]">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 animate-on-scroll is-visible">
+                    <h2 class="text-3xl sm:text-4xl font-medium tracking-tight mb-4">Frequently Asked Questions</h2>
+                    <p class="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto">Everything you need to know about CodeCraft.</p>
+                </div>
+                <div class="max-w-3xl mx-auto space-y-px bg-[var(--color-border-light)] rounded-xl border border-[var(--color-border-light)] shadow-lg">
+                    <div class="faq-item bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.1s;">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-5 sm:p-6">
+                            <span class="text-base font-medium text-white">Is CodeCraft free?</span>
+                            <span class="faq-icon text-[var(--color-accent-primary)] text-xl">+</span>
+                        </button>
+                        <div class="faq-answer px-5 sm:px-6 text-sm text-[var(--color-text-secondary)]">
+                            <p>CodeCraft is free for personal and open‑source projects. A paid plan is available for commercial use and advanced features.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.2s;">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-5 sm:p-6">
+                            <span class="text-base font-medium text-white">Can I run multiple terminals?</span>
+                            <span class="faq-icon text-[var(--color-accent-primary)] text-xl">+</span>
+                        </button>
+                        <div class="faq-answer px-5 sm:px-6 text-sm text-[var(--color-text-secondary)]">
+                            <p>Yes! The editor supports multiple terminal panes, each with its own command history and output.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.3s;">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-5 sm:p-6">
+                            <span class="text-base font-medium text-white">Does CodeCraft support plugins?</span>
+                            <span class="faq-icon text-[var(--color-accent-primary)] text-xl">+</span>
+                        </button>
+                        <div class="faq-answer px-5 sm:px-6 text-sm text-[var(--color-text-secondary)]">
+                            <p>Yes, the editor has a plugin system that lets you extend functionality with custom tools and integrations.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item bg-[var(--color-bg-card)] animate-on-scroll is-visible" style="transition-delay:.4s;">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-5 sm:p-6">
+                            <span class="text-base font-medium text-white">Is my code safe?</span>
+                            <span class="faq-icon text-[var(--color-accent-primary)] text-xl">+</span>
+                        </button>
+                        <div class="faq-answer px-5 sm:px-6 text-sm text-[var(--color-text-secondary)]">
+                            <p>All data is stored locally on your machine. CodeCraft never uploads your source code to any remote server.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 lg:py-24 bg-[var(--color-bg-card)]">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div class="animate-on-scroll is-visible">
+                    <h2 class="text-3xl sm:text-4xl font-medium tracking-tight mb-6">Ready to boost your productivity?</h2>
+                    <p class="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-8">Join thousands of developers who trust CodeCraft for their daily coding.</p>
+                    <a href="#" class="px-8 py-3 text-base font-medium text-white bg-[var(--color-accent-primary)] rounded-full hover:opacity-90 transition-opacity">Start Free Trial</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-[var(--color-bg-main)]">
+            <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                    <a href="#" class="flex items-center gap-2">
+                        <svg class="w-8 h-8 text-[var(--color-accent-primary)]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="text-xl font-bold text-white">CodeCraft</span>
+                    </a>
+                    <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Features</a>
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Pricing</a>
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Blog</a>
+                        <a href="#" class="text-sm hover:text-[var(--color-accent-primary)] transition-colors">Support</a>
+                    </nav>
+                    <div class="flex items-center gap-4">
+                        <a href="#" class="text-[var(--color-text-secondary)] hover:text-white"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.28 4.28 0 001.88-2.36 8.59 8.59 0 01-2.71 1.04 4.25 4.25 0 00-7.27 3.88A12.1 12.1 0 013 4.83a4.25 4.25 0 001.32 5.68 4.22 4.22 0 01-1.93-.53v.05a4.26 4.26 0 003.42 4.18 4.26 4.26 0 01-1.94-.04 4.26 4.26 0 003.98 2.95A8.54 8.54 0 012 19.54a12.08 12.08 0 006.5 1.92c7.85 0 12.14-6.5 12.14-12.14 0-.19-.01-.37-.02-.56A8.55 8.55 0 0024 5.56a8.54 8.54 0 01-2.54.7z"/></svg></a>
+                        <a href="#" class="text-[var(--color-text-secondary)] hover:text-white"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.012 3.584-.07 4.85c-.148 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.85s.012-3.584.07-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.947s-.014-3.667-.072-4.947c-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.689-.073-4.948-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+                        <a href="#" class="text-[var(--color-text-secondary)] hover:text-white"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.701v-8.433l7.37 4.347-7.37 4.08z"/></svg></a>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-[var(--color-border-dark)] pt-8 text-center">
+                    <p class="text-sm text-[var(--color-text-secondary)]">© 2026 CodeCraft. All rights reserved. <a href="https://tesslate.com" class="text-[var(--color-accent-primary)] hover:underline">Built with Tesslate</a>.</p>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            /* Navbar scroll effect */
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('shadow-lg', 'bg-[var(--color-bg-main)]');
+                } else {
+                    navbar.classList.remove('shadow-lg', 'bg-[var(--color-bg-main)]');
+                }
+            });
+
+            /* Mobile menu toggle */
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            /* FAQ accordion */
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    const isOpen = item.classList.contains('open');
+                    faqItems.forEach(i => i.classList.remove('open'));
+                    if (!isOpen) item.classList.add('open');
+                });
+            });
+
+            /* Testimonial slider */
+            const track = document.getElementById('testimonial-track');
+            const prevBtn = document.getElementById('prev-testimonial');
+            const nextBtn = document.getElementById('next-testimonial');
+            const slides = Array.from(track.children);
+            let currentIdx = 0;
+            const updateSlider = () => {
+                track.style.transform = `translateX(-${currentIdx * 100}%)`;
+            };
+            if (prevBtn && nextBtn && slides.length) {
+                prevBtn.addEventListener('click', () => {
+                    currentIdx = (currentIdx === 0) ? slides.length - 1 : currentIdx - 1;
+                    updateSlider();
+                });
+                nextBtn.addEventListener('click', () => {
+                    currentIdx = (currentIdx + 1) % slides.length;
+                    updateSlider();
+                });
+            }
+
+            /* Animate on scroll */
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('is-visible');
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.animate-on-scroll, .animate-on-scroll-scale, .animate-on-scroll-x-left, .animate-on-scroll-x-right, .animate-on-scroll-bottom-pulse')
+                .forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

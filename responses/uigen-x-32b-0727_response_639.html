@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamSync - Collaboration Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            transition: all 0.3s ease;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+        }
+        
+        .document-card {
+            transition: all 0.2s ease;
+        }
+        
+        .document-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .collaborator-avatar {
+            width: 30px;
+            height: 30px;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+        
+        .sidebar-toggle {
+            display: none;
+        }
+        
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                height: 100vh;
+                z-index: 50;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+        }
+        
+        .active-nav-item {
+            background-color: rgba(14, 165, 233, 0.1);
+            border-left: 3px solid #0ea5e9;
+            color: #0ea5e9;
+        }
+        
+        .active-nav-item svg {
+            color: #0ea5e9;
+        }
+        
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background-color: rgba(14, 165, 233, 0.1);
+            color: #0ea5e9;
+        }
+        
+        .chat-bubble {
+            max-width: 80%;
+            border-radius: 18px;
+        }
+        
+        .chat-bubble.self {
+            background-color: #0ea5e9;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-bubble.other {
+            background-color: #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="sidebar bg-white border-r border-gray-200 flex flex-col">
+            <!-- Logo and Toggle -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                    <span class="ml-3 text-xl font-bold text-primary-800">TeamSync</span>
+                </div>
+                <button class="sidebar-toggle p-2 rounded-lg hover:bg-gray-100">
+                    <i class="fas fa-bars text-gray-600"></i>
+                </button>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-6">
+                    <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Navigation</h3>
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="#" class="active-nav-item flex items-center px-3 py-2.5 text-sm rounded-lg">
+                                <i class="fas fa-home mr-3"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <i class="fas fa-folder mr-3"></i>
+                                <span>My Documents</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <i class="fas fa-share-alt mr-3"></i>
+                                <span>Shared with me</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <i class="fas fa-users mr-3"></i>
+                                <span>Team Members</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <i class="fas fa-cog mr-3"></i>
+                                <span>Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="px-4 mb-6">
+                    <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Projects</h3>
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-primary-500 mr-3"></div>
+                                <span>Website Redesign</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-accent-500 mr-3"></div>
+                                <span>Marketing Campaign</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-purple-500 mr-3"></div>
+                                <span>Product Launch</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-2 h-2 rounded-full bg-amber-500 mr-3"></div>
+                                <span>Q3 Planning</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="px-4">
+                    <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Teams</h3>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                    <span class="text-primary-700 font-semibold">D</span>
+                                </div>
+                                <span>Design Team</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <span class="text-green-700 font-semibold">M</span>
+                                </div>
+                                <span>Marketing Team</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mr-3">
+                                    <span class="text-amber-700 font-semibold">D</span>
+                                </div>
+                                <span>Development Team</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <!-- User Profile -->
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                        <span class="text-primary-700 font-semibold">JD</span>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">John Doe</p>
+                        <p class="text-xs text-gray-500">john@example.com</p>
+                    </div>
+                    <button class="ml-auto p-2 rounded-full hover:bg-gray-100">
+                        <i class="fas fa-cog text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center">
+                        <button class="sidebar-toggle p-2 rounded-lg mr-2 hover:bg-gray-100">
+                            <i class="fas fa-bars text-gray-600"></i>
+                        </button>
+                        <h1 class="text-xl font-semibold text-gray-800">Team Collaboration Workspace</h1>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i class="fas fa-bell text-gray-600"></i>
+                                <span class="notification-dot"></span>
+                            </button>
+                        </div>
+                        
+                        <div class="relative">
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i class="fas fa-comment-alt text-gray-600"></i>
+                                <span class="notification-dot"></span>
+                            </button>
+                        </div>
+                        
+                        <div class="w-px h-6 bg-gray-200"></div>
+                        
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                <span class="text-primary-700 font-semibold">JD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <div class="relative max-w-md">
+                                <input type="text" placeholder="Search documents, files, or team members..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                        <button class="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            New Document
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto">
+                    <!-- Stats Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-lg bg-blue-100 text-blue-600 mr-4">
+                                    <i class="fas fa-file-alt text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Total Documents</p>
+                                    <p class="text-2xl font-bold">142</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-lg bg-green-100 text-green-600 mr-4">
+                                    <i class="fas fa-share-alt text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Shared Files</p>
+                                    <p class="text-2xl font-bold">87</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-lg bg-amber-100 text-amber-600 mr-4">
+                                    <i class="fas fa-users text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Team Members</p>
+                                    <p class="text-2xl font-bold">24</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl border border-gray-200">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-lg bg-purple-100 text-purple-600 mr-4">
+                                    <i class="fas fa-comment-alt text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">Recent Comments</p>
+                                    <p class="text-2xl font-bold">32</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Documents -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Recent Documents</h2>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-50">
+                                    <i class="fas fa-filter mr-1"></i> Filter
+                                </button>
+                                <button class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-50">
+                                    <i class="fas fa-sort mr-1"></i> Sort
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Document Card 1 -->
+                            <div class="document-card bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex items-start">
+                                        <div class="file-icon mr-4">
+                                            <i class="fas fa-file-pdf text-xl"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="font-semibold text-gray-800">Project Proposal.pdf</h3>
+                                            <p class="text-sm text-gray-500 mt-1">Updated 2 hours ago</p>
+                                        </div>
+                                        <div class="flex -space-x-2">
+                                            <div class="collaborator-avatar bg-blue-100 text-blue-800 flex items-center justify-center">JD</div>
+                                            <div class="collaborator-avatar bg-green-100 text-green-800 flex items-center justify-center">AM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                                    <div class="flex items-center text-sm text-gray-500">
+                                        <i class="fas fa-comment-alt mr-1"></i>
+                                        <span>12 comments</span>
+                                    </div>
+                                    <button class="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Document Card 2 -->
+                            <div class="document-card bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex items-start">
+                                        <div class="file-icon mr-4" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981;">
+                                            <i class="fas fa-file-excel text-xl"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="font-semibold text-gray-800">Budget Report Q2.xlsx</h3>
+                                            <p class="text-sm text-gray-500 mt-1">Updated yesterday</p>
+                                        </div>
+                                        <div class="flex -space-x-2">
+                                            <div class="collaborator-avatar bg-purple-100 text-purple-800 flex items-center justify-center">TS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                                    <div class="flex items-center text-sm text-gray-500">
+                                        <i class="fas fa-comment-alt mr-1"></i>
+                                        <span>5 comments</span>
+                                    </div>
+                                    <button class="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Document Card 3 -->
+                            <div class="document-card bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex items-start">
+                                        <div class="file-icon mr-4" style="background-color: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                                            <i class="fas fa-file-powerpoint text-xl"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="font-semibold text-gray-800">Product Launch Presentation.pptx</h3>
+                                            <p class="text-sm text-gray-500 mt-1">Updated 3 days ago</p>
+                                        </div>
+                                        <div class="flex -space-x-2">
+                                            <div class="collaborator-avatar bg-amber-100 text-amber-800 flex items-center justify-center">RJ</div>
+                                            <div class="collaborator-avatar bg-pink-100 text-pink-800 flex items-center justify-center">EP</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+                                    <div class="flex items-center text-sm text-gray-500">
+                                        <i class="fas fa-comment-alt mr-1"></i>
+                                        <span>8 comments</span>
+                                    </div>
+                                    <button class="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Collaboration Section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Team Members -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-white rounded-xl border border-gray-200">
+                                <div class="p-5 border-b border-gray-200">
+                                    <h3 class="font-bold text-gray-800">Team Members</h3>
+                                </div>
+                                <div class="divide-y divide-gray-200">
+                                    <div class="p-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <span class="text-blue-700 font-semibold">JD</span>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="font-medium text-gray-800">John Doe</p>
+                                            <p class="text-sm text-gray-500">Project Lead</p>
+                                        </div>
+                                        <div class="ml-auto">
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Online</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                            <span class="text-green-700 font-semibold">AM</span>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="font-medium text-gray-800">Alex Morgan</p>
+                                            <p class="text-sm text-gray-500">Designer</p>
+                                        </div>
+                                        <div class="ml-auto">
+                                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Offline</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <span class="text-purple-700 font-semibold">TS</span>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="font-medium text-gray-800">Taylor Smith</p>
+                                            <p class="text-sm text-gray-500">Developer</p>
+                                        </div>
+                                        <div class="ml-auto">
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Online</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                            <span class="text-amber-700 font-semibold">RJ</span>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="font-medium text-gray-800">Rachel Johnson</p>
+                                            <p class="text-sm text-gray-500">Marketing</p>
+                                        </div>
+                                        <div class="ml-auto">
+                                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Offline</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 flex items-center">
+                                        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
+                                            <span class="text-pink-700 font-semibold">EP</span>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="font-medium text-gray-800">Emma Parker</p>
+                                            <p class="text-sm text-gray-500">Content Writer</p>
+                                        </div>
+                                        <div class="ml-auto">
+                                            <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Online</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Activity & Chat -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white rounded-xl border border-gray-200 mb-8">
+                                <div class="p-5 border-b border-gray-200">
+                                    <h3 class="font-bold text-gray-800">Recent Activity</h3>
+                                </div>
+                                <div class="divide-y divide-gray-200">
+                                    <div class="p-4">
+                                        <div class="flex">
+                                            <div class="mr-3">
+                                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <i class="fas fa-file-alt text-blue-600"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm">
+                                                    <span class="font-medium">John Doe</span> created a new document <span class="font-medium text-primary-600">"Project Timeline"</span>
+                                                </p>
+                                                <p class="text-xs text-gray-500 mt-1">2 hours ago</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4">
+                                        <div class="flex">
+                                            <div class="mr-3">
+                                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                                    <i class="fas fa-comment-alt text-green-600"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm">
+                                                    <span class="font-medium">Alex Morgan</span> commented on <span class="font-medium text-primary-600">"Design Mockups"</span>
+                                                </p>
+                                                <p class="text-xs text-gray-500 mt-1">4 hours ago</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4">
+                                        <div class="flex">
+                                            <div class="mr-3">
+                                                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                                    <i class="fas fa-share-alt text-purple-600"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm">
+                                                    <span class="font-medium">Taylor Smith</span> shared <span class="font-medium text-primary-600">"API Documentation"</span> with the team
+                                                </p>
+                                                <p class="text-xs text-gray-500 mt-1">Yesterday</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4">
+                                        <div class="flex">
+                                            <div class="mr-3">
+                                                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                                                    <i class="fas fa-check-circle text-amber-600"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm">
+                                                    <span class="font-medium">Rachel Johnson</span> completed the task <span class="font-medium text-primary-600">"Social Media Campaign"</span>
+                                                </p>
+                                                <p class="text-xs text-gray-500 mt-1">2 days ago</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Team Chat -->
+                            <div class="bg-white rounded-xl border border-gray-200">
+                                <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+                                    <h3 class="font-bold text-gray-800">Team Chat</h3>
+                                    <button class="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                                        <i class="fas fa-plus mr-1"></i> Start New Chat
+                                    </button>
+                                </div>
+                                <div class="p-4 h-64 overflow-y-auto">
+                                    <div class="space-y-4">
+                                        <div class="chat-bubble other p-4 animate-fade-in">
+                                            <div class="flex items-start">
+                                                <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2">
+                                                    <span class="text-green-700 text-xs font-semibold">AM</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-700">Alex Morgan</p>
+                                                    <p class="text-sm mt-1">Can everyone review the new design mockups? I've added the updated versions to the shared folder.</p>
+                                                    <p class="text-xs text-gray-500 mt-2">10:24 AM</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chat-bubble self p-4 animate-fade-in">
+                                            <div class="flex items-start">
+                                                <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                                                    <span class="text-blue-700 text-xs font-semibold">JD</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-white">John Doe</p>
+                                                    <p class="text-sm mt-1 text-white">I've taken a look and the new color scheme looks great! The typography could be adjusted on the homepage though.</p>
+                                                    <p class="text-xs text-blue-100 mt-2">10:32 AM</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chat-bubble other p-4 animate-fade-in">
+                                            <div class="flex items-start">
+                                                <div class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-2">
+                                                    <span class="text-purple-700 text-xs font-semibold">TS</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-700">Taylor Smith</p>
+                                                    <p class="text-sm mt-1">I agree with John. Also, the navigation on mobile needs some attention. I'll create a ticket for that.</p>
+                                                    <p class="text-xs text-gray-500 mt-2">10:35 AM</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chat-bubble other p-4 animate-fade-in">
+                                            <div class="flex items-start">
+                                                <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center mr-2">
+                                                    <span class="text-amber-700 text-xs font-semibold">RJ</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-700">Rachel Johnson</p>
+                                                    <p class="text-sm mt-1">The content sections look good to me. I've updated the copy based on the latest brief.</p>
+                                                    <p class="text-xs text-gray-500 mt-2">10:40 AM</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4 border-t border-gray-200">
+                                    <div class="flex">
+                                        <input type="text" placeholder="Type a message..." class="flex-1 px-4 py-2 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                        <button class="bg-primary-600 text-white px-4 py-2 rounded-r-lg hover:bg-primary-700 transition">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Toggle sidebar on mobile
+        document.querySelectorAll('.sidebar-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.toggle('open');
+            });
+        });
+        
+        // Simulate chat message sending
+        const chatInput = document.querySelector('.chat-bubble.other + input');
+        const chatButton = document.querySelector('.chat-bubble.other + button');
+        const chatContainer = document.querySelector('.chat-bubble.other + .p-4');
+        
+        chatButton.addEventListener('click', () => {
+            if (chatInput.value.trim() !== '') {
+                const newMessage = document.createElement('div');
+                newMessage.className = 'chat-bubble self p-4 animate-fade-in';
+                newMessage.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                            <span class="text-blue-700 text-xs font-semibold">JD</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-white">John Doe</p>
+                            <p class="text-sm mt-1 text-white">${chatInput.value}</p>
+                            <p class="text-xs text-blue-100 mt-2">Just now</p>
+                        </div>
+                    </div>
+                `;
+                chatContainer.appendChild(newMessage);
+                chatInput.value = '';
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+        
+        // Allow sending with Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                chatButton.click();
+            }
+        });
+    </script>
+</body>
+</html>

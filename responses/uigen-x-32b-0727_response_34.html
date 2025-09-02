@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Vision - Contextual Overlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0a0a0a',
+                        'panel-bg': '#121212',
+                        'accent': '#3b82f6',
+                        'accent-hover': '#2563eb',
+                        'text-primary': '#f5f5f5',
+                        'text-secondary': '#a3a3a3',
+                        'border-color': '#262626',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'mono': ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .ar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .ui-panel {
+            background: rgba(18, 18, 18, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(38, 38, 38, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .control-btn {
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-btn:hover {
+            background: rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn:active {
+            transform: translateY(0);
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .contextual-panel {
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        
+        .contextual-panel.active {
+            max-height: 300px;
+        }
+        
+        .grid-pattern {
+            background-image: 
+                linear-gradient(rgba(38, 38, 38, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(38, 38, 38, 0.2) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-text-primary">
+    <!-- AR View Placeholder -->
+    <div class="ar-overlay grid-pattern">
+        <!-- Main UI Panel -->
+        <div class="ui-panel w-80 h-[calc(100%-40px)] mx-4 mt-4 p-4 flex flex-col">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-border-color">
+                <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-success mr-2"></div>
+                    <h1 class="text-xl font-semibold">AR Vision</h1>
+                </div>
+                <button id="settings-btn" class="control-btn w-8 h-8 bg-panel-bg">
+                    <i class="fas fa-cog text-text-secondary"></i>
+                </button>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                <!-- Contextual Info -->
+                <div class="mb-4 fade-in">
+                    <h2 class="text-lg font-medium mb-2 flex items-center">
+                        <span class="status-indicator bg-accent"></span>
+                        Current Location
+                    </h2>
+                    <p class="text-text-secondary text-sm">Central Park, New York City</p>
+                    <p class="text-text-secondary text-xs mt-1">Coordinates: 40.7812° N, 73.9665° W</p>
+                </div>
+                
+                <!-- Scan Progress -->
+                <div class="mb-4 fade-in">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-lg font-medium">Environment Scan</h2>
+                        <span class="text-text-secondary text-sm">78%</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-accent rounded-full" style="width: 78%"></div>
+                    </div>
+                </div>
+                
+                <!-- Detected Objects -->
+                <div class="mb-4 fade-in">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-lg font-medium">Detected Objects</h2>
+                        <span class="text-text-secondary text-sm">3 items</span>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex items-center p-2 bg-panel-bg rounded-lg">
+                            <div class="w-8 h-8 rounded-md bg-blue-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-tree text-accent"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Oak Tree</p>
+                                <p class="text-text-secondary text-xs">12ft away</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-2 bg-panel-bg rounded-lg">
+                            <div class="w-8 h-8 rounded-md bg-green-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-bench text-success"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Park Bench</p>
+                                <p class="text-text-secondary text-xs">8ft away</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-2 bg-panel-bg rounded-lg">
+                            <div class="w-8 h-8 rounded-md bg-yellow-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-dog text-warning"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Labrador</p>
+                                <p class="text-text-secondary text-xs">15ft away</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contextual Panel (Toggled) -->
+                <div id="contextual-panel" class="contextual-panel">
+                    <div class="p-3 bg-panel-bg rounded-lg mb-3">
+                        <h3 class="font-medium mb-2">AR Mode: <span class="text-accent">Object Recognition</span></h3>
+                        <p class="text-text-secondary text-sm">Identifying and labeling objects in your environment</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="control-btn py-2 bg-panel-bg">
+                            <i class="fas fa-camera mr-2"></i> Capture
+                        </button>
+                        <button class="control-btn py-2 bg-panel-bg">
+                            <i class="fas fa-map-marker-alt mr-2"></i> Waypoints
+                        </button>
+                        <button class="control-btn py-2 bg-panel-bg">
+                            <i class="fas fa-paint-brush mr-2"></i> Annotate
+                        </button>
+                        <button class="control-btn py-2 bg-panel-bg">
+                            <i class="fas fa-share-alt mr-2"></i> Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Controls -->
+            <div class="mt-4 pt-3 border-t border-border-color flex justify-between">
+                <button id="context-toggle" class="control-btn w-12 h-12 bg-accent flex items-center justify-center">
+                    <i class="fas fa-sliders-h"></i>
+                </button>
+                
+                <div class="flex space-x-3">
+                    <button class="control-btn w-12 h-12 bg-panel-bg">
+                        <i class="fas fa-record-circle text-danger"></i>
+                    </button>
+                    <button class="control-btn w-12 h-12 bg-panel-bg">
+                        <i class="fas fa-camera text-text-secondary"></i>
+                    </button>
+                    <button class="control-btn w-12 h-12 bg-accent flex items-center justify-center">
+                        <i class="fas fa-bolt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Action Button -->
+        <button class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-accent flex items-center justify-center shadow-lg z-20 control-btn">
+            <i class="fas fa-plus text-xl"></i>
+        </button>
+        
+        <!-- Settings Panel (Hidden by default) -->
+        <div id="settings-panel" class="ui-panel w-80 h-[calc(100%-40px)] mx-4 mt-4 p-4 flex flex-col transform translate-x-full">
+            <!-- Similar structure to main panel but with settings content -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle contextual panel
+            const contextToggle = document.getElementById('context-toggle');
+            const contextualPanel = document.getElementById('contextual-panel');
+            
+            contextToggle.addEventListener('click', () => {
+                contextualPanel.classList.toggle('active');
+                contextToggle.innerHTML = contextualPanel.classList.contains('active') 
+                    ? '<i class="fas fa-times"></i>' 
+                    : '<i class="fas fa-sliders-h"></i>';
+            });
+            
+            // Toggle settings panel
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsPanel = document.getElementById('settings-panel');
+            
+            settingsBtn.addEventListener('click', () => {
+                settingsPanel.classList.toggle('translate-x-full');
+                document.querySelector('.ar-overlay > .ui-panel').classList.toggle('translate-x-full');
+            });
+            
+            // Simulate scanning progress
+            const scanProgress = document.querySelector('.bg-accent');
+            let progress = 78;
+            
+            setInterval(() => {
+                if (progress < 100) {
+                    progress += 0.5;
+                    scanProgress.style.width = `${progress}%`;
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

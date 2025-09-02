@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SupplyChain Tracker | Real-time Logistics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a',
+                        'card-bg': '#1e293b',
+                        'accent': '#3b82f6',
+                        'accent-light': '#60a5fa',
+                        'text-primary': '#f1f5f9',
+                        'text-secondary': '#94a3b8',
+                        'status-moving': '#f59e0b',
+                        'status-delayed': '#ef4444',
+                        'status-delivered': '#10b981',
+                        'status-processing': '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-dark-bg: #0f172a;
+            --color-card-bg: #1e293b;
+            --color-accent: #3b82f6;
+            --color-accent-light: #60a5fa;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #94a3b8;
+            --color-status-moving: #f59e0b;
+            --color-status-delayed: #ef4444;
+            --color-status-delivered: #10b981;
+            --color-status-processing: #8b5cf6;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-dark-bg);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-moving { background-color: rgba(245, 158, 11, 0.15); color: var(--color-status-moving); }
+        .status-delayed { background-color: rgba(239, 68, 68, 0.15); color: var(--color-status-delayed); }
+        .status-delivered { background-color: rgba(16, 185, 129, 0.15); color: var(--color-status-delivered); }
+        .status-processing { background-color: rgba(139, 92, 246, 0.15); color: var(--color-status-processing); }
+        
+        .map-container {
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .shipment-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .shipment-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-left-color: var(--color-accent);
+        }
+        
+        .item-row:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--color-status-delayed);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-dark-bg/90 backdrop-blur-md py-4 border-b border-slate-800">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+                    <i class="fas fa-truck text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold">SupplyChain Tracker</h1>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="#" class="text-text-primary hover:text-accent-light transition-colors">Dashboard</a>
+                <a href="#" class="text-text-primary hover:text-accent-light transition-colors">Shipments</a>
+                <a href="#" class="text-text-primary hover:text-accent-light transition-colors">Inventory</a>
+                <a href="#" class="text-text-primary hover:text-accent-light transition-colors">Analytics</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 rounded-lg hover:bg-card-bg transition-colors">
+                        <i class="fas fa-bell text-text-secondary"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                        <span class="font-semibold">JD</span>
+                    </div>
+                    <span class="hidden md:block text-text-primary">John Doe</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="pt-24 pb-12">
+        <div class="container mx-auto px-4">
+            <!-- Header -->
+            <div class="mb-8 animate-on-scroll">
+                <h2 class="text-3xl font-bold mb-2">Supply Chain Dashboard</h2>
+                <p class="text-text-secondary">Monitor shipments, track inventory, and manage logistics in real-time</p>
+            </div>
+            
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-card-bg rounded-xl p-6 animate-on-scroll" style="transition-delay: 0.1s;">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Total Shipments</p>
+                            <h3 class="text-2xl font-bold mt-1">142</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                            <i class="fas fa-box-open text-accent text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Active</span>
+                            <span>86%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-700">
+                            <div class="progress-fill bg-accent" style="width: 86%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-card-bg rounded-xl p-6 animate-on-scroll" style="transition-delay: 0.2s;">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">In Transit</p>
+                            <h3 class="text-2xl font-bold mt-1">24</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                            <i class="fas fa-truck text-status-moving text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Average Speed</span>
+                            <span>42%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-700">
+                            <div class="progress-fill bg-status-moving" style="width: 42%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-card-bg rounded-xl p-6 animate-on-scroll" style="transition-delay: 0.3s;">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Delayed</p>
+                            <h3 class="text-2xl font-bold mt-1">8</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-status-delayed text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>By Country</span>
+                            <span>3</span>
+                        </div>
+                        <div class="progress-bar bg-slate-700">
+                            <div class="progress-fill bg-status-delayed" style="width: 15%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-card-bg rounded-xl p-6 animate-on-scroll" style="transition-delay: 0.4s;">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Inventory</p>
+                            <h3 class="text-2xl font-bold mt-1">1,240</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
+                            <i class="fas fa-box text-status-delivered text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Optimal Levels</span>
+                            <span>92%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-700">
+                            <div class="progress-fill bg-status-delivered" style="width: 92%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map and Shipments Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Map View -->
+                <div class="lg:col-span-2 animate-on-scroll">
+                    <div class="bg-card-bg rounded-xl p-6 h-full">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Global Shipments Map</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1.5 text-sm rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">Today</button>
+                                <button class="px-3 py-1.5 text-sm rounded-lg bg-accent text-white transition-colors">This Week</button>
+                                <button class="px-3 py-1.5 text-sm rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">This Month</button>
+                            </div>
+                        </div>
+                        
+                        <div class="map-container" id="map"></div>
+                        
+                        <div class="mt-6 flex justify-between items-center">
+                            <div class="text-sm text-text-secondary">
+                                <span class="font-medium">Last updated:</span> 10:45 AM
+                            </div>
+                            <button class="px-4 py-2 bg-accent hover:bg-accent-light rounded-lg transition-colors flex items-center">
+                                <i class="fas fa-plus mr-2"></i> New Shipment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Real-time Status -->
+                <div class="animate-on-scroll" style="transition-delay: 0.2s;">
+                    <div class="bg-card-bg rounded-xl p-6 h-full">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Real-time Status</h3>
+                            <div class="text-text-secondary text-sm">
+                                <span class="font-medium">Live</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="shipment-card bg-slate-800 rounded-lg p-4 flex items-start">
+                                <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mr-3">
+                                    <i class="fas fa-truck text-accent"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Ocean Freight</h4>
+                                        <span class="status-badge status-moving">In Transit</span>
+                                    </div>
+                                    <p class="text-sm text-text-secondary mt-1">Container #456789 • Singapore to Los Angeles</p>
+                                    <div class="mt-2">
+                                        <div class="text-xs text-text-secondary mb-1">ETA: 2 days</div>
+                                        <div class="progress-bar bg-slate-700">
+                                            <div class="progress-fill bg-status-moving" style="width: 65%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="shipment-card bg-slate-800 rounded-lg p-4 flex items-start">
+                                <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center mr-3">
+                                    <i class="fas fa-truck text-status-processing"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Land Transport</h4>
+                                        <span class="status-badge status-processing">Processing</span>
+                                    </div>
+                                    <p class="text-sm text-text-secondary mt-1">Freight #123456 • Rotterdam to Dusseldorf</p>
+                                    <div class="mt-2">
+                                        <div class="text-xs text-text-secondary mb-1">ETA: 1 day</div>
+                                        <div class="progress-bar bg-slate-700">
+                                            <div class="progress-fill bg-status-processing" style="width: 40%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="shipment-card bg-slate-800 rounded-lg p-4 flex items-start">
+                                <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center mr-3">
+                                    <i class="fas fa-warehouse text-status-delivered"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Inventory Replenishment</h4>
+                                        <span class="status-badge status-delivered">Delivered</span>
+                                    </div>
+                                    <p class="text-sm text-text-secondary mt-1">Product #789012 • Shanghai to Munich</p>
+                                    <div class="mt-2">
+                                        <div class="text-xs text-text-secondary mb-1">Completed: Today</div>
+                                        <div class="progress-bar bg-slate-700">
+                                            <div class="progress-fill bg-status-delivered" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="shipment-card bg-slate-800 rounded-lg p-4 flex items-start">
+                                <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center mr-3">
+                                    <i class="fas fa-exclamation-triangle text-status-delayed"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-medium">Air Freight</h4>
+                                        <span class="status-badge status-delayed">Delayed</span>
+                                    </div>
+                                    <p class="text-sm text-text-secondary mt-1">Package #345678 • Tokyo to New York</p>
+                                    <div class="mt-2">
+                                        <div class="text-xs text-text-secondary mb-1">Delay: 24 hours</div>
+                                        <div class="progress-bar bg-slate-700">
+                                            <div class="progress-fill bg-status-delayed" style="width: 75%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Item List and Shipment Details -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Detailed Item List -->
+                <div class="lg:col-span-2 animate-on-scroll" style="transition-delay: 0.3s;">
+                    <div class="bg-card-bg rounded-xl p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Inventory List</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1.5 text-sm rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors">All Items</button>
+                                <button class="px-3 py-1.5 text-sm rounded-lg bg-accent text-white transition-colors">Active</button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-left text-text-secondary text-sm border-b border-slate-700">
+                                        <th class="pb-3">SKU</th>
+                                        <th class="pb-3">Product</th>
+                                        <th class="pb-3">Category</th>
+                                        <th class="pb-3">Location</th>
+                                        <th class="pb-3">Quantity</th>
+                                        <th class="pb-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="item-row border-b border-slate-800">
+                                        <td class="py-3">#789012</td>
+                                        <td class="py-3 font-medium">Wireless Headphones Pro</td>
+                                        <td class="py-3">Electronics</td>
+                                        <td class="py-3">Warehouse #45</td>
+                                        <td class="py-3">1,240 units</td>
+                                        <td class="py-3">
+                                            <span class="status-badge status-delivered">In Stock</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="item-row border-b border-slate-800">
+                                        <td class="py-3">#345678</td>
+                                        <td class="py-3 font-medium">Laptop Sleeve</td>
+                                        <td class="py-3">Accessories</td>
+                                        <td class="py-3">Warehouse #12</td>
+                                        <td class="py-3">842 units</td>
+                                        <td class="py-3">
+                                            <span class="status-badge status-moving">Low Stock</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="item-row border-b border-slate-800">
+                                        <td class="py-3">#123456</td>
+                                        <td class="py-3 font-medium">Smart Watch Series 5</td>
+                                        <td class="py-3">Wearables</td>
+                                        <td class="py-3">Warehouse #34</td>
+                                        <td class="py-3">2,150 units</td>
+                                        <td class="py-3">
+                                            <span class="status-badge status-delivered">In Stock</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="item-row border-b border-slate-800">
+                                        <td class="py-3">#678901</td>
+                                        <td class="py-3 font-medium">Phone Charging Cable</td>
+                                        <td class="py-3">Accessories</td>
+                                        <td class="py-3">Warehouse #22</td>
+                                        <td class="py-3">1,560 units</td>
+                                        <td class="py-3">
+                                            <span class="status-badge status-moving">In Transit</span>
+                                        </td>
+                                    </tr>
+                                    <tr class="item-row">
+                                        <td class="py-3">#234567</td>
+                                        <td class="py-3 font-medium">Bluetooth Speaker</td>
+                                        <td class="py-3">Audio</td>
+                                        <td class="py-3">Warehouse #18</td>
+                                        <td class="py-3">980 units</td>
+                                        <td class="py-3">
+                                            <span class="status-badge status-delayed">Delayed</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="animate-on-scroll" style="transition-delay: 0.4s;">
+                    <div class="bg-card-bg rounded-xl p-6 h-full">
+                        <h3 class="text-xl font-bold mb-6">Recent Activity</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                        <i class="fas fa-check text-status-delivered"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Shipment #789012 delivered</p>
+                                    <p class="text-sm text-text-secondary">Today, 10:45 AM • Warehouse #45</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                        <i class="fas fa-exclamation-triangle text-status-moving"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Delay reported on #345678</p>
+                                    <p class="text-sm text-text-secondary">Yesterday, 4:20 PM • Tokyo, Japan</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                        <i class="fas fa-truck text-accent"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">New shipment received</p>
+                                    <p class="text-sm text-text-secondary">Yesterday, 8:15 AM • Container #456789</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                        <i class="fas fa-package text-status-processing"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Order processed</p>
+                                    <p class="text-sm text-text-secondary">2 days ago • Order #123456</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                                        <i class="fas fa-ban text-status-delayed"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Shipment canceled</p>
+                                    <p class="text-sm text-text-secondary">3 days ago • #234567</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full mt-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                            View All Activity
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([20, 0], 2);
+        
+        // Add tile layer (using OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Add markers for shipments
+        const shipments = [
+            { lat: 25.0, lng: 120.0, name: "Shanghai", status: "In Transit", icon: "fa-truck" },
+            { lat: 35.6895, lng: 139.6917, name: "Tokyo", status: "Delayed", icon: "fa-exclamation-triangle" },
+            { lat: 40.7128, lng: -74.0060, name: "New York", status: "Delivered", icon: "fa-check" },
+            { lat: 51.5074, lng: -0.1278, name: "London", status: "Processing", icon: "fa-pause" },
+            { lat: 48.8566, lng: 2.3522, name: "Paris", status: "In Transit", icon: "fa-truck" },
+            { lat: 34.0522, lng: -118.2437, name: "Los Angeles", status: "In Transit", icon: "fa-truck" }
+        ];
+        
+        shipments.forEach(shipment => {
+            const marker = L.marker([shipment.lat, shipment.lng]).addTo(map);
+            
+            marker.bindPopup(`
+                <div class="font-bold">${shipment.name}</div>
+                <div class="text-sm">${shipment.status}</div>
+            `);
+        });
+        
+        // Scroll animation
+        const scrollElements = document.querySelectorAll('.animate-on-scroll');
+        
+        const elementInView = (el, dividend = 1) => {
+            const elementTop = el.getBoundingClientRect().top;
+            return (
+                elementTop <= (window.innerHeight || document.documentElement.clientHeight) / dividend
+            );
+        };
+        
+        const displayScrollElement = (element) => {
+            element.classList.add('is-visible');
+        };
+        
+        const handleScrollAnimation = () => {
+            scrollElements.forEach((el) => {
+                if (elementInView(el, 1.15)) {
+                    displayScrollElement(el);
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', () => {
+            handleScrollAnimation();
+        });
+        
+        // Initial check
+        handleScrollAnimation();
+        
+        // Simulate real-time updates
+        setInterval(() => {
+            const statusBadges = document.querySelectorAll('.status-badge');
+            statusBadges.forEach(badge => {
+                if (Math.random() > 0.8) {
+                    const statuses = ['status-moving', 'status-processing', 'status-delivered', 'status-delayed'];
+                    const currentStatus = Array.from(badge.classList).find(cls => cls.startsWith('status-'));
+                    if (currentStatus && statuses.includes(currentStatus)) {
+                        badge.classList.remove(currentStatus);
+                        const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                        badge.classList.add(newStatus);
+                    }
+                }
+            });
+        }, 10000);
+    </script>
+</body>
+</html>

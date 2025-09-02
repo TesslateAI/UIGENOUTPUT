@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurveyCraft - Build Professional Surveys</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        dark: {
+                            50: '#f8faf9',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #0ea5e9;
+            --color-secondary: #14b8a6;
+            --color-dark: #0f172a;
+            --color-light: #f8faf9;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8faf9;
+            color: #334155;
+        }
+        
+        .question-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+        }
+        
+        .question-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+            transform: translateY(-2px);
+        }
+        
+        .question-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .option-item {
+            transition: all 0.2s ease;
+        }
+        
+        .option-item:hover {
+            background-color: #e2e8f0;
+        }
+        
+        .sortable {
+            -ms-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .sortable:not(:empty):hover > * {
+            background-color: #e2e8f0;
+        }
+        
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #cbd5e1;
+        }
+        
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0284c7;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #0d9488;
+            transform: translateY(-1px);
+        }
+        
+        .btn-outline {
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-outline:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-primary {
+            background-color: #dbeafe;
+            color: var(--color-primary);
+        }
+        
+        .badge-secondary {
+            background-color: #ccfbf1;
+            color: var(--color-secondary);
+        }
+        
+        .badge-dark {
+            background-color: #1e293b;
+            color: white;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="h-8 w-8 rounded-lg bg-primary-500 flex items-center justify-center">
+                            <i class="fas fa-poll text-white text-sm"></i>
+                        </div>
+                        <span class="ml-2 text-xl font-bold text-gray-900">SurveyCraft</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium">Templates</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium">Analytics</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium">Settings</a>
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <button class="flex items-center text-sm rounded-full focus:outline-none">
+                                <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User profile">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="md:hidden flex items-center">
+                    <button class="p-2 rounded-md text-gray-500 hover:text-gray-700 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Left Sidebar - Survey Details -->
+            <div class="lg:w-1/3">
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Survey Details</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Survey Title</label>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" placeholder="Customer Satisfaction Survey" value="Customer Satisfaction Survey">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Survey Description</label>
+                            <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" rows="3" placeholder="Tell us about your experience with our products and services...">Tell us about your experience with our products and services. Your feedback helps us improve.</textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                                <option>Customer Feedback</option>
+                                <option>Employee Engagement</option>
+                                <option>Market Research</option>
+                                <option>Academic Research</option>
+                                <option>Event Feedback</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1.5 bg-primary-100 text-primary-800 rounded-lg font-medium">Draft</button>
+                                <button class="px-3 py-1.5 bg-green-100 text-green-800 rounded-lg font-medium">Active</button>
+                                <button class="px-3 py-1.5 bg-purple-100 text-purple-800 rounded-lg font-medium">Archived</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Survey Settings</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Require sign-in</p>
+                                <p class="text-xs text-gray-500">Collect responses only from signed-in users</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" name="require-signin" id="require-signin" class="sr-only" />
+                                <label for="require-signin" class="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer">
+                                    <span class="block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out translate-x-0"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Show progress bar</p>
+                                <p class="text-xs text-gray-500">Display progress as user completes survey</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" name="progress-bar" id="progress-bar" class="sr-only" checked />
+                                <label for="progress-bar" class="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer">
+                                    <span class="block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out translate-x-6"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Randomize questions</p>
+                                <p class="text-xs text-gray-500">Shuffle questions for each respondent</p>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" name="randomize" id="randomize" class="sr-only" />
+                                <label for="randomize" class="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer">
+                                    <span class="block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out translate-x-0"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button class="w-full btn-primary py-2.5 rounded-lg font-medium">
+                                <i class="fas fa-save mr-2"></i> Save Survey
+                            </button>
+                            <button class="w-full mt-2 btn-secondary py-2.5 rounded-lg font-medium">
+                                <i class="fas fa-eye mr-2"></i> Preview Survey
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content - Questions List -->
+            <div class="lg:w-2/3">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-200">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900">Survey Questions</h2>
+                                <p class="text-sm text-gray-500 mt-1">Build your survey with different question types</p>
+                            </div>
+                            <div class="mt-4 md:mt-0">
+                                <button id="add-question" class="btn-primary px-4 py-2 rounded-lg font-medium flex items-center">
+                                    <i class="fas fa-plus mr-2"></i> Add Question
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto scrollbar-custom">
+                        <div class="min-w-full">
+                            <!-- Questions Container -->
+                            <div id="questions-container" class="divide-y divide-gray-200">
+                                <!-- Question 1 -->
+                                <div class="question-card bg-white p-6 rounded-lg fade-in" draggable="true">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center">
+                                                <span class="text-xs font-medium badge badge-primary mr-2">Question 1</span>
+                                                <span class="text-xs text-gray-500">Required</span>
+                                            </div>
+                                            <h3 class="text-lg font-medium text-gray-900 mt-1">How satisfied are you with our product?</h3>
+                                            <p class="text-sm text-gray-500 mt-1">Select one option</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-red-500">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-blue-500">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <div class="flex space-x-2">
+                                            <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">Very Satisfied</button>
+                                            <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">Satisfied</button>
+                                            <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">Neutral</button>
+                                            <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">Dissatisfied</button>
+                                            <button class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg">Very Dissatisfied</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Question 2 -->
+                                <div class="question-card bg-white p-6 rounded-lg fade-in" draggable="true">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center">
+                                                <span class="text-xs font-medium badge badge-primary mr-2">Question 2</span>
+                                                <span class="text-xs text-gray-500">Optional</span>
+                                            </div>
+                                            <h3 class="text-lg font-medium text-gray-900 mt-1">What features would you like to see in future updates?</h3>
+                                            <p class="text-sm text-gray-500 mt-1">Select all that apply</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-red-500">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-blue-500">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <div class="space-y-2">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                                                <span class="ml-2 text-sm text-gray-700">Dark mode support</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                                                <span class="ml-2 text-sm text-gray-700">Export to PDF</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                                                <span class="ml-2 text-sm text-gray-700">Offline mode</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                                                <span class="ml-2 text-sm text-gray-700">Customizable templates</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Question 3 -->
+                                <div class="question-card bg-white p-6 rounded-lg fade-in" draggable="true">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center">
+                                                <span class="text-xs font-medium badge badge-primary mr-2">Question 3</span>
+                                                <span class="text-xs text-gray-500">Required</span>
+                                            </div>
+                                            <h3 class="text-lg font-medium text-gray-900 mt-1">How likely are you to recommend our product to others?</h3>
+                                            <p class="text-sm text-gray-500 mt-1">On a scale of 0 to 10</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-red-500">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-blue-500">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-xs text-gray-500">0</span>
+                                            <input type="range" min="0" max="10" value="8" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                            <span class="text-xs text-gray-500">10</span>
+                                        </div>
+                                        <div class="mt-2 text-center text-sm text-gray-500">8</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Question 4 -->
+                                <div class="question-card bg-white p-6 rounded-lg fade-in" draggable="true">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center">
+                                                <span class="text-xs font-medium badge badge-primary mr-2">Question 4</span>
+                                                <span class="text-xs text-gray-500">Optional</span>
+                                            </div>
+                                            <h3 class="text-lg font-medium text-gray-900 mt-1">What can we do to improve your experience?</h3>
+                                            <p class="text-sm text-gray-500 mt-1">Your suggestions</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-red-500">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-blue-500">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" rows="3" placeholder="Type your answer here...">The interface could be more intuitive on mobile devices.</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Question Modal -->
+    <div id="question-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-custom">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900">Add New Question</h3>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <option>Multiple Choice</option>
+                            <option>Checkboxes</option>
+                            <option>Text Input</option>
+                            <option>Text Area</option>
+                            <option>Rating Scale</option>
+                            <option>Date Picker</option>
+                            <option>Dropdown</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Question Text</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" placeholder="Enter your question">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Options</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" placeholder="Option 1">
+                                <button class="ml-2 text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" placeholder="Option 2">
+                                <button class="ml-2 text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <button class="mt-2 text-sm text-primary-600 hover:text-primary-800 flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add option
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="required" class="h-4 w-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="required" class="ml-2 text-sm text-gray-700">Required question</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button id="cancel-question" class="btn-outline px-4 py-2 rounded-lg font-medium">Cancel</button>
+                <button class="btn-primary px-4 py-2 rounded-lg font-medium">Add Question</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal functionality
+            const modal = document.getElementById('question-modal');
+            const addQuestionBtn = document.getElementById('add-question');
+            const closeModalBtn = document.getElementById('close-modal');
+            const cancelQuestionBtn = document.getElementById('cancel-question');
+            
+            addQuestionBtn.addEventListener('click', () => {
+                modal.classList.remove('hidden');
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            cancelQuestionBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+            
+            // Question card drag and drop
+            const questionCards = document.querySelectorAll('.question-card');
+            const questionsContainer = document.getElementById('questions-container');
+            
+            let draggedItem = null;
+            
+            questionCards.forEach(card => {
+                card.addEventListener('dragstart', () => {
+                    draggedItem = card;
+                    setTimeout(() => {
+                        card.classList.add('dragging');
+                    }, 0);
+                });
+                
+                card.addEventListener('dragend', () => {
+                    setTimeout(() => {
+                        card.classList.remove('dragging');
+                        draggedItem = null;
+                    }, 0);
+                });
+            });
+            
+            questionsContainer.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(questionsContainer, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                if (afterElement == null) {
+                    questionsContainer.appendChild(draggable);
+                } else {
+                    questionsContainer.insertBefore(draggable, afterElement);
+                }
+            });
+            
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.question-card:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // Toggle switch styling
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const label = this.nextElementSibling;
+                    if (this.checked) {
+                        label.classList.add('translate-x-6', 'bg-gray-500');
+                    } else {
+                        label.classList.remove('translate-x-6', 'bg-gray-500');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

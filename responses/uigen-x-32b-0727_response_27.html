@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Horizon | Discover Events</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            200: '#fbcfe8',
+                            300: '#f9a8d4',
+                            400: '#f472b6',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            800: '#9d174d',
+                            900: '#831843',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            background-color: #e0f2fe;
+        }
+        
+        .calendar-day.selected {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .calendar-day.has-events::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: #ec4899;
+            border-radius: 50%;
+        }
+        
+        .event-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .rsvp-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .rsvp-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .rsvp-btn.rsvp-confirmed {
+            background-color: #14b8a6;
+        }
+        
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .scroll-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .category-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .category-chip:hover {
+            transform: translateY(-2px);
+        }
+        
+        .category-chip.active {
+            background-color: #0ea5e9;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="bg-primary-600 text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xl mr-3">E</div>
+                <h1 class="text-2xl font-bold text-gray-800">Event<span class="text-primary-600">Horizon</span></h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:flex items-center space-x-2">
+                    <button class="px-4 py-2 text-gray-600 hover:text-primary-600 font-medium">Home</button>
+                    <button class="px-4 py-2 text-gray-600 hover:text-primary-600 font-medium">Categories</button>
+                    <button class="px-4 py-2 text-gray-600 hover:text-primary-600 font-medium">My Events</button>
+                </div>
+                <button class="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition">
+                    Sign In
+                </button>
+                <button class="md:hidden text-gray-600">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-12 scroll-animate">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl p-8 text-white">
+                <div class="max-w-2xl">
+                    <h1 class="text-4xl font-bold mb-4">Discover Events That Inspire You</h1>
+                    <p class="text-lg mb-6 opacity-90">Find and join exciting events in your city. From tech conferences to music festivals, we've got you covered.</p>
+                    <div class="flex">
+                        <input type="text" placeholder="Search events, locations, categories..." class="px-4 py-3 rounded-l-lg text-gray-800 w-full">
+                        <button class="bg-secondary-500 px-6 py-3 rounded-r-lg font-medium">Search</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Calendar Section -->
+            <div class="lg:w-1/3 scroll-animate">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">May 2024</h2>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-chevron-left text-gray-600"></i>
+                            </button>
+                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-chevron-right text-gray-600"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 gap-1 mb-4">
+                        <div class="text-center text-gray-500 font-medium py-2">Sun</div>
+                        <div class="text-center text-gray-500 font-medium py-2">Mon</div>
+                        <div class="text-center text-gray-500 font-medium py-2">Tue</div>
+                        <div class="text-center text-gray-500 font-medium py-2">Wed</div>
+                        <div class="text-center text-gray-500 font-medium py-2">Thu</div>
+                        <div class="text-center text-gray-500 font-medium py-2">Fri</div>
+                        <div class="text-center text-gray-500 font-medium py-2">Sat</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 gap-1">
+                        <!-- Calendar days will be generated by JS -->
+                    </div>
+                </div>
+                
+                <!-- Categories -->
+                <div class="mt-8 bg-white rounded-xl shadow-sm p-6 scroll-animate">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Event Categories</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="category-chip active bg-primary-100 text-primary-700 px-4 py-2 rounded-lg font-medium">All Events</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Technology</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Music</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Business</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Art & Culture</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Food & Drink</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Sports</button>
+                        <button class="category-chip bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">Education</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Events Section -->
+            <div class="lg:w-2/3">
+                <div class="flex justify-between items-center mb-6 scroll-animate">
+                    <h2 class="text-2xl font-bold text-gray-800">Upcoming Events</h2>
+                    <div class="flex items-center">
+                        <span class="text-gray-600 mr-2">Sort by:</span>
+                        <select class="bg-white border border-gray-300 rounded-lg px-3 py-2">
+                            <option>Date</option>
+                            <option>Popularity</option>
+                            <option>Distance</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- Event Card 1 -->
+                    <div class="event-card bg-white rounded-xl overflow-hidden scroll-animate">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="md:w-1/3">
+                                <div class="h-48 md:h-full bg-gradient-to-r from-primary-500 to-primary-700 flex items-center justify-center">
+                                    <div class="text-white p-4 text-center">
+                                        <div class="text-4xl font-bold">15</div>
+                                        <div class="text-lg">MAY</div>
+                                        <div class="text-sm opacity-80">2024</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md:w-2/3 p-6">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium mb-2">Technology</span>
+                                        <h3 class="text-xl font-bold text-gray-800 mb-2">Web Development Conference 2024</h3>
+                                        <div class="flex items-center text-gray-600 mb-3">
+                                            <i class="far fa-clock mr-2"></i>
+                                            <span>10:00 AM - 6:00 PM</span>
+                                        </div>
+                                        <div class="flex items-center text-gray-600 mb-4">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>
+                                            <span>Tech Hub Convention Center, San Francisco</span>
+                                        </div>
+                                    </div>
+                                    <button class="rsvp-btn bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700">
+                                        RSVP Now
+                                    </button>
+                                </div>
+                                <p class="text-gray-600 mb-4">Join us for the biggest web development conference of the year! Learn from industry experts, attend workshops, and network with fellow developers.</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user-friends text-gray-500 mr-2"></i>
+                                        <span class="text-gray-600">124 attending</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-share-alt text-gray-500 mr-2"></i>
+                                        <span class="text-gray-600">Share</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Event Card 2 -->
+                    <div class="event-card bg-white rounded-xl overflow-hidden scroll-animate">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="md:w-1/3">
+                                <div class="h-48 md:h-full bg-gradient-to-r from-secondary-500 to-secondary-700 flex items-center justify-center">
+                                    <div class="text-white p-4 text-center">
+                                        <div class="text-4xl font-bold">18</div>
+                                        <div class="text-lg">MAY</div>
+                                        <div class="text-sm opacity-80">2024</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md:w-2/3 p-6">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block bg-secondary-100 text-secondary-700 px-3 py-1 rounded-full text-sm font-medium mb-2">Music</span>
+                                        <h3 class="text-xl font-bold text-gray-800 mb-2">Summer Music Festival</h3>
+                                        <div class="flex items-center text-gray-600 mb-3">
+                                            <i class="far fa-clock mr-2"></i>
+                                            <span>2:00 PM - 11:00 PM</span>
+                                        </div>
+                                        <div class="flex items-center text-gray-600 mb-4">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>
+                                            <span>Riverside Park, New York</span>
+                                        </div>
+                                    </div>
+                                    <button class="rsvp-btn bg-secondary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-secondary-600">
+                                        RSVP Now
+                                    </button>
+                                </div>
+                                <p class="text-gray-600 mb-4">Experience the best of summer with our annual music festival! Featuring top artists from around the world across multiple stages.</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user-friends text-gray-500 mr-2"></i>
+                                        <span class="text-gray-600">892 attending</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-share-alt text-gray-500 mr-2"></i>
+                                        <span class="text-gray-600">Share</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Event Card 3 -->
+                    <div class="event-card bg-white rounded-xl overflow-hidden scroll-animate">
+                        <div class="flex flex-col md:flex-row">
+                            <div class="md:w-1/3">
+                                <div class="h-48 md:h-full bg-gradient-to-r from-accent-500 to-accent-700 flex items-center justify-center">
+                                    <div class="text-white p-4 text-center">
+                                        <div class="text-4xl font-bold">22</div>
+                                        <div class="text-lg">MAY</div>
+                                        <div class="text-sm opacity-80">2024</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="md:w-2/3 p-6">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block bg-accent-100 text-accent-700 px-3 py-1 rounded-full text-sm font-medium mb-2">Business</span>
+                                        <h3 class="text-xl font-bold text-gray-800 mb-2">Startup Innovation Summit</h3>
+                                        <div class="flex items-center text-gray-600 mb-3">
+                                            <i class="far fa-clock mr-2"></i>
+                                            <span>9:00 AM - 5:00 PM</span>
+                                        </div>
+                                        <div class="flex items-center text-gray-600 mb-4">
+                                            <i class="fas fa-map-marker-alt mr-2"></i>
+                                            <span>Innovation Center, Austin</span>
+                                        </div>
+                                    </div>
+                                    <button class="rsvp-btn bg-accent-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-accent-600">
+                                        RSVP Now
+                                    </button>
+                                </div>
+                                <p class="text-gray-600 mb-4">Join entrepreneurs, investors, and innovators for a day of inspiring talks, networking, and showcasing groundbreaking startups.</p>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user-friends text-gray-500 mr-2"></i>
+                                        <span class="text-gray-600">210 attending</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <i class="fas fa-share-alt text-gray-500 mr-2"></i>
+                                        <span class="text-gray-600">Share</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Load More Button -->
+                <div class="mt-8 text-center scroll-animate">
+                    <button class="bg-white border border-primary-600 text-primary-600 px-6 py-3 rounded-lg font-medium hover:bg-primary-50">
+                        Load More Events
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="bg-primary-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg mr-2">E</div>
+                        <h2 class="text-xl font-bold">Event<span class="text-primary-400">Horizon</span></h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">Discover and join the best events in your city. From tech conferences to music festivals, we've got you covered.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Explore</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Upcoming Events</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Popular Events</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">New Events</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Featured Speakers</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Categories</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Technology</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Music</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Business</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Art & Culture</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Food & Drink</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Subscribe</h3>
+                    <p class="text-gray-400 mb-4">Get the latest event updates in your inbox</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-gray-800">
+                        <button class="bg-primary-600 px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>© 2024 EventHorizon. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Calendar generation
+        function generateCalendar() {
+            const calendarDays = document.querySelector('.grid.grid-cols-7');
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            // Clear existing days
+            calendarDays.innerHTML = '';
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            // Get day of week for first day (0 = Sunday, 1 = Monday, etc.)
+            const firstDayOfWeek = firstDay.getDay();
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('text-center', 'text-gray-200', 'py-3');
+                calendarDays.appendChild(emptyDay);
+            }
+            
+            // Add cells for each day of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('calendar-day', 'text-center', 'py-3', 'cursor-pointer', 'relative');
+                dayElement.textContent = day;
+                
+                // Highlight today
+                const todayDate = new Date();
+                if (day === todayDate.getDate() && 
+                    currentMonth === todayDate.getMonth() && 
+                    currentYear === todayDate.getFullYear()) {
+                    dayElement.classList.add('selected');
+                }
+                
+                // Add indicator for days with events
+                if ([5, 12, 15, 18, 22, 25, 28].includes(day)) {
+                    dayElement.classList.add('has-events');
+                }
+                
+                calendarDays.appendChild(dayElement);
+            }
+        }
+        
+        // Initialize calendar
+        document.addEventListener('DOMContentLoaded', () => {
+            generateCalendar();
+            
+            // RSVP button functionality
+            const rsvpButtons = document.querySelectorAll('.rsvp-btn');
+            rsvpButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    button.classList.toggle('rsvp-confirmed');
+                    if (button.classList.contains('rsvp-confirmed')) {
+                        button.textContent = 'Going!';
+                    } else {
+                        button.textContent = 'RSVP Now';
+                    }
+                });
+            });
+            
+            // Category chip functionality
+            const categoryChips = document.querySelectorAll('.category-chip');
+            categoryChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    categoryChips.forEach(c => c.classList.remove('active', 'bg-primary-100', 'text-primary-700'));
+                    chip.classList.add('active', 'bg-primary-100', 'text-primary-700');
+                });
+            });
+            
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.scroll-animate');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamHub - Modern Video Streaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'stream-dark': '#0f0f0f',
+                        'stream-card': '#1a1a1a',
+                        'stream-text': '#f5f5f5',
+                        'stream-muted': '#b3b3b3',
+                        'stream-primary': '#ff0000',
+                        'stream-secondary': '#1e8bc2',
+                        'stream-accent': '#ff4d00',
+                        'stream-overlay': 'rgba(0, 0, 0, 0.85)',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'scale-in': 'scaleIn 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: #f5f5f5;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .video-thumbnail {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .video-thumbnail:hover {
+            transform: translateY(-5px);
+        }
+        
+        .video-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .video-thumbnail:hover .video-overlay {
+            opacity: 1;
+        }
+        
+        .play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .video-thumbnail:hover .play-btn {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        .playlist-item {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .playlist-item:hover {
+            background-color: #1e1e1e;
+        }
+        
+        .engagement-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .engagement-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .scroll-animate.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .category-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .category-chip:hover {
+            background-color: #ff0000;
+            color: white;
+        }
+        
+        .video-duration {
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background-color: #555;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #ff0000;
+            width: 45%;
+        }
+        
+        .watching-now {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .watching-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+            padding: 1.5rem;
+        }
+        
+        .trending-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background-color: #ff0000;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .search-focus:focus-within {
+            background-color: #1a1a1a;
+            box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.5);
+        }
+        
+        .mobile-menu {
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        .mobile-menu-open {
+            transform: translateX(0);
+        }
+        
+        .mobile-menu-closed {
+            transform: translateX(-100%);
+        }
+        
+        .playlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        @media (min-width: 1024px) {
+            .playlist-grid {
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body class="bg-stream-dark text-stream-text font-inter">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-stream-dark/90 backdrop-blur-sm border-b border-stream-card">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-stream-primary flex items-center justify-center">
+                    <i class="fas fa-play text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-jakarta font-bold">StreamHub</h1>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Home</a>
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Explore</a>
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Library</a>
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Subscriptions</a>
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors">History</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:flex items-center bg-stream-card rounded-full px-4 py-2 w-64">
+                    <i class="fas fa-search text-stream-muted mr-2"></i>
+                    <input type="text" placeholder="Search videos..." class="bg-transparent border-none focus:outline-none w-full text-stream-text">
+                </div>
+                
+                <button class="p-2 rounded-full hover:bg-stream-card transition-colors">
+                    <i class="fas fa-bell text-stream-muted"></i>
+                </button>
+                
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-stream-primary flex items-center justify-center text-xs font-bold">JS</div>
+                    <span class="hidden md:inline text-stream-muted">John Smith</span>
+                </div>
+                
+                <button id="mobile-menu-button" class="md:hidden p-2 rounded-full hover:bg-stream-card transition-colors">
+                    <i class="fas fa-bars text-stream-muted"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="fixed top-0 right-0 h-full w-64 bg-stream-card z-40 p-6 flex flex-col space-y-6 mobile-menu-closed">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-jakarta font-bold">StreamHub</h2>
+            <button id="close-menu" class="p-2 rounded-full hover:bg-stream-dark transition-colors">
+                <i class="fas fa-times text-stream-muted"></i>
+            </button>
+        </div>
+        
+        <div class="flex flex-col space-y-4">
+            <div class="flex items-center bg-stream-dark rounded-full px-4 py-2">
+                <i class="fas fa-search text-stream-muted mr-2"></i>
+                <input type="text" placeholder="Search videos..." class="bg-transparent border-none focus:outline-none w-full text-stream-text">
+            </div>
+            
+            <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">Home</a>
+            <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">Explore</a>
+            <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">Library</a>
+            <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">Subscriptions</a>
+            <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">History</a>
+            
+            <div class="pt-4 border-t border-stream-dark">
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">Settings</a>
+                <a href="#" class="text-stream-muted hover:text-stream-text transition-colors py-2">Sign out</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="pt-20">
+        <!-- Hero Section -->
+        <section class="relative">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-start">
+                    <div class="md:w-1/2 mb-8 md:mb-0">
+                        <h2 class="text-4xl md:text-5xl font-jakarta font-bold mb-4">Stream your favorite content anytime, anywhere</h2>
+                        <p class="text-stream-muted text-lg mb-6">Discover millions of videos, from trending content to your favorite channels. Watch on any device.</p>
+                        <div class="flex flex-wrap gap-3">
+                            <button class="bg-stream-primary text-white px-6 py-3 rounded-full font-medium hover:bg-opacity-90 transition-colors">
+                                Start Watching
+                            </button>
+                            <button class="bg-stream-card text-stream-text px-6 py-3 rounded-full font-medium hover:bg-stream-dark transition-colors">
+                                Explore Channels
+                            </button>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2 flex justify-center">
+                        <div class="relative w-full max-w-md">
+                            <div class="absolute -top-6 -right-6 w-32 h-32 bg-stream-primary rounded-full opacity-20"></div>
+                            <div class="absolute -bottom-6 -left-6 w-40 h-40 bg-stream-secondary rounded-full opacity-20"></div>
+                            
+                            <div class="relative bg-stream-card rounded-xl overflow-hidden shadow-2xl">
+                                <div class="aspect-video bg-gradient-to-r from-stream-primary/20 to-stream-secondary/20 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <div class="w-16 h-16 bg-stream-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <i class="fas fa-play text-white text-2xl"></i>
+                                        </div>
+                                        <p class="text-stream-muted">Featured Video Preview</p>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-jakarta font-bold text-lg mb-2">How to Master Video Editing in 2023</h3>
+                                    <div class="flex items-center text-stream-muted text-sm mb-3">
+                                        <span>4.2M views</span>
+                                        <span class="mx-2">•</span>
+                                        <span>2 days ago</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-stream-secondary flex items-center justify-center text-xs mr-2">CS</div>
+                                        <span>Creative Studio</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section class="py-8">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-jakarta font-bold mb-6">Browse Categories</h2>
+                <div class="flex flex-wrap gap-3">
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">All Videos</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Music</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Gaming</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Movies</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Documentaries</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Vlogs</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Education</button>
+                    <button class="category-chip bg-stream-card px-4 py-2 rounded-full text-stream-muted hover:text-stream-text transition-colors">Live</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trending Videos -->
+        <section class="py-8">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-jakarta font-bold">Trending Now</h2>
+                    <a href="#" class="text-stream-primary hover:underline">View All</a>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Video Card 1 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-red-500/20 to-orange-500/20 relative">
+                                <div class="trending-badge">TRENDING</div>
+                                <div class="video-overlay">
+                                    <div class="play-btn">
+                                        <i class="fas fa-play text-white text-xl"></i>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="font-jakarta font-bold">The Future of AI in Content Creation</h3>
+                                            <p class="text-stream-muted text-sm mt-1">Tech Insights • 1.2M views</p>
+                                        </div>
+                                        <div class="video-duration">15:42</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 rounded-full bg-stream-secondary flex items-center justify-center text-xs mr-3">AI</div>
+                                <div>
+                                    <p class="font-medium">AI Creators</p>
+                                    <p class="text-stream-muted text-sm">1.2M subscribers</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-thumbs-up mr-1"></i> 42K
+                                </button>
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-thumbs-down mr-1"></i> 1.2K
+                                </button>
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-share mr-1"></i> Share
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Card 2 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-blue-500/20 to-purple-500/20 relative">
+                                <div class="video-overlay">
+                                    <div class="play-btn">
+                                        <i class="fas fa-play text-white text-xl"></i>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="font-jakarta font-bold">Mastering the Art of Cooking</h3>
+                                            <p class="text-stream-muted text-sm mt-1">Food Network • 850K views</p>
+                                        </div>
+                                        <div class="video-duration">22:18</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 rounded-full bg-stream-accent flex items-center justify-center text-xs mr-3">FN</div>
+                                <div>
+                                    <p class="font-medium">Food Network</p>
+                                    <p class="text-stream-muted text-sm">4.8M subscribers</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-thumbs-up mr-1"></i> 38K
+                                </button>
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-thumbs-down mr-1"></i> 850
+                                </button>
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-share mr-1"></i> Share
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Card 3 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-green-500/20 to-teal-500/20 relative">
+                                <div class="video-overlay">
+                                    <div class="play-btn">
+                                        <i class="fas fa-play text-white text-xl"></i>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="font-jakarta font-bold">Travel the World in 360° VR</h3>
+                                            <p class="text-stream-muted text-sm mt-1">Virtual Travel • 1.5M views</p>
+                                        </div>
+                                        <div class="video-duration">10:05</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-xs mr-3">VT</div>
+                                <div>
+                                    <p class="font-medium">Virtual Travel</p>
+                                    <p class="text-stream-muted text-sm">2.1M subscribers</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-thumbs-up mr-1"></i> 65K
+                                </button>
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-thumbs-down mr-1"></i> 2.1K
+                                </button>
+                                <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                    <i class="fas fa-share mr-1"></i> Share
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Watching Now Section -->
+        <section class="py-8">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-jakarta font-bold">Watching Now</h2>
+                    <a href="#" class="text-stream-primary hover:underline">View All</a>
+                </div>
+                
+                <div class="watching-now bg-stream-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gradient-to-r from-purple-500/20 to-pink-500/20 relative">
+                        <div class="watching-overlay">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-xl font-jakarta font-bold">The Ultimate Guide to Web Development in 2023</h3>
+                                    <p class="text-stream-muted mt-2">Learn modern web development techniques from industry experts</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="bg-stream-primary text-white px-4 py-2 rounded-lg flex items-center">
+                                        <i class="fas fa-play mr-2"></i> Watch
+                                    </button>
+                                    <button class="bg-stream-card text-stream-text px-4 py-2 rounded-lg border border-stream-muted flex items-center">
+                                        <i class="fas fa-plus mr-2"></i> Save
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex items-center">
+                                <div class="w-12 h-12 rounded-full bg-stream-secondary flex items-center justify-center text-xs mr-3">WD</div>
+                                <div>
+                                    <p class="font-medium">Web Dev Masters</p>
+                                    <p class="text-stream-muted text-sm">3.7M subscribers</p>
+                                </div>
+                                <div class="ml-auto flex space-x-3">
+                                    <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                        <i class="fas fa-thumbs-up mr-1"></i> 124K
+                                    </button>
+                                    <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                        <i class="fas fa-thumbs-down mr-1"></i> 3.2K
+                                    </button>
+                                    <button class="engagement-btn flex items-center text-stream-muted hover:text-stream-primary">
+                                        <i class="fas fa-share mr-1"></i> Share
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center mb-4">
+                            <div class="flex items-center mr-6">
+                                <i class="fas fa-eye text-stream-muted mr-2"></i>
+                                <span class="text-stream-muted">2.4M views</span>
+                            </div>
+                            <div class="flex items-center mr-6">
+                                <i class="fas fa-calendar text-stream-muted mr-2"></i>
+                                <span class="text-stream-muted">3 days ago</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-clock text-stream-muted mr-2"></i>
+                                <span class="text-stream-muted">24:18</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h4 class="font-jakarta font-bold mb-2">Description</h4>
+                            <p class="text-stream-muted">In this comprehensive guide, we cover everything you need to know about modern web development. From HTML5 and CSS3 to JavaScript frameworks like React and Vue, we break down the essential skills you need to build professional websites.</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-3">
+                            <span class="bg-stream-dark px-3 py-1 rounded-full text-stream-muted text-sm">#webdev</span>
+                            <span class="bg-stream-dark px-3 py-1 rounded-full text-stream-muted text-sm">#javascript</span>
+                            <span class="bg-stream-dark px-3 py-1 rounded-full text-stream-muted text-sm">#frontend</span>
+                            <span class="bg-stream-dark px-3 py-1 rounded-full text-stream-muted text-sm">#tutorial</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Playlists -->
+        <section class="py-8">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-jakarta font-bold mb-6">Your Playlists</h2>
+                
+                <div class="playlist-grid">
+                    <!-- Playlist 1 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-yellow-500/20 to-red-500/20 relative">
+                                <div class="play-btn">
+                                    <i class="fas fa-play text-white text-xl"></i>
+                                </div>
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                                    <h3 class="font-jakarta font-bold">Fitness Journey</h3>
+                                    <p class="text-stream-muted text-sm">8 videos • 3 hours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-stream-muted text-sm">Created on Jan 12, 2023</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Playlist 2 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-blue-500/20 to-cyan-500/20 relative">
+                                <div class="play-btn">
+                                    <i class="fas fa-play text-white text-xl"></i>
+                                </div>
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                                    <h3 class="font-jakarta font-bold">Coding Tutorials</h3>
+                                    <p class="text-stream-muted text-sm">12 videos • 5 hours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-stream-muted text-sm">Created on Feb 3, 2023</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Playlist 3 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-green-500/20 to-emerald-500/20 relative">
+                                <div class="play-btn">
+                                    <i class="fas fa-play text-white text-xl"></i>
+                                </div>
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                                    <h3 class="font-jakarta font-bold">Travel Adventures</h3>
+                                    <p class="text-stream-muted text-sm">6 videos • 2 hours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-stream-muted text-sm">Created on Mar 18, 2023</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Playlist 4 -->
+                    <div class="playlist-item bg-stream-card rounded-xl overflow-hidden">
+                        <div class="relative">
+                            <div class="video-thumbnail aspect-video bg-gradient-to-r from-purple-500/20 to-indigo-500/20 relative">
+                                <div class="play-btn">
+                                    <i class="fas fa-play text-white text-xl"></i>
+                                </div>
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                                    <h3 class="font-jakarta font-bold">Music Discoveries</h3>
+                                    <p class="text-stream-muted text-sm">10 videos • 1 hour</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-stream-muted text-sm">Created on Apr 5, 2023</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stream-card py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-stream-primary flex items-center justify-center">
+                            <i class="fas fa-play text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-jakarta font-bold">StreamHub</h3>
+                    </div>
+                    <p class="text-stream-muted text-sm mb-4">The best place to discover and share your favorite videos.</p>
+                    <div class="flex space-x-3">
+                        <a href="#" class="text-stream-muted hover:text-stream-primary"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-stream-muted hover:text-stream-primary"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-stream-muted hover:text-stream-primary"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-stream-muted hover:text-stream-primary"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-jakarta font-bold mb-4">Explore</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Home</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Trending</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Subscriptions</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Library</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">History</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-jakarta font-bold mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Cookie Policy</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Copyright</a></li>
+                        <li><a href="#" class="text-stream-muted hover:text-stream-text transition-colors">Guidelines</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-jakarta font-bold mb-4">Subscribe</h4>
+                    <p class="text-stream-muted text-sm mb-4">Get the latest updates and news</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="bg-stream-dark text-stream-text px-4 py-2 rounded-l-lg w-full focus:outline-none">
+                        <button class="bg-stream-primary text-white px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-stream-dark mt-12 pt-6 text-center text-stream-muted text-sm">
+                <p>© 2023 StreamHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const closeMenuButton = document.getElementById('close-menu');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.remove('mobile-menu-closed');
+                mobileMenu.classList.add('mobile-menu-open');
+            });
+            
+            closeMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.remove('mobile-menu-open');
+                mobileMenu.classList.add('mobile-menu-closed');
+            });
+            
+            // Scroll animations
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.scroll-animate').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Simulate dynamic playlist loading
+            const playlistGrid = document.querySelector('.playlist-grid');
+            for (let i = 0; i < 4; i++) {
+                const newPlaylist = document.createElement('div');
+                newPlaylist.className = 'playlist-item bg-stream-card rounded-xl overflow-hidden';
+                newPlaylist.innerHTML = `
+                    <div class="relative">
+                        <div class="video-thumbnail aspect-video bg-gradient-to-r from-${getRandomColor()}/20 to-${getRandomColor()}/20 relative">
+                            <div class="play-btn">
+                                <i class="fas fa-play text-white text-xl"></i>
+                            </div>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                                <h3 class="font-jakarta font-bold">New Playlist ${i+5}</h3>
+                                <p class="text-stream-muted text-sm">${Math.floor(Math.random() * 12) + 3} videos • ${Math.floor(Math.random() * 4) + 1} hours</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-stream-muted text-sm">Created on ${getRandomDate()}</p>
+                    </div>
+                `;
+                playlistGrid.appendChild(newPlaylist);
+            }
+            
+            function getRandomColor() {
+                const colors = ['red', 'blue', 'green', 'purple', 'yellow', 'pink', 'cyan', 'indigo'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            function getRandomDate() {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const day = Math.floor(Math.random() * 28) + 1;
+                const month = months[Math.floor(Math.random() * 12)];
+                const year = Math.floor(Math.random() * 3) + 2023;
+                return `${month} ${day}, ${year}`;
+            }
+        });
+    </script>
+</body>
+</html>

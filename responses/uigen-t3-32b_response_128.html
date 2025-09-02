@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Whiteboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #2563eb; /* A vibrant blue for primary actions */
+            --color-primary-dark: #1e40af;
+            --color-secondary: #6b7280; /* Gray for secondary elements */
+            --color-bg-light: #f8fafc; /* Light background */
+            --color-bg-dark: #1e293b; /* Dark background for contrast */
+            --color-text-dark: #1e293b;
+            --color-text-light: #f8fafc;
+            --color-border: #e2e8f0;
+            --color-canvas-bg: #ffffff; /* Whiteboard background */
+            --color-canvas-border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            overflow: hidden; /* Prevent body scroll, whiteboard will handle its own */
+        }
+
+        /* Custom scrollbar for tools if needed, but kept minimal */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: var(--color-bg-light);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--color-secondary);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-dark);
+        }
+
+        /* Whiteboard Canvas Styling */
+        #whiteboard-canvas {
+            background-color: var(--color-canvas-bg);
+            border: 1px solid var(--color-canvas-border);
+            cursor: crosshair;
+            touch-action: none; /* Disable default touch actions for drawing */
+        }
+
+        /* Responsive toolbar adjustments */
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-direction: column;
+                align-items: center;
+                padding: 0.5rem;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background-color: var(--color-bg-light);
+                box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+                z-index: 10;
+                border-top: 1px solid var(--color-border);
+            }
+            .toolbar-item {
+                padding: 0.75rem;
+                margin: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Header / Top Bar -->
+    <header class="flex items-center justify-between p-4 bg-white shadow-md z-20">
+        <h1 class="text-2xl font-bold text-[var(--color-primary)]">Whiteboard</h1>
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 text-sm text-[var(--color-secondary)]">
+                <i class="fas fa-users"></i>
+                <span>3 Users Online</span>
+            </div>
+            <button class="bg-[var(--color-primary)] text-white px-4 py-2 rounded-md hover:bg-[var(--color-primary-dark)] transition-colors">
+                <i class="fas fa-share-alt mr-2"></i>Share
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Whiteboard Area -->
+    <main class="flex flex-1 overflow-hidden">
+        <!-- Canvas Container -->
+        <div id="canvas-container" class="flex-1 relative overflow-hidden bg-[var(--color-canvas-bg)]">
+            <canvas id="whiteboard-canvas" class="w-full h-full"></canvas>
+            <!-- Placeholder for real-time user cursors/avatars -->
+            <div id="user-cursors" class="absolute inset-0 pointer-events-none"></div>
+        </div>
+
+        <!-- Toolbar (Right-aligned on desktop, bottom on mobile) -->
+        <aside class="toolbar w-20 md:w-24 bg-white p-4 shadow-lg flex flex-col items-center space-y-4 z-20 custom-scrollbar overflow-y-auto max-h-full">
+            <!-- Tool Buttons -->
+            <button id="tool-draw" class="toolbar-item p-3 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 active:bg-blue-100" aria-label="Draw">
+                <i class="fas fa-pencil-alt text-xl text-[var(--color-primary)]"></i>
+            </button>
+            <button id="tool-eraser" class="toolbar-item p-3 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 active:bg-blue-100" aria-label="Eraser">
+                <i class="fas fa-eraser text-xl text-[var(--color-secondary)]"></i>
+            </button>
+            <button id="tool-text" class="toolbar-item p-3 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 active:bg-blue-100" aria-label="Add Text">
+                <i class="fas fa-font text-xl text-[var(--color-secondary)]"></i>
+            </button>
+            <button id="tool-shape" class="toolbar-item p-3 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 active:bg-blue-100" aria-label="Add Shape">
+                <i class="fas fa-shapes text-xl text-[var(--color-secondary)]"></i>
+            </button>
+
+            <!-- Color Picker -->
+            <div class="w-full flex flex-col items-center space-y-2">
+                <label for="color-picker" class="text-xs text-[var(--color-secondary)]">Color</label>
+                <input type="color" id="color-picker" value="#000000" class="w-10 h-10 rounded-full border-2 border-gray-300 cursor-pointer">
+            </div>
+
+            <!-- Stroke Width -->
+            <div class="w-full flex flex-col items-center space-y-2">
+                <label for="stroke-width" class="text-xs text-[var(--color-secondary)]">Width</label>
+                <input type="range" id="stroke-width" min="1" max="20" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <!-- Export Button -->
+            <button id="export-button" class="toolbar-item p-3 rounded-lg bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] focus:outline-none focus:ring-2 focus:ring-blue-500 active:bg-blue-700" aria-label="Export Whiteboard">
+                <i class="fas fa-download text-xl"></i>
+            </button>
+        </aside>
+    </main>
+
+    <!-- Export Dialog (Hidden by default) -->
+    <div id="export-dialog" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96 transform scale-95 opacity-0 transition-all duration-300">
+            <h3 class="text-xl font-bold mb-4">Export Whiteboard</h3>
+            <div class="mb-4">
+                <label for="export-format" class="block text-sm font-medium text-gray-700 mb-2">Format:</label>
+                <select id="export-format" class="w-full p-2 border border-gray-300 rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]">
+                    <option value="png">PNG Image</option>
+                    <option value="jpeg">JPEG Image</option>
+                    <option value="pdf">PDF Document</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="download-as" class="block text-sm font-medium text-gray-700 mb-2">Download As:</label>
+                <input type="text" id="download-as" value="whiteboard" class="w-full p-2 border border-gray-300 rounded-md focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-export" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors">Cancel</button>
+                <button id="confirm-export" class="px-4 py-2 bg-[var(--color-primary)] text-white rounded-md hover:bg-[var(--color-primary-dark)] transition-colors">Export</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('whiteboard-canvas');
+            const ctx = canvas.getContext('2d');
+            const toolbar = document.querySelector('.toolbar');
+            const toolButtons = toolbar.querySelectorAll('.toolbar-item');
+            const colorPicker = document.getElementById('color-picker');
+            const strokeWidthInput = document.getElementById('stroke-width');
+            const exportButton = document.getElementById('export-button');
+            const exportDialog = document.getElementById('export-dialog');
+            const cancelExportButton = document.getElementById('cancel-export');
+            const confirmExportButton = document.getElementById('confirm-export');
+            const exportFormatSelect = document.getElementById('export-format');
+            const downloadAsInput = document.getElementById('download-as');
+
+            let drawing = false;
+            let currentTool = 'draw'; // 'draw', 'eraser', 'text', 'shape'
+            let currentColor = colorPicker.value;
+            let currentStrokeWidth = strokeWidthInput.value;
+            let lastX = 0;
+            let lastY = 0;
+
+            // --- Canvas Setup ---
+            function resizeCanvas() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas(); // Initial resize
+
+            // --- Drawing Logic ---
+            const startDrawing = (e) => {
+                if (!drawing) {
+                    drawing = true;
+                    [lastX, lastY] = getCanvasCoordinates(e);
+                    if (currentTool === 'draw' || currentTool === 'eraser') {
+                        ctx.beginPath();
+                        ctx.moveTo(lastX, lastY);
+                    }
+                }
+            };
+
+            const draw = (e) => {
+                if (!drawing) return;
+
+                const [x, y] = getCanvasCoordinates(e);
+
+                if (currentTool === 'draw' || currentTool === 'eraser') {
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = currentTool === 'draw' ? currentColor : 'white'; // Eraser uses white
+                    ctx.lineWidth = currentStrokeWidth;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
+                    lastX = x;
+                    lastY = y;
+                } else if (currentTool === 'text') {
+                    // For simplicity, text tool would require a pop-up for input
+                    alert('Text tool functionality: Click on canvas to add text!');
+                } else if (currentTool === 'shape') {
+                    // For simplicity, shape tool would require more complex logic
+                    alert('Shape tool functionality: Drag to draw shapes!');
+                }
+            };
+
+            const stopDrawing = () => {
+                drawing = false;
+                ctx.closePath();
+            };
+
+            // Get coordinates relative to the canvas
+            const getCanvasCoordinates = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                let clientX, clientY;
+
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                return [
+                    clientX - rect.left,
+                    clientY - rect.top
+                ];
+            };
+
+            // Mouse Events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing); // Stop drawing if mouse leaves canvas
+
+            // Touch Events
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+            canvas.addEventListener('touchcancel', stopDrawing);
+
+            // --- Toolbar Logic ---
+            toolButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    toolButtons.forEach(btn => btn.classList.remove('active:bg-blue-100'));
+                    button.classList.add('active:bg-blue-100');
+                    currentTool = button.id.replace('tool-', '');
+                    console.log('Active tool:', currentTool);
+                });
+            });
+
+            colorPicker.addEventListener('input', (e) => {
+                currentColor = e.target.value;
+                console.log('Current color:', currentColor);
+            });
+
+            strokeWidthInput.addEventListener('input', (e) => {
+                currentStrokeWidth = parseInt(e.target.value);
+                console.log('Current stroke width:', currentStrokeWidth);
+            });
+
+            // --- Export Logic ---
+            exportButton.addEventListener('click', () => {
+                exportDialog.classList.remove('hidden');
+                exportDialog.querySelector('div').classList.remove('scale-95', 'opacity-0');
+                exportDialog.querySelector('div').classList.add('scale-100', 'opacity-100');
+            });
+
+            cancelExportButton.addEventListener('click', () => {
+                exportDialog.classList.add('hidden');
+                exportDialog.querySelector('div').classList.remove('scale-100', 'opacity-100');
+                exportDialog.querySelector('div').classList.add('scale-95', 'opacity-0');
+            });
+
+            confirmExportButton.addEventListener('click', () => {
+                const format = exportFormatSelect.value;
+                const filename = downloadAsInput.value || 'whiteboard';
+                const dataURL = canvas.toDataURL(`image/${format}`);
+
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = `${filename}.${format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                exportDialog.classList.add('hidden');
+                exportDialog.querySelector('div').classList.remove('scale-100', 'opacity-100');
+                exportDialog.querySelector('div').classList.add('scale-95', 'opacity-0');
+            });
+
+            // Initial state for the first tool
+            toolButtons[0].click();
+        });
+    </script>
+</body>
+</html>

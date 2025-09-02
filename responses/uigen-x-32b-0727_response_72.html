@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-dark: #0a192f;
+            --color-bg-darker: #020c1b;
+            --color-text-light: #e6f1ff;
+            --color-text-muted: #8892b0;
+            --color-primary: #64ffda;
+            --color-secondary: #5e72e4;
+            --color-accent: #ff6b6b;
+            --color-card-bg: rgba(26, 35, 54, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--color-card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-normal { background-color: #4ade80; }
+        .status-warning { background-color: #fbbf24; }
+        .status-critical { background-color: #f87171; }
+
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .light-red { background-color: #f87171; }
+        .light-yellow { background-color: #fbbf24; }
+        .light-green { background-color: #4ade80; }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(100, 255, 218, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .map-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.8) 0%, rgba(2, 12, 27, 0.9) 100%);
+        }
+
+        .map-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--color-primary);
+            box-shadow: 0 0 0 4px rgba(100, 255, 218, 0.3);
+            transform: translate(-50%, -50%);
+        }
+
+        .map-marker::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--color-primary);
+            top: -4px;
+            left: -4px;
+            animation: ripple 2s infinite;
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        .service-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .service-card:hover {
+            background: rgba(26, 35, 54, 0.9);
+            transform: translateY(-3px);
+        }
+
+        .service-card.active {
+            background: rgba(100, 255, 218, 0.1);
+            border: 1px solid var(--color-primary);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-[var(--color-bg-dark)] to-[var(--color-bg-darker)] text-[var(--color-text-light)]">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-[var(--color-bg-darker)]/90 backdrop-blur-md border-b border-[rgba(255,255,255,0.1)]">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
+                    <i class="fas fa-city text-[var(--color-bg-dark)] text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">Smart<span class="text-[var(--color-primary)]">City</span> Dashboard</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <i class="fas fa-bell text-[var(--color-text-muted)] text-xl"></i>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-[var(--color-accent)] rounded-full"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-bg-dark)] font-bold">JD</div>
+                    <span>John Doe</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="card p-6 fade-in" style="animation-delay: 0.1s">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)]">Traffic Flow</p>
+                        <h3 class="text-3xl font-bold mt-2">78%</h3>
+                        <div class="flex items-center mt-1">
+                            <span class="traffic-light light-green"></span>
+                            <span class="text-sm text-[var(--color-text-muted)]">Optimal</span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center">
+                        <i class="fas fa-car text-[var(--color-primary)] text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6 fade-in" style="animation-delay: 0.2s">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)]">Air Quality</p>
+                        <h3 class="text-3xl font-bold mt-2">42 <span class="text-lg">AQI</span></h3>
+                        <div class="flex items-center mt-1">
+                            <span class="status-indicator status-normal"></span>
+                            <span class="text-sm text-[var(--color-text-muted)]">Good</span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-[#4ade80]/10 flex items-center justify-center">
+                        <i class="fas fa-wind text-[#4ade80] text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6 fade-in" style="animation-delay: 0.3s">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)]">Public Services</p>
+                        <h3 class="text-3xl font-bold mt-2">94%</h3>
+                        <div class="flex items-center mt-1">
+                            <span class="status-indicator status-normal"></span>
+                            <span class="text-sm text-[var(--color-text-muted)]">Operational</span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-[var(--color-secondary)]/10 flex items-center justify-center">
+                        <i class="fas fa-hands-helping text-[var(--color-secondary)] text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6 fade-in" style="animation-delay: 0.4s">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)]">Energy Usage</p>
+                        <h3 class="text-3xl font-bold mt-2">65%</h3>
+                        <div class="flex items-center mt-1">
+                            <span class="status-indicator status-warning"></span>
+                            <span class="text-sm text-[var(--color-text-muted)]">Moderate</span>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-[#fbbf24]/10 flex items-center justify-center">
+                        <i class="fas fa-bolt text-[#fbbf24] text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Traffic Map -->
+            <div class="card col-span-12 lg:col-span-8 p-0 overflow-hidden fade-in" style="animation-delay: 0.5s">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold">Real-time Traffic Flow</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">Live</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-[var(--color-card-bg)] text-[var(--color-text-muted)]">24h</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="map-container h-96 relative">
+                    <div class="absolute inset-0 bg-gray-200 border-2 border-dashed rounded-xl w-full h-full flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-5xl mb-4">🗺️</div>
+                            <p class="text-[var(--color-text-muted)]">Interactive city map showing traffic flow, congestion points, and route suggestions</p>
+                        </div>
+                    </div>
+                    <div class="map-overlay"></div>
+                    
+                    <!-- Map markers for traffic points -->
+                    <div class="map-marker" style="top: 30%; left: 40%;"></div>
+                    <div class="map-marker" style="top: 50%; left: 60%;"></div>
+                    <div class="map-marker" style="top: 70%; left: 30%;"></div>
+                    <div class="map-marker" style="top: 40%; left: 70%;"></div>
+                </div>
+            </div>
+            
+            <!-- Pollution Chart -->
+            <div class="card col-span-12 lg:col-span-4 p-6 fade-in" style="animation-delay: 0.6s">
+                <h2 class="text-xl font-bold mb-6">Air Quality Index</h2>
+                <div class="h-64">
+                    <canvas id="pollutionChart"></canvas>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <div class="p-4 rounded-lg bg-[var(--color-card-bg)]">
+                        <p class="text-[var(--color-text-muted)]">PM2.5</p>
+                        <p class="text-2xl font-bold">12 <span class="text-lg">μg/m³</span></p>
+                    </div>
+                    <div class="p-4 rounded-lg bg-[var(--color-card-bg)]">
+                        <p class="text-[var(--color-text-muted)]">NO₂</p>
+                        <p class="text-2xl font-bold">18 <span class="text-lg">ppb</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Public Services -->
+            <div class="card col-span-12 lg:col-span-5 p-6 fade-in" style="animation-delay: 0.7s">
+                <h2 class="text-xl font-bold mb-6">Public Services Status</h2>
+                <div class="space-y-4">
+                    <div class="service-card p-4 rounded-lg bg-[var(--color-card-bg)] flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-[var(--color-primary)]/10 flex items-center justify-center mr-4">
+                            <i class="fas fa-subway text-[var(--color-primary)]"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold">Metro System</h3>
+                            <p class="text-sm text-[var(--color-text-muted)]">All lines operational</p>
+                        </div>
+                        <span class="status-indicator status-normal"></span>
+                    </div>
+                    
+                    <div class="service-card p-4 rounded-lg bg-[var(--color-card-bg)] flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-[#4ade80]/10 flex items-center justify-center mr-4">
+                            <i class="fas fa-hospital text-[#4ade80]"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold">Hospitals</h3>
+                            <p class="text-sm text-[var(--color-text-muted)]">Normal operations</p>
+                        </div>
+                        <span class="status-indicator status-normal"></span>
+                    </div>
+                    
+                    <div class="service-card p-4 rounded-lg bg-[var(--color-card-bg)] flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-[#fbbf24]/10 flex items-center justify-center mr-4">
+                            <i class="fas fa-plug text-[#fbbf24]"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold">Power Grid</h3>
+                            <p class="text-sm text-[var(--color-text-muted)]">Moderate load</p>
+                        </div>
+                        <span class="status-indicator status-warning"></span>
+                    </div>
+                    
+                    <div class="service-card p-4 rounded-lg bg-[var(--color-card-bg)] flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-[#5e72e4]/10 flex items-center justify-center mr-4">
+                            <i class="fas fa-fire text-[#5e72e4]"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold">Fire Services</h3>
+                            <p class="text-sm text-[var(--color-text-muted)]">2 units on standby</p>
+                        </div>
+                        <span class="status-indicator status-normal"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Traffic Analysis -->
+            <div class="card col-span-12 lg:col-span-7 p-6 fade-in" style="animation-delay: 0.8s">
+                <h2 class="text-xl font-bold mb-6">Traffic Analysis</h2>
+                <div class="h-80">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Alerts & Notifications -->
+            <div class="card col-span-12 lg:col-span-5 p-6 fade-in" style="animation-delay: 0.9s">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold">Alerts & Notifications</h2>
+                    <button class="text-[var(--color-primary)] text-sm">View All</button>
+                </div>
+                <div class="space-y-4">
+                    <div class="p-4 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-[var(--color-accent)] mt-1 mr-3"></i>
+                            <div>
+                                <h3 class="font-bold">Road Closure</h3>
+                                <p class="text-sm text-[var(--color-text-muted)]">Central Avenue closed due to construction until 6 PM</p>
+                                <p class="text-xs text-[var(--color-text-muted)] mt-2">15 min ago</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 rounded-lg bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-[var(--color-primary)] mt-1 mr-3"></i>
+                            <div>
+                                <h3 class="font-bold">Air Quality Alert</h3>
+                                <p class="text-sm text-[var(--color-text-muted)]">Moderate air quality expected today due to wind patterns</p>
+                                <p class="text-xs text-[var(--color-text-muted)] mt-2">1 hour ago</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 rounded-lg bg-[var(--color-secondary)]/10 border border-[var(--color-secondary)]/30">
+                        <div class="flex items-start">
+                            <i class="fas fa-bus text-[var(--color-secondary)] mt-1 mr-3"></i>
+                            <div>
+                                <h3 class="font-bold">Bus Route Change</h3>
+                                <p class="text-sm text-[var(--color-text-muted)]">Route 15 detour in effect due to roadwork</p>
+                                <p class="text-xs text-[var(--color-text-muted)] mt-2">3 hours ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Energy Consumption -->
+            <div class="card col-span-12 lg:col-span-7 p-6 fade-in" style="animation-delay: 1.0s">
+                <h2 class="text-xl font-bold mb-6">Energy Consumption</h2>
+                <div class="h-80">
+                    <canvas id="energyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pollution Chart
+            const pollutionCtx = document.getElementById('pollutionChart').getContext('2d');
+            const pollutionChart = new Chart(pollutionCtx, {
+                type: 'line',
+                data: {
+                    labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
+                    datasets: [{
+                        label: 'Air Quality Index',
+                        data: [35, 42, 58, 45, 60, 38],
+                        borderColor: '#64ffda',
+                        backgroundColor: 'rgba(100, 255, 218, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Traffic Chart
+            const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+            const trafficChart = new Chart(trafficCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [
+                        {
+                            label: 'Morning Rush',
+                            data: [78, 82, 75, 80, 85, 65, 70],
+                            backgroundColor: 'rgba(100, 255, 218, 0.7)',
+                            borderColor: 'rgba(100, 255, 218, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Evening Rush',
+                            data: [72, 75, 70, 78, 82, 68, 75],
+                            backgroundColor: 'rgba(94, 114, 228, 0.7)',
+                            borderColor: 'rgba(94, 114, 228, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8892b0'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Energy Chart
+            const energyCtx = document.getElementById('energyChart').getContext('2d');
+            const energyChart = new Chart(energyCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Residential', 'Commercial', 'Industrial', 'Public', 'Transport', 'Renewable'],
+                    datasets: [{
+                        label: 'Energy Usage',
+                        data: [65, 59, 90, 81, 76, 45],
+                        fill: true,
+                        backgroundColor: 'rgba(100, 255, 218, 0.2)',
+                        borderColor: 'rgb(100, 255, 218)',
+                        pointBackgroundColor: 'rgb(100, 255, 218)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(100, 255, 218)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: '#8892b0'
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: '#8892b0'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Add fade-in animations to cards
+            const cards = document.querySelectorAll('.fade-in');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${0.1 * index}s`;
+            });
+        });
+    </script>
+</body>
+</html>

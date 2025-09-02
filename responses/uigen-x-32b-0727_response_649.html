@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meal Planner & Grocery List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#4CAF50',
+                        'primary-light': '#E8F5E9',
+                        'secondary': '#FF9800',
+                        'accent': '#2196F3',
+                        'dark': '#2C3E50',
+                        'light': '#F8F9FA'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #4CAF50;
+            --color-primary-light: #E8F5E9;
+            --color-secondary: #FF9800;
+            --color-accent: #2196F3;
+            --color-dark: #2C3E50;
+            --color-light: #F8F9FA;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #333;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .meal-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .meal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .grocery-item {
+            transition: all 0.2s ease;
+        }
+        
+        .grocery-item:hover {
+            background-color: var(--color-primary-light);
+        }
+        
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            background-color: var(--color-primary-light);
+        }
+        
+        .calendar-day.selected {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .calendar-day.has-meal::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: var(--color-secondary);
+            border-radius: 50%;
+        }
+        
+        .ingredient-tag {
+            transition: all 0.2s ease;
+        }
+        
+        .ingredient-tag:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .add-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .add-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3">
+                    <i class="fas fa-utensils text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-dark">MealPlanner</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="bg-primary text-white px-4 py-2 rounded-lg font-medium flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Meal
+                </button>
+                <div class="relative">
+                    <button class="w-10 h-10 rounded-full bg-light flex items-center justify-center">
+                        <i class="fas fa-user text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-12 animate-on-scroll">
+            <div class="bg-gradient-to-r from-primary to-secondary rounded-2xl p-8 text-white">
+                <div class="max-w-3xl">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Plan Your Meals, Simplify Your Grocery Shopping</h2>
+                    <p class="text-lg mb-6">Create weekly meal plans and automatically generate your grocery list. Save time and reduce food waste.</p>
+                    <div class="flex flex-wrap gap-4">
+                        <button class="bg-white text-primary px-6 py-3 rounded-lg font-medium flex items-center">
+                            <i class="fas fa-calendar-plus mr-2"></i> Create Meal Plan
+                        </button>
+                        <button class="bg-transparent border-2 border-white text-white px-6 py-3 rounded-lg font-medium flex items-center">
+                            <i class="fas fa-shopping-cart mr-2"></i> View Grocery List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Meal Plan Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm p-6 animate-on-scroll">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-dark">Weekly Meal Plan</h2>
+                        <div class="flex items-center">
+                            <span class="mr-2 text-gray-600">Week of:</span>
+                            <select class="bg-light border border-gray-300 rounded-lg px-3 py-2">
+                                <option>June 10 - June 16</option>
+                                <option>June 17 - June 23</option>
+                                <option>June 24 - June 30</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Calendar View -->
+                    <div class="grid grid-cols-7 gap-1 mb-6">
+                        <div class="text-center py-2 font-medium text-gray-500">Sun</div>
+                        <div class="text-center py-2 font-medium text-gray-500">Mon</div>
+                        <div class="text-center py-2 font-medium text-gray-500">Tue</div>
+                        <div class="text-center py-2 font-medium text-gray-500">Wed</div>
+                        <div class="text-center py-2 font-medium text-gray-500">Thu</div>
+                        <div class="text-center py-2 font-medium text-gray-500">Fri</div>
+                        <div class="text-center py-2 font-medium text-gray-500">Sat</div>
+                        
+                        <!-- Calendar Days -->
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">1</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">2</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">3</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">4</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer has-meal">5</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer has-meal">6</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">7</div>
+                        
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">8</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">9</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer has-meal">10</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">11</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">12</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">13</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">14</div>
+                        
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">15</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer selected">16</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">17</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">18</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">19</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">20</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">21</div>
+                        
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">22</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">23</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">24</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">25</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">26</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">27</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">28</div>
+                        
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">29</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">30</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">1</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">2</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">3</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">4</div>
+                        <div class="calendar-day h-24 p-2 rounded-lg relative bg-light cursor-pointer">5</div>
+                    </div>
+                    
+                    <!-- Meal List -->
+                    <h3 class="text-xl font-semibold mb-4">Today's Meals</h3>
+                    <div class="space-y-4">
+                        <!-- Meal Card 1 -->
+                        <div class="meal-card bg-white border border-gray-200 rounded-xl p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <span class="bg-primary-light text-primary px-3 py-1 rounded-full text-sm font-medium mr-2">Breakfast</span>
+                                        <h4 class="text-lg font-semibold">Avocado Toast with Poached Eggs</h4>
+                                    </div>
+                                    <p class="text-gray-600 mb-3">2 servings</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="w-8 h-8 rounded-full bg-light flex items-center justify-center">
+                                        <i class="fas fa-edit text-gray-600"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-full bg-light flex items-center justify-center">
+                                        <i class="fas fa-trash text-gray-600"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Bread</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Avocado</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Eggs</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Lemon</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <button class="text-primary font-medium flex items-center">
+                                    <i class="fas fa-plus-circle mr-2"></i> Add to Grocery
+                                </button>
+                                <div class="flex items-center text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span class="text-sm">15 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Meal Card 2 -->
+                        <div class="meal-card bg-white border border-gray-200 rounded-xl p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <span class="bg-primary-light text-primary px-3 py-1 rounded-full text-sm font-medium mr-2">Lunch</span>
+                                        <h4 class="text-lg font-semibold">Quinoa Salad Bowl</h4>
+                                    </div>
+                                    <p class="text-gray-600 mb-3">2 servings</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="w-8 h-8 rounded-full bg-light flex items-center justify-center">
+                                        <i class="fas fa-edit text-gray-600"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-full bg-light flex items-center justify-center">
+                                        <i class="fas fa-trash text-gray-600"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Quinoa</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Chickpeas</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Cucumber</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Tomatoes</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Feta</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <button class="text-primary font-medium flex items-center">
+                                    <i class="fas fa-plus-circle mr-2"></i> Add to Grocery
+                                </button>
+                                <div class="flex items-center text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span class="text-sm">20 min</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Meal Card 3 -->
+                        <div class="meal-card bg-white border border-gray-200 rounded-xl p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <span class="bg-primary-light text-primary px-3 py-1 rounded-full text-sm font-medium mr-2">Dinner</span>
+                                        <h4 class="text-lg font-semibold">Vegetable Stir Fry</h4>
+                                    </div>
+                                    <p class="text-gray-600 mb-3">2 servings</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="w-8 h-8 rounded-full bg-light flex items-center justify-center">
+                                        <i class="fas fa-edit text-gray-600"></i>
+                                    </button>
+                                    <button class="w-8 h-8 rounded-full bg-light flex items-center justify-center">
+                                        <i class="fas fa-trash text-gray-600"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Broccoli</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Bell Peppers</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Carrots</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Soy Sauce</span>
+                                <span class="ingredient-tag bg-light px-3 py-1 rounded-full text-sm">Garlic</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <button class="text-primary font-medium flex items-center">
+                                    <i class="fas fa-plus-circle mr-2"></i> Add to Grocery
+                                </button>
+                                <div class="flex items-center text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span class="text-sm">30 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Add Meal Form -->
+                <div class="bg-white rounded-2xl shadow-sm p-6 mt-8 animate-on-scroll">
+                    <h2 class="text-2xl font-bold text-dark mb-6">Add New Meal</h2>
+                    <form class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Meal Name</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 mb-2">Category</label>
+                                <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option>Breakfast</option>
+                                    <option>Lunch</option>
+                                    <option>Dinner</option>
+                                    <option>Snack</option>
+                                    <option>Dessert</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 mb-2">Servings</label>
+                                <input type="number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" min="1" value="2">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Ingredients</label>
+                            <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary h-32" placeholder="Add ingredients (one per line)"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 mb-2">Instructions</label>
+                            <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary h-32" placeholder="Add cooking instructions"></textarea>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="button" class="mr-4 px-6 py-2 border border-gray-300 rounded-lg font-medium">Cancel</button>
+                            <button type="submit" class="add-btn bg-primary text-white px-6 py-2 rounded-lg font-medium flex items-center">
+                                <i class="fas fa-plus mr-2"></i> Add Meal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Grocery List Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-24 animate-on-scroll">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-dark">Grocery List</h2>
+                        <div class="flex space-x-2">
+                            <button class="w-10 h-10 rounded-full bg-light flex items-center justify-center">
+                                <i class="fas fa-print text-gray-600"></i>
+                            </button>
+                            <button class="w-10 h-10 rounded-full bg-light flex items-center justify-center">
+                                <i class="fas fa-share-alt text-gray-600"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <div class="flex items-center mb-4">
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Search items...">
+                            <button class="bg-light px-4 py-2 rounded-r-lg border border-l-0 border-gray-300">
+                                <i class="fas fa-search text-gray-500"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold">Produce</h3>
+                            <span class="text-sm text-gray-500">5 items</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Avocados (2)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Broccoli (1 head)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Bell peppers (3)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Carrots (5)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Cucumber (1)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-6 mb-4">
+                            <h3 class="font-semibold">Dairy & Eggs</h3>
+                            <span class="text-sm text-gray-500">3 items</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Eggs (6)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Feta cheese (100g)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Milk (1L)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-6 mb-4">
+                            <h3 class="font-semibold">Pantry</h3>
+                            <span class="text-sm text-gray-500">4 items</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Quinoa (200g)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Chickpeas (1 can)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Soy sauce (1 bottle)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="grocery-item bg-light rounded-lg p-3 flex items-center">
+                                <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                <span class="flex-grow">Bread (1 loaf)</span>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-primary-light rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-lightbulb text-primary text-xl mr-3"></i>
+                            <p class="text-sm">Pro tip: Check your pantry before shopping to avoid buying duplicates!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3">
+                            <i class="fas fa-utensils text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">MealPlanner</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">Simplify your meal planning and grocery shopping with our intuitive tools.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Meal Planning</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Grocery List Generator</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Recipe Database</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Shopping Lists</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Nutrition Tracking</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Cooking Tips</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Meal Prep Guides</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Seasonal Recipes</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Subscribe</h4>
+                    <p class="text-gray-400 mb-4">Get weekly meal planning tips and recipes</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full focus:outline-none text-dark">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+                <p>© 2023 MealPlanner. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animation on scroll
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => observer.observe(el));
+            
+            // Calendar day selection
+            const calendarDays = document.querySelectorAll('.calendar-day');
+            calendarDays.forEach(day => {
+                day.addEventListener('click', function() {
+                    // Remove selected class from all days
+                    calendarDays.forEach(d => d.classList.remove('selected'));
+                    // Add selected class to clicked day
+                    this.classList.add('selected');
+                });
+            });
+            
+            // Add to grocery functionality
+            const addToGroceryButtons = document.querySelectorAll('.meal-card button');
+            addToGroceryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const mealCard = this.closest('.meal-card');
+                    const mealName = mealCard.querySelector('h4').textContent;
+                    
+                    // Create notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg flex items-center';
+                    notification.innerHTML = `
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Added ${mealName} to grocery list
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    // Remove notification after 3 seconds
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Modern Task Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'board-bg': '#f8fafc',
+                        'column-bg': '#f1f5f9',
+                        'card-bg': '#ffffff',
+                        'primary': '#4f46e5',
+                        'secondary': '#7c3aed',
+                        'accent': '#ec4899',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444',
+                        'text-dark': '#1e293b',
+                        'text-medium': '#475569',
+                        'text-light': '#64748b',
+                        'border-light': '#e2e8f0',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Manrope', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'column': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .column {
+            min-height: 500px;
+            transition: all 0.2s ease;
+        }
+        
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: grab;
+        }
+        
+        .card:active {
+            cursor: grabbing;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+        }
+        
+        .label {
+            transition: all 0.2s ease;
+        }
+        
+        .label:hover {
+            transform: scale(1.05);
+        }
+        
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .dropzone {
+            min-height: 100px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .dropzone.active {
+            background-color: rgba(79, 70, 229, 0.05);
+            border: 2px dashed #4f46e5;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .add-card-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .add-card-btn:hover {
+            background-color: #eef2ff;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="bg-board-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm py-4 px-6 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="bg-primary w-10 h-10 rounded-lg flex items-center justify-center">
+                <i class="fas fa-tasks text-white text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-display font-bold text-text-dark">TaskFlow</h1>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <input type="text" placeholder="Search tasks..." class="bg-column-bg rounded-full py-2 px-4 pl-10 w-64 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                <i class="fas fa-search absolute left-3 top-3 text-text-light"></i>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button class="bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold">
+                    JD
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="p-6">
+        <!-- Board Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+                <h2 class="text-3xl font-display font-bold text-text-dark">Project Dashboard</h2>
+                <p class="text-text-medium mt-2">Manage your tasks efficiently with drag and drop</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-3">
+                <button class="bg-white border border-border-light px-4 py-2 rounded-lg flex items-center hover:bg-column-bg transition">
+                    <i class="fas fa-filter mr-2 text-text-medium"></i>
+                    Filter
+                </button>
+                <button class="bg-white border border-border-light px-4 py-2 rounded-lg flex items-center hover:bg-column-bg transition">
+                    <i class="fas fa-sort mr-2 text-text-medium"></i>
+                    Sort
+                </button>
+                <button class="bg-primary text-white px-4 py-2 rounded-lg flex items-center hover:bg-primary/90 transition">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Task
+                </button>
+            </div>
+        </div>
+        
+        <!-- Board -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- To Do Column -->
+            <div class="bg-column-bg rounded-xl shadow-column p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-primary rounded-full mr-2"></div>
+                        <h3 class="font-semibold text-text-dark">To Do</h3>
+                        <span class="ml-2 bg-white bg-opacity-50 text-text-medium text-xs font-medium px-2 py-0.5 rounded-full">5</span>
+                    </div>
+                    <button class="text-text-light hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="dropzone space-y-4 min-h-[400px]" data-status="todo">
+                    <!-- Card 1 -->
+                    <div class="card bg-card-bg rounded-xl shadow-card p-4 fade-in" draggable="true" data-id="1">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-semibold text-text-dark">Design Homepage Layout</h4>
+                            <div class="flex space-x-2">
+                                <button class="text-text-light hover:text-primary">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-text-light hover:text-danger">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-text-medium mt-2">Create wireframes and mockups for the new homepage design</p>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="label bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded">Design</span>
+                            <span class="label bg-warning/10 text-warning text-xs font-medium px-2 py-1 rounded">High Priority</span>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs">
+                                    JD
+                                </div>
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-success to-teal-500 flex items-center justify-center text-white text-xs -ml-2">
+                                    AM
+                                </div>
+                            </div>
+                            <span class="text-xs text-text-light">Due: Tomorrow</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Card 2 -->
+                    <div class="card bg-card-bg rounded-xl shadow-card p-4 fade-in" draggable="true" data-id="2">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-semibold text-text-dark">Research Competitors</h4>
+                            <div class="flex space-x-2">
+                                <button class="text-text-light hover:text-primary">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-text-light hover:text-danger">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-text-medium mt-2">Analyze competitor websites and features for market positioning</p>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="label bg-secondary/10 text-secondary text-xs font-medium px-2 py-1 rounded">Research</span>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs">
+                                    TS
+                                </div>
+                            </div>
+                            <span class="text-xs text-text-light">Due: Sep 15</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-card-btn w-full mt-4 py-3 rounded-lg border-2 border-dashed border-border-light flex items-center justify-center text-text-light hover:text-primary">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+            
+            <!-- In Progress Column -->
+            <div class="bg-column-bg rounded-xl shadow-column p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-warning rounded-full mr-2"></div>
+                        <h3 class="font-semibold text-text-dark">In Progress</h3>
+                        <span class="ml-2 bg-white bg-opacity-50 text-text-medium text-xs font-medium px-2 py-0.5 rounded-full">3</span>
+                    </div>
+                    <button class="text-text-light hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="dropzone space-y-4 min-h-[400px]" data-status="inprogress">
+                    <!-- Card 3 -->
+                    <div class="card bg-card-bg rounded-xl shadow-card p-4 fade-in" draggable="true" data-id="3">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-semibold text-text-dark">Implement User Authentication</h4>
+                            <div class="flex space-x-2">
+                                <button class="text-text-light hover:text-primary">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-text-light hover:text-danger">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-text-medium mt-2">Develop secure login and registration functionality</p>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="label bg-success/10 text-success text-xs font-medium px-2 py-1 rounded">Backend</span>
+                            <span class="label bg-danger/10 text-danger text-xs font-medium px-2 py-1 rounded">Critical</span>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white text-xs">
+                                    MK
+                                </div>
+                            </div>
+                            <span class="text-xs text-text-light">Due: Today</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-card-btn w-full mt-4 py-3 rounded-lg border-2 border-dashed border-border-light flex items-center justify-center text-text-light hover:text-primary">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+            
+            <!-- Review Column -->
+            <div class="bg-column-bg rounded-xl shadow-column p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-secondary rounded-full mr-2"></div>
+                        <h3 class="font-semibold text-text-dark">Review</h3>
+                        <span class="ml-2 bg-white bg-opacity-50 text-text-medium text-xs font-medium px-2 py-0.5 rounded-full">2</span>
+                    </div>
+                    <button class="text-text-light hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="dropzone space-y-4 min-h-[400px]" data-status="review">
+                    <!-- Card 4 -->
+                    <div class="card bg-card-bg rounded-xl shadow-card p-4 fade-in" draggable="true" data-id="4">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-semibold text-text-dark">API Documentation</h4>
+                            <div class="flex space-x-2">
+                                <button class="text-text-light hover:text-primary">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-text-light hover:text-danger">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-text-medium mt-2">Write comprehensive documentation for the new API endpoints</p>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="label bg-accent/10 text-accent text-xs font-medium px-2 py-1 rounded">Documentation</span>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white text-xs">
+                                    LJ
+                                </div>
+                            </div>
+                            <span class="text-xs text-text-light">Due: Sep 18</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-card-btn w-full mt-4 py-3 rounded-lg border-2 border-dashed border-border-light flex items-center justify-center text-text-light hover:text-primary">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+            
+            <!-- Done Column -->
+            <div class="bg-column-bg rounded-xl shadow-column p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-success rounded-full mr-2"></div>
+                        <h3 class="font-semibold text-text-dark">Done</h3>
+                        <span class="ml-2 bg-white bg-opacity-50 text-text-medium text-xs font-medium px-2 py-0.5 rounded-full">4</span>
+                    </div>
+                    <button class="text-text-light hover:text-primary">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                
+                <div class="dropzone space-y-4 min-h-[400px]" data-status="done">
+                    <!-- Card 5 -->
+                    <div class="card bg-card-bg rounded-xl shadow-card p-4 fade-in" draggable="true" data-id="5">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-semibold text-text-dark">Create Project Roadmap</h4>
+                            <div class="flex space-x-2">
+                                <button class="text-text-light hover:text-primary">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-text-light hover:text-danger">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-text-medium mt-2">Outline project milestones and deliverables for Q3</p>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="label bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded">Planning</span>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs">
+                                    JD
+                                </div>
+                            </div>
+                            <span class="text-xs text-success">Completed</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-card-btn w-full mt-4 py-3 rounded-lg border-2 border-dashed border-border-light flex items-center justify-center text-text-light hover:text-primary">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Drag and drop functionality
+            const cards = document.querySelectorAll('.card');
+            const dropzones = document.querySelectorAll('.dropzone');
+            
+            let draggedCard = null;
+            
+            // Add drag events to cards
+            cards.forEach(card => {
+                card.addEventListener('dragstart', function() {
+                    draggedCard = this;
+                    setTimeout(() => {
+                        this.classList.add('dragging');
+                    }, 0);
+                });
+                
+                card.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    draggedCard = null;
+                });
+            });
+            
+            // Add drop events to dropzones
+            dropzones.forEach(zone => {
+                zone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('active');
+                });
+                
+                zone.addEventListener('dragleave', function() {
+                    this.classList.remove('active');
+                });
+                
+                zone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('active');
+                    
+                    if (draggedCard) {
+                        // Remove card from original position
+                        draggedCard.remove();
+                        
+                        // Add card to new position with animation
+                        this.appendChild(draggedCard);
+                        draggedCard.classList.add('slide-in');
+                        
+                        // Remove animation class after it completes
+                        setTimeout(() => {
+                            draggedCard.classList.remove('slide-in');
+                        }, 400);
+                    }
+                });
+            });
+            
+            // Add new card button functionality
+            const addCardButtons = document.querySelectorAll('.add-card-btn');
+            addCardButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const column = this.closest('.bg-column-bg');
+                    const dropzone = column.querySelector('.dropzone');
+                    
+                    const newCard = document.createElement('div');
+                    newCard.className = 'card bg-card-bg rounded-xl shadow-card p-4 fade-in';
+                    newCard.draggable = true;
+                    newCard.dataset.id = Date.now(); // Unique ID
+                    
+                    newCard.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <input type="text" class="font-semibold text-text-dark w-full bg-transparent border-b border-transparent focus:border-primary focus:outline-none" placeholder="Task title" value="New Task">
+                            <div class="flex space-x-2">
+                                <button class="text-text-light hover:text-primary">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                                <button class="text-text-light hover:text-danger">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <textarea class="text-sm text-text-medium mt-2 w-full bg-transparent border-b border-transparent focus:border-primary focus:outline-none resize-none" placeholder="Description" rows="2"></textarea>
+                        
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="label bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded">New</span>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs">
+                                    JD
+                                </div>
+                            </div>
+                            <span class="text-xs text-text-light">Due: Sep 20</span>
+                        </div>
+                    `;
+                    
+                    // Add drag events to new card
+                    newCard.addEventListener('dragstart', function() {
+                        draggedCard = this;
+                        setTimeout(() => {
+                            this.classList.add('dragging');
+                        }, 0);
+                    });
+                    
+                    newCard.addEventListener('dragend', function() {
+                        this.classList.remove('dragging');
+                        draggedCard = null;
+                    });
+                    
+                    // Add to dropzone with animation
+                    dropzone.insertBefore(newCard, dropzone.firstChild);
+                    newCard.classList.add('fade-in');
+                    
+                    // Remove animation class after it completes
+                    setTimeout(() => {
+                        newCard.classList.remove('fade-in');
+                    }, 300);
+                });
+            });
+            
+            // Card edit functionality
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.fa-pencil-alt')) {
+                    const card = e.target.closest('.card');
+                    const titleInput = card.querySelector('input[type="text"]');
+                    const descTextarea = card.querySelector('textarea');
+                    
+                    // Toggle between view and edit mode
+                    if (titleInput.value === "New Task") {
+                        titleInput.value = "Design Homepage Layout";
+                        descTextarea.value = "Create wireframes and mockups for the new homepage design";
+                    } else {
+                        // Save functionality would go here
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

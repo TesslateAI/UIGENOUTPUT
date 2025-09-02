@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectFlow - Modern Project Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --color-primary: #4F46E5;
+            --color-primary-light: #818CF8;
+            --color-primary-dark: #3730A3;
+            --color-secondary: #10B981;
+            --color-text-base: #1F2937;
+            --color-text-heading: #111827;
+            --color-text-medium: #4B5563;
+            --color-text-light: #9CA3AF;
+            --color-background-body: #F9FAFB;
+            --color-background-light: #FFFFFF;
+            --color-background-off-white: #F3F4F6;
+            --color-background-alt: #E5E7EB;
+            --color-background-section-alt: #F0F5FF;
+            --color-black: #000000;
+            --font-heading: 'Inter', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            color: var(--color-text-base);
+            background-color: var(--color-background-body);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-heading);
+            color: var(--color-text-heading);
+        }
+        
+        .font-heading { font-family: var(--font-heading); }
+        .font-body { font-family: var(--font-body); }
+        
+        .bg-primary { background-color: var(--color-primary); }
+        .text-primary { color: var(--color-primary); }
+        .border-primary { border-color: var(--color-primary); }
+        
+        .bg-secondary { background-color: var(--color-secondary); }
+        .text-secondary { color: var(--color-secondary); }
+        
+        .text-heading-color { color: var(--color-text-heading); }
+        .text-medium-color { color: var(--color-text-medium); }
+        .text-light-color { color: var(--color-text-light); }
+        
+        .bg-section-alt { background-color: var(--color-background-section-alt); }
+        .bg-off-white { background-color: var(--color-background-off-white); }
+        .bg-alt { background-color: var(--color-background-alt); }
+        
+        /* Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .hero-text-word {
+            display: inline-block;
+            opacity: 0;
+            filter: blur(4px);
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease;
+        }
+        .hero-text-word.is-visible {
+            opacity: 1;
+            filter: blur(0);
+            transform: translateY(0);
+        }
+        
+        .btn-slide-text .text-container {
+            transition: transform 0.3s ease-in-out;
+        }
+        .btn-slide-text:hover .text-top {
+            transform: translateY(-100%);
+        }
+        .btn-slide-text:hover .text-bottom {
+            transform: translateY(-100%);
+        }
+        
+        /* Navbar scroll effect */
+        #navbar.scrolled {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            background-color: rgba(249, 250, 251, 0.95);
+            backdrop-filter: blur(8px);
+        }
+        
+        /* Kanban board styling */
+        .kanban-column {
+            min-height: 500px;
+            background: rgba(243, 244, 246, 0.5);
+            border-radius: 0.75rem;
+        }
+        
+        .kanban-card {
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        
+        .kanban-card:active {
+            cursor: grabbing;
+        }
+        
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        
+        .workflow-step {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .workflow-step:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            background: var(--color-primary);
+        }
+        
+        .workflow-step:after {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 1.75rem;
+            bottom: -1.5rem;
+            width: 2px;
+            background: var(--color-primary-light);
+        }
+        
+        .workflow-step:last-child:after {
+            display: none;
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a5b4fc;
+        }
+    </style>
+</head>
+<body class="bg-background-body text-base">
+    <!-- Navbar -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-40 py-4 transition-all duration-300">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+            <div class="flex justify-between items-center">
+                <a href="#" class="text-2xl font-bold font-heading text-primary flex items-center">
+                    <i class="fas fa-project-diagram mr-2"></i> ProjectFlow
+                </a>
+                <div class="hidden lg:flex items-center space-x-8">
+                    <a href="#features" class="text-medium-color hover:text-primary transition-colors">Features</a>
+                    <a href="#kanban" class="text-medium-color hover:text-primary transition-colors">Kanban</a>
+                    <a href="#workflows" class="text-medium-color hover:text-primary transition-colors">Workflows</a>
+                    <a href="#pricing" class="text-medium-color hover:text-primary transition-colors">Pricing</a>
+                    <a href="#contact" class="btn-slide-text relative overflow-hidden bg-primary text-background-light px-6 py-2.5 rounded-full text-sm font-medium inline-flex items-center">
+                        <span class="text-container flex flex-col">
+                            <span class="text-top block">Get Started</span>
+                            <span class="text-bottom block absolute top-0 left-0 w-full text-center">Let's Go</span>
+                        </span>
+                    </a>
+                </div>
+                <div class="lg:hidden">
+                    <button id="mobile-menu-button" class="text-heading-color focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden absolute top-full left-0 right-0 bg-background-light shadow-lg py-4">
+            <div class="container mx-auto px-4 flex flex-col space-y-3">
+                <a href="#features" class="block text-medium-color hover:text-primary transition-colors py-2">Features</a>
+                <a href="#kanban" class="block text-medium-color hover:text-primary transition-colors py-2">Kanban</a>
+                <a href="#workflows" class="block text-medium-color hover:text-primary transition-colors py-2">Workflows</a>
+                <a href="#pricing" class="block text-medium-color hover:text-primary transition-colors py-2">Pricing</a>
+                <a href="#contact" class="block bg-primary text-background-light text-center px-6 py-3 rounded-full text-sm font-medium hover:opacity-90 transition-opacity mt-2">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-28 pb-16 lg:pt-36 lg:pb-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-16 items-center">
+                <div class="animate-on-scroll">
+                    <div class="mb-4">
+                        <span class="inline-block px-3 py-1 text-xs font-semibold text-primary bg-background-light rounded-full">
+                            <i class="fas fa-rocket mr-1"></i> Next-Gen Project Management
+                        </span>
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-heading-color">
+                        <span class="hero-text-word inline-block">Streamline</span> 
+                        <span class="hero-text-word inline-block">Your</span> 
+                        <span class="hero-text-word inline-block">Projects</span> 
+                        <span class="hero-text-word inline-block text-primary">Effortlessly</span>
+                    </h1>
+                    <p class="text-lg text-medium-color mb-8 max-w-xl">
+                        ProjectFlow helps teams organize tasks, track progress, and deliver projects on time with intuitive drag-and-drop interfaces and customizable workflows.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="#contact" class="btn-slide-text relative overflow-hidden bg-primary text-background-light px-8 py-3.5 rounded-full text-base font-medium inline-flex items-center">
+                            <span class="text-container flex flex-col">
+                                <span class="text-top block">Start Free Trial</span>
+                                <span class="text-bottom block absolute top-0 left-0 w-full text-center">Get Started</span>
+                            </span>
+                        </a>
+                        <a href="#features" class="relative bg-background-light text-heading-color px-8 py-3.5 rounded-full text-base font-medium inline-flex items-center group">
+                            <span>Explore Features</span>
+                            <i class="fas fa-arrow-right ml-2 transition-transform duration-300 group-hover:translate-x-1"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="relative animate-on-scroll">
+                    <div class="aspect-w-4 aspect-h-3 lg:aspect-w-1 lg:aspect-h-1 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary to-primary-dark p-8 flex items-center justify-center">
+                        <div class="w-full h-full bg-white rounded-xl p-4">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-lg">Project Dashboard</h3>
+                                <div class="flex space-x-2">
+                                    <button class="bg-background-light p-2 rounded-full">
+                                        <i class="fas fa-plus text-primary"></i>
+                                    </button>
+                                    <button class="bg-background-light p-2 rounded-full">
+                                        <i class="fas fa-ellipsis-h text-primary"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-3 gap-4 mb-6">
+                                <div class="bg-background-off-white p-4 rounded-lg">
+                                    <div class="text-2xl font-bold text-primary">12</div>
+                                    <div class="text-sm text-medium-color">Active Sprints</div>
+                                </div>
+                                <div class="bg-background-off-white p-4 rounded-lg">
+                                    <div class="text-2xl font-bold text-secondary">87%</div>
+                                    <div class="text-sm text-medium-color">On Track</div>
+                                </div>
+                                <div class="bg-background-off-white p-4 rounded-lg">
+                                    <div class="text-2xl font-bold text-heading-color">24</div>
+                                    <div class="text-sm text-medium-color">Team Members</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-4">
+                                <div class="flex-1">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-sm font-medium">Progress</span>
+                                        <span class="text-sm font-medium">65%</span>
+                                    </div>
+                                    <div class="w-full bg-background-off-white rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-sm font-medium">Tasks</span>
+                                        <span class="text-sm font-medium">42/64</span>
+                                    </div>
+                                    <div class="w-full bg-background-off-white rounded-full h-2">
+                                        <div class="bg-secondary h-2 rounded-full" style="width: 66%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-6 -right-6 bg-background-light p-4 rounded-xl shadow-lg">
+                        <div class="flex items-center">
+                            <div class="bg-primary text-white p-2 rounded-lg mr-3">
+                                <i class="fas fa-tasks text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold">ProjectFlow Pro</div>
+                                <div class="text-sm text-medium-color">Unlimited projects</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 lg:py-24 bg-background-off-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12 lg:mb-16 animate-on-scroll">
+                <span class="inline-block px-3 py-1 text-xs font-semibold text-primary bg-background-light rounded-full mb-3">
+                    Powerful Features
+                </span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-heading-color">
+                    Everything You Need to Manage Projects
+                </h2>
+                <p class="text-lg text-medium-color">
+                    From planning to delivery, ProjectFlow provides all the tools your team needs to collaborate and succeed.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="bg-background-light p-8 rounded-2xl shadow-lg animate-on-scroll">
+                    <div class="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-columns text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-heading-color">Kanban Boards</h3>
+                    <p class="text-medium-color mb-4">
+                        Visualize your workflow with customizable Kanban boards. Drag and drop tasks between columns to update status.
+                    </p>
+                    <a href="#kanban" class="text-primary font-medium inline-flex items-center">
+                        <span>View Demo</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-background-light p-8 rounded-2xl shadow-lg animate-on-scroll">
+                    <div class="w-14 h-14 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-sitemap text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-heading-color">Epics & Sprints</h3>
+                    <p class="text-medium-color mb-4">
+                        Organize large initiatives into manageable sprints. Track progress and deliver features iteratively.
+                    </p>
+                    <a href="#sprints" class="text-primary font-medium inline-flex items-center">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="bg-background-light p-8 rounded-2xl shadow-lg animate-on-scroll">
+                    <div class="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-list-check text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-heading-color">Backlog Management</h3>
+                    <p class="text-medium-color mb-4">
+                        Prioritize tasks and manage your product backlog with drag-and-drop functionality and custom filters.
+                    </p>
+                    <a href="#backlog" class="text-primary font-medium inline-flex items-center">
+                        <span>See Example</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="bg-background-light p-8 rounded-2xl shadow-lg animate-on-scroll">
+                    <div class="w-14 h-14 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-diagram-project text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-heading-color">Custom Workflows</h3>
+                    <p class="text-medium-color mb-4">
+                        Create tailored workflows that match your team's process. Define statuses, transitions, and permissions.
+                    </p>
+                    <a href="#workflows" class="text-primary font-medium inline-flex items-center">
+                        <span>Configure</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="bg-background-light p-8 rounded-2xl shadow-lg animate-on-scroll">
+                    <div class="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-chart-line text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-heading-color">Progress Tracking</h3>
+                    <p class="text-medium-color mb-4">
+                        Monitor project health with real-time dashboards, burndown charts, and custom reports.
+                    </p>
+                    <a href="#reports" class="text-primary font-medium inline-flex items-center">
+                        <span>View Analytics</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="bg-background-light p-8 rounded-2xl shadow-lg animate-on-scroll">
+                    <div class="w-14 h-14 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center mb-6">
+                        <i class="fas fa-users text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-heading-color">Team Collaboration</h3>
+                    <p class="text-medium-color mb-4">
+                        Assign tasks, add comments, and share files. Keep everyone aligned with @mentions and notifications.
+                    </p>
+                    <a href="#collab" class="text-primary font-medium inline-flex items-center">
+                        <span>Collaborate</span>
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kanban Board Demo -->
+    <section id="kanban" class="py-16 lg:py-24 bg-background-light">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12 lg:mb-16 animate-on-scroll">
+                <span class="inline-block px-3 py-1 text-xs font-semibold text-primary bg-background-off-white rounded-full mb-3">
+                    Visual Workflow
+                </span>
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-heading-color">
+                    Drag-and-Drop Task Management
+                </h2>
+                <p class="text-lg text-medium-color">
+                    Intuitive Kanban boards make it easy to visualize and manage your workflow.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
+                <!-- Backlog Column -->
+                <div class="kanban-column p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-medium-color">Backlog</h3>
+                        <span class="bg-background-off-white text-medium-color text-xs px-2 py-1 rounded-full">12</span>
+                    </div>
+                    <div class="space-y-4 custom-scrollbar max-h-[500px] overflow-y-auto pr-2">
+                        <div class="kanban-card bg-background-off-white p-4 rounded-lg">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-medium">Research competitors</h4>
+                                <div class="flex space-x-1">
+                                    <span class="bg-primary/10 text-primary text-xs px-2 py-1 rounded">Epic</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-medium-color mb-3">Analyze top 5 competitors in the market</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="w-6 h-6 bg-primary rounded-full border-2 border-white"></div>
+                                    <div class="w-6 h-6 bg-secondary rounded-full border-2 border-white"></div>
+                                </div>
+                                <span class="text-xs text-light-color">Due: Tomorrow</span>
+                            </div>
+                        </div>
+                        
+                        <div class="kanban-card bg-background-off-white p-4 rounded-lg">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-medium">Create user personas</h4>
+                                <div class="flex space-x-1">
+                                    <span class="bg-secondary/10 text-secondary text-xs px-2 py-1 rounded">Task</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-medium-color mb-3">Develop detailed user profiles for target audience</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="w-6 h-6 bg-primary rounded-full border-2 border-white"></div>
+                                </div>
+                                <span class="text-xs text-light-color">Due: Sep 15</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- To Do Column -->
+                <div class="kanban-column p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-medium-color">To Do</h3>
+                        <span class="bg-background-off-white text-medium-color text-xs px-2 py-1 rounded-full">8</span>
+                    </div>
+                    <div class="space-y-4 custom-scrollbar max-h-[500px] overflow-y-auto pr-2">
+                        <div class="kanban-card bg-background-off-white p-4 rounded-lg">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-medium">Design homepage</h4>
+                                <div class="flex space-x-1">
+                                    <span class="bg-primary/10 text-primary text-xs px-2 py-1 rounded">Epic</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-medium-color mb-3">Create wireframes and mockups for homepage</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="w-6 h-6 bg-primary rounded-full border-2 border-white"></div>
+                                    <div class="w-6 h-6 bg-secondary rounded-full border-2 border-white"></div>
+                                    <div class="w-6 h-6 bg-yellow-500 rounded-full border-2 border-white"></div>
+                                </div>
+                                <span class="text-xs text-light-color">Due: Sep 20</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- In Progress Column -->
+                <div class="kanban-column p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-medium-color">In Progress</h3>
+                        <span class="bg-background-off-white text-medium-color text-xs px-2 py-1 rounded-full">5</span>
+                    </div>
+                    <div class="space-y-4 custom-scrollbar max-h-[500px] overflow-y-auto pr-2">
+                        <div class="kanban-card bg-background-off-white p-4 rounded-lg">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-medium">API integration</h4>
+                                <div class="flex space-x-1">
+                                    <span class="bg-secondary/10 text-secondary text-xs px-2 py-1 rounded">Task</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-medium-color mb-3">Integrate payment gateway with backend</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="w-6 h-6 bg-primary rounded-full border-2 border-white"></div>
+                                </div>
+                                <span class="text-xs text-light-color">Due: Sep 18</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Done Column -->
+                <div class="kanban-column p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-medium-color">Done</h3>
+                        <span class="bg-background-off-white text-medium-color text-xs px-2 py-1 rounded-full">15</span>
+                    </div>
+                    <div class="space-y-4 custom-scrollbar max-h-[500px] overflow-y-auto pr-2">
+                        <div class="kanban-card bg-background-off-white p-4 rounded-lg opacity-70">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-medium">User authentication</h4>
+                                <div class="flex space-x-1">
+                                    <span class="bg-secondary/10 text-secondary text-xs px-2 py-1 rounded">Task</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-medium-color mb-3">Implement login and signup functionality</p>
+                            <div class="flex justify-between items-center">
+                                <div class="flex -space-x-2">
+                                    <div class="w-6 h-6 bg-primary rounded-full border-2 border-white"></div>
+                                    <div class="w-6 h-6 bg-secondary rounded-full border-2 border-white"></div>
+                                </div>
+                                <span class="text-xs text-light-color">Completed: Sep 10</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center animate-on-scroll">
+                <a href="#" class="relative bg-primary text-background-light px-8 py-3.5 rounded-full text-base font-medium inline-flex items-center group">
+                    <span>Try Drag-and-Drop</span>
+                    <i class="fas fa-mouse-pointer ml-2 transition-transform duration-300 group-hover:scale-110"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflows Section -->
+    <section id="workflows" class="py-16 lg:py-24 bg-background-section-alt">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                <div class="animate-on-scroll">
+                    <span class="inline-block px-3 py-1 text-xs font-semibold text-primary bg-background-light rounded-full mb-3">
+                        Custom Processes
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-heading-color">
+                        Tailor Workflows to Your Team's Process
+                    </h2>
+                    <p class="text-lg text-medium-color mb-8">
+                        Every team is different. ProjectFlow lets you create custom workflows that match your unique process, from simple task tracking to complex approval chains.
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="workflow-step">
+                            <h3 class="text-xl font-semibold mb-2 text-heading-color">Define Statuses</h3>
+                            <p class="text-medium-color">Create custom statuses that match your workflow stages, like "Research", "Design Review", or "QA Testing".</p>
+                        </div>
+                        
+                        <div class="workflow-step">
+                            <h3 class="text-xl font-semibold mb-2 text-heading-color">Set Transitions</h3>
+                            <p class="text-medium-color">Control how tasks move between statuses. Set permissions to who can move tasks at each step.</p>
+                        </div>
+                        
+                        <div class="workflow-step">
+                            <h3 class="text-xl font-semibold mb-2 text-heading-color">Add Automation</h3>
+                            <p class="text-medium-color">Automate repetitive tasks with rules. For example, move tasks to "Review" when all subtasks are complete.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <a href="#" class="relative bg-primary text-background-light px-8 py-3.5 rounded-full text-base font-medium inline-flex items-center group">
+                            <span>Configure Your Workflow</span>
+                            <i class="fas fa-cog ml-2 transition-transform duration-300 group-hover:rotate-12"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="relative animate-on-scroll">
+                    <div class="aspect-w-1 aspect-h-1 bg-gradient-to-br from-primary to-primary-dark p-8 rounded-2xl shadow-2xl flex items-center justify-center">
+                        <div class="w-full h-full bg-white rounded-xl p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-lg">Workflow Builder</h3>
+                                <button class="bg-background-off-white p-2 rounded-full">
+                                    <i class="fas fa-plus text-primary"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center mb-6">
+                                <div class="flex-1 bg-background-off-white rounded-lg p-4 mr-4">
+                                    <div class="text-sm font-medium mb-2">To Do</div>
+                                    <div class="text-xs text-medium-color">Initial state for tasks</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                        <i class="fas fa-arrow-right text-white text-sm"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 bg-background-off-white rounded-lg p-4 ml-4">
+                                    <div class="text-sm font-medium mb-2">In Progress</div>
+                                    <div class="text-xs text-medium-color">Work in progress</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center mb-6">
+                                <div class="flex-1 bg-background-off-white rounded-lg p-4 mr-4">
+                                    <div class="text-sm font-medium mb-2">In Progress</div>
+                                    <div class="text-xs text-medium-color">Work in progress</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                        <i class="fas fa-arrow-right text-white text-sm"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 bg-background-off-white rounded-lg p-4 ml-4">
+                                    <div class="text-sm font-medium mb-2">Review</div>
+                                    <div class="text-xs text-medium-color">QA and approval</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="flex-1 bg-background-off-white rounded-lg p-4 mr-4">
+                                    <div class="text-sm font-medium mb-2">Review</div>
+                                    <div class="text-xs text-medium-color">QA and approval</div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                        <i class="fas fa-arrow-right text-white text-sm"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 bg-background-off-white rounded-lg p-4 ml-4">
+                                    <div class="text-sm font-medium mb-2">Done</div>
+                                    <div class="text-xs text-medium-color">Completed tasks</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -top-6 -left-6 bg-background-light p-4 rounded-xl shadow-lg">
+                        <div class="text-sm font-medium">Drag to connect</div>
+                        <div class="text-xs text-medium-color">Create custom transitions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="contact" class="py-16 lg:py-24 bg-background-light">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-gradient-to-r from-primary to-primary-dark rounded-3xl p-8 sm:p-12 lg:p-16 text-center">
+                <div class="max-w-3xl mx-auto">
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-white">
+                        Ready to Transform Your Project Management?
+                    </h2>
+                    <p class="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+                        Join thousands of teams who use ProjectFlow to deliver projects faster and with less stress.
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <a href="#" class="btn-slide-text relative overflow-hidden bg-white text-primary px-8 py-3.5 rounded-full text-base font-medium inline-flex items-center">
+                            <span class="text-container flex flex-col">
+                                <span class="text-top block">Start Free Trial</span>
+                                <span class="text-bottom block absolute top-0 left-0 w-full text-center">Get Started</span>
+                            </span>
+                        </a>
+                        <a href="#" class="relative bg-background-light text-primary px-8 py-3.5 rounded-full text-base font-medium inline-flex items-center group">
+                            <span>Schedule Demo</span>
+                            <i class="fas fa-calendar-check ml-2 transition-transform duration-300 group-hover:scale-110"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-background-off-white pt-16 pb-8">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <a href="#" class="text-2xl font-bold font-heading text-primary flex items-center mb-4">
+                        <i class="fas fa-project-diagram mr-2"></i> ProjectFlow
+                    </a>
+                    <p class="text-sm text-medium-color mb-4">
+                        The modern project management tool for teams that ship products faster.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-medium-color hover:text-primary transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-medium-color hover:text-primary transition-colors">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" class="text-medium-color hover:text-primary transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="font-semibold text-sm text-medium-color uppercase mb-4">Product</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Features</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Pricing</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Integrations</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Roadmap</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="font-semibold text-sm text-medium-color uppercase mb-4">Resources</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Blog</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Documentation</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Guides</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Support</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="font-semibold text-sm text-medium-color uppercase mb-4">Company</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">About</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Careers</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Contact</a></li>
+                        <li><a href="#" class="text-sm text-medium-color hover:text-primary transition-colors">Legal</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-background-alt pt-8 mt-12 text-center">
+                <p class="text-sm text-medium-color">© <span id="currentYear"></span> ProjectFlow. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Navbar scroll effect
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 20) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+            });
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Close mobile menu when a link is clicked
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            // Animate on scroll
+            const scrollElements = document.querySelectorAll('.animate-on-scroll');
+            const heroTextWords = document.querySelectorAll('.hero-text-word');
+
+            const elementObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            scrollElements.forEach(el => elementObserver.observe(el));
+            
+            // Animate hero text words individually
+            heroTextWords.forEach((word, index) => {
+                word.style.transitionDelay = `${index * 0.1}s`;
+                elementObserver.observe(word);
+            });
+
+            // Set current year in footer
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

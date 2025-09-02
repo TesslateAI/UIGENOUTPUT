@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Player App</title>
+    <meta name="description" content="A sleek podcast player UI with large episode artwork, clear playback controls, and an episode description toggle. Built with Tailwind CSS and static.photos images.">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-bg-primary: #0d0d0d;
+            --color-bg-secondary: #151515;
+            --color-bg-tertiary: #1a1a1a;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #b3b3b3;
+            --color-text-muted: #a1a1a1;
+            --color-border-primary: #2c2c2c;
+            --color-accent-primary: #68d391;   /* green accent */
+            --color-accent-secondary: #d1ff83; /* light green */
+        }
+
+        body {
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-instrument-serif {
+            font-family: 'Instrument Serif', serif;
+        }
+
+        /* Marquee Animation */
+        .marquee-container {
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+        .marquee-track {
+            display: flex;
+            white-space: nowrap;
+            will-change: transform;
+            animation: marquee 30s linear infinite;
+        }
+        .marquee-track:hover {
+            animation-play-state: paused;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Scroll Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .8s cubic-bezier(.215,.610,.355,1), transform .8s cubic-bezier(.215,.610,.355,1);
+            transition-delay: .1s;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Button Hover Effect */
+        .btn-hover-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-hover-effect .btn-text-wrapper {
+            transition: transform .3s ease;
+        }
+        .btn-hover-effect .btn-text-original,
+        .btn-hover-effect .btn-text-hover {
+            position: relative;
+            display: inline-block;
+            transition: transform .3s cubic-bezier(.4,0,.2,1);
+        }
+        .btn-hover-effect .btn-text-hover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: translateY(100%);
+        }
+        .btn-hover-effect:hover .btn-text-wrapper {
+            transform: translateY(-100%);
+        }
+        .btn-hover-effect:hover .btn-text-original {
+            transform: translateY(-100%);
+        }
+        .btn-hover-effect:hover .btn-text-hover {
+            transform: translateY(0);
+        }
+
+        /* Mobile Menu Transition */
+        #mobile-menu {
+            transition: opacity .3s ease, transform .3s ease;
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] overflow-x-hidden">
+
+    <div id="main-container" class="relative mx-auto max-w-[1200px] lg:max-w-full lg:px-0">
+
+        <!-- Desktop Header -->
+        <header id="desktop-header" class="hidden lg:flex flex-col justify-between w-full lg:w-auto lg:absolute lg:top-0 lg:left-0 lg:h-screen lg:p-5 lg:pt-8 z-40">
+            <div class="flex flex-col space-y-8">
+                <!-- Logo & Navigation -->
+                <div class="flex items-center justify-between">
+                    <a href="#" class="flex items-center gap-3 w-36 sm:w-48">
+                        <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwyNjY0NjB8MHwxfHNlYXJjaHwxfHxwcm9wZWR8ZW58MHx8fHwxNjg2NjYwODk2&ixlib=rb-4.0.3&q=80&w=200" alt="Podcast Logo" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <p class="font-semibold text-sm lg:text-base">Podcast Player</p>
+                            <p id="desktop-time" class="text-xs lg:text-sm text-[var(--color-text-secondary)]">12:00 PM</p>
+                        </div>
+                    </a>
+                    <button id="desktop-menu-btn" class="flex items-center gap-2 text-xs uppercase font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
+                        Menu
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 transform transition-transform duration-300">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Navigation Links -->
+                <nav class="flex flex-col items-start space-y-6">
+                    <div class="flex items-center gap-4 lg:gap-8 flex-wrap">
+                        <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-[var(--color-text-primary)] hover:text-[var(--color-accent-primary)] transition-colors duration-300">Now</a>
+                        <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-[var(--color-text-primary)] hover:text-[var(--color-accent-primary)] transition-colors duration-300">Playing</a>
+                    </div>
+                    <div class="flex items-center gap-4 lg:gap-8 flex-wrap">
+                        <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-[var(--color-text-primary)] hover:text-[var(--color-accent-primary)] transition-colors duration-300">Podcast</a>
+                        <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-[var(--color-text-primary)] hover:text-[var(--color-accent-primary)] transition-colors duration-300">Player</a>
+                    </div>
+                </nav>
+            </div>
+            <!-- Social Links -->
+            <div class="flex items-center gap-8">
+                <a href="https://twitter.com" target="_blank" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-.422.724-.665 1.56-.665 2.452 0 1.483.757 2.814 1.942 3.608-.783-.026-1.504-.276-2.113-.694v.058c0 2.245 1.596 4.115 3.71 4.544-.613.162-1.268.234-1.942.234-.274 0-.546-.023-.816-.068.608 1.913 2.306 3.328 4.362 3.388-1.578 1.306-3.612 2.06-5.809 2.06-.373 0-.74-.022-1.1-.064 2.072 1.352 4.625 2.15 7.362 2.15 8.725 0 13.733-7.158 13.073-13.731.984-.696 1.823-1.559 2.478-2.532z"/></svg>
+                </a>
+                <a href="https://instagram.com" target="_blank" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.644-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072z"/></svg>
+                </a>
+                <a href="https://facebook.com" target="_blank" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.733 0-1.325.592-1.325 1.326v21.348c0 .733.592 1.326 1.325 1.326h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.894-4.788 4.66-4.788 1.325 0 2.463.099 2.795.144v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.294h4.566c.733 0 1.326-.593 1.326-1.326v-21.35c0-.734-.593-1.326-1.326-1.326z"/></svg>
+                </a>
+            </div>
+        </header>
+
+        <!-- Mobile Header -->
+        <header id="mobile-header" class="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg-primary)]/80 backdrop-blur-sm">
+            <div class="flex items-center justify-between w-full px-5 h-[70px]">
+                <a href="#" class="flex items-center gap-3 w-36">
+                    <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwyNjY0NjB8MHwxfHNlYXJjaHwxfHxwcm9wZWR8ZW58MHx8fHwxNjg2NjYwODk2&ixlib=rb-4.0.3&q=80&w=200" alt="Podcast Logo" class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                        <p class="font-semibold text-sm">Podcast Player</p>
+                        <p id="mobile-time" class="text-xs text-[var(--color-text-secondary)]">12:00 PM</p>
+                    </div>
+                </a>
+                <button id="mobile-menu-btn" class="p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-[var(--color-text-muted)]">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobile-menu" class="lg:hidden fixed inset-0 bg-[var(--color-bg-primary)] z-40 flex flex-col items-center justify-center space-y-6 opacity-0 pointer-events-none -translate-y-4">
+            <button id="close-menu-btn" class="absolute top-5 right-5 text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-center">Now</a>
+            <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-center">Playing</a>
+            <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-center">Podcast</a>
+            <a href="#" class="font-instrument-serif text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[150px] tracking-tighter text-center">Player</a>
+            <div class="flex items-center justify-center gap-8 mt-8">
+                <a href="https://twitter.com" target="_blank" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-.422.724-.665 1.56-.665 2.452 0 1.483.757 2.814 1.942 3.608-.783-.026-1.504-.276-2.113-.694v.058c0 2.245 1.596 4.115 3.71 4.544-.613.162-1.268.234-1.942.234-.274 0-.546-.023-.816-.068.608 1.913 2.306 3.328 4.362 3.388-1.578 1.306-3.612 2.06-5.809 2.06-.373 0-.74-.022-1.1-.064 2.072 1.352 4.625 2.15 7.362 2.15 8.725 0 13.733-7.158 13.073-13.731.984-.696 1.823-1.559 2.478-2.532z"/></svg>
+                </a>
+                <a href="https://instagram.com" target="_blank" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.644-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072z"/></svg>
+                </a>
+                <a href="https://facebook.com" target="_blank" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.733 0-1.325.592-1.325 1.326v21.348c0 .733.592 1.326 1.325 1.326h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.894-4.788 4.66-4.788 1.325 0 2.463.099 2.795.144v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.294h4.566c.733 0 1.326-.593 1.326-1.326v-21.35c0-.734-.593-1.326-1.326-1.326z"/></svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="lg:ml-[240px] lg:pt-32 px-5 sm:px-10 lg:px-0">
+
+            <!-- Hero Section -->
+            <section class="min-h-[calc(100vh-12rem)] md:min-h-[calc(100vh-16rem)] flex flex-col justify-center items-center text-center py-20 lg:py-0 lg:pt-1/2">
+                <h1 class="font-instrument-serif text-6xl sm:text-8xl md:text-9xl lg:text-[120px] xl:text-[180px] text-[var(--color-text-primary)] mb-6 reveal">Episode</h1>
+                <div class="relative reveal">
+                    <img src="https://static.photos/nature/1200x630/42" alt="Episode Artwork" class="w-64 h-64 md:w-80 md:h-80 lg:w-[340px] lg:h-[340px] rounded-full object-cover border-4 border-[var(--color-bg-primary)] shadow-lg">
+                    <div class="absolute -bottom-8 -right-8 md:-bottom-12 md:-right-12 w-28 h-28 md:w-32 md:h-32 bg-[var(--color-accent-primary)] rounded-full flex items-center justify-center text-xs text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/></svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Episode Description Toggle -->
+            <section class="py-16 lg:py-24">
+                <div class="flex justify-end space-x-4 mb-6">
+                    <button id="description-toggle" class="px-4 py-2 bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] rounded-md text-sm hover:bg-[var(--color-border-primary)] transition-colors">
+                        Show Description
+                    </button>
+                </div>
+                <div id="episode-description" class="space-y-6 text-[var(--color-text-secondary)] text-lg max-w-2xl mx-auto">
+                    <p>Today's episode dives into the world of sustainable tech. We chat with industry leaders about how green innovation is reshaping product design, supply chains, and consumer behavior. From solar‑powered gadgets to carbon‑neutral packaging, discover the trends that will define the next decade.</p>
+                    <p>Special guests include Maya Patel, CEO of EcoTech Solutions, and Luis Gómez, Head of Product at GreenWave. The conversation covers real‑world case studies, policy shifts, and the challenges of scaling eco‑friendly solutions globally.</p>
+                </div>
+            </section>
+
+            <!-- Podcast Player UI -->
+            <section class="py-16 lg:py-24">
+                <div class="max-w-3xl mx-auto bg-[var(--color-bg-secondary)] rounded-lg p-6 md:p-8 flex flex-col items-center space-y-6">
+                    <!-- Large Episode Artwork -->
+                    <img src="https://static.photos/technology/640x360/133" alt="Podcast Cover" class="w-full h-64 md:h-80 object-cover rounded-md">
+
+                    <!-- Playback Controls -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="flex items-center gap-4">
+                            <button class="w-12 h-12 flex items-center justify-center bg-[var(--color-bg-tertiary)] rounded-full hover:bg-[var(--color-accent-primary)] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </button>
+                            <button class="w-12 h-12 flex items-center justify-center bg-[var(--color-bg-tertiary)] rounded-full hover:bg-[var(--color-accent-primary)] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 118 1a7 7 0 010 14zm0 1A8 8 0 108 0a8 8 0 000 16zM0 8a8 8 0 1114.316 3.784c.617.274 1.294.486 2 .61a8.93 8.93 0 018.644 0c.706-.124 1.383-.336 2-.61A8 8 0 0016 8a8 8 0 00-4.684-6.216c-.617-.274-1.294-.486-2-.61A8.93 8.93 0 018 0a8 8 0 000 16z"/></svg>
+                            </button>
+                            <button class="w-12 h-12 flex items-center justify-center bg-[var(--color-bg-tertiary)] rounded-full hover:bg-[var(--color-accent-primary)] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2V8a2 2 0 012-2z"/><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6V4a2 2 0 012-2h2a2 2 0 012 2v2m-3 4h3M7 12h3m-3 4h3m-3 4a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwyNjY0NjB8MHwxfHNlYXJjaHwxfHxwcm9wZWR8ZW58MHx8fHwxNjg2NjYwODk2&ixlib=rb-4.0.3&q=80&w=200" alt="Podcast Host" class="w-12 h-12 rounded-full object-cover">
+                            <div class="flex-1">
+                                <p class="text-sm text-[var(--color-text-muted)]">Host</p>
+                                <p class="font-semibold text-base">Alex Rivera</p>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-[var(--color-text-muted)]">Duration</p>
+                                <p class="font-semibold text-base">45:32</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="py-10 text-center text-sm text-[var(--color-text-muted)]">
+                © 2026 Podcast Player. All Rights Reserved. <a href="https://tesslate.com" class="underline hover:text-[var(--color-accent-primary)]">Built with Tesslate</a>.
+            </footer>
+        </main>
+
+        <!-- Sticky Footer for Mobile -->
+        <div class="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--color-bg-primary)]/80 backdrop-blur-sm">
+            <div class="flex items-center justify-between w-full px-5 h-[70px]">
+                <div class="flex items-center gap-4">
+                    <a href="#" class="font-instrument-serif text-2xl text-[var(--color-text-primary)] hover:text-[var(--color-accent-primary)] transition-colors">Now</a>
+                    <a href="#" class="font-instrument-serif text-2xl text-[var(--color-text-primary)] hover:text-[var(--color-accent-primary)] transition-colors">Playing</a>
+                </div>
+                <a href="#" class="btn-hover-effect px-6 py-3 bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)] rounded-full text-sm text-[var(--color-text-primary)] font-medium">
+                    <div class="btn-text-wrapper">
+                        <span class="btn-text-original">Subscribe</span>
+                        <span class="btn-text-hover">Subscribe</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Desktop Clock
+            const desktopTimeEl = document.getElementById('desktop-time');
+            const mobileTimeEl = document.getElementById('mobile-time');
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                if (desktopTimeEl) desktopTimeEl.textContent = timeString;
+                if (mobileTimeEl) mobileTimeEl.textContent = timeString;
+            }
+            updateClock();
+            setInterval(updateClock, 30000);
+
+            // Mobile Menu Toggle
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            const desktopMenuBtn = document.getElementById('desktop-menu-btn');
+
+            function openMenu() {
+                mobileMenu.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeMenu() {
+                mobileMenu.classList.add('opacity-0', 'pointer-events-none', '-translate-y-4');
+                document.body.style.overflow = '';
+            }
+            mobileMenuBtn.addEventListener('click', openMenu);
+            closeMenuBtn.addEventListener('click', closeMenu);
+            desktopMenuBtn.addEventListener('click', openMenu);
+            mobileMenu.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+
+            // Scroll Reveal
+            const revealEls = document.querySelectorAll('.reveal');
+            const revealObserver = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('visible');
+                });
+            }, { threshold: 0.1 });
+            revealEls.forEach(el => revealObserver.observe(el));
+
+            // Description Toggle (simple)
+            const toggleBtn = document.getElementById('description-toggle');
+            const descSection = document.getElementById('episode-description');
+            toggleBtn.addEventListener('click', () => {
+                if (descSection.style.maxHeight) {
+                    descSection.style.maxHeight = null;
+                    toggleBtn.textContent = 'Show Description';
+                } else {
+                    descSection.style.maxHeight = descSection.scrollHeight + 'px';
+                    toggleBtn.textContent = 'Hide Description';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

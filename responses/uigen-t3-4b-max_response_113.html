@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Creation & Sharing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Light gray background */
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .post-input {
+            resize: vertical;
+            min-height: 100px;
+            overflow-y: auto;
+        }
+        .post-input::-webkit-scrollbar {
+            width: 8px;
+        }
+        .post-input::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .post-input::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        .post-input::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="container bg-white rounded-lg shadow-xl p-6 w-full max-w-xl">
+        <h2 class="text-2xl font-semibold mb-6 text-center">Create New Post</h2>
+
+        <!-- Image Upload (optional) -->
+        <div class="mb-6">
+            <label for="image-upload" class="block text-sm font-medium text-gray-700 mb-2">Add an image (Optional)</label>
+            <input type="file" id="image-upload" accept="image/*" class="hidden">
+            <div class="flex items-center border-2 border-gray-300 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                <i class="fas fa-image text-gray-500 mr-3"></i>
+                <div class="flex-grow">
+                    <p class="text-sm text-gray-600">Drag & drop your image here or click to browse</p>
+                    <p class="text-xs text-gray-500 mt-1">Max file size: 10MB</p>
+                </div>
+                <button id="browse-image-btn" class="text-blue-600 hover:text-blue-800 transition-colors">Browse</button>
+            </div>
+            <div id="image-preview" class="mt-4 hidden">
+                <img id="post-image" src="" alt="Post image" class="w-full h-auto rounded-md max-h-48 object-cover">
+            </div>
+        </div>
+
+        <!-- Post Content -->
+        <div>
+            <label for="post-content" class="block text-sm font-medium text-gray-700 mb-2">What's on your mind?</label>
+            <textarea id="post-content" class="post-input w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Share your thoughts, photos, or videos..."></textarea>
+        </div>
+
+        <!-- Post Options (tags, hashtags, etc.) -->
+        <div class="mt-6">
+            <h3 class="text-sm font-medium text-gray-700 mb-3">Add Details</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="location" class="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                    <input type="text" id="location" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Where are you?"
+                           value="New York, USA" />
+                </div>
+                <div>
+                    <label for="time" class="block text-xs font-medium text-gray-600 mb-1">Time (Optional)</label>
+                    <input type="time" id="time" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label for="tags" class="block text-xs font-medium text-gray-600 mb-1">Tags (e.g., #travel, #food)</label>
+                    <input type="text" id="tags" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Separate with commas" />
+                </div>
+                <div>
+                    <label for="privacy" class="block text-xs font-medium text-gray-600 mb-1">Privacy</label>
+                    <select id="privacy" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <option value="public">Public</option>
+                        <option value="friends">Friends Only</option>
+                        <option value="private">Private</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action: Post & Share -->
+        <div class="mt-8 flex justify-end space-x-4">
+            <button id="cancel-post-btn" class="px-6 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-100 transition-colors">
+                Cancel
+            </button>
+            <button id="post-btn" class="px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center">
+                <i class="fas fa-paper-plane mr-2"></i> Post
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageUpload = document.getElementById('image-upload');
+            const imagePreview = document.getElementById('image-preview');
+            const postImage = document.getElementById('post-image');
+            const postContent = document.getElementById('post-content');
+            const cancelPostBtn = document.getElementById('cancel-post-btn');
+            const postBtn = document.getElementById('post-btn');
+            const browseImageBtn = document.getElementById('browse-image-btn');
+
+            // Image Upload Logic
+            imageUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        postImage.src = e.target.result;
+                        imagePreview.classList.remove('hidden');
+                        // Clear input to allow re-upload of same file
+                        imageUpload.value = '';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Handle "Browse" button click for accessibility
+            browseImageBtn.addEventListener('click', () => {
+                imageUpload.click();
+            });
+
+            // Cancel Post Button
+            cancelPostBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to cancel your post?')) {
+                    postContent.value = ''; // Clear content
+                    postImage.src = ''; // Clear image
+                    imagePreview.classList.add('hidden'); // Hide image preview
+                    imageUpload.value = ''; // Clear file input
+                }
+            });
+
+            // Post Button (Example: Log post data to console)
+            postBtn.addEventListener('click', () => {
+                const content = postContent.value.trim();
+                const imageSrc = postImage.src;
+                const location = document.getElementById('location').value;
+                const time = document.getElementById('time').value;
+                const tags = document.getElementById('tags').value;
+                const privacy = document.getElementById('privacy').value;
+
+                if (content) {
+                    console.log({
+                        content: content,
+                        image: imageSrc,
+                        location: location,
+                        time: time,
+                        tags: tags,
+                        privacy: privacy
+                    });
+                    alert('Post created successfully! (Data logged to console)');
+                    // In a real app, you would send this data to a backend API
+                    // postContent.value = ''; // Optionally clear the post after sending
+                    // postImage.src = ''; // Clear image
+                    // imagePreview.classList.add('hidden');
+                    // imageUpload.value = '';
+                } else {
+                    alert('Please enter some text for your post.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

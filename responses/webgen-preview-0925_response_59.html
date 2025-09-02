@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Book Reader</title>
+    <meta name="description" content="A full‑screen comic book reader with page navigation, zoom controls and a simple UI built with Tailwind CSS.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --color-bg: #000000;
+            --color-text-primary: #FFFFFF;
+            --color-text-secondary: #A3A3A3;
+            --color-border: #262626;
+            --color-surface: #121212;
+            --color-surface-subtle: #1e1e1e;
+            --color-surface-muted: #262626;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity .6s cubic-bezier(.4,0,.2,1), transform .6s cubic-bezier(.4,0,.2,1);
+        }
+
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-title-word {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px) scale(1);
+            filter: blur(10px);
+            transition: opacity .5s ease, transform .5s ease, filter .5s ease;
+        }
+
+        .hero-title-word.is-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+
+        .nav-link {
+            position: relative;
+            padding-bottom: 6px;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: var(--color-text-primary);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .3s ease-in-out;
+        }
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            transform: scaleX(1);
+        }
+
+        .page-link::after {
+            background-color: var(--color-text-secondary);
+        }
+        .page-link.active::after {
+            background-color: var(--color-text-primary);
+        }
+
+        .zoom-controls button {
+            background: rgba(255,255,255,.1);
+            border-radius: 9999px;
+            padding: 2px;
+        }
+        .zoom-controls button:hover {
+            background: rgba(255,255,255,.2);
+        }
+
+        .zoom-controls button img {
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+
+    <!-- Header -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-[var(--color-bg)]">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="#" class="flex items-center gap-2 text-xl font-bold">
+                    <i data-lucide="book-open" class="text-[var(--color-text-primary)]"></i>
+                    <span>Comic Reader</span>
+                </a>
+                <nav class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="nav-link text-base text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Home</a>
+                    <a href="#" class="nav-link text-base text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Library</a>
+                    <a href="#" class="nav-link text-base text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">About</a>
+                    <a href="#" class="nav-link text-base text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Contact</a>
+                </nav>
+                <div class="flex items-center gap-4">
+                    <button id="menu-toggle" class="md:hidden p-2 rounded-md text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                        <i id="menu-icon" data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="fixed inset-0 bg-[var(--color-bg)]/80 backdrop-blur-2xl z-40 hidden flex-col items-center justify-center space-y-8 transform translate-x-full transition-transform duration-300 ease-in-out">
+        <a href="#" class="text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Home</a>
+        <a href="#" class="text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Library</a>
+        <a href="#" class="text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">About</a>
+        <a href="#" class="text-2xl text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Contact</a>
+    </div>
+
+    <main class="pt-16">
+
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center justify-center pt-16">
+            <div class="text-center">
+                <h1 class="hero-title text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-medium text-[var(--color-text-primary)]">
+                    <span class="hero-title-word">Comic</span> <span class="hero-title-word">Reader</span>
+                </h1>
+                <p class="animate-on-scroll mt-6 text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto">
+                    Browse, read, and enjoy your favorite comics with smooth navigation, zoom, and full‑screen mode.
+                </p>
+                <div class="animate-on-scroll mt-8 flex flex-wrap justify-center gap-4">
+                    <a href="#" class="px-6 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)] transition-colors">Download App</a>
+                    <a href="#" class="px-6 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)] transition-colors">View Library</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comic Book Grid Section -->
+        <section class="py-16 md:py-24 bg-[var(--color-bg)]">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-4xl md:text-5xl font-medium text-[var(--color-text-primary)] mb-12 text-center animate-on-scroll">Featured Comics</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                    <!-- Comic Card 1 -->
+                    <a href="#" class="group block animate-on-scroll">
+                        <div class="overflow-hidden rounded-2xl mb-4">
+                            <img src="httpshttps://static.photos/640x360/123" alt="Comic 1" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out">
+                        </div>
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Spider‑Man: Homecoming</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Marvel</p>
+                    </a>
+                    <!-- Comic Card 2 -->
+                    <a href="#" class="group block animate-on-scroll" style="transition-delay: .1s;">
+                        <div class="overflow-hidden rounded-2xl mb-4">
+                            <img src="https://static.photos/640x360/456" alt="Comic 2" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out">
+                        </div>
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)]">The Dark Knight</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">DC Comics</p>
+                    </a>
+                    <!-- Comic Card 3 -->
+                    <a href="#" class="group block animate-on-scroll" style="transition-delay: .2s;">
+                        <div class="overflow-hidden rounded-2xl mb-4">
+                            <img src="https://static.photos/640x360/789" alt="Comic 3" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out">
+                        </div>
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)]">X‑Men: Days of Future Past</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Marvel</p>
+                    </a>
+                    <!-- Comic Card 4 -->
+                    <a href="#" class="group block animate-on-scroll" style="transition-delay: .3s;">
+                        <div class="overflow-hidden rounded-2xl mb-4">
+                            <img src="https://static.photos/640x360/101" alt="Comic 4" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out">
+                        </div>
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Batman: The Long Halloween</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">DC Comics</p>
+                    </a>
+                    <!-- Comic Card 5 -->
+                    <a href="#" class="group block animate-on-scroll" style="transition-delay: .4s;">
+                        <div class="overflow-hidden rounded-2xl mb-4">
+                            <img src="https://static.photos/640x360/121" alt="Comic 5" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out">
+                        </div>
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Avengers: Infinity War</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Marvel</p>
+                    </a>
+                    <!-- Comic Card 6 -->
+                    <a href="#" class="group block animate-on-scroll" style="transition-delay: .5s;">
+                        <div class="overflow-hidden rounded-2xl mb-4">
+                            <img src="https://static.photos/640x360/131" alt="Comic 6" class="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out">
+                        </div>
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Superman: Birthright</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)]">DC Comics</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="py-16 md:py-24 bg-[var(--color-surface)]">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-4xl md:text-5xl font-medium text-[var(--color-text-primary)] mb-6 animate-on-scroll">About Comic Reader</h2>
+                <p class="text-lg text-[var(--color-text-secondary)] mb-8 animate-on-scroll" style="transition-delay: .2s;">
+                    Comic Reader is a sleek, responsive app that brings your favorite comics to life. Built with Tailwind CSS, it offers intuitive navigation, smooth zoom, and a full‑screen reading experience.
+                </p>
+                <div class="animate-on-scroll" style="transition-delay: .4s;">
+                    <a href="#" class="px-6 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)] transition-colors">Learn More</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Section -->
+        <section class="py-16 md:py-24 bg-[var(--color-bg)]">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl md:text-5xl font-medium text-[var(--color-text-primary)] mb-4 animate-on-scroll">Features</h2>
+                    <p class="text-lg text-[var(--color-text-secondary)] animate-on-scroll" style="transition-delay: .2s;">Everything you need to enjoy comics on the go.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="animate-on-scroll">
+                        <div class="flex items-center gap-4 mb-2">
+                            <i data-lucide="layout-grid" class="w-6 h-6 text-[var(--color-text-primary)]"></i>
+                            <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Page Navigation</h3>
+                        </div>
+                        <p class="text-[var(--color-text-secondary)]">Navigate between pages with a clean, intuitive interface.</p>
+                    </div>
+                    <!-- Feature 2 -->
+                    <div class="animate-on-scroll" style="transition-delay: .2s;">
+                        <div class="flex items-center gap-4 mb-2">
+                            <i data-lucide="zoom-in" class="w-6 h-6 text-[var(--color-text-primary)]"></i>
+                            <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Zoom Controls</h3>
+                        </div>
+                        <p class="text-[var(--color-text-secondary)]">Zoom in and out for a perfect reading experience.</p>
+                    </div>
+                    <!-- Feature 3 -->
+                    <div class="animate-on-scroll" style="transition-delay: .4s;">
+                        <div class="flex items-center gap-4 mb-2">
+                            <i data-lucide="fullscreen" class="w-6 h-6 text-[var(--color-text-primary)]"></i>
+                            <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Full‑Screen Mode</h3>
+                        </div>
+                        <p class="text-[var(--color-text-secondary)]">Read comics in full screen for an immersive experience.</p>
+                    </div>
+                    <!-- Feature 4 -->
+                    <div class="animate-on-scroll" style="transition-delay: .6s;">
+                        <div class="flex items-center gap-4 mb-2">
+                            <i data-lucide="layers" class="w-6 h-6 text-[var(--color-text-primary)]"></i>
+                            <h3 class="text-xl font-medium text-[var(--color-text-primary)]">Responsive Design</h3>
+                        </div>
+                        <p class="text-[var(--color-text-secondary)]">Works on desktop, tablet, and mobile devices.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-16 border-t border-[var(--color-border)]">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                    <div class="animate-on-scroll">
+                        <a href="#" class="flex items-center gap-2 text-xl font-bold mb-4">
+                            <i data-lucide="book-open" class="text-[var(--color-text-primary)]"></i>
+                            <span>Comic Reader</span>
+                        </a>
+                        <p class="text-[var(--color-text-secondary)] text-sm">A modern comic book reader for every fan.</p>
+                    </div>
+                    <div class="animate-on-scroll" style="transition-delay: .2s;">
+                        <h4 class="font-medium text-base mb-4">Navigation</h4>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Home</a></li>
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Library</a></li>
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">About</a></li>
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div class="animate-on-scroll" style="transition-delay: .4s;">
+                        <h4 class="font-medium text-base mb-4">Connect</h4>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Twitter</a></li>
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Instagram</a></li>
+                            <li><a href="#" class="page-link text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">LinkedIn</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="text-center text-sm text-[var(--color-text-secondary)] animate-on-scroll">
+                    © 2026 Comic Reader. All rights reserved.<br>
+                    Built with <a href="https://tesslate.com" class="underline hover:text-[var(--color-text-primary)]">Tesslate</a>.
+                </div>
+            </div>
+        </footer>
+
+    </main>
+
+    <!-- Zoom Controls (hidden by default) -->
+    <div id="zoom-controls" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl p-2 hidden">
+        <div class="zoom-controls flex items-center gap-2 p-1 rounded-xl">
+            <button id="zoom-in" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[var(--color-surface-subtle)] transition-colors">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+            </button>
+            <button id="zoom-out" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[var(--color-surface-subtle)] transition-colors">
+                <i data-lucide="minus" class="w-5 h-5"></i>
+            </button>
+            <button id="fullscreen-toggle" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[var(--color-surface-subtle)] transition-colors">
+                <i data-lucide="fullscreen" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Header scroll effect
+            const header = document.getElementById('main-header');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    header.classList.add('bg-[var(--color-bg)]/80', 'backdrop-blur-2xl', 'shadow-lg');
+                } else {
+                    header.classList.remove('bg-[var(--color-bg)]/80', 'backdrop-blur-2xl', 'shadow-lg');
+                }
+            });
+
+            // Mobile menu toggle
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.toggle('flex');
+                mobileMenu.classList.toggle('translate-x-full');
+
+                menuIcon.setAttribute('data-lucide', mobileMenu.classList.contains('hidden') ? 'menu' : 'x');
+                lucide.createIcons();
+            });
+
+            // Scroll animations
+            const scrollElements = document.querySelectorAll('.animate-on-scroll');
+            const heroWords = document.querySelectorAll('.hero-title-word');
+
+            const elementInView = (el, dividend = 1) => {
+                const elementTop = el.getBoundingClientRect().top;
+                return elementTop <= (window.innerHeight || document.documentElement.clientHeight) / dividend;
+            };
+
+            const displayScrollElement = (element) => {
+                element.classList.add('is-visible');
+            };
+
+            const handleScrollAnimation = () => {
+                scrollElements.forEach(el => {
+                    if (elementInView(el, 1.25)) {
+                        displayScrollElement(el);
+                    }
+                });
+
+                heroWords.forEach((word, i) => {
+                    if (elementInView(word, 1.1)) {
+                        setTimeout(() => {
+                            word.classList.add('is-visible');
+                        }, i * 100);
+                    }
+                });
+            };
+
+            window.addEventListener('scroll', handleScrollAnimation);
+            handleScrollAnimation();
+
+            // Zoom & Fullscreen Controls
+            const zoomControls = document.getElementById('zoom-controls');
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const fullscreenToggle = document.getElementById('fullscreen-toggle');
+
+            let zoomLevel = 1;
+            const maxZoom = 3;
+            const minZoom = 0.5;
+            const zoomStep = 0.1;
+
+            const updateZoom = () => {
+                const scale = zoomLevel;
+                zoomControls.style.transform = `scale(${scale})`;
+                zoomInBtn.querySelector('i').style.transform = `scale(${1 / scale})`;
+                zoomOutBtn.querySelector('i').style.transform = `scale(${1 / scale})`;
+                fullscreenToggle.querySelector('i').style.transform = `scale(${1 / scale})`;
+            };
+
+            const showControls = () => {
+                zoomControls.classList.remove('hidden');
+            };
+            const hideControls = () => {
+                zoomControls.classList.add('hidden');
+            };
+
+            // Show controls when a comic is loaded
+            const comicCards = document.querySelectorAll('.group');
+            comicCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    showControls();
+                    // Simulate zoom on click
+                    zoomLevel = 1;
+                    updateZoom();
+                });
+            });
+
+            zoomInBtn.addEventListener('click', () => {
+                if (zoomLevel < maxZoom) {
+                    zoomLevel += zoomStep;
+                    updateZoom();
+                }
+            });
+            zoomOutBtn.addEventListener('click', () => {
+                if (zoomLevel > minZoom) {
+                    zoomLevel -= zoomStep;
+                    updateZoom();
+                }
+            });
+            fullscreenToggle.addEventListener('click', () => {
+                const docElm = document.documentElement;
+                if (!docElm.requestFullscreen) {
+                    alert('Fullscreen is not supported in your browser.');
+                    return;
+                }
+                docElm.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            });
+
+            // Initial hide of controls
+            hideControls();
+        });
+    </script>
+</body>
+</html>

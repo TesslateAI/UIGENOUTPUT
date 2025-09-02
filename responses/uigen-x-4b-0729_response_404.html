@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Todo List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Archivo', 'sans-serif'],
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .font-heading { font-family: 'Archivo', sans-serif; }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .completed {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+        
+        .task-item {
+            transition: all 0.2s ease;
+        }
+        
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-primary-50 to-accent-50 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-primary-600 to-accent-600 p-6 text-center">
+                <h1 class="font-heading text-2xl md:text-3xl font-bold text-white">Minimalist Todo</h1>
+                <p class="text-primary-100 mt-1">Your clean task management solution</p>
+            </div>
+            
+            <!-- Task Input -->
+            <div class="p-6">
+                <div class="mb-6">
+                    <form id="task-form" class="flex gap-3">
+                        <input 
+                            type="text" 
+                            id="task-input" 
+                            placeholder="Add a new task..." 
+                            class="flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            required
+                        >
+                        <button 
+                            type="submit"
+                            class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+                        >
+                            Add
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Task List -->
+                <div id="task-list" class="space-y-3">
+                    <!-- Tasks will be dynamically added here -->
+                    <div class="text-center py-12 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p class="mt-2">No tasks yet. Add your first task!</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="bg-gray-50 p-4 flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-500">Tasks</p>
+                    <p id="task-count" class="font-medium">0</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Completed</p>
+                    <p id="completed-count" class="font-medium">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-6 text-center text-gray-500 text-sm">
+            <p>Minimalist Todo App • Clean & Functional</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const taskList = document.getElementById('task-list');
+            const taskCount = document.getElementById('task-count');
+            const completedCount = document.getElementById('completed-count');
+            
+            // Initial state
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            updateTaskCounts();
+            
+            // Add task
+            taskForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const taskText = taskInput.value.trim();
+                if (taskText === '') return;
+                
+                const newTask = {
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+                
+                tasks.push(newTask);
+                saveTasks();
+                renderTasks();
+                updateTaskCounts();
+                
+                // Reset form
+                taskInput.value = '';
+                taskInput.focus();
+            });
+            
+            // Delete task
+            taskList.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-btn')) {
+                    const taskId = e.target.closest('.task-item').dataset.id;
+                    tasks = tasks.filter(task => task.id !== parseInt(taskId));
+                    saveTasks();
+                    renderTasks();
+                    updateTaskCounts();
+                }
+            });
+            
+            // Toggle task completion
+            taskList.addEventListener('click', function(e) {
+                if (e.target.closest('.task-checkbox')) {
+                    const taskId = e.target.closest('.task-item').dataset.id;
+                    tasks = tasks.map(task => {
+                        if (task.id === parseInt(taskId)) {
+                            return { ...task, completed: !task.completed };
+                        }
+                        return task;
+                    });
+                    saveTasks();
+                    renderTasks();
+                    updateTaskCounts();
+                }
+            });
+            
+            // Render tasks
+            function renderTasks() {
+                if (tasks.length === 0) {
+                    taskList.innerHTML = `
+                        <div class="text-center py-12 text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <p class="mt-2">No tasks yet. Add your first task!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let tasksHTML = '';
+                
+                tasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = `task-item bg-white rounded-xl p-4 border border-gray-200 fade-in ${task.completed ? 'completed' : ''}`;
+                    taskElement.dataset.id = task.id;
+                    
+                    taskElement.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="mr-3">
+                                <input 
+                                    type="checkbox" 
+                                    class="task-checkbox h-5 w-5 text-primary-600 rounded focus:ring-primary-500"
+                                    ${task.completed ? 'checked' : ''}
+                                >
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium ${task.completed ? 'completed' : ''}">${task.text}</p>
+                                <p class="text-xs text-gray-500 mt-1">${formatDate(task.createdAt)}</p>
+                            </div>
+                            <button class="delete-btn text-gray-400 hover:text-red-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    
+                    tasksHTML += taskElement.outerHTML;
+                });
+                
+                taskList.innerHTML = tasksHTML;
+            }
+            
+            // Update task counts
+            function updateTaskCounts() {
+                taskCount.textContent = tasks.length;
+                const completed = tasks.filter(task => task.completed).length;
+                completedCount.textContent = completed;
+            }
+            
+            // Save tasks to localStorage
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+            
+            // Format date for display
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            }
+            
+            // Initialize with saved tasks
+            renderTasks();
+        });
+    </script>
+</body>
+</html>

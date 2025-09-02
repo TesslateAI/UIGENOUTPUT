@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitFlow - Workout Video Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        secondary: {
+                            50: '#f0f8ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        .video-container {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .timer-display {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #0ea5e9, #14b8a6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #14b8a6);
+            width: 30%;
+            border-radius: 4px;
+        }
+        
+        .control-btn {
+            transition: all 0.3s ease;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-btn:hover {
+            background: rgba(30, 41, 59, 0.9);
+            transform: scale(1.05);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .play-btn {
+            background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        }
+        
+        .play-btn:hover {
+            background: linear-gradient(135deg, #0284c7, #0d9488);
+        }
+        
+        .exercise-card {
+            transition: all 0.3s ease;
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        .exercise-card:hover {
+            transform: translateY(-5px);
+            background: rgba(30, 41, 59, 0.8);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(14, 165, 233, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-dark-800/80 backdrop-blur-md border-b border-dark-700">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                    <i class="fas fa-dumbbell text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-secondary-400">FitFlow</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                    <i class="fas fa-search text-gray-300"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                    <i class="fas fa-cog text-gray-300"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="text-center mb-12 fade-in">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary-300 to-secondary-300">
+                Workout Video Player
+            </h1>
+            <p class="text-lg text-gray-400 max-w-2xl mx-auto">
+                Follow along with our expert trainers. Pause, replay, and track your exercise timing with our intuitive player.
+            </p>
+        </section>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Video Player Section -->
+            <div class="lg:col-span-2">
+                <div class="video-container bg-dark-800 relative">
+                    <video id="workout-video" poster="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80">
+                        <source src="https://assets.mixkit.co/videos/preview/mixkit-set-of-dumbbells-116-large.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    
+                    <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <button class="control-btn w-10 h-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-step-backward text-xl"></i>
+                            </button>
+                            <button class="control-btn w-16 h-16 rounded-full flex items-center justify-center play-btn">
+                                <i class="fas fa-play text-2xl"></i>
+                            </button>
+                            <button class="control-btn w-10 h-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-step-forward text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <button class="control-btn w-10 h-10 rounded-full flex items-center justify-center">
+                                <i class="fas fa-volume-up text-xl"></i>
+                            </button>
+                            <div class="w-16 h-1 bg-dark-700 rounded-full">
+                                <div class="h-full bg-primary-500 rounded-full" style="width: 70%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute bottom-4 left-4 right-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-400">1:45 / 3:20</span>
+                            <span class="text-sm text-gray-400">25%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Bench Press</h3>
+                        <p class="text-gray-400">Set 3 of 5 • 8 reps</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="px-4 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors">
+                            <i class="fas fa-plus mr-2"></i> Add Exercise
+                        </button>
+                        <button class="px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg hover:opacity-90 transition-opacity">
+                            <i class="fas fa-play mr-2"></i> Start Workout
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Exercise Timer & Details -->
+            <div class="exercise-card rounded-2xl p-6 h-full">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto pulse">
+                        <i class="fas fa-stopwatch text-white text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold mt-4">Exercise Timer</h2>
+                </div>
+                
+                <div class="timer-display mb-2">00:00</div>
+                <div class="text-gray-400 text-sm mb-6">Current time for this exercise</div>
+                
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-1">Set Duration</label>
+                        <div class="flex items-center">
+                            <button class="w-10 h-10 rounded-l-lg bg-dark-700 flex items-center justify-center">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" value="10" class="w-16 h-10 bg-dark-700 text-center border-t border-b border-dark-600">
+                            <button class="w-10 h-10 rounded-r-lg bg-dark-700 flex items-center justify-center">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-400 text-sm mb-1">Rest Between Sets</label>
+                        <div class="flex items-center">
+                            <button class="w-10 h-10 rounded-l-lg bg-dark-700 flex items-center justify-center">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" value="60" class="w-16 h-10 bg-dark-700 text-center border-t border-b border-dark-600">
+                            <button class="w-10 h-10 rounded-r-lg bg-dark-700 flex items-center justify-center">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-400 text-sm mb-1">Workout Progress</label>
+                    <div class="relative">
+                        <div class="w-full h-2 bg-dark-700 rounded-full">
+                            <div class="h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full" style="width: 60%"></div>
+                        </div>
+                        <div class="absolute top-0 right-0 bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
+                            60%
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <h3 class="text-xl font-bold mb-2">Today's Workout</h3>
+                    <div class="flex justify-center space-x-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">12</div>
+                            <div class="text-gray-400 text-sm">Exercises</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">45</div>
+                            <div class="text-gray-400 text-sm">Minutes</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">8</div>
+                            <div class="text-gray-400 text-sm">Sets</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Exercise Library -->
+        <section class="mt-16">
+            <h2 class="text-2xl font-bold mb-6 text-center">Exercise Library</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="exercise-card rounded-2xl p-5 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 rounded-full bg-primary-500/10 flex items-center justify-center mb-4">
+                        <i class="fas fa-running text-primary-400 text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">Squats</h3>
+                    <p class="text-gray-400 text-sm">Leg strength</p>
+                </div>
+                
+                <div class="exercise-card rounded-2xl p-5 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 rounded-full bg-secondary-500/10 flex items-center justify-center mb-4">
+                        <i class="fas fa-dumbbell text-secondary-400 text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">Bench Press</h3>
+                    <p class="text-gray-400 text-sm">Chest strength</p>
+                </div>
+                
+                <div class="exercise-card rounded-2xl p-5 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 rounded-full bg-primary-500/10 flex items-center justify-center mb-4">
+                        <i class="fas fa-bicycle text-primary-400 text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">Pull-ups</h3>
+                    <p class="text-gray-400 text-sm">Back strength</p>
+                </div>
+                
+                <div class="exercise-card rounded-2xl p-5 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 rounded-full bg-secondary-500/10 flex items-center justify-center mb-4">
+                        <i class="fas fa-running text-secondary-400 text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">Lunges</h3>
+                    <p class="text-gray-400 text-sm">Leg balance</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-16 py-8 border-t border-dark-700">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <i class="fas fa-dumbbell text-white text-sm"></i>
+                    </div>
+                    <h2 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-secondary-400">FitFlow</h2>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-gray-500 text-sm">
+                © 2023 FitFlow. All rights reserved. Designed for fitness enthusiasts.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('workout-video');
+            const playBtn = document.querySelector('.play-btn');
+            const timerDisplay = document.querySelector('.timer-display');
+            const progressFill = document.querySelector('.progress-fill');
+            const progressBar = document.querySelector('.progress-bar');
+            const controls = document.querySelectorAll('.control-btn');
+            const volumeControl = document.querySelector('.fa-volume-up').closest('div');
+            
+            // Play/Pause functionality
+            playBtn.addEventListener('click', function() {
+                if (video.paused) {
+                    video.play();
+                    playBtn.innerHTML = '<i class="fas fa-pause text-2xl"></i>';
+                } else {
+                    video.pause();
+                    playBtn.innerHTML = '<i class="fas fa-play text-2xl"></i>';
+                }
+            });
+            
+            // Timer functionality
+            let timerInterval;
+            let seconds = 0;
+            let minutes = 0;
+            let isRunning = false;
+            let timerDirection = 1; // 1 for forward, -1 for backward
+            
+            function updateTimer() {
+                seconds++;
+                if (seconds >= 60) {
+                    seconds = 0;
+                    minutes++;
+                }
+                
+                // Format time as MM:SS
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                timerDisplay.textContent = timeString;
+                
+                // Update progress bar
+                const totalTime = 200; // 3:20 in seconds
+                const progress = (minutes * 60 + seconds) / totalTime;
+                progressFill.style.width = `${progress * 100}%`;
+            }
+            
+            // Start timer
+            document.querySelectorAll('.fa-step-backward').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!isRunning) {
+                        isRunning = true;
+                        timerDirection = -1;
+                        timerInterval = setInterval(updateTimer, 1000);
+                        this.classList.add('opacity-50');
+                    }
+                });
+            });
+            
+            // Stop timer
+            document.querySelectorAll('.fa-step-forward').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (isRunning) {
+                        isRunning = false;
+                        clearInterval(timerInterval);
+                        this.classList.remove('opacity-50');
+                    }
+                });
+            });
+            
+            // Pause on hover
+            video.addEventListener('mousemove', function() {
+                if (isRunning) {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    timerDirection = 1;
+                    this.pause();
+                }
+            });
+            
+            video.addEventListener('mouseleave', function() {
+                if (!isRunning) {
+                    this.play();
+                }
+            });
+            
+            // Control buttons
+            controls.forEach(control => {
+                control.addEventListener('click', function() {
+                    if (this.querySelector('.fa-step-backward')) {
+                        video.currentTime -= 5;
+                    } else if (this.querySelector('.fa-step-forward')) {
+                        video.currentTime += 5;
+                    } else if (this.querySelector('.fa-volume-up')) {
+                        const isMuted = video.muted;
+                        video.muted = !isMuted;
+                        this.classList.toggle('fa-volume-mute', isMuted);
+                    }
+                });
+            });
+            
+            // Volume control
+            volumeControl.addEventListener('click', function() {
+                const isMuted = video.muted;
+                video.muted = !isMuted;
+                this.classList.toggle('fa-volume-mute', isMuted);
+            });
+        });
+    </script>
+</body>
+</html>

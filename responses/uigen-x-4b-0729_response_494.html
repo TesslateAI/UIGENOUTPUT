@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProgressPath | Goal Achievement Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        neutral: {
+                            50: '#f8faf9',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-bg-main: #f8faf9;
+            --color-bg-alt: #f1f5f9;
+            --color-text-dark: #0f172a;
+            --color-text-light: #ffffff;
+            --color-text-muted: #64748b;
+        }
+        
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .goal-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .goal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .sticky {
+            position: sticky;
+            top: 6rem;
+        }
+        
+        .blur-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            filter: blur(80px);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 60%, black 100%);
+            mask-image: linear-gradient(to bottom, transparent 60%, black 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .blur-bg-1 {
+            background-color: rgba(14, 165, 233, 0.15);
+            border-radius: 50%;
+            left: 10%;
+            top: 10%;
+            width: 500px;
+            height: 500px;
+        }
+        
+        .blur-bg-2 {
+            background-color: rgba(20, 184, 166, 0.15);
+            border-radius: 50%;
+            left: 70%;
+            top: 30%;
+            width: 600px;
+            height: 600px;
+        }
+        
+        .blur-bg-3 {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-radius: 50%;
+            left: 40%;
+            top: 70%;
+            width: 400px;
+            height: 400px;
+        }
+        
+        .appear-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .appear-item.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #0ea5e9;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .nav-link.active::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-neutral-50">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md py-4 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="h-10 w-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                            <i class="fas fa-bullseye text-white text-xl"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-bold text-primary-800">ProgressPath</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#dashboard" class="nav-link text-neutral-700 hover:text-primary-600 font-medium">Dashboard</a>
+                    <a href="#goals" class="nav-link text-neutral-700 hover:text-primary-600 font-medium">My Goals</a>
+                    <a href="#progress" class="nav-link text-neutral-700 hover:text-primary-600 font-medium">Progress</a>
+                    <a href="#achievements" class="nav-link text-neutral-700 hover:text-primary-600 font-medium">Achievements</a>
+                    <a href="#faq" class="nav-link text-neutral-700 hover:text-primary-600 font-medium">FAQ</a>
+                </div>
+                
+                <div class="flex items-center">
+                    <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-plus mr-2"></i> New Goal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-24 pb-16 overflow-hidden">
+        <div class="blur-bg blur-bg-1"></div>
+        <div class="blur-bg blur-bg-2"></div>
+        <div class="blur-bg blur-bg-3"></div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto">
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-neutral-900 mb-6">
+                    Achieve Your <span class="text-primary-600">Personal Goals</span>
+                </h1>
+                <p class="text-xl text-neutral-600 max-w-2xl mx-auto mb-10">
+                    Track, progress, and celebrate your achievements with our intuitive goal management system designed to keep you motivated on your journey.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button class="bg-primary-500 hover:bg-primary-600 text-white px-8 py-3 rounded-lg font-medium text-lg transition-colors flex items-center">
+                        <i class="fas fa-rocket mr-2"></i> Get Started
+                    </button>
+                    <button class="bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-200 px-8 py-3 rounded-lg font-medium text-lg transition-colors flex items-center">
+                        <i class="fas fa-play-circle mr-2 text-primary-500"></i> Watch Demo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview -->
+    <section id="dashboard" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-neutral-900 mb-4">Your Personal Dashboard</h2>
+                <p class="text-xl text-neutral-600 max-w-3xl mx-auto">
+                    Visualize your progress and stay motivated with our comprehensive dashboard
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Stats Card -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-neutral-100">
+                    <div class="flex items-center mb-4">
+                        <div class="p-3 rounded-lg bg-primary-100 text-primary-600">
+                            <i class="fas fa-trophy text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Achievements</h3>
+                    <p class="text-3xl font-bold text-primary-600 mb-2">24</p>
+                    <p class="text-neutral-500">Milestones reached this month</p>
+                </div>
+                
+                <!-- Goals Card -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-neutral-100">
+                    <div class="flex items-center mb-4">
+                        <div class="p-3 rounded-lg bg-secondary-100 text-secondary-600">
+                            <i class="fas fa-bullseye text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Active Goals</h3>
+                    <p class="text-3xl font-bold text-secondary-600 mb-2">8</p>
+                    <p class="text-neutral-500">Goals currently in progress</p>
+                </div>
+                
+                <!-- Progress Card -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-neutral-100">
+                    <div class="flex items-center mb-4">
+                        <div class="p-3 rounded-lg bg-accent-100 text-accent-600">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Completion Rate</h3>
+                    <p class="text-3xl font-bold text-accent-600 mb-2">72%</p>
+                    <p class="text-neutral-500">Overall progress this month</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Goals Section -->
+    <section id="goals" class="py-16 bg-neutral-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-neutral-900 mb-4">My Goals</h2>
+                <p class="text-xl text-neutral-600 max-w-3xl mx-auto">
+                    Track and manage all your personal and professional objectives in one place
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Goal Card 1 -->
+                <div class="goal-card bg-white rounded-xl p-6 border border-neutral-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="inline-block px-3 py-1 text-xs font-semibold text-primary-600 bg-primary-100 rounded-full">Personal</span>
+                            <h3 class="text-xl font-bold text-neutral-800 mt-2">Run a Marathon</h3>
+                        </div>
+                        <div class="flex">
+                            <span class="text-2xl font-bold text-neutral-700 mr-2">78%</span>
+                            <div class="progress-bar bg-neutral-200 w-24">
+                                <div class="progress-fill bg-primary-500" style="width: 78%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">Complete a full marathon by the end of the year. Training includes 50km runs weekly.</p>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-neutral-500">
+                            <i class="far fa-calendar mr-1"></i>
+                            <span>Target: Dec 15, 2023</span>
+                        </div>
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-primary-200 border-2 border-white flex items-center justify-center text-xs text-primary-700">JD</div>
+                            <div class="w-8 h-8 rounded-full bg-secondary-200 border-2 border-white flex items-center justify-center text-xs text-secondary-700">AS</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Goal Card 2 -->
+                <div class="goal-card bg-white rounded-xl p-6 border border-neutral-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="inline-block px-3 py-1 text-xs font-semibold text-secondary-600 bg-secondary-100 rounded-full">Professional</span>
+                            <h3 class="text-xl font-bold text-neutral-800 mt-2">Learn Python</h3>
+                        </div>
+                        <div class="flex">
+                            <span class="text-2xl font-bold text-neutral-700 mr-2">65%</span>
+                            <div class="progress-bar bg-neutral-200 w-24">
+                                <div class="progress-fill bg-secondary-500" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">Complete a Python certification course and build 5 real-world projects.</p>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-neutral-500">
+                            <i class="far fa-calendar mr-1"></i>
+                            <span>Target: Nov 30, 2023</span>
+                        </div>
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-accent-200 border-2 border-white flex items-center justify-center text-xs text-accent-700">MK</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Goal Card 3 -->
+                <div class="goal-card bg-white rounded-xl p-6 border border-neutral-100">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="inline-block px-3 py-1 text-xs font-semibold text-accent-600 bg-accent-100 rounded-full">Health</span>
+                            <h3 class="text-xl font-bold text-neutral-800 mt-2">Meditation Habit</h3>
+                        </div>
+                        <div class="flex">
+                            <span class="text-2xl font-bold text-neutral-700 mr-2">92%</span>
+                            <div class="progress-bar bg-neutral-200 w-24">
+                                <div class="progress-fill bg-accent-500" style="width: 92%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">Meditate for 20 minutes daily without missing a single day this month.</p>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-neutral-500">
+                            <i class="far fa-calendar mr-1"></i>
+                            <span>Target: Oct 31, 2023</span>
+                        </div>
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-primary-200 border-2 border-white flex items-center justify-center text-xs text-primary-700">JD</div>
+                            <div class="w-8 h-8 rounded-full bg-secondary-200 border-2 border-white flex items-center justify-center text-xs text-secondary-700">AS</div>
+                            <div class="w-8 h-8 rounded-full bg-accent-200 border-2 border-white flex items-center justify-center text-xs text-accent-700">MK</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <button class="bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-200 px-6 py-3 rounded-lg font-medium transition-colors flex items-center mx-auto">
+                    <i class="fas fa-plus mr-2"></i> Add New Goal
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Progress Section -->
+    <section id="progress" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-neutral-900 mb-4">Your Progress</h2>
+                <p class="text-xl text-neutral-600 max-w-3xl mx-auto">
+                    Visualize your achievements and stay motivated with detailed progress tracking
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="bg-neutral-50 rounded-xl p-8">
+                    <h3 class="text-xl font-bold text-neutral-800 mb-6">Monthly Overview</h3>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-neutral-700">Goal Completion</span>
+                                <span class="text-neutral-700 font-medium">72%</span>
+                            </div>
+                            <div class="progress-bar bg-neutral-200">
+                                <div class="progress-fill bg-primary-500" style="width: 72%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-neutral-700">Time Spent</span>
+                                <span class="text-neutral-700 font-medium">124h</span>
+                            </div>
+                            <div class="progress-bar bg-neutral-200">
+                                <div class="progress-fill bg-secondary-500" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-neutral-700">Consistency</span>
+                                <span class="text-neutral-700 font-medium">89%</span>
+                            </div>
+                            <div class="progress-bar bg-neutral-200">
+                                <div class="progress-fill bg-accent-500" style="width: 89%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-neutral-50 rounded-xl p-8">
+                    <h3 class="text-xl font-bold text-neutral-800 mb-6">Achievement Timeline</h3>
+                    <div class="space-y-6">
+                        <div class="flex">
+                            <div class="flex flex-col items-center mr-4">
+                                <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <i class="fas fa-medal text-primary-600"></i>
+                                </div>
+                                <div class="h-full w-0.5 bg-primary-100 mt-2"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-800">First Marathon Finish</h4>
+                                <p class="text-neutral-600 text-sm">Completed 42km in 3:24:15</p>
+                                <p class="text-neutral-400 text-xs mt-1">October 15, 2023</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex">
+                            <div class="flex flex-col items-center mr-4">
+                                <div class="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center">
+                                    <i class="fas fa-book text-secondary-600"></i>
+                                </div>
+                                <div class="h-full w-0.5 bg-secondary-100 mt-2"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-800">Python Certification</h4>
+                                <p class="text-neutral-600 text-sm">Passed all modules with 95%</p>
+                                <p class="text-neutral-400 text-xs mt-1">November 5, 2023</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex">
+                            <div class="flex flex-col items-center mr-4">
+                                <div class="w-12 h-12 rounded-full bg-accent-100 flex items-center justify-center">
+                                    <i class="fas fa-heart text-accent-600"></i>
+                                </div>
+                                <div class="h-full w-0.5 bg-accent-100 mt-2"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-neutral-800">30-Day Meditation</h4>
+                                <p class="text-neutral-600 text-sm">Consistent daily meditation</p>
+                                <p class="text-neutral-400 text-xs mt-1">October 30, 2023</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Achievements Section -->
+    <section id="achievements" class="py-16 bg-neutral-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-neutral-900 mb-4">Your Achievements</h2>
+                <p class="text-xl text-neutral-600 max-w-3xl mx-auto">
+                    Celebrate your milestones and stay motivated to reach your next goal
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white rounded-xl p-6 border border-neutral-100 text-center">
+                    <div class="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-medal text-3xl text-primary-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Marathon Finisher</h3>
+                    <p class="text-neutral-600">Completed a full marathon</p>
+                    <p class="text-primary-500 text-sm mt-2">October 15, 2023</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 border border-neutral-100 text-center">
+                    <div class="w-20 h-20 rounded-full bg-secondary-100 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-book text-3xl text-secondary-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Python Master</h3>
+                    <p class="text-neutral-600">Python certification passed</p>
+                    <p class="text-secondary-500 text-sm mt-2">November 5, 2023</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 border border-neutral-100 text-center">
+                    <div class="w-20 h-20 rounded-full bg-accent-100 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-heart text-3xl text-accent-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Mindful Journey</h3>
+                    <p class="text-neutral-600">30 days of consistent meditation</p>
+                    <p class="text-accent-500 text-sm mt-2">October 30, 2023</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 border border-neutral-100 text-center">
+                    <div class="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-bug text-3xl text-purple-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-neutral-800 mb-2">Bug Eliminator</h3>
+                    <p class="text-neutral-600">Fixed 50+ bugs in open source</p>
+                    <p class="text-purple-500 text-sm mt-2">November 12, 2023</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <button class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center mx-auto">
+                    <i class="fas fa-trophy mr-2"></i> View All Achievements
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-serif font-bold text-neutral-900 mb-4">Frequently Asked Questions</h2>
+                <p class="text-xl text-neutral-600 max-w-3xl mx-auto">
+                    Find answers to common questions about our goal tracking platform
+                </p>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-neutral-50 rounded-xl p-6">
+                    <button class="w-full flex justify-between items-center text-left">
+                        <h3 class="text-lg font-semibold text-neutral-800">How do I set up new goals?</h3>
+                        <i class="fas fa-chevron-down text-primary-500"></i>
+                    </button>
+                    <div class="mt-4 text-neutral-600">
+                        <p>Setting up new goals is simple! Click the "Add Goal" button in the top navigation, fill out the goal details including target, deadline, and progress tracking. You can also add sub-goals and assign them to team members.</p>
+                    </div>
+                </div>
+                
+                <div class="bg-neutral-50 rounded-xl p-6">
+                    <button class="w-full flex justify-between items-center text-left">
+                        <h3 class="text-lg font-semibold text-neutral-800">Can I track multiple goals at once?</h3>
+                        <i class="fas fa-chevron-down text-primary-500"></i>
+                    </button>
+                    <div class="mt-4 text-neutral-600">
+                        <p>Absolutely! Our platform is designed to handle multiple goals simultaneously. You can organize them into categories, set priorities, and track progress for each goal in real-time. The dashboard gives you an overview of all your active goals.</p>
+                    </div>
+                </div>
+                
+                <div class="bg-neutral-50 rounded-xl p-6">
+                    <button class="w-full flex justify-between items-center text-left">
+                        <h3 class="text-lg font-semibold text-neutral-800">How often is my progress updated?</h3>
+                        <i class="fas fa-chevron-down text-primary-500"></i>
+                    </button>
+                    <div class="mt-4 text-neutral-600">
+                        <p>Your progress is updated automatically whenever you check your dashboard. We also support manual updates. For goals that require daily input, you can mark them as complete when you've met the daily requirement. We sync across all your devices in real-time.</p>
+                    </div>
+                </div>
+                
+                <div class="bg-neutral-50 rounded-xl p-6">
+                    <button class="w-full flex justify-between items-center text-left">
+                        <h3 class="text-lg font-semibold text-neutral-800">What if I get behind on my goals?</h3>
+                        <i class="fas fa-chevron-down text-primary-500"></i>
+                    </button>
+                    <div class="mt-4 text-neutral-600">
+                        <p>We're here to help you get back on track! Our platform will show you where you're falling behind and suggest adjustments to your plan. You can extend deadlines, break goals into smaller tasks, or reallocate resources. Consistency is more important than perfection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-r from-primary-500 to-primary-700 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl md:text-4xl font-serif font-bold mb-6">Ready to Achieve Your Goals?</h2>
+            <p class="text-xl max-w-3xl mx-auto mb-10">
+                Join thousands of users who are transforming their personal and professional lives with our goal tracking platform.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button class="bg-white text-primary-600 hover:bg-neutral-100 px-8 py-3 rounded-lg font-medium text-lg transition-colors">
+                    Start Free Trial
+                </button>
+                <button class="bg-transparent border-2 border-white text-white hover:bg-white/10 px-8 py-3 rounded-lg font-medium text-lg transition-colors">
+                    Schedule a Demo
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 bg-neutral-900 text-neutral-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="h-10 w-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                            <i class="fas fa-bullseye text-white text-xl"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-bold text-white">ProgressPath</span>
+                    </div>
+                    <p class="mb-4">
+                        Your personal goal achievement platform designed to help you reach your full potential.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-white">Goal Tracking</a></li>
+                        <li><a href="#" class="hover:text-white">Progress Analytics</a></li>
+                        <li><a href="#" class="hover:text-white">Achievement System</a></li>
+                        <li><a href="#" class="hover:text-white">Team Collaboration</a></li>
+                        <li><a href="#" class="hover:text-white">Reminders & Notifications</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="hover:text-white">Blog</a></li>
+                        <li><a href="#" class="hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white">Tutorials</a></li>
+                        <li><a href="#" class="hover:text-white">Community</a></li>
+                        <li><a href="#" class="hover:text-white">API Documentation</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold text-white mb-4">Contact</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope mt-1 mr-2"></i>
+                            <span>support@progresspath.com</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone mt-1 mr-2"></i>
+                            <span>+1 (555) 123-4567</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-2"></i>
+                            <span>San Francisco, CA</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-neutral-800 mt-12 pt-8 text-center text-sm">
+                <p>&copy; 2023 ProgressPath. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Appear animations
+        const appearItems = document.querySelectorAll('.appear-item');
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1 
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, observerOptions);
+
+        appearItems.forEach(item => {
+            observer.observe(item);
+        });
+
+        // FAQ accordion
+        const faqButtons = document.querySelectorAll('#faq button');
+        faqButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.nextElementSibling;
+                const isOpen = content.style.maxHeight;
+                
+                // Close all other FAQs
+                document.querySelectorAll('#faq > div > div').forEach(faq => {
+                    if (faq !== button.parentElement) {
+                        faq.querySelector('div').style.maxHeight = null;
+                        faq.querySelector('i').classList.remove('fa-chevron-up');
+                        faq.querySelector('i').classList.add('fa-chevron-down');
+                    }
+                });
+                
+                // Toggle current FAQ
+                if (isOpen) {
+                    content.style.maxHeight = null;
+                    button.querySelector('i').classList.remove('fa-chevron-up');
+                    button.querySelector('i').classList.add('fa-chevron-down');
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    button.querySelector('i').classList.remove('fa-chevron-down');
+                    button.querySelector('i').classList.add('fa-chevron-up');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

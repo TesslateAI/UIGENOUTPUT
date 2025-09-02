@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenomeScope | Hyper-Interactive Genomic Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'genome-blue': '#0D9488',
+                        'genome-purple': '#7E22CE',
+                        'genome-cyan': '#06B6D4',
+                        'genome-dark': '#0F172A',
+                        'genome-light': '#F1F5F9',
+                        'genome-gray': '#64748B',
+                        'genome-border': '#E2E8F0',
+                        'genome-highlight': '#8B5CF6',
+                        'annotation-red': '#EF4444',
+                        'annotation-yellow': '#F59E0B',
+                        'annotation-green': '#10B981'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'mono': ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+        
+        :root {
+            --color-bg-main: #F8FAFC;
+            --color-bg-card: #FFFFFF;
+            --color-text-primary: #0F172A;
+            --color-text-secondary: #64748B;
+            --color-border: #E2E8F0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            overflow-x: hidden;
+        }
+        
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+        
+        .genome-viewer {
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+            color: #E2E8F0;
+            min-height: 80vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .genome-track {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        
+        .genome-line {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            width: 100%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .genome-feature {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            padding: 2px 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .genome-feature:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .annotation-layer {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+        
+        .annotation-bar {
+            position: absolute;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            transform-origin: left;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.7; }
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 8px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .filter-card {
+            transition: all 0.3s ease;
+            border: 1px solid var(--color-border);
+        }
+        
+        .filter-card:hover {
+            border-color: #7E22CE;
+            box-shadow: 0 10px 25px -5px rgba(126, 34, 206, 0.1);
+        }
+        
+        .annotation-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .annotation-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #E2E8F0;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #7E22CE;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+        
+        .feature-highlight {
+            position: relative;
+        }
+        
+        .feature-highlight::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(126, 34, 206, 0.1) 0%, transparent 100%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-genome-light text-genome-dark">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-genome-blue flex items-center justify-center">
+                    <i class="fas fa-dna text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-genome-dark">GenomeScope</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button id="mobile-menu-button" class="md:hidden p-2 rounded-md hover:bg-gray-100">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div class="relative">
+                    <input type="text" placeholder="Search genes, variants..." class="pl-10 pr-4 py-2 rounded-lg border border-genome-border focus:outline-none focus:ring-2 focus:ring-genome-blue focus:border-transparent">
+                    <i class="fas fa-search absolute left-3 top-3 text-genome-gray"></i>
+                </div>
+                <div class="hidden md:flex items-center space-x-3">
+                    <button class="px-4 py-2 rounded-lg bg-genome-blue text-white font-medium hover:bg-blue-600 transition">
+                        <i class="fas fa-plus mr-2"></i>New Project
+                    </button>
+                    <div class="w-10 h-10 rounded-full bg-genome-cyan flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- Mobile Sidebar Toggle -->
+        <button id="sidebar-toggle" class="md:hidden fixed top-16 left-4 z-40 p-2 rounded-lg bg-white shadow-md">
+            <i class="fas fa-sliders-h text-xl"></i>
+        </button>
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar fixed md:sticky top-0 left-0 h-screen w-64 bg-white z-30 p-6 overflow-y-auto">
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-genome-dark mb-4">Genome Explorer</h2>
+                
+                <div class="mb-6">
+                    <h3 class="font-semibold text-genome-gray mb-3">Chromosome</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="radio" id="chr1" name="chromosome" class="mr-2" checked>
+                            <label for="chr1" class="text-sm">Chromosome 1</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="chr2" name="chromosome" class="mr-2">
+                            <label for="chr2" class="text-sm">Chromosome 2</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="chr3" name="chromosome" class="mr-2">
+                            <label for="chr3" class="text-sm">Chromosome 3</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="chr4" name="chromosome" class="mr-2">
+                            <label for="chr4" class="text-sm">Chromosome 4</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-semibold text-genome-gray mb-3">Position Range</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm mb-1">Start Position</label>
+                            <input type="number" class="w-full px-3 py-2 border border-genome-border rounded-lg" value="100000">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">End Position</label>
+                            <input type="number" class="w-full px-3 py-2 border border-genome-border rounded-lg" value="200000">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-semibold text-genome-gray mb-3">Annotation Layers</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-genome-blue mr-2"></div>
+                                <span class="text-sm">Genes</span>
+                            </div>
+                            <label class="annotation-toggle">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-genome-purple mr-2"></div>
+                                <span class="text-sm">Regulatory Elements</span>
+                            </div>
+                            <label class="annotation-toggle">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-annotation-red mr-2"></div>
+                                <span class="text-sm">Variants</span>
+                            </div>
+                            <label class="annotation-toggle">
+                                <input type="checkbox">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-annotation-yellow mr-2"></div>
+                                <span class="text-sm">Expressed Regions</span>
+                            </div>
+                            <label class="annotation-toggle">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-semibold text-genome-gray mb-3">Custom Filters</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="filter-coding" class="mr-2" checked>
+                            <label for="filter-coding" class="text-sm">Coding Sequences</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="filter-miRNA" class="mr-2">
+                            <label for="filter-miRNA" class="text-sm">miRNA</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="filter-intron" class="mr-2" checked>
+                            <label for="filter-intron" class="text-sm">Introns</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="filter-UTR" class="mr-2">
+                            <label for="filter-UTR" class="text-sm">UTRs</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="w-full py-3 rounded-lg bg-genome-blue text-white font-medium hover:bg-blue-600 transition">
+                    Apply Filters
+                </button>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t border-genome-border">
+                <h3 class="font-semibold text-genome-gray mb-3">Recent Projects</h3>
+                <div class="space-y-3">
+                    <div class="filter-card p-3 rounded-lg cursor-pointer">
+                        <div class="font-medium">Human Genome Project</div>
+                        <div class="text-sm text-genome-gray">Chromosome 1 • 245,342 bp</div>
+                    </div>
+                    <div class="filter-card p-3 rounded-lg cursor-pointer">
+                        <div class="font-medium">Mouse Genome</div>
+                        <div class="text-sm text-genome-gray">Chromosome 3 • 187,210 bp</div>
+                    </div>
+                    <div class="filter-card p-3 rounded-lg cursor-pointer">
+                        <div class="font-medium">Yeast Genome</div>
+                        <div class="text-sm text-genome-gray">Chromosome 2 • 142,358 bp</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 md:ml-64">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-genome-dark">Chromosome 1</h2>
+                        <p class="text-genome-gray">Human Genome Reference Sequence</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="px-4 py-2 rounded-lg border border-genome-border font-medium hover:bg-gray-100">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                        <button class="px-4 py-2 rounded-lg bg-genome-blue text-white font-medium hover:bg-blue-600">
+                            <i class="fas fa-plus mr-2"></i>New View
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6 flex justify-between items-center">
+                    <div class="text-sm text-genome-gray">
+                        <span class="font-medium">100,000</span> - 
+                        <span class="font-medium">200,000</span> base pairs
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <span class="text-sm mr-2">Zoom:</span>
+                            <div class="flex">
+                                <button class="p-2 rounded-lg hover:bg-gray-100">
+                                    <i class="fas fa-search-plus text-lg"></i>
+                                </button>
+                                <button class="p-2 rounded-lg hover:bg-gray-100">
+                                    <i class="fas fa-search-minus text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-sm mr-2">Position:</span>
+                            <input type="text" value="150,000" class="px-3 py-1 rounded-lg border border-genome-border text-sm">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Genome Viewer -->
+                <div class="genome-viewer rounded-xl overflow-hidden shadow-lg">
+                    <div class="genome-track">
+                        <div class="genome-line"></div>
+                        
+                        <!-- Annotation bars -->
+                        <div class="annotation-layer" style="top: 40%;">
+                            <div class="annotation-bar" style="left: 20%; width: 40%;"></div>
+                        </div>
+                        <div class="annotation-layer" style="top: 60%;">
+                            <div class="annotation-bar" style="left: 30%; width: 30%;"></div>
+                        </div>
+                        <div class="annotation-layer" style="top: 80%;">
+                            <div class="annotation-bar" style="left: 15%; width: 25%;"></div>
+                        </div>
+                        
+                        <!-- Features -->
+                        <div class="genome-feature" style="top: 40%; left: 25%; transform: translateX(-50%);">
+                            <div class="text-xs">BRCA1</div>
+                        </div>
+                        <div class="genome-feature" style="top: 60%; left: 35%; transform: translateX(-50%);">
+                            <div class="text-xs">CFTR</div>
+                        </div>
+                        <div class="genome-feature" style="top: 80%; left: 15%; transform: translateX(-50%);">
+                            <div class="text-xs">APOE</div>
+                        </div>
+                        <div class="genome-feature" style="top: 40%; left: 10%; transform: translateX(-50%);">
+                            <div class="text-xs">INS</div>
+                        </div>
+                        <div class="genome-feature" style="top: 60%; left: 50%; transform: translateX(-50%);">
+                            <div class="text-xs">TP53</div>
+                        </div>
+                        <div class="genome-feature" style="top: 80%; left: 40%; transform: translateX(-50%);">
+                            <div class="text-xs">EGFR</div>
+                        </div>
+                    </div>
+                    
+                    <div class="zoom-controls">
+                        <button class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30">
+                            <i class="fas fa-plus text-sm"></i>
+                        </button>
+                        <button class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30">
+                            <i class="fas fa-minus text-sm"></i>
+                        </button>
+                        <button class="p-2 rounded-lg bg-white bg-opacity-20 hover:bg-opacity-30">
+                            <i class="fas fa-expand text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Feature Details -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-lg bg-genome-blue bg-opacity-10 flex items-center justify-center mr-4">
+                                <i class="fas fa-gene text-genome-blue text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">BRCA1 Gene</h3>
+                                <p class="text-genome-gray text-sm">150,000 - 160,000 bp</p>
+                            </div>
+                        </div>
+                        <p class="text-genome-gray mb-4">BRCA1 (BReast Cancer Type 1) is a tumor suppressor gene that plays a crucial role in DNA repair and genomic stability. Mutations in BRCA1 are associated with increased risk of breast and ovarian cancer.</p>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-lg border border-genome-border text-sm">Variant Analysis</button>
+                            <button class="px-3 py-1 rounded-lg bg-genome-blue text-white text-sm">Sequences</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-lg bg-genome-purple bg-opacity-10 flex items-center justify-center mr-4">
+                                <i class="fas fa-microscope text-genome-purple text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">Regulatory Region</h3>
+                                <p class="text-genome-gray text-sm">145,000 - 150,000 bp</p>
+                            </div>
+                        </div>
+                        <p class="text-genome-gray mb-4">This region contains several regulatory elements including enhancers and promoters that control the expression of nearby genes. It shows high conservation across primate species.</p>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-lg border border-genome-border text-sm">Sequence</button>
+                            <button class="px-3 py-1 rounded-lg bg-genome-purple text-white text-sm">Regulatory Analysis</button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-lg bg-annotation-red bg-opacity-10 flex items-center justify-center mr-4">
+                                <i class="fas fa-exchange-alt text-annotation-red text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">SNP Variant</h3>
+                                <p class="text-genome-gray text-sm">155,000 bp</p>
+                            </div>
+                        </div>
+                        <p class="text-genome-gray mb-4">rs1802040 (C/T) in the CYP1A1 gene. This variant has been associated with increased cancer risk and altered drug metabolism. T allele is more common in East Asian populations.</p>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-lg border border-genome-border text-sm">Details</button>
+                            <button class="px-3 py-1 rounded-lg bg-annotation-red text-white text-sm">Impact Analysis</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const sidebar = document.getElementById('sidebar');
+            
+            if (mobileMenuButton && sidebar) {
+                mobileMenuButton.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+            
+            // Toggle sidebar on mobile
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+            
+            // Feature selection
+            const features = document.querySelectorAll('.genome-feature');
+            features.forEach(feature => {
+                feature.addEventListener('click', function() {
+                    features.forEach(f => f.classList.remove('feature-highlight'));
+                    this.classList.add('feature-highlight');
+                    
+                    // In a real app, this would load feature details
+                    const text = this.querySelector('div').textContent;
+                    alert(`Details for ${text} gene/feature would appear here in a full implementation.`);
+                });
+            });
+            
+            // Zoom controls
+            const zoomIn = document.querySelector('.genome-viewer .fa-plus').closest('button');
+            const zoomOut = document.querySelector('.genome-viewer .fa-minus').closest('button');
+            const zoomOutAll = document.querySelector('.genome-viewer .fa-expand').closest('button');
+            
+            if (zoomIn) zoomIn.addEventListener('click', () => alert('Zoom in functionality'));
+            if (zoomOut) zoomOut.addEventListener('click', () => alert('Zoom out functionality'));
+            if (zoomOutAll) zoomOutAll.addEventListener('click', () => alert('Zoom out to full view'));
+        });
+    </script>
+</body>
+</html>

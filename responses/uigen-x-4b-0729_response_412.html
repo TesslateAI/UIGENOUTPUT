@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteZen - Your Digital Notebook</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            50: '#f8faf9fa',
+                            100: '#e9ecef',
+                            200: '#dee2e6',
+                            300: '#ced4da',
+                            400: '#adb5bd',
+                            500: '#6c757d',
+                            600: '#495057',
+                            700: '#343a40',
+                            800: '#212529',
+                            900: '#121416',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .note-card:hover {
+            background-color: rgba(30, 41, 59, 0.7);
+            transform: translateY(-2px);
+        }
+        
+        .editor-toolbar button:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+        
+        .editor-content {
+            min-height: calc(100vh - 200px);
+        }
+        
+        .folder-icon {
+            transition: all 0.2s ease;
+        }
+        
+        .folder-icon:hover {
+            transform: scale(1.1);
+            color: #0ea5e9;
+        }
+        
+        .note-icon {
+            transition: all 0.2s ease;
+        }
+        
+        .note-icon:hover {
+            transform: scale(1.1);
+            color: #14b8a6;
+        }
+        
+        .tag {
+            transition: all 0.2s ease;
+        }
+        
+        .tag:hover {
+            background-color: rgba(30, 41, 59, 0.7);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- Top Navigation -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+                <i class="fas fa-notebook text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold text-white">NoteZen</h1>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <input type="text" placeholder="Search notes..." class="bg-slate-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-64">
+                <i class="fas fa-search absolute right-3 top-3 text-slate-400"></i>
+            </div>
+            <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition">
+                <i class="fas fa-plus"></i>
+                <span>New Note</span>
+            </button>
+            <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center">
+                <i class="fas fa-user text-slate-300"></i>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content Area -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+            <!-- Folders Section -->
+            <div class="p-4 border-b border-slate-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-white">Folders</h2>
+                    <button class="text-primary-400 hover:text-primary-300">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="flex items-center space-x-3 p-2 rounded-lg bg-slate-700">
+                        <div class="folder-icon text-primary-400">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <span class="text-white">All Notes</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-700 cursor-pointer">
+                        <div class="folder-icon text-accent-400">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <span class="text-white">Personal</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-700 cursor-pointer">
+                        <div class="folder-icon text-amber-400">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <span class="text-white">Work</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-700 cursor-pointer">
+                        <div class="folder-icon text-purple-400">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <span class="text-white">Ideas</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-700 cursor-pointer">
+                        <div class="folder-icon text-rose-400">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <span class="text-white">To-Do</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tags Section -->
+            <div class="p-4 border-b border-slate-700">
+                <h2 class="text-lg font-semibold text-white mb-4">Tags</h2>
+                
+                <div class="flex flex-wrap gap-2">
+                    <div class="tag bg-slate-700 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                        <i class="fas fa-tag"></i>
+                        <span>Important</span>
+                    </div>
+                    <div class="tag bg-slate-700 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                        <i class="fas fa-tag"></i>
+                        <span>Research</span>
+                    </div>
+                    <div class="tag bg-slate-700 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                        <i class="fas fa-tag"></i>
+                        <span>Personal</span>
+                    </div>
+                    <div class="tag bg-slate-700 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                        <i class="fas fa-tag"></i>
+                        <span>Work</span>
+                    </div>
+                    <div class="tag bg-slate-700 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                        <i class="fas fa-tag"></i>
+                        <span>Ideas</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Notes -->
+            <div class="flex-1 overflow-y-auto scrollbar-hide">
+                <h2 class="text-lg font-semibold text-white mb-4">Recent Notes</h2>
+                
+                <div class="space-y-2">
+                    <div class="note-card p-3 rounded-lg bg-slate-700 cursor-pointer fade-in">
+                        <div class="flex items-start space-x-3">
+                            <div class="note-icon text-primary-400">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-white">Project Brainstorming</h3>
+                                <p class="text-sm text-slate-400 truncate">Ideas for the new marketing campaign and potential collaborations</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-xs text-slate-500 mt-2">
+                            <span>Today, 10:30 AM</span>
+                            <span class="mx-2">•</span>
+                            <span>Work</span>
+                        </div>
+                    </div>
+                    
+                    <div class="note-card p-3 rounded-lg bg-slate-800 cursor-pointer fade-in">
+                        <div class="flex items-start space-x-3">
+                            <div class="note-icon text-amber-400">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-white">Shopping List</h3>
+                                <p class="text-sm text-slate-400 truncate">Groceries and household items to buy this weekend</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-xs text-slate-500 mt-2">
+                            <span>Yesterday, 6:15 PM</span>
+                            <span class="mx-2">•</span>
+                            <span>Personal</span>
+                        </div>
+                    </div>
+                    
+                    <div class="note-card p-3 rounded-lg bg-slate-800 cursor-pointer fade-in">
+                        <div class="flex items-start space-x-3">
+                            <div class="note-icon text-purple-400">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-white">Meeting Notes</h3>
+                                <p class="text-sm text-slate-400 truncate">Key decisions from the team meeting about Q3 goals</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-xs text-slate-500 mt-2">
+                            <span>Jun 12, 2:45 PM</span>
+                            <span class="mx-2">•</span>
+                            <span>Work</span>
+                        </div>
+                    </div>
+                    
+                    <div class="note-card p-3 rounded-lg bg-slate-800 cursor-pointer fade-in">
+                        <div class="flex items-start space-x-3">
+                            <div class="note-icon text-rose-400">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-white">Book Recommendations</h3>
+                                <p class="text-sm text-slate-400 truncate">List of books to read this summer based on interests</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-xs text-slate-500 mt-2">
+                            <span>Jun 10, 8:20 AM</span>
+                            <span class="mx-2">•</span>
+                            <span>Ideas</span>
+                        </div>
+                    </div>
+                    
+                    <div class="note-card p-3 rounded-lg bg-slate-800 cursor-pointer fade-in">
+                        <div class="flex items-start space-x-3">
+                            <div class="note-icon text-primary-400">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-white">Vacation Planning</h3>
+                                <p class="text-sm text-slate-400 truncate">Itinerary and packing list for summer vacation</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-xs text-slate-500 mt-2">
+                            <span>Jun 5, 4:30 PM</span>
+                            <span class="mx-2">•</span>
+                            <span>Personal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Editor Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Editor Toolbar -->
+            <div class="editor-toolbar bg-slate-800 border-b border-slate-700 p-2 flex items-center space-x-1">
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-bold text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-italic text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-underline text-slate-300"></i>
+                </button>
+                <div class="w-px h-6 bg-slate-700 mx-2"></div>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-list-ul text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-list-ol text-slate-300"></i>
+                </button>
+                <div class="w-px h-6 bg-slate-700 mx-2"></div>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-link text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-image text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-code text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-quote-right text-slate-300"></i>
+                </button>
+                <div class="w-px h-6 bg-slate-700 mx-2"></div>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-save text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-undo text-slate-300"></i>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-slate-700">
+                    <i class="fas fa-redo text-slate-300"></i>
+                </button>
+            </div>
+            
+            <!-- Editor Content -->
+            <div class="editor-content flex-1 overflow-y-auto p-6">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-6">
+                        <input type="text" value="Project Brainstorming" class="text-3xl font-bold text-white w-full bg-transparent border-b border-transparent focus:border-primary-500 focus:outline-none pb-2">
+                        <div class="flex items-center text-slate-400 text-sm mt-1">
+                            <span>Work</span>
+                            <span class="mx-2">•</span>
+                            <span>Last edited: Today at 10:30 AM</span>
+                        </div>
+                    </div>
+                    
+                    <div class="prose prose-invert max-w-none">
+                        <p class="mb-4">Here are some initial ideas for our new marketing campaign:</p>
+                        
+                        <h3 class="text-xl font-semibold mt-6 mb-3">Campaign Ideas</h3>
+                        
+                        <ul class="list-disc pl-6 mb-4 space-y-2">
+                            <li>Launch a social media challenge with user-generated content</li>
+                            <li>Host an interactive webinar with industry experts</li>
+                            <li>Create a video series showcasing customer success stories</li>
+                            <li>Develop a downloadable checklist for new customers</li>
+                        </ul>
+                        
+                        <h3 class="text-xl font-semibold mt-6 mb-3">Potential Collaborations</h3>
+                        
+                        <ul class="list-disc pl-6 mb-4 space-y-2">
+                            <li>Partner with a local business for joint events</li>
+                            <li>Co-host a workshop with a complementary service provider</li>
+                            <li>Collaborate on a podcast episode discussing industry trends</li>
+                        </ul>
+                        
+                        <h3 class="text-xl font-semibold mt-6 mb-3">Timeline</h3>
+                        
+                        <div class="bg-slate-800 rounded-lg p-4 mb-4">
+                            <div class="flex items-center mb-2">
+                                <div class="w-4 h-4 rounded-full bg-primary-500 mr-2"></div>
+                                <span class="text-slate-300">Research Phase</span>
+                            </div>
+                            <div class="flex items-center mb-2">
+                                <div class="w-4 h-4 rounded-full bg-primary-500 mr-2"></div>
+                                <span class="text-slate-300">Ideation</span>
+                            </div>
+                            <div class="flex items-center mb-2">
+                                <div class="w-4 h-4 rounded-full bg-primary-500 mr-2"></div>
+                                <span class="text-slate-300">Concept Development</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-primary-500 mr-2"></div>
+                                <span class="text-slate-300">Campaign Launch</span>
+                            </div>
+                        </div>
+                        
+                        <p class="mt-4">We'll need to consider budget allocations and potential partnerships during the planning phase. Let's schedule a meeting with the design team to discuss visual concepts.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="bg-slate-800 border-t border-slate-700 p-2 text-sm text-slate-400 flex justify-between">
+                <div>Auto-saved just now</div>
+                <div>Words: 347 | Characters: 2,145</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-6 right-6">
+        <button class="w-14 h-14 rounded-full bg-primary-600 flex items-center justify-center shadow-lg hover:bg-primary-700 transition">
+            <i class="fas fa-plus text-white text-xl"></i>
+        </button>
+    </div>
+    
+    <script>
+        // Simple animations and interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Note card selection
+            const noteCards = document.querySelectorAll('.note-card');
+            noteCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    noteCards.forEach(c => c.classList.remove('bg-slate-700'));
+                    this.classList.add('bg-slate-700');
+                });
+            });
+            
+            // Toggle editor content
+            const editorContent = document.querySelector('.editor-content');
+            editorContent.addEventListener('click', function(e) {
+                if (e.target.closest('.prose')) {
+                    e.preventDefault();
+                    this.classList.toggle('slide-in');
+                }
+            });
+            
+            // Simulate note selection
+            setTimeout(() => {
+                noteCards[0].classList.add('bg-slate-700');
+            }, 300);
+        });
+    </script>
+</body>
+</html>

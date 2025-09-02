@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twittor - Social Media Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'twitter-blue': '#1DA1F2',
+                        'twitter-light': '#F5F5F5',
+                        'twitter-dark': '#1A1A1A',
+                        'twitter-gray': '#4B5563',
+                        'twitter-light-gray': '#E5E7EB',
+                        'twitter-accent': '#10B981',
+                        'twitter-purple': '#8B5CF6',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --token-white: rgb(255, 255, 255);
+            --token-black: rgb(0, 0, 0);
+            --token-primary: rgb(29, 161, 242);
+            --token-light-gray: rgb(238, 238, 238);
+            --token-medium-gray: rgb(204, 204, 204);
+            --token-dark-gray: rgb(102, 102, 102);
+            --token-nav-bg: rgba(240, 240, 240, 0.85);
+            --token-card-bg: rgba(255, 255, 255, 0.9);
+            --token-accent-green: rgb(16, 185, 129);
+            --token-accent-purple: rgb(139, 92, 246);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F5F5F5;
+            color: var(--token-black);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tweet-shadow {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .profile-bg {
+            background: linear-gradient(135deg, #1DA1F2 0%, #8B5CF6 100%);
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #EF4444;
+            border: 2px solid white;
+        }
+
+        .thread-indicator {
+            position: relative;
+        }
+
+        .thread-indicator::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -10px;
+            width: 10px;
+            height: 10px;
+            background-color: #1DA1F2;
+            border-radius: 50%;
+        }
+
+        .media-upload-area {
+            border: 2px dashed #D1D5DB;
+            transition: all 0.3s ease;
+        }
+
+        .media-upload-area:hover {
+            border-color: #1DA1F2;
+            background-color: rgba(29, 161, 242, 0.05);
+        }
+
+        .tweet-actions:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .notification-item:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .animate-pulse-slow {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-twitter-light min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm fixed w-full z-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-twitter-blue flex items-center justify-center">
+                            <i class="fas fa-bird text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold text-twitter-dark">Twittor</span>
+                    </a>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue transition-colors">Home</a>
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue transition-colors">Explore</a>
+                    <a href="#" class="text-twitter-blue font-medium transition-colors">Notifications</a>
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue transition-colors">Messages</a>
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue transition-colors">Profile</a>
+                </div>
+
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <button class="relative p-2 rounded-full hover:bg-twitter-light-gray">
+                        <i class="fas fa-bell text-twitter-gray text-xl"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span class="font-semibold text-twitter-dark">JD</span>
+                        </div>
+                        <span class="hidden md:block text-twitter-dark font-medium">John Doe</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 pt-20 pb-10">
+        <!-- Profile Header -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 animate-on-scroll">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="relative mb-4 md:mb-0 md:mr-6">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-twitter-blue to-twitter-purple flex items-center justify-center text-white text-4xl font-bold">
+                        JD
+                    </div>
+                    <div class="absolute bottom-2 right-0 w-8 h-8 rounded-full bg-twitter-accent border-2 border-white flex items-center justify-center">
+                        <i class="fas fa-plus text-white text-sm"></i>
+                    </div>
+                </div>
+                
+                <div class="text-center md:text-left flex-1">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold text-twitter-dark">John Doe</h1>
+                            <p class="text-twitter-gray">@johndoe · <span class="text-twitter-dark">2h</span></p>
+                        </div>
+                        <div class="mt-4 md:mt-0 flex space-x-3">
+                            <button class="px-4 py-2 bg-twitter-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                Follow
+                            </button>
+                            <button class="px-4 py-2 bg-white border border-twitter-light-gray rounded-lg hover:bg-twitter-light transition-colors">
+                                Message
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-center md:justify-start space-x-6 text-twitter-gray">
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-dark mr-1">1.2K</span>
+                            <span>Followers</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-dark mr-1">456</span>
+                            <span>Following</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-dark mr-1">87</span>
+                            <span>Tweets</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="font-bold text-twitter-dark mr-1">124</span>
+                            <span>Media</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Feed -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Create Tweet -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                    <h2 class="text-xl font-bold text-twitter-dark mb-4">Create a new tweet</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="media-upload-area rounded-lg p-8 text-center cursor-pointer">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-twitter-gray mb-2"></i>
+                            <p class="text-twitter-gray">Drag & drop images or videos here</p>
+                            <p class="text-sm text-twitter-gray mt-1">or click to browse</p>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <div class="flex space-x-2">
+                                <button class="p-2 rounded-full hover:bg-twitter-light-gray">
+                                    <i class="fas fa-image text-twitter-gray"></i>
+                                </button>
+                                <button class="p-2 rounded-full hover:bg-twitter-light-gray">
+                                    <i class="fas fa-video text-twitter-gray"></i>
+                                </button>
+                                <button class="p-2 rounded-full hover:bg-twitter-light-gray">
+                                    <i class="fas fa-map-marker-alt text-twitter-gray"></i>
+                                </button>
+                            </div>
+                            <button class="ml-auto px-4 py-2 bg-twitter-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                Tweet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tweet Thread -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                            <span class="font-semibold text-twitter-dark">JD</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-twitter-dark">John Doe</h3>
+                            <p class="text-sm text-twitter-gray">@johndoe · <span class="text-twitter-dark">2 hours ago</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="prose max-w-none text-twitter-dark">
+                        <p>Just launched my new website! Check it out and let me know what you think. #design #webdev</p>
+                        
+                        <div class="mt-4 grid grid-cols-2 gap-2">
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 flex items-center justify-center">
+                                    <i class="fas fa-image text-4xl text-gray-500"></i>
+                                </div>
+                            </div>
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gradient-to-br from-green-200 to-teal-200 flex items-center justify-center">
+                                    <i class="fas fa-image text-4xl text-gray-500"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex space-x-6">
+                        <button class="tweet-actions flex items-center text-twitter-gray hover:text-twitter-blue">
+                            <i class="fas fa-thumbs-up mr-1"></i> 124
+                        </button>
+                        <button class="tweet-actions flex items-center text-twitter-gray hover:text-twitter-blue">
+                            <i class="fas fa-comment mr-1"></i> 24
+                        </button>
+                        <button class="tweet-actions flex items-center text-twitter-gray hover:text-twitter-blue">
+                            <i class="fas fa-retweet mr-1"></i> 32
+                        </button>
+                        <button class="tweet-actions flex items-center text-twitter-gray hover:text-twitter-blue">
+                            <i class="fas fa-share mr-1"></i> Share
+                        </button>
+                    </div>
+                    
+                    <!-- Reply Thread -->
+                    <div class="mt-6 pl-6 border-l-2 border-twitter-light-gray">
+                        <div class="flex items-start">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3 mt-1">
+                                <span class="font-semibold text-twitter-dark text-xs">AS</span>
+                            </div>
+                            <div>
+                                <div class="bg-white rounded-lg p-4 tweet-shadow">
+                                    <div class="flex items-center mb-2">
+                                        <h4 class="font-bold text-twitter-dark">Alex Smith</h4>
+                                        <span class="text-xs text-twitter-gray ml-2">@alexsmith · 1h</span>
+                                    </div>
+                                    <p class="text-sm text-twitter-dark">This looks amazing! The color scheme is perfect.</p>
+                                    
+                                    <div class="mt-3 flex space-x-3">
+                                        <button class="text-xs text-twitter-gray hover:text-twitter-blue">Reply</button>
+                                        <button class="text-xs text-twitter-gray hover:text-twitter-blue">Retweet</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Nested Reply -->
+                                <div class="mt-4 pl-6 border-l-2 border-twitter-light-gray">
+                                    <div class="flex items-start">
+                                        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3 mt-1">
+                                            <span class="font-semibold text-twitter-dark text-xs">MJ</span>
+                                        </div>
+                                        <div>
+                                            <div class="bg-white rounded-lg p-4 tweet-shadow">
+                                                <div class="flex items-center mb-2">
+                                                    <h4 class="font-bold text-twitter-dark">Maria Johnson</h4>
+                                                    <span class="text-xs text-twitter-gray ml-2">@mariaj · 45m</span>
+                                                </div>
+                                                <p class="text-sm text-twitter-dark">Love the new design! Where did you get the fonts?</p>
+                                                
+                                                <div class="mt-3 flex space-x-3">
+                                                    <button class="text-xs text-twitter-gray hover:text-twitter-blue">Reply</button>
+                                                    <button class="text-xs text-twitter-gray hover:text-twitter-blue">Retweet</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Sidebar -->
+            <div class="space-y-6">
+                <!-- Notifications -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-twitter-dark">Notifications</h2>
+                        <button class="text-twitter-blue text-sm font-medium">Mark all as read</button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Notification Item -->
+                        <div class="notification-item flex items-start p-3 rounded-lg bg-blue-50 border border-blue-100">
+                            <div class="mr-3 mt-1">
+                                <div class="w-8 h-8 rounded-full bg-twitter-blue flex items-center justify-center">
+                                    <i class="fas fa-retweet text-white text-sm"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">Sarah Johnson <span class="text-twitter-gray">retweeted</span> your tweet</p>
+                                <p class="text-sm text-twitter-gray mt-1">"This is exactly what I needed for my project!"</p>
+                                <p class="text-xs text-twitter-gray mt-2">2 hours ago</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Item -->
+                        <div class="notification-item flex items-start p-3 rounded-lg">
+                            <div class="mr-3 mt-1">
+                                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                    <i class="fas fa-user-plus text-purple-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">Michael Chen</p>
+                                <p class="text-sm text-twitter-gray">started following you</p>
+                                <p class="text-xs text-twitter-gray mt-2">4 hours ago</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Item -->
+                        <div class="notification-item flex items-start p-3 rounded-lg">
+                            <div class="mr-3 mt-1">
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i class="fas fa-comment text-green-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">Design Community</p>
+                                <p class="text-sm text-twitter-gray">commented on your post</p>
+                                <p class="text-xs text-twitter-gray mt-2">6 hours ago</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Item -->
+                        <div class="notification-item flex items-start p-3 rounded-lg">
+                            <div class="mr-3 mt-1">
+                                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                                    <i class="fas fa-trophy text-yellow-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">You earned a new badge</p>
+                                <p class="text-sm text-twitter-gray">"Design Enthusiast" for 100 followers</p>
+                                <p class="text-xs text-twitter-gray mt-2">Yesterday</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trending Topics -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                    <h2 class="text-xl font-bold text-twitter-dark mb-4">Trending Topics</h2>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-twitter-blue mr-2"></div>
+                                <span class="font-medium">#WebDesign</span>
+                            </div>
+                            <span class="text-sm text-twitter-gray">24.5K tweets</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                                <span>#UIUX</span>
+                            </div>
+                            <span class="text-sm text-twitter-gray">18.3K tweets</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                <span>#Frontend</span>
+                            </div>
+                            <span class="text-sm text-twitter-gray">15.7K tweets</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                <span>#JavaScript</span>
+                            </div>
+                            <span class="text-sm text-twitter-gray">12.9K tweets</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-pink-500 mr-2"></div>
+                                <span>#React</span>
+                            </div>
+                            <span class="text-sm text-twitter-gray">9.4K tweets</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popular Accounts -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                    <h2 class="text-xl font-bold text-twitter-dark mb-4">Popular Accounts</h2>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                <span class="font-semibold text-twitter-dark">DS</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">DesignStudio</p>
+                                <p class="text-sm text-twitter-gray">@designstudio · 24.5K followers</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                <span class="font-semibold text-twitter-dark">TC</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">TechCrunch</p>
+                                <p class="text-sm text-twitter-gray">@techcrunch · 42.1K followers</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                <span class="font-semibold text-twitter-dark">ID</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">InDesign</p>
+                                <p class="text-sm text-twitter-gray">@indesigntips · 18.7K followers</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-2 hover:bg-twitter-light-gray rounded-lg">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                                <span class="font-semibold text-twitter-dark">WD</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-twitter-dark">WebDev</p>
+                                <p class="text-sm text-twitter-gray">@webdevjournal · 27.3K followers</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-twitter-light-gray py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <a href="#" class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 rounded-full bg-twitter-blue flex items-center justify-center">
+                            <i class="fas fa-bird text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold text-twitter-dark">Twittor</span>
+                    </a>
+                    <p class="text-twitter-gray text-sm">A modern social media platform for sharing ideas and connecting with like-minded people.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-twitter-dark mb-4">Platform</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Home</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Explore</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Notifications</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Messages</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-twitter-dark mb-4">Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Help Center</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Blog</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Developers</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">API Status</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-twitter-dark mb-4">Company</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">About</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Careers</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Contact</a></li>
+                        <li><a href="#" class="text-twitter-gray hover:text-twitter-blue text-sm">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-twitter-light-gray mt-8 pt-8 text-center text-twitter-gray text-sm">
+                <p>© 2023 Twittor. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animation on scroll
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => observer.observe(el));
+
+            // Simulate new tweet
+            setTimeout(() => {
+                const notifications = document.querySelector('.notification-item:first-child');
+                const newNotification = document.createElement('div');
+                newNotification.className = 'notification-item flex items-start p-3 rounded-lg';
+                newNotification.innerHTML = `
+                    <div class="mr-3 mt-1">
+                        <div class="w-8 h-8 rounded-full bg-twitter-blue flex items-center justify-center">
+                            <i class="fas fa-user-plus text-white text-sm"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-medium text-twitter-dark">You have a new follower</p>
+                        <p class="text-sm text-twitter-gray">Jane Smith started following you</p>
+                        <p class="text-xs text-twitter-gray mt-2">Just now</p>
+                    </div>
+                `;
+                notifications.parentNode.insertBefore(newNotification, notifications);
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

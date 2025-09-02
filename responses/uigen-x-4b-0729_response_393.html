@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamSync - Collaboration Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#0ea5e9',
+                        accent: '#f59e0b',
+                        dark: '#1e293b',
+                        light: '#f8fafc',
+                        success: '#10b981',
+                        warning: '#f97316',
+                        info: '#3b82f6'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-secondary: #0ea5e9;
+            --color-accent: #f59e0b;
+            --color-dark: #1e293b;
+            --color-light: #f8fafc;
+            --color-success: #10b981;
+            --color-warning: #f97316;
+            --color-info: #3b82f6;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-light);
+            color: var(--color-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .chat-bubble {
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .document-preview {
+            transition: all 0.3s ease;
+        }
+        
+        .document-preview:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .active-tab {
+            position: relative;
+            color: var(--color-primary);
+        }
+        
+        .active-tab::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--color-primary);
+            border-radius: 3px;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <button id="menu-toggle" class="lg:hidden text-primary mr-4">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold mr-3">TS</div>
+                    <h1 class="text-xl font-bold text-primary">TeamSync</h1>
+                </div>
+            </div>
+            
+            <div class="hidden lg:flex items-center space-x-6">
+                <a href="#" class="text-dark hover:text-primary font-medium">Dashboard</a>
+                <a href="#" class="text-dark hover:text-primary font-medium">Projects</a>
+                <a href="#" class="text-dark hover:text-primary font-medium">Calendar</a>
+                <a href="#" class="text-dark hover:text-primary font-medium">Team</a>
+                <div class="relative">
+                    <button class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                        <i class="fas fa-bell text-gray-600"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-success flex items-center justify-center text-white font-bold mr-2">JD</div>
+                    <span class="font-medium">John Doe</span>
+                </div>
+            </div>
+            
+            <div class="lg:hidden">
+                <button class="text-dark">
+                    <i class="fas fa-cog text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="sidebar fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-40 p-4">
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold mr-3">TS</div>
+                <h1 class="text-xl font-bold text-primary">TeamSync</h1>
+            </div>
+            <button id="close-menu" class="text-dark">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <nav class="space-y-2">
+            <a href="#" class="block py-2 px-4 rounded-lg bg-primary text-white font-medium">Dashboard</a>
+            <a href="#" class="block py-2 px-4 rounded-lg hover:bg-gray-100">Projects</a>
+            <a href="#" class="block py-2 px-4 rounded-lg hover:bg-gray-100">Calendar</a>
+            <a href="#" class="block py-2 px-4 rounded-lg hover:bg-gray-100">Team</a>
+            <a href="#" class="block py-2 px-4 rounded-lg hover:bg-gray-100">Documents</a>
+            <a href="#" class="block py-2 px-4 rounded-lg hover:bg-gray-100">Meetings</a>
+            <a href="#" class="block py-2 px-4 rounded-lg hover:bg-gray-100">Settings</a>
+        </nav>
+        
+        <div class="mt-8 pt-4 border-t border-gray-200">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-success flex items-center justify-center text-white font-bold mr-3">JD</div>
+                <div>
+                    <p class="font-medium">John Doe</p>
+                    <p class="text-sm text-gray-500">john@example.com</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-dark">Team Collaboration Dashboard</h1>
+            <p class="text-gray-600">Manage projects, collaborate in real-time, and communicate with your team</p>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Active Projects</p>
+                        <p class="text-2xl font-bold mt-1">12</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-folder text-primary text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-primary h-2 rounded-full" style="width: 75%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll" data-delay="100">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Team Members</p>
+                        <p class="text-2xl font-bold mt-1">24</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-users text-success text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-success h-2 rounded-full" style="width: 90%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll" data-delay="200">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Tasks Completed</p>
+                        <p class="text-2xl font-bold mt-1">142</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <i class="fas fa-tasks text-accent text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-accent h-2 rounded-full" style="width: 65%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll" data-delay="300">
+                <div class="flex justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">Upcoming Meetings</p>
+                        <p class="text-2xl font-bold mt-1">3</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-calendar-alt text-purple-500 text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-purple-500 h-2 rounded-full" style="width: 40%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Shared Documents -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-dark">Shared Documents</h2>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                            <i class="fas fa-plus mr-2"></i> Add Document
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Document 1 -->
+                        <div class="document-preview bg-white border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-primary bg-primary-light rounded mr-2">Design</span>
+                                        <h3 class="font-semibold text-gray-800">Project Roadmap 2023</h3>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="text-gray-400 hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-red-500">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-gray-500 text-sm mt-2">Last edited by Sarah Johnson 2 hours ago</p>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-500 text-xs font-bold mr-2">SM</div>
+                                    <span class="text-xs text-gray-500">Sarah Miller</span>
+                                </div>
+                                <div class="text-xs text-gray-500">2.4 MB</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Document 2 -->
+                        <div class="document-preview bg-white border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-success bg-success-light rounded mr-2">Finance</span>
+                                        <h3 class="font-semibold text-gray-800">Q3 Budget Report</h3>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="text-gray-400 hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-red-500">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-gray-500 text-sm mt-2">Last edited by Michael Chen 1 day ago</p>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xs font-bold mr-2">MC</div>
+                                    <span class="text-xs text-gray-500">Michael Chen</span>
+                                </div>
+                                <div class="text-xs text-gray-500">1.8 MB</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Document 3 -->
+                        <div class="document-preview bg-white border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-warning bg-warning-light rounded mr-2">Development</span>
+                                        <h3 class="font-semibold text-gray-800">API Integration Guide</h3>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="text-gray-400 hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-red-500">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-gray-500 text-sm mt-2">Last edited by David Wilson 3 days ago</p>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 text-xs font-bold mr-2">DW</div>
+                                    <span class="text-xs text-gray-500">David Wilson</span>
+                                </div>
+                                <div class="text-xs text-gray-500">3.1 MB</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Document 4 -->
+                        <div class="document-preview bg-white border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="inline-block px-2 py-1 text-xs font-semibold text-info bg-info-light rounded mr-2">Marketing</span>
+                                        <h3 class="font-semibold text-gray-800">Campaign Strategy</h3>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="text-gray-400 hover:text-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-red-500">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-gray-500 text-sm mt-2">Last edited by Emma Thompson 5 days ago</p>
+                            </div>
+                            <div class="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 text-xs font-bold mr-2">ET</div>
+                                    <span class="text-xs text-gray-500">Emma Thompson</span>
+                                </div>
+                                <div class="text-xs text-gray-500">2.7 MB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Video Conferencing -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll" data-delay="100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-dark">Video Conferencing</h2>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                            <i class="fas fa-video mr-2"></i> Start Meeting
+                        </button>
+                    </div>
+                    
+                    <div class="video-container rounded-lg overflow-hidden">
+                        <iframe src="https://www.youtube.com/embed/5y1QkY0qH1c" title="Team Meeting" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-sm font-bold mr-3">JD</div>
+                            <div>
+                                <p class="font-medium">John Doe</p>
+                                <p class="text-xs text-gray-500">Host</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-sm font-bold mr-3">SM</div>
+                            <div>
+                                <p class="font-medium">Sarah Miller</p>
+                                <p class="text-xs text-gray-500">Participant</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-500 text-sm font-bold mr-3">MC</div>
+                            <div>
+                                <p class="font-medium">Michael Chen</p>
+                                <p class="text-xs text-gray-500">Participant</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Group Chat -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll" data-delay="200">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-dark">Group Chat</h2>
+                        <button class="text-gray-500 hover:text-primary">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                        <!-- Chat Message 1 -->
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-sm font-bold mr-3 flex-shrink-0">JD</div>
+                            <div>
+                                <div class="chat-bubble bg-blue-50 text-blue-800 rounded-lg p-3 rounded-tl-none">
+                                    <p>Hey team, just wanted to check in on the project timeline. How's everything going?</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">John Doe • 10:24 AM</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Message 2 -->
+                        <div class="flex justify-end">
+                            <div>
+                                <div class="chat-bubble bg-gray-100 text-gray-800 rounded-lg p-3 rounded-tr-none">
+                                    <p>Almost done with the API integration. Should have it ready for testing by EOD.</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 text-right">Sarah Miller • 10:26 AM</p>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-sm font-bold ml-3 flex-shrink-0">SM</div>
+                        </div>
+                        
+                        <!-- Chat Message 3 -->
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-500 text-sm font-bold mr-3 flex-shrink-0">MC</div>
+                            <div>
+                                <div class="chat-bubble bg-blue-50 text-blue-800 rounded-lg p-3 rounded-tl-none">
+                                    <p>I've completed the budget report. Let me know if you need any adjustments.</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Michael Chen • 10:28 AM</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Message 4 -->
+                        <div class="flex">
+                            <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 text-sm font-bold mr-3 flex-shrink-0">DW</div>
+                            <div>
+                                <div class="chat-bubble bg-gray-100 text-gray-800 rounded-lg p-3 rounded-tr-none">
+                                    <p>Design team is working on the new dashboard. We'll share the mockups later today.</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">David Wilson • 10:30 AM</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Message 5 -->
+                        <div class="flex justify-end">
+                            <div>
+                                <div class="chat-bubble bg-gray-100 text-gray-800 rounded-lg p-3 rounded-tr-none">
+                                    <p>Great progress everyone! Let's schedule a meeting tomorrow to review the deliverables.</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 text-right">John Doe • 10:32 AM</p>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-sm font-bold ml-3 flex-shrink-0">JD</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex">
+                        <input type="text" placeholder="Type a message..." class="flex-grow border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <button class="bg-primary text-white px-4 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Upcoming Meetings -->
+                <div class="bg-white rounded-xl shadow-sm p-6 animate-on-scroll" data-delay="300">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-dark">Upcoming Meetings</h2>
+                        <button class="text-primary text-sm font-medium">View All</button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Meeting 1 -->
+                        <div class="p-4 border border-gray-200 rounded-lg">
+                            <div class="flex justify-between">
+                                <div>
+                                    <h3 class="font-semibold">Product Strategy Review</h3>
+                                    <p class="text-gray-500 text-sm">With Product Team</p>
+                                </div>
+                                <div class="text-primary font-medium">11:00 AM</div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm text-gray-500">
+                                <i class="far fa-calendar mr-2"></i>
+                                <span>Today, June 15</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Meeting 2 -->
+                        <div class="p-4 border border-gray-200 rounded-lg">
+                            <div class="flex justify-between">
+                                <div>
+                                    <h3 class="font-semibold">Q3 Financial Planning</h3>
+                                    <p class="text-gray-500 text-sm">With Finance Team</p>
+                                </div>
+                                <div class="text-primary font-medium">2:30 PM</div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm text-gray-500">
+                                <i class="far fa-calendar mr-2"></i>
+                                <span>Tomorrow, June 16</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Meeting 3 -->
+                        <div class="p-4 border border-gray-200 rounded-lg">
+                            <div class="flex justify-between">
+                                <div>
+                                    <h3 class="font-semibold">Client Presentation</h3>
+                                    <p class="text-gray-500 text-sm">With ABC Corp</p>
+                                </div>
+                                <div class="text-primary font-medium">10:00 AM</div>
+                            </div>
+                            <div class="mt-3 flex items-center text-sm text-gray-500">
+                                <i class="far fa-calendar mr-2"></i>
+                                <span>June 18</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold mr-3">TS</div>
+                        <h3 class="text-xl font-bold">TeamSync</h3>
+                    </div>
+                    <p class="mt-4 text-gray-400">
+                        The complete team collaboration solution for modern businesses.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Features</a></li>
+                        <li><a href="#" class="hover:text-white">Pricing</a></li>
+                        <li><a href="#" class="hover:text-white">Integrations</a></li>
+                        <li><a href="#" class="hover:text-white">Roadmap</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Documentation</a></li>
+                        <li><a href="#" class="hover:text-white">Tutorials</a></li>
+                        <li><a href="#" class="hover:text-white">Blog</a></li>
+                        <li><a href="#" class="hover:text-white">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Company</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">About Us</a></li>
+                        <li><a href="#" class="hover:text-white">Careers</a></li>
+                        <li><a href="#" class="hover:text-white">Contact</a></li>
+                        <li><a href="#" class="hover:text-white">Partners</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+                <p>© 2023 TeamSync. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const closeMenu = document.getElementById('close-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.add('open');
+        });
+        
+        closeMenu.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
+        });
+        
+        // Scroll animations
+        const animatedElements = document.querySelectorAll('.animate-on-scroll');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const delay = parseInt(entry.target.dataset.delay) || 0;
+                    setTimeout(() => {
+                        entry.target.classList.add('is-visible');
+                    }, delay);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        animatedElements.forEach(el => {
+            observer.observe(el);
+        });
+        
+        // Simulate new message
+        setTimeout(() => {
+            const messagesContainer = document.querySelector('.space-y-4');
+            const newMessage = document.createElement('div');
+            newMessage.className = 'flex';
+            newMessage.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-500 text-sm font-bold mr-3 flex-shrink-0">SM</div>
+                <div>
+                    <div class="chat-bubble bg-blue-50 text-blue-800 rounded-lg p-3 rounded-tl-none">
+                        <p>Just pushed the latest updates to the project repository. Let me know if you have any feedback!</p>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Sarah Miller • 10:35 AM</p>
+                </div>
+            `;
+            messagesContainer.appendChild(newMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 5000);
+    </script>
+</body>
+</html>

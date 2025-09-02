@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for a modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-primary: #121212; /* Darker background, similar to Google Drive */
+            --color-bg-secondary: #212121; /* Slightly lighter for panels */
+            --color-text-primary: #FFFFFF;
+            --color-text-secondary: #B0B0B0; /* Lighter gray for secondary text */
+            --color-accent: #4285F4; /* Google's blue accent */
+            --color-border: #383838; /* Darker border */
+            --color-hover: #303030; /* Hover state for items */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            overflow: hidden; /* Prevent body scroll, content will scroll */
+        }
+
+        .file-item:hover {
+            background-color: var(--color-hover);
+        }
+
+        .file-item.selected {
+            background-color: rgba(66, 133, 244, 0.1); /* Light blue for selected */
+            color: var(--color-accent);
+            border-left: 4px solid var(--color-accent);
+        }
+
+        .preview-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: var(--color-bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .preview-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        /* Custom scrollbar for file list */
+        .file-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .file-list-container::-webkit-scrollbar-track {
+            background: var(--color-bg-secondary);
+        }
+
+        .file-list-container::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        .file-list-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px; /* Narrower sidebar on mobile */
+                flex-shrink: 0;
+            }
+            .main-content {
+                flex-grow: 1;
+                margin-left: 15px; /* Smaller margin for mobile */
+            }
+            .file-list, .preview-content {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- Left Sidebar: File Navigation -->
+    <div class="sidebar bg-[var(--color-bg-secondary)] w-64 p-4 border-r border-[var(--color-border)] flex flex-col">
+        <div class="flex items-center mb-6">
+            <i class="fas fa-folder text-[var(--color-accent)] text-2xl mr-2"></i>
+            <span class="text-xl font-semibold">My Drive</span>
+        </div>
+        <div class="space-y-1 mb-6">
+            <div class="flex items-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] cursor-pointer transition-colors">
+                <i class="fas fa-star text-lg mr-2"></i> Starred
+            </div>
+            <div class="flex items-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] cursor-pointer transition-colors">
+                <i class="fas fa-trash-alt text-lg mr-2"></i> Trash
+            </div>
+            <div class="flex items-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] cursor-pointer transition-colors">
+                <i class="fas fa-download text-lg mr-2"></i> Downloads
+            </div>
+            <div class="flex items-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] cursor-pointer transition-colors">
+                <i class="fas fa-ellipsis-h text-lg mr-2"></i> More
+            </div>
+        </div>
+        <div class="flex-grow overflow-y-auto file-list-container pr-2">
+            <h3 class="text-sm font-semibold text-[var(--color-text-secondary)] mb-2">My Files</h3>
+            <div class="space-y-2">
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="document1.docx">
+                    <i class="far fa-file-alt text-[var(--color-text-secondary)] mr-2"></i> document1.docx
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="image1.jpg">
+                    <i class="far fa-image text-[var(--color-text-secondary)] mr-2"></i> image1.jpg
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="presentation.pptx">
+                    <i class="far fa-file-powerpoint text-[var(--color-text-secondary)] mr-2"></i> presentation.pptx
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="spreadsheet.xlsx">
+                    <i class="far fa-file-excel text-[var(--color-text-secondary)] mr-2"></i> spreadsheet.xlsx
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="video1.mp4">
+                    <i class="far fa-file-video text-[var(--color-text-secondary)] mr-2"></i> video1.mp4
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="audio1.mp3">
+                    <i class="far fa-file-audio text-[var(--color-text-secondary)] mr-2"></i> audio1.mp3
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="document2.docx">
+                    <i class="far fa-file-alt text-[var(--color-text-secondary)] mr-2"></i> document2.docx
+                </div>
+                <div class="file-item flex items-center p-2 rounded hover:bg-[var(--color-hover)] cursor-pointer transition-colors" data-file="image2.png">
+                    <i class="far fa-image text-[var(--color-text-secondary)] mr-2"></i> image2.png
+                </div>
+            </div>
+        </div>
+        <div class="mt-auto pt-4 border-t border-[var(--color-border)]">
+            <button class="w-full bg-[var(--color-accent)] text-white py-2 rounded-md hover:bg-blue-600 transition-colors">
+                <i class="fas fa-plus mr-1"></i> New
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content: File Preview and Upload -->
+    <div class="main-content flex flex-col flex-grow p-6 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">File Preview</h2>
+            <div class="flex items-center space-x-2">
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+                <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- File Preview Area (Left Column) -->
+            <div class="col-span-1 lg:col-span-2 bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-lg flex flex-col">
+                <div id="file-preview" class="flex-grow flex items-center justify-center text-[var(--color-text-secondary)] text-2xl font-bold">
+                    Select a file to preview
+                </div>
+                <div id="file-info" class="mt-4 hidden">
+                    <p class="text-[var(--color-text-primary)]"><strong>Filename:</strong> <span id="info-filename"></span></p>
+                    <p class="text-[var(--color-text-primary)]"><strong>Type:</strong> <span id="info-type"></span></p>
+                    <p class="text-[var(--color-text-primary)]"><strong>Size:</strong> <span id="info-size"></span></p>
+                </div>
+            </div>
+
+            <!-- Upload Button (Right Column) -->
+            <div class="col-span-1 flex flex-col justify-center items-center p-6">
+                <input type="file" id="file-input" class="hidden" accept="image/*,video/*,audio/*,application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, .pdf">
+                <label for="file-input" class="w-full text-center bg-[var(--color-accent)] text-white py-4 px-6 rounded-md text-lg font-semibold cursor-pointer hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-upload mr-2"></i> Upload File
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileItems = document.querySelectorAll('.file-item');
+        const filePreview = document.getElementById('file-preview');
+        const fileInfo = document.getElementById('file-info');
+        const infoFilename = document.getElementById('info-filename');
+        const infoType = document.getElementById('info-type');
+        const infoSize = document.getElementById('info-size');
+        const fileInput = document.getElementById('file-input');
+
+        let selectedFile = null;
+
+        fileItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove 'selected' from all items
+                fileItems.forEach(i => i.classList.remove('selected'));
+                // Add 'selected' to the clicked item
+                item.classList.add('selected');
+
+                const fileName = item.dataset.file;
+                selectedFile = fileName; // In a real app, this would be a File object
+
+                updatePreview(fileName);
+            });
+        });
+
+        function updatePreview(fileName) {
+            if (fileName) {
+                filePreview.innerHTML = '';
+                fileInfo.classList.remove('hidden');
+
+                const fileExtension = fileName.split('.').pop().toLowerCase();
+                let iconClass = 'fas fa-file-alt'; // Default icon
+
+                switch (fileExtension) {
+                    case 'doc':
+                    case 'docx':
+                        iconClass = 'fas fa-file-word';
+                        break;
+                    case 'xls':
+                    case 'xlsx':
+                        iconClass = 'fas fa-file-excel';
+                        break;
+                    case 'ppt':
+                    case 'pptx':
+                        iconClass = 'fas fa-file-powerpoint';
+                        break;
+                    case 'jpg':
+                    case 'jpeg':
+                    case 'png':
+                        iconClass = 'fas fa-image';
+                        break;
+                    case 'pdf':
+                        iconClass = 'fas fa-file-pdf';
+                        break;
+                    case 'mp4':
+                    case 'mov':
+                        iconClass = 'fas fa-file-video';
+                        break;
+                    case 'mp3':
+                    case 'wav':
+                        iconClass = 'fas fa-file-audio';
+                        break;
+                    case 'zip':
+                    case 'rar':
+                        iconClass = 'fas fa-file-archive';
+                        break;
+                    default:
+                        iconClass = 'fas fa-file';
+                        break;
+                }
+
+                filePreview.innerHTML = `
+                    <div class="text-6xl text-[var(--color-accent)] mb-4">
+                        <i class="${iconClass}"></i>
+                    </div>
+                    <p class="text-3xl font-bold">${fileName}</p>
+                `;
+
+                infoFilename.textContent = fileName;
+                infoType.textContent = getFileType(fileName);
+                infoSize.textContent = '500 KB'; // Placeholder size
+            } else {
+                filePreview.textContent = 'Select a file to preview';
+                fileInfo.classList.add('hidden');
+            }
+        }
+
+        function getFileType(fileName) {
+            const lowerCaseName = fileName.toLowerCase();
+            if (lowerCaseName.endsWith('.doc') || lowerCaseName.endsWith('.docx')) {
+                return 'Word Document';
+            } else if (lowerCaseName.endsWith('.xls') || lowerCaseName.endsWith('.xlsx')) {
+                return 'Excel Spreadheet';
+            } else if (lowerCaseName.endsWith('.ppt') || lowerCaseName.endsWith('.pptx')) {
+                return 'PowerPoint Presentation';
+            } else if (lowerCaseName.endsWith('.jpg') || lowerCaseName.endsWith('.jpeg') || lowerCaseName.endsWith('.png')) {
+                return 'Image';
+            } else if (lowerCaseName.endsWith('.pdf')) {
+                return 'PDF Document';
+            } else if (lowerCaseName.endsWith('.mp4') || lowerCaseName.endsWith('.mov')) {
+                return 'Video';
+            } else if (lowerCaseName.endsWith('.mp3') || lowerCaseName.endsWith('.wav')) {
+                return 'Audio';
+            } else if (lowerCaseName.endsWith('.zip') || lowerCaseName.endsWith('.rar')) {
+                return 'Archive';
+            }
+            return 'File';
+        }
+
+        // Handle file upload
+        fileInput.addEventListener('change', (event) => {
+            const uploadedFile = event.target.files[0];
+            if (uploadedFile) {
+                console.log('File selected for upload:', uploadedFile.name);
+                // In a real application, you would send this file to a server
+                // For now, just update the preview with the uploaded file
+                selectedFile = uploadedFile.name;
+                updatePreview(selectedFile);
+            }
+        });
+
+        // Initial state for the first file
+        if (fileItems.length > 0) {
+            fileItems[0].classList.add('selected');
+            updatePreview(fileItems[0].dataset.file);
+        }
+    </script>
+</body>
+</html>

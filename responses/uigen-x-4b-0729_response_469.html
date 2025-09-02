@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindful Journal - Mood Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        neutral: {
+                            50: '#f8faf9',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        
+        .mood-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .mood-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mood-selector {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .mood-btn {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .mood-btn.active {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .mood-btn:hover:not(.active) {
+            background-color: #dbeafe;
+        }
+        
+        .mood-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .entry-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .entry-card:hover {
+            transform: translateX(5px);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="font-sans text-neutral-800">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-book text-primary-600 text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-primary-800">Mindful Journal</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="text-neutral-600 hover:text-primary-600 font-medium">Home</a>
+                <a href="#" class="text-neutral-600 hover:text-primary-600 font-medium">Entries</a>
+                <a href="#" class="text-neutral-600 hover:text-primary-600 font-medium">History</a>
+                <a href="#" class="text-neutral-600 hover:text-primary-600 font-medium">Settings</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="bg-primary-100 text-primary-700 px-4 py-2 rounded-lg font-medium hover:bg-primary-200 transition">
+                    <i class="fas fa-plus mr-2"></i> New Entry
+                </button>
+                <div class="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center">
+                    <i class="fas fa-user text-neutral-600"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-16 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">Track Your Mood, One Day at a Time</h1>
+            <p class="text-xl text-neutral-600 max-w-2xl mx-auto mb-8">
+                Reflect on your emotions, document your thoughts, and discover patterns in your mood over time.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mb-12">
+                <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-lg transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add New Entry
+                </button>
+                <button class="bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 font-medium py-3 px-8 rounded-lg transition flex items-center">
+                    <i class="fas fa-chart-line mr-2"></i> View Mood History
+                </button>
+            </div>
+        </section>
+
+        <!-- Mood Tracking Section -->
+        <section class="mb-16">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-neutral-900">Today's Mood</h2>
+                <div class="text-sm text-neutral-500">June 15, 2023</div>
+            </div>
+            
+            <div class="mood-selector">
+                <div class="mood-btn active" data-mood="happy">
+                    <div class="mood-icon text-green-500">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                    <div class="font-medium">Happy</div>
+                </div>
+                <div class="mood-btn" data-mood="calm">
+                    <div class="mood-icon text-blue-500">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <div class="font-medium">Calm</div>
+                </div>
+                <div class="mood-btn" data-mood="neutral">
+                    <div class="mood-icon text-yellow-500">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="font-medium">Neutral</div>
+                </div>
+                <div class="mood-btn" data-mood="sad">
+                    <div class="mood-icon text-purple-500">
+                        <i class="fas fa-frown"></i>
+                    </div>
+                    <div class="font-medium">Sad</div>
+                </div>
+                <div class="mood-btn" data-mood="angry">
+                    <div class="mood-icon text-red-500">
+                        <i class="fas fa-angry"></i>
+                    </div>
+                    <div class="font-medium">Angry</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Entries -->
+        <section class="mb-16">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-neutral-900">Recent Entries</h2>
+                <a href="#" class="text-primary-600 hover:text-primary-800 font-medium flex items-center">
+                    View All <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Entry 1 -->
+                <div class="entry-card bg-white rounded-xl p-6 fade-in" style="border-left-color: #10B981;">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded">Happy</span>
+                            <h3 class="font-bold text-lg mt-2">A Day of Sunsets</h3>
+                        </div>
+                        <div class="text-sm text-neutral-500">Jun 14</div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">Spent the day walking by the lake watching the sunset. The colors were absolutely breathtaking. Need to remember to appreciate these moments more often.</p>
+                    <div class="flex items-center text-sm text-neutral-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span>12 min read</span>
+                    </div>
+                </div>
+                
+                <!-- Entry 2 -->
+                <div class="entry-card bg-white rounded-xl p-6 fade-in" style="border-left-color: #3B82F6;">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">Calm</span>
+                            <h3 class="font-bold text-lg mt-2">Morning Meditation</h3>
+                        </div>
+                        <div class="text-sm text-neutral-500">Jun 13</div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">Started my morning with a 10-minute meditation. Focused on my breath and letting go of any tension. The quiet morning air was refreshing.</p>
+                    <div class="flex items-center text-sm text-neutral-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span>8 min read</span>
+                    </div>
+                </div>
+                
+                <!-- Entry 3 -->
+                <div class="entry-card bg-white rounded-xl p-6 fade-in" style="border-left-color: #F59E0B;">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs font-medium bg-amber-100 text-amber-800 px-2 py-1 rounded">Neutral</span>
+                            <h3 class="font-bold text-lg mt-2">Project Deadline</h3>
+                        </div>
+                        <div class="text-sm text-neutral-500">Jun 12</div>
+                    </div>
+                    <p class="text-neutral-600 mb-4">Finished the project presentation today. The client was impressed with the progress, but I still have a few tasks to complete before I can relax.</p>
+                    <div class="flex items-center text-sm text-neutral-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span>15 min read</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mood History Chart -->
+        <section>
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-neutral-900">Mood History</h2>
+                <div class="flex space-x-2">
+                    <button class="bg-primary-100 text-primary-700 px-3 py-1 rounded text-sm font-medium">This Week</button>
+                    <button class="bg-neutral-100 text-neutral-600 px-3 py-1 rounded text-sm font-medium">This Month</button>
+                    <button class="bg-neutral-100 text-neutral-600 px-3 py-1 rounded text-sm font-medium">All Time</button>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="moodChart" height="300"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-neutral-900 text-white py-12 mt-16">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
+                            <i class="fas fa-book text-white"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Mindful Journal</h3>
+                    </div>
+                    <p class="text-neutral-400 mb-4">
+                        Track your emotions, document your thoughts, and discover patterns in your mood over time.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-neutral-400 hover:text-white">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Mood Tracking</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Reflection Journal</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Mood History</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Daily Prompts</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Mood Analytics</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Mindfulness Tips</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Writing Prompts</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Emotion Journaling</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Sleep Improvement</a></li>
+                        <li><a href="#" class="text-neutral-400 hover:text-white">Wellness Resources</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Subscribe</h4>
+                    <p class="text-neutral-400 mb-4">
+                        Get daily tips and inspiration for your journaling practice.
+                    </p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-neutral-800">
+                        <button class="bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-neutral-800 mt-8 pt-8 text-center text-neutral-500">
+                <p>© 2023 Mindful Journal. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mood selection
+        document.querySelectorAll('.mood-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // Mood chart
+        const ctx = document.getElementById('moodChart').getContext('2d');
+        const moodChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jun 10', 'Jun 11', 'Jun 12', 'Jun 13', 'Jun 14', 'Jun 15'],
+                datasets: [{
+                    label: 'Mood Intensity',
+                    data: [3, 4, 5, 3, 5, 4],
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#0ea5e9',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            stepSize: 2
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

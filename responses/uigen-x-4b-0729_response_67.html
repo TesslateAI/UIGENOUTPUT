@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FormCraft - Advanced Form Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a',
+                        'card-bg': '#1e293b',
+                        'text-light': '#f1f5f9',
+                        'text-muted': '#94a3b8',
+                        'accent': '#0ea5e9',
+                        'accent-light': '#7dd3fc',
+                        'border-color': '#334155',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'error': '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .form-element {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-element:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-element.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .form-area {
+            min-height: 600px;
+            border: 2px dashed #334155;
+            transition: all 0.3s ease;
+        }
+        
+        .form-area.active {
+            border-color: #0ea5e9;
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+        
+        .conditional-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #0ea5e9;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .validation-badge {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .drag-over {
+            background-color: rgba(14, 165, 233, 0.1);
+            border-color: #0ea5e9;
+        }
+        
+        .preview-section {
+            transition: all 0.3s ease;
+        }
+        
+        .preview-section.active {
+            border-color: #0ea5e9;
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+        
+        .tab-active {
+            border-bottom: 2px solid #0ea5e9;
+            color: #0ea5e9;
+        }
+        
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .error-message {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-text-light min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-dark-bg/90 backdrop-blur-md border-b border-border-color">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                    <i class="fas fa-puzzle-piece text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">FormCraft</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="px-4 py-2 rounded-lg bg-card-bg border border-border-color hover:bg-accent hover:text-white transition-colors">
+                    <i class="fas fa-eye mr-2"></i> Preview
+                </button>
+                <button class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-light transition-colors">
+                    <i class="fas fa-save mr-2"></i> Save Form
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Tabs -->
+        <div class="flex border-b border-border-color mb-8">
+            <button class="px-6 py-3 font-medium tab-active">Builder</button>
+            <button class="px-6 py-3 font-medium text-text-muted hover:text-text-light">Conditions</button>
+            <button class="px-6 py-3 font-medium text-text-muted hover:text-text-light">Validation</button>
+            <button class="px-6 py-3 font-medium text-text-muted hover:text-text-light">Settings</button>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Elements Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-card-bg rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-shapes mr-2"></i> Form Elements
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        <div draggable="true" data-type="text" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Text Input</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="number" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Number Input</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="email" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Email Input</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="select" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Dropdown</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="checkbox" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Checkbox</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="radio" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Radio Group</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="date" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>Date Picker</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                        
+                        <div draggable="true" data-type="file" class="form-element bg-dark-bg rounded-lg p-4 cursor-move border border-border-color">
+                            <div class="flex justify-between items-center">
+                                <span>File Upload</span>
+                                <i class="fas fa-plus text-accent"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h2 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-code-branch mr-2"></i> Conditional Logic
+                        </h2>
+                        
+                        <div class="bg-dark-bg rounded-lg p-4 border border-border-color">
+                            <div class="flex justify-between items-center mb-3">
+                                <span>Show/Hide Fields</span>
+                                <button class="text-accent text-sm">Add Rule</button>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <div class="flex items-center p-3 bg-card-bg rounded-lg">
+                                    <span class="text-sm">If "Email" is filled and domain is "example.com"</span>
+                                    <i class="fas fa-plus text-accent ml-auto text-sm"></i>
+                                </div>
+                                <div class="flex items-center p-3 bg-card-bg rounded-lg">
+                                    <span class="text-sm">If "Age" is greater than 18</span>
+                                    <i class="fas fa-minus text-error ml-auto text-sm"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Area -->
+            <div class="lg:col-span-2">
+                <div class="bg-card-bg rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-semibold">Form Builder</h2>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-lg hover:bg-dark-bg">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="p-2 rounded-lg hover:bg-dark-bg">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-area rounded-lg p-4 min-h-[500px] border border-border-color" id="form-container">
+                        <div class="text-center py-12 text-text-muted" id="empty-state">
+                            <i class="fas fa-inbox text-4xl mb-4"></i>
+                            <p>Drag form elements here to start building</p>
+                        </div>
+                        
+                        <!-- Form elements will be added here dynamically -->
+                        <div id="form-elements" class="space-y-6">
+                            <!-- Text Input -->
+                            <div class="form-element bg-dark-bg rounded-lg p-5 border border-border-color relative" draggable="true">
+                                <div class="conditional-indicator">C</div>
+                                <div class="validation-badge">V</div>
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-medium">Full Name</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="text-text-muted hover:text-accent">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-text-muted hover:text-error">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="text" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="John Doe">
+                            </div>
+                            
+                            <!-- Email Input -->
+                            <div class="form-element bg-dark-bg rounded-lg p-5 border border-border-color relative" draggable="true">
+                                <div class="validation-badge">V</div>
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-medium">Email Address</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="text-text-muted hover:text-accent">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-text-muted hover:text-error">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="email" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="john@example.com">
+                            </div>
+                            
+                            <!-- Dropdown -->
+                            <div class="form-element bg-dark-bg rounded-lg p-5 border border-border-color relative" draggable="true">
+                                <div class="conditional-indicator">C</div>
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-medium">Country</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="text-text-muted hover:text-accent">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-text-muted hover:text-error">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <select class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                    <option>Select a country</option>
+                                    <option>United States</option>
+                                    <option>Canada</option>
+                                    <option>United Kingdom</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Checkbox -->
+                            <div class="form-element bg-dark-bg rounded-lg p-5 border border-border-color relative" draggable="true">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="font-medium">Subscribe to Newsletter</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="text-text-muted hover:text-accent">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-text-muted hover:text-error">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" class="mr-2 h-5 w-5 text-accent rounded focus:ring-accent">
+                                    <span>I agree to receive updates</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-light transition-colors">
+                            <i class="fas fa-plus mr-2"></i> Add Section
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-card-bg rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-eye mr-2"></i> Live Preview
+                    </h2>
+                    
+                    <div class="preview-section border border-border-color rounded-lg p-6 min-h-[500px]">
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Full Name</label>
+                            <input type="text" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="John Doe">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Email Address</label>
+                            <input type="email" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="john@example.com">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Country</label>
+                            <select class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                <option>Select a country</option>
+                                <option>United States</option>
+                                <option>Canada</option>
+                                <option>United Kingdom</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Subscribe to Newsletter</label>
+                            <div class="flex items-center">
+                                <input type="checkbox" class="mr-2 h-5 w-5 text-accent rounded focus:ring-accent">
+                                <span>I agree to receive updates</span>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full py-3 rounded-lg bg-accent text-white hover:bg-accent-light transition-colors">
+                            Submit Form
+                        </button>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h2 class="text-lg font-semibold mb-4">Form Settings</h2>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Form Title</label>
+                                <input type="text" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Customer Registration">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Form Description</label>
+                                <textarea class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" rows="3" placeholder="Enter a description..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Form Theme</label>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div class="border border-border-color rounded-lg p-3 text-center cursor-pointer hover:border-accent">
+                                        <div class="w-8 h-8 bg-accent rounded-full mx-auto mb-2"></div>
+                                        <span>Teal</span>
+                                    </div>
+                                    <div class="border border-accent rounded-lg p-3 text-center cursor-pointer">
+                                        <div class="w-8 h-8 bg-blue-500 rounded-full mx-auto mb-2"></div>
+                                        <span>Blue</span>
+                                    </div>
+                                    <div class="border border-border-color rounded-lg p-3 text-center cursor-pointer hover:border-accent">
+                                        <div class="w-8 h-8 bg-purple-500 rounded-full mx-auto mb-2"></div>
+                                        <span>Purple</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Drag and drop functionality
+            const formContainer = document.getElementById('form-container');
+            const elements = document.querySelectorAll('.form-element');
+            const emptyState = document.getElementById('empty-state');
+            
+            // Add drag events to form elements
+            elements.forEach(element => {
+                element.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', this.dataset.type);
+                    this.classList.add('dragging');
+                });
+                
+                element.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                });
+            });
+            
+            // Form container drag over
+            formContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('drag-over');
+            });
+            
+            formContainer.addEventListener('dragleave', function() {
+                this.classList.remove('drag-over');
+            });
+            
+            formContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                const elementType = e.dataTransfer.getData('text/plain');
+                addFormElement(elementType);
+                
+                // Show preview section when form elements are added
+                const previewSection = document.querySelector('.preview-section');
+                if (previewSection) {
+                    previewSection.classList.add('active');
+                }
+            });
+            
+            // Add form element to the form area
+            function addFormElement(type) {
+                const element = document.createElement('div');
+                element.className = 'form-element bg-dark-bg rounded-lg p-5 border border-border-color relative';
+                element.draggable = true;
+                element.dataset.type = type;
+                
+                let elementContent = '';
+                
+                switch(type) {
+                    case 'text':
+                        elementContent = `
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-medium">Text Field</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-text-muted hover:text-accent">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-text-muted hover:text-error">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="text" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Text Input">
+                        `;
+                        break;
+                    case 'email':
+                        elementContent = `
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-medium">Email Field</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-text-muted hover:text-accent">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-text-muted hover:text-error">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="email" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Email Address">
+                        `;
+                        break;
+                    case 'select':
+                        elementContent = `
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-medium">Dropdown</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-text-muted hover:text-accent">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-text-muted hover:text-error">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <select class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent">
+                                <option>Select an option</option>
+                                <option>Option 1</option>
+                                <option>Option 2</option>
+                            </select>
+                        `;
+                        break;
+                    case 'checkbox':
+                        elementContent = `
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-medium">Checkbox</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-text-muted hover:text-accent">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-text-muted hover:text-error">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" class="mr-2 h-5 w-5 text-accent rounded focus:ring-accent">
+                                <span>Checkbox Label</span>
+                            </div>
+                        `;
+                        break;
+                    default:
+                        elementContent = `
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-medium">New Field</h3>
+                                <div class="flex space-x-2">
+                                    <button class="text-text-muted hover:text-accent">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="text-text-muted hover:text-error">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="text" class="w-full bg-dark-bg border border-border-color rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Field Input">
+                        `;
+                }
+                
+                element.innerHTML = elementContent;
+                formContainer.appendChild(element);
+                
+                // Reinitialize drag events for the new element
+                element.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', this.dataset.type);
+                    this.classList.add('dragging');
+                });
+                
+                element.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                });
+                
+                // Add click handler to remove element
+                element.querySelector('.fa-trash').closest('button').addEventListener('click', function() {
+                    element.remove();
+                    
+                    // Show empty state if no elements
+                    if (formContainer.children.length === 0) {
+                        emptyState.style.display = 'block';
+                    }
+                });
+            }
+            
+            // Initialize reveal animations
+            const revealElements = document.querySelectorAll('.reveal');
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            revealElements.forEach(el => {
+                revealObserver.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>

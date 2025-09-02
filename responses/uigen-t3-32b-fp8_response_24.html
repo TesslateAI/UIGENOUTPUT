@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart with Tooltip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F0F0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .chart-container {
+            background-color: #FFFFFF;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            max-width: 800px;
+            width: 90%;
+            position: relative;
+            overflow: hidden; /* To contain the tooltip */
+        }
+
+        .bar-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Responsive columns */
+            gap: 10px;
+            align-items: end; /* Bars align to the bottom */
+            height: 300px; /* Fixed height for the chart area */
+            padding-bottom: 20px; /* Space for labels */
+            position: relative;
+        }
+
+        .bar {
+            background-color: #3B82F6; /* Blue for bars */
+            border-radius: 4px 4px 0 0;
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+            cursor: pointer;
+            position: relative;
+            z-index: 10;
+        }
+
+        .bar:hover {
+            background-color: #2563EB; /* Darker blue on hover */
+        }
+
+        .bar-label {
+            font-size: 0.875rem; /* text-sm */
+            color: #4B5563; /* Gray-600 */
+            text-align: center;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            position: absolute;
+            bottom: -20px; /* Position below the bar */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #1A202C; /* Dark gray */
+            color: #F8FAFC; /* Light gray text */
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem; /* text-sm */
+            pointer-events: none; /* Allows mouse events to pass through */
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+            transform: translateY(-10px);
+            z-index: 30;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            max-width: 200px;
+            text-align: left;
+            top: 0; /* Will be dynamically set by JS */
+            left: 0; /* Will be dynamically set by JS */
+            display: none; /* Hidden by default, shown via JS */
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #1A202C;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .tooltip.active {
+            opacity: 1;
+            transform: translateY(0);
+            display: block; /* Ensure it's visible */
+        }
+
+        @media (max-width: 640px) {
+            .bar-chart {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                height: 250px;
+            }
+            .bar-label {
+                font-size: 0.75rem; /* text-xs */
+                bottom: -15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chart-container">
+        <h2 class="text-xl font-bold mb-6 text-center text-gray-800">Monthly Sales Performance</h2>
+        <div id="barChart" class="bar-chart">
+            <!-- Bars will be injected here by JavaScript -->
+        </div>
+        <div id="chartTooltip" class="tooltip"></div>
+    </div>
+
+    <script>
+        const data = [
+            { label: 'Jan', value: 120 },
+            { label: 'Feb', value: 150 },
+            { label: 'Mar', value: 90 },
+            { label: 'Apr', value: 200 },
+            { label: 'May', value: 180 },
+            { label: 'Jun', value: 220 },
+            { label: 'Jul', value: 170 },
+            { label: 'Aug', value: 250 },
+            { label: 'Sep', value: 210 },
+            { label: 'Oct', value: 190 },
+            { label: 'Nov', value: 230 },
+            { label: 'Dec', value: 260 }
+        ];
+
+        const barChartContainer = document.getElementById('barChart');
+        const chartTooltip = document.getElementById('chartTooltip');
+
+        const maxValue = Math.max(...data.map(item => item.value));
+
+        data.forEach(item => {
+            const barDiv = document.createElement('div');
+            barDiv.classList.add('bar');
+            barDiv.style.height = `${(item.value / maxValue) * 100}%`; // Scale height to chart height
+            barDiv.setAttribute('aria-label', `${item.label}: ${item.value}`);
+            barDiv.dataset.label = item.label;
+            barDiv.dataset.value = item.value;
+
+            const labelDiv = document.createElement('span');
+            labelDiv.classList.add('bar-label');
+            labelDiv.textContent = item.label;
+
+            barDiv.appendChild(labelDiv);
+            barChartContainer.appendChild(barDiv);
+
+            // Add event listeners for tooltip
+            barDiv.addEventListener('mouseenter', (e) => {
+                chartTooltip.classList.add('active');
+                chartTooltip.innerHTML = `<strong>${item.label}</strong>: ${item.value} units`;
+                positionTooltip(e);
+            });
+
+            barDiv.addEventListener('mouseleave', () => {
+                chartTooltip.classList.remove('active');
+            });
+
+            // Re-position tooltip on mousemove within the bar
+            barDiv.addEventListener('mousemove', (e) => {
+                positionTooltip(e);
+            });
+        });
+
+        function positionTooltip(e) {
+            const barRect = e.target.getBoundingClientRect();
+            const tooltipRect = chartTooltip.getBoundingClientRect();
+
+            // Calculate position relative to the chart container
+            const chartRect = barChartContainer.getBoundingClientRect();
+
+            let top = e.clientY - chartRect.top - tooltipRect.height - 10; // 10px gap from cursor
+            let left = e.clientX - chartRect.left - tooltipRect.width / 2;
+
+            // Ensure tooltip stays within chart container bounds
+            if (top < 0) top = 0;
+            if (left < 0) left = 0;
+            if (left + tooltipRect.width > chartRect.width) {
+                left = chartRect.width - tooltipRect.width;
+            }
+
+            chartTooltip.style.top = `${top}px`;
+            chartTooltip.style.left = `${left}px`;
+        }
+
+        // Adjust chart height based on screen width for responsiveness
+        function adjustChartHeight() {
+            const containerWidth = barChartContainer.parentElement.offsetWidth;
+            if (containerWidth < 640) { // Small screens
+                barChartContainer.style.height = '250px';
+            } else if (containerWidth < 768) { // Medium screens
+                barChartContainer.style.height = '300px';
+            } else { // Large screens
+                barChartContainer.style.height = '350px';
+            }
+        }
+
+        window.addEventListener('resize', adjustChartHeight);
+        adjustChartHeight(); // Initial adjustment
+    </script>
+
+</body>
+</html>

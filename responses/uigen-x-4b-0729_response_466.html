@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SportScore - Live Sports Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF3B30',
+                        secondary: '#FF9500',
+                        accent: '#4CD964',
+                        dark: '#1A1A1A',
+                        light: '#F8F9FA',
+                        team1: '#FF3B30',
+                        team2: '#4CD964',
+                        team3: '#FF9500',
+                        team4: '#FF5500'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'countdown': 'countdown 5s linear infinite',
+                        'score-update': 'scoreUpdate 0.5s ease-out'
+                    },
+                    keyframes: {
+                        countdown: {
+                            '0%': { width: '100%' },
+                            '100%': { width: '0%' }
+                        },
+                        scoreUpdate: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0.7' },
+                            '50%': { transform: 'translateY(-5px)', opacity: '1' },
+                            '100%': { transform: 'translateY(10px)', opacity: '0.7' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e6e9ff 100%);
+            min-height: 100vh;
+        }
+        
+        .score-card {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .score-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .team-logo {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .live-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            background-color: #4CD964;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(76, 217, 100, 0.7);
+        }
+        
+        .match-card {
+            transition: all 0.3s ease;
+        }
+        
+        .match-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF3B30, #FF9500);
+            border-radius: 4px;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="text-dark">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <i class="fas fa-soccer-ball text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-primary">SportScore</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="font-medium text-gray-700 hover:text-primary transition-colors">Live Matches</a>
+                <a href="#" class="font-medium text-gray-700 hover:text-primary transition-colors">Upcoming</a>
+                <a href="#" class="font-medium text-gray-700 hover:text-primary transition-colors">Standings</a>
+                <a href="#" class="font-medium text-gray-700 hover:text-primary transition-colors">Team Stats</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-opacity-90 transition">
+                    <i class="fas fa-bell mr-2"></i>Alerts
+                </button>
+                <button class="md:hidden text-gray-700">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-16">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-bold mb-4">Live Sports Tracker</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Stay updated with real-time scores, match statistics, and live commentary from top sports leagues worldwide.
+                </p>
+            </div>
+            
+            <!-- Live Match Section -->
+            <div class="bg-white rounded-2xl p-6 mb-12 animate-on-scroll">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="team-logo bg-primary text-white mr-4">
+                            <i class="fas fa-football-ball"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold">Premier League</h3>
+                            <p class="text-gray-500">Man City vs Arsenal</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="text-center mx-4">
+                            <div class="text-2xl font-bold text-primary">2</div>
+                            <div class="text-gray-500">Team A</div>
+                        </div>
+                        <div class="flex flex-col items-center mx-2">
+                            <div class="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="progress-fill" style="width: 75%"></div>
+                            </div>
+                            <div class="text-xs mt-1">75%</div>
+                        </div>
+                        <div class="text-center mx-4">
+                            <div class="text-2xl font-bold text-accent">1</div>
+                            <div class="text-gray-500">Team B</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center mb-8">
+                    <div class="relative w-64">
+                        <div class="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-primary to-secondary" style="width: 45%"></div>
+                        </div>
+                        <div class="absolute top-0 left-0 w-0 h-0 border-t-2 border-r-2 border-primary"></div>
+                        <div class="absolute top-0 right-0 w-0 h-0 border-t-2 border-l-2 border-secondary"></div>
+                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                                <i class="fas fa-play text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="text-center mt-2 text-sm font-medium">45:00</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white mr-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium">Match Started</div>
+                            <div class="text-sm text-gray-500">2 hours ago</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="bg-gray-100 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-200">
+                            <i class="fas fa-expand mr-2"></i>Live
+                        </button>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-opacity-90">
+                            <i class="fas fa-comment mr-2"></i>Commentary
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upcoming Matches -->
+            <div class="mb-12">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Upcoming Matches</h2>
+                    <a href="#" class="text-primary font-medium">View All</a>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Match 1 -->
+                    <div class="match-card bg-white rounded-2xl p-5 animate-on-scroll" data-delay="100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="team-logo bg-primary text-white">
+                                <i class="fas fa-football-ball"></i>
+                            </div>
+                            <div class="text-xs bg-gray-100 px-2 py-1 rounded">Tomorrow</div>
+                        </div>
+                        
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <div class="font-bold">Real Madrid</div>
+                                <div class="text-sm text-gray-500">La Liga</div>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-400">VS</div>
+                            <div>
+                                <div class="font-bold">Barcelona</div>
+                                <div class="text-sm text-gray-500">La Liga</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-lg font-bold">2</div>
+                                <div class="text-sm text-gray-500">Team A</div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-16 h-1 bg-gray-200 rounded-full overflow-hidden mr-2">
+                                    <div class="progress-fill" style="width: 30%"></div>
+                                </div>
+                                <div class="text-sm">30%</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold">0</div>
+                                <div class="text-sm text-gray-500">Team B</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Match 2 -->
+                    <div class="match-card bg-white rounded-2xl p-5 animate-on-scroll" data-delay="200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="team-logo bg-accent text-white">
+                                <i class="fas fa-basketball-ball"></i>
+                            </div>
+                            <div class="text-xs bg-gray-100 px-2 py-1 rounded">Fri</div>
+                        </div>
+                        
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <div class="font-bold">Lakers</div>
+                                <div class="text-sm text-gray-500">NBA</div>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-400">VS</div>
+                            <div>
+                                <div class="font-bold">Warriors</div>
+                                <div class="text-sm text-gray-500">NBA</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-lg font-bold">84</div>
+                                <div class="text-sm text-gray-500">Team A</div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-16 h-1 bg-gray-200 rounded-full overflow-hidden mr-2">
+                                    <div class="progress-fill" style="width: 20%"></div>
+                                </div>
+                                <div class="text-sm">20%</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold">89</div>
+                                <div class="text-sm text-gray-500">Team B</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Match 3 -->
+                    <div class="match-card bg-white rounded-2xl p-5 animate-on-scroll" data-delay="300">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="team-logo bg-secondary text-white">
+                                <i class="fas fa-hockey-puck"></i>
+                            </div>
+                            <div class="text-xs bg-gray-100 px-2 py-1 rounded">Sat</div>
+                        </div>
+                        
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <div class="font-bold">Oilers</div>
+                                <div class="text-sm text-gray-500">NHL</div>
+                            </div>
+                            <div class="text-2xl font-bold text-gray-400">VS</div>
+                            <div>
+                                <div class="font-bold">Maple Leafs</div>
+                                <div class="text-sm text-gray-500">NHL</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-lg font-bold">3</div>
+                                <div class="text-sm text-gray-500">Team A</div>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-16 h-1 bg-gray-200 rounded-full overflow-hidden mr-2">
+                                    <div class="progress-fill" style="width: 5%"></div>
+                                </div>
+                                <div class="text-sm">5%</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-bold">2</div>
+                                <div class="text-sm text-gray-500">Team B</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Live Updates -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold mb-6">Live Updates</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Update 1 -->
+                    <div class="score-card bg-white rounded-2xl p-6 animate-on-scroll" data-delay="100">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white mr-3">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <h3 class="text-lg font-bold">Goal!</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            <span class="font-bold">Team A</span> scores a goal! Match time: 45:23
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-primary">2</div>
+                                <div class="text-sm text-gray-500">Team A</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-accent">1</div>
+                                <div class="text-sm text-gray-500">Team B</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Update 2 -->
+                    <div class="score-card bg-white rounded-2xl p-6 animate-on-scroll" data-delay="200">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white mr-3">
+                                <i class="fas fa-pass"></i>
+                            </div>
+                            <h3 class="text-lg font-bold">Pass</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            <span class="font-bold">Team B</span> makes a brilliant pass! Defender makes a great tackle
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-primary">2</div>
+                                <div class="text-sm text-gray-500">Team A</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-accent">1</div>
+                                <div class="text-sm text-gray-500">Team B</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Update 3 -->
+                    <div class="score-card bg-white rounded-2xl p-6 animate-on-scroll" data-delay="300">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-white mr-3">
+                                <i class="fas fa-card"></i>
+                            </div>
+                            <h3 class="text-lg font-bold">Card</h3>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            <span class="font-bold">Team A</span> player shown a yellow card for a foul
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-primary">2</div>
+                                <div class="text-sm text-gray-500">Team A</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-accent">1</div>
+                                <div class="text-sm text-gray-500">Team B</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Stats Section -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold mb-6">Match Statistics</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white rounded-2xl p-6 animate-on-scroll" data-delay="100">
+                    <div class="text-3xl font-bold text-primary mb-2">12</div>
+                    <div class="text-gray-600">Shots</div>
+                    <div class="text-sm text-gray-500">Team A: 8, Team B: 4</div>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 animate-on-scroll" data-delay="200">
+                    <div class="text-3xl font-bold text-accent mb-2">5</div>
+                    <div class="text-gray-600">On Target</div>
+                    <div class="text-sm text-gray-500">Team A: 3, Team B: 2</div>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 animate-on-scroll" data-delay="300">
+                    <div class="text-3xl font-bold text-secondary mb-2">3</div>
+                    <div class="text-gray-600">Corners</div>
+                    <div class="text-sm text-gray-500">Team A: 2, Team B: 1</div>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 animate-on-scroll" data-delay="400">
+                    <div class="text-3xl font-bold text-primary mb-2">2</div>
+                    <div class="text-gray-600">Fouls</div>
+                    <div class="text-sm text-gray-500">Team A: 4, Team B: 2</div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                            <i class="fas fa-soccer-ball text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">SportScore</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">
+                        Your ultimate sports tracking experience with real-time updates and statistics.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Navigation</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Live Matches</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Upcoming Games</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Standings</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Team Stats</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Schedule</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Sports</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Football</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Basketball</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Soccer</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Hockey</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Baseball</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Newsletter</h4>
+                    <p class="text-gray-400 mb-4">
+                        Get the latest updates and match highlights delivered to your inbox.
+                    </p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-gray-800">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg font-medium">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+                <p>© 2023 SportScore. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Scroll animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const delay = parseInt(entry.target.dataset.delay) || 0;
+                        setTimeout(() => {
+                            entry.target.classList.add('visible');
+                        }, delay);
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Simulate live score updates
+            setInterval(() => {
+                const scoreA = document.querySelector('.text-primary');
+                const scoreB = document.querySelector('.text-accent');
+                
+                // Randomly update scores
+                if (Math.random() > 0.7) {
+                    const newScoreA = parseInt(scoreA.textContent) + Math.floor(Math.random() * 2);
+                    const newScoreB = parseInt(scoreB.textContent) + Math.floor(Math.random() * 2);
+                    
+                    scoreA.textContent = newScoreA;
+                    scoreB.textContent = newScoreB;
+                    
+                    // Add update notification
+                    const updates = document.querySelectorAll('.score-card');
+                    const randomUpdate = updates[Math.floor(Math.random() * updates.length)];
+                    randomUpdate.classList.add('animate-score');
+                    
+                    setTimeout(() => {
+                        randomUpdate.classList.remove('animate-score');
+                    }, 500);
+                }
+            }, 5000);
+            
+            // Simulate live clock
+            const clock = document.querySelector('.text-center.mt-2.text-sm');
+            if (clock) {
+                let minutes = 45;
+                let seconds = 0;
+                let isRunning = true;
+                
+                setInterval(() => {
+                    if (!isRunning) return;
+                    
+                    seconds++;
+                    if (seconds >= 60) {
+                        minutes++;
+                        seconds = 0;
+                    }
+                    
+                    clock.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

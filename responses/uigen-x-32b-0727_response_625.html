@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Budget Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#2563eb',
+                        'secondary': '#0ea5e9',
+                        'accent': '#8b5cf6',
+                        'dark': '#1e293b',
+                        'light': '#f8fafc',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444',
+                        'food': '#f97316',
+                        'transport': '#3b82f6',
+                        'entertainment': '#8b5cf6',
+                        'shopping': '#ec4899',
+                        'utilities': '#06b6d4',
+                        'other': '#64748b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        .header {
+            grid-area: header;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: #f1f5f9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .category-card {
+            transition: transform 0.3s ease;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        .transaction-row:hover {
+            background-color: #f8fafc;
+        }
+        
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-link:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-link.active {
+            background-color: #2563eb;
+        }
+        
+        .add-btn {
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3), 0 2px 4px -1px rgba(37, 99, 235, 0.2);
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar text-white">
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                        <i class="fas fa-wallet text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">FinTrack</h1>
+                </div>
+            </div>
+            
+            <nav class="py-4">
+                <ul>
+                    <li>
+                        <a href="#" class="sidebar-link active flex items-center py-3 px-6">
+                            <i class="fas fa-home mr-3"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center py-3 px-6">
+                            <i class="fas fa-chart-pie mr-3"></i>
+                            <span>Analytics</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center py-3 px-6">
+                            <i class="fas fa-receipt mr-3"></i>
+                            <span>Transactions</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center py-3 px-6">
+                            <i class="fas fa-cog mr-3"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="absolute bottom-0 w-full p-6 border-t border-slate-700">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="font-medium">Alex Morgan</p>
+                        <p class="text-sm text-slate-400">View Profile</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6 py-4">
+            <div class="flex items-center">
+                <h2 class="text-xl font-semibold text-slate-800">Budget Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-danger rounded-full"></span>
+                </div>
+                
+                <div class="relative">
+                    <button class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-6 overflow-auto">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500">Total Budget</p>
+                            <h3 class="text-2xl font-bold mt-1">$4,200</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-wallet text-primary text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Remaining: $1,850</span>
+                            <span>44%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-100">
+                            <div class="progress-fill bg-success" style="width: 44%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500">Expenses</p>
+                            <h3 class="text-2xl font-bold mt-1">$2,350</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <i class="fas fa-shopping-cart text-accent text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Monthly: $1,200</span>
+                            <span>92%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-100">
+                            <div class="progress-fill bg-warning" style="width: 92%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500">Income</p>
+                            <h3 class="text-2xl font-bold mt-1">$5,800</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                            <i class="fas fa-arrow-down text-success text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Target: $6,000</span>
+                            <span>97%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-100">
+                            <div class="progress-fill bg-success" style="width: 97%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500">Savings</p>
+                            <h3 class="text-2xl font-bold mt-1">$1,200</h3>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <i class="fas fa-piggy-bank text-warning text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Goal: $1,500</span>
+                            <span>80%</span>
+                        </div>
+                        <div class="progress-bar bg-slate-100">
+                            <div class="progress-fill bg-warning" style="width: 80%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts and Categories -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Expense Categories -->
+                <div class="lg:col-span-2">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold">Expense Categories</h3>
+                            <button class="text-primary text-sm font-medium">View All</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Category 1 -->
+                            <div class="category-card card p-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-utensils text-food"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Food & Dining</h4>
+                                        <p class="text-sm text-slate-500">$420 / $500</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-slate-100">
+                                        <div class="progress-fill bg-food" style="width: 84%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Category 2 -->
+                            <div class="category-card card p-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-car text-transport"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Transportation</h4>
+                                        <p class="text-sm text-slate-500">$180 / $300</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-slate-100">
+                                        <div class="progress-fill bg-transport" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Category 3 -->
+                            <div class="category-card card p-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-film text-entertainment"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Entertainment</h4>
+                                        <p class="text-sm text-slate-500">$120 / $200</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-slate-100">
+                                        <div class="progress-fill bg-entertainment" style="width: 60%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Category 4 -->
+                            <div class="category-card card p-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-shopping-bag text-shopping"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Shopping</h4>
+                                        <p class="text-sm text-slate-500">$350 / $400</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-slate-100">
+                                        <div class="progress-fill bg-shopping" style="width: 88%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Category 5 -->
+                            <div class="category-card card p-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-bolt text-utilities"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Utilities</h4>
+                                        <p class="text-sm text-slate-500">$150 / $200</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-slate-100">
+                                        <div class="progress-fill bg-utilities" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Category 6 -->
+                            <div class="category-card card p-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-ellipsis-h text-other"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium">Other</h4>
+                                        <p class="text-sm text-slate-500">$130 / $300</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress-bar bg-slate-100">
+                                        <div class="progress-fill bg-other" style="width: 43%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Spending Chart -->
+                <div>
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold">Spending Overview</h3>
+                            <div class="flex space-x-2">
+                                <button class="text-xs px-3 py-1 rounded-full bg-primary text-white">Month</button>
+                                <button class="text-xs px-3 py-1 rounded-full bg-slate-100">Quarter</button>
+                                <button class="text-xs px-3 py-1 rounded-full bg-slate-100">Year</button>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="flex items-end h-full space-x-2 justify-center pt-8">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 120px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Mon</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 90px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Tue</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 150px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Wed</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 200px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Thu</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 180px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Fri</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 100px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Sat</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 70px"></div>
+                                    <span class="text-xs mt-2 text-slate-500">Sun</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 pt-6 border-t border-slate-100">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="text-slate-500">Total Expenses</p>
+                                    <p class="font-semibold">$1,200</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500">Avg. Daily</p>
+                                    <p class="font-semibold">$171</p>
+                                </div>
+                                <div>
+                                    <p class="text-slate-500">Max Single Day</p>
+                                    <p class="font-semibold">$250</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Transactions -->
+            <div class="card p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Recent Transactions</h3>
+                    <button class="text-primary text-sm font-medium">View All</button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-slate-500 text-sm border-b">
+                                <th class="pb-3">Description</th>
+                                <th class="pb-3">Category</th>
+                                <th class="pb-3">Date</th>
+                                <th class="pb-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Transaction 1 -->
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-md bg-orange-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-utensils text-food text-sm"></i>
+                                        </div>
+                                        <span>Italian Restaurant</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-orange-100 text-food">Food</span>
+                                </td>
+                                <td class="py-4 text-slate-500">Jun 12, 2023</td>
+                                <td class="py-4 text-right font-medium">$85.50</td>
+                            </tr>
+                            
+                            <!-- Transaction 2 -->
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-gas-pump text-transport text-sm"></i>
+                                        </div>
+                                        <span>Gas Station</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-transport">Transport</span>
+                                </td>
+                                <td class="py-4 text-slate-500">Jun 11, 2023</td>
+                                <td class="py-4 text-right font-medium">$45.00</td>
+                            </tr>
+                            
+                            <!-- Transaction 3 -->
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-md bg-purple-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-ticket-alt text-entertainment text-sm"></i>
+                                        </div>
+                                        <span>Movie Tickets</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-purple-100 text-entertainment">Entertainment</span>
+                                </td>
+                                <td class="py-4 text-slate-500">Jun 10, 2023</td>
+                                <td class="py-4 text-right font-medium">$32.00</td>
+                            </tr>
+                            
+                            <!-- Transaction 4 -->
+                            <tr class="transaction-row border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-md bg-pink-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-tshirt text-shopping text-sm"></i>
+                                        </div>
+                                        <span>Clothing Store</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-pink-100 text-shopping">Shopping</span>
+                                </td>
+                                <td class="py-4 text-slate-500">Jun 9, 2023</td>
+                                <td class="py-4 text-right font-medium">$120.00</td>
+                            </tr>
+                            
+                            <!-- Transaction 5 -->
+                            <tr class="transaction-row">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-md bg-cyan-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-lightbulb text-utilities text-sm"></i>
+                                        </div>
+                                        <span>Electricity Bill</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-cyan-100 text-utilities">Utilities</span>
+                                </td>
+                                <td class="py-4 text-slate-500">Jun 8, 2023</td>
+                                <td class="py-4 text-right font-medium">$75.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Add Expense Button -->
+            <div class="fixed bottom-6 right-6">
+                <button class="add-btn w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
+                    <i class="fas fa-plus text-xl"></i>
+                </button>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Simple animation for progress bars
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate progress bars
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 300);
+            });
+            
+            // Add hover effect to category cards
+            const categoryCards = document.querySelectorAll('.category-card');
+            categoryCards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

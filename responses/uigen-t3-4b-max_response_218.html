@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-text-primary: rgb(26, 26, 26);
+            --color-text-secondary: rgb(102, 102, 102);
+            --color-text-muted: rgb(140, 140, 140);
+            --color-text-inverted: rgb(255, 255, 255);
+            --color-bg-light: rgb(255, 255, 255);
+            --color-bg-soft-gray: rgb(244, 244, 244);
+            --color-bg-dark: rgb(23, 23, 23);
+            --color-border-light: rgb(229, 229, 229);
+            --color-accent-blue: #007bff; /* A nice blue for primary actions/highlights */
+            --color-accent-green: #28a745; /* For success/positive indicators */
+            --color-accent-red: #dc3545; /* For negative/attention indicators */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-soft-gray);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr); /* Default to 1 column */
+            gap: 1.5rem; /* 24px */
+            padding: 1.5rem;
+            max-width: 1200px; /* Max width for the dashboard */
+            margin: 0 auto;
+            background-color: var(--color-bg-light);
+            border-radius: 0.75rem; /* 12px */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns on medium screens */
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: repeat(3, 1fr); /* 3 columns on large screens */
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px; /* Fixed height for consistency */
+            margin: 0 auto;
+        }
+
+        .chart-toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-bg-soft-gray);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .chart-toolbar button {
+            background: none;
+            border: none;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        .chart-toolbar button:hover {
+            background-color: var(--color-bg-soft-gray);
+        }
+
+        .chart-toolbar button.active {
+            background-color: var(--color-accent-blue);
+            color: var(--color-text-inverted);
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--color-text-inverted);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            z-index: 10;
+            transform: translate(-50%, -100%); /* Position above the point */
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+
+        .chart-tooltip.show {
+            opacity: 1;
+        }
+
+        /* Responsive chart container for small screens */
+        @media (max-width: 767px) {
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6">
+
+    <div class="dashboard-container">
+        <!-- Dashboard Card 1: Real-time Line Chart -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-[var(--color-border-light)]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-[var(--color-text-primary)]">Real-time Sales Trend</h3>
+                <div class="flex space-x-2">
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Pan"><i class="fas fa-grip-lines"></i></button>
+                </div>
+            </div>
+            <div class="chart-container" id="lineChartContainer">
+                <canvas id="lineChart"></canvas>
+            </div>
+            <div class="chart-toolbar">
+                <button class="active" data-chart-type="line" title="Line Chart">Line</button>
+                <button data-chart-type="bar" title="Bar Chart">Bar</button>
+                <button data-chart-type="scatter" title="Scatter Plot">Scatter</button>
+            </div>
+            <div class="chart-tooltip" id="lineChartTooltip"></div>
+        </div>
+
+        <!-- Dashboard Card 2: Interactive Bar Graph -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-[var(--color-border-light)]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-[var(--color-text-primary)]">Monthly Product Performance</h3>
+                <div class="flex space-x-2">
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Pan"><i class="fas fa-grip-lines"></i></button>
+                </div>
+            </div>
+            <div class="chart-container" id="barChartContainer">
+                <canvas id="barChart"></canvas>
+            </div>
+            <div class="chart-tooltip" id="barChartTooltip"></div>
+        </div>
+
+        <!-- Dashboard Card 3: Dynamic Scatter Plot -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-[var(--color-border-light)]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-[var(--color-text-primary)]">Customer Segmentation</h3>
+                <div class="flex space-x-2">
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Pan"><i class="fas fa-grip-lines"></i></button>
+                </div>
+            </div>
+            <div class="chart-container" id="scatterChartContainer">
+                <canvas id="scatterChart"></canvas>
+            </div>
+            <div class="chart-tooltip" id="scatterChartTooltip"></div>
+        </div>
+
+        <!-- Dashboard Card 4: Real-time Data Table (Optional, for additional data) -->
+        <div class="bg-white p-6 rounded-lg shadow-md border border-[var(--color-border-light)]" style="grid-column: span 1; grid-row: span 2;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-[var(--color-text-primary)]">Latest Activity Log</h3>
+                <div class="flex space-x-2">
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                    <button class="text-[var(--color-text-muted)] hover:text-[var(--color-accent-blue)]" title="Export Data"><i class="fas fa-download"></i></button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Dynamic table rows will be inserted here by JavaScript -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-10-26 14:30:00</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">New Lead</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">+$5,000</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-10-26 14:25:00</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Sale Completed</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">-$1,200</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2023-10-26 14:20:00</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Lead Converted</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">+$3,500</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js Global Settings
+        Chart.register(
+            Chart.plugins.legend,
+            Chart.data.datasets,
+            Chart.data.scales.x,
+            Chart.data.scales.y
+        );
+
+        let lineChartInstance, barChartInstance, scatterChartInstance;
+        const chartTypeButtons = document.querySelectorAll('.chart-toolbar button');
+        const lineChartTooltip = document.getElementById('lineChartTooltip');
+        const barChartTooltip = document.getElementById('barChartTooltip');
+        const scatterChartTooltip = document.getElementById('scatterChartTooltip');
+
+        const generateRandomData = (numPoints) => {
+            const labels = [];
+            const data1 = [];
+            const data2 = [];
+            const data3 = [];
+
+            for (let i = 0; i < numPoints; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - numPoints + 1 + i);
+                labels.push(date.toLocaleDateString());
+
+                data1.push(Math.floor(Math.random() * 100) + 50);
+                data2.push(Math.floor(Math.random() * 50) + 20);
+                data3.push(Math.floor(Math.random() * 80) + 30);
+            }
+            return { labels, data1, data2, data3 };
+        };
+
+        const updateChart = (chart, type, labels, data1, data2, data3) => {
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = chart.type === 'line' ? document.getElementById('lineChart').getContext('2d') :
+                         chart.type === 'bar' ? document.getElementById('barChart').getContext('2d') :
+                         chart.type === 'scatter' ? document.getElementById('scatterChart').getContext('2d') : null;
+
+            if (!ctx) return; // Should not happen
+
+            const config = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Sales (Line)',
+                            data: data1,
+                            borderColor: 'var(--color-accent-blue)',
+                            backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                            fill: type === 'line',
+                            tension: 0.3,
+                            pointBackgroundColor: 'var(--color-accent-blue)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'var(--color-accent-blue)',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Revenue (Bar)',
+                            data: data2,
+                            backgroundColor: 'var(--color-accent-green)',
+                            borderColor: 'var(--color-accent-green)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Customer Satisfaction (Scatter)',
+                            data: data3.map((d, i) => ({ x: i, y: d })),
+                            backgroundColor: 'var(--color-accent-red)',
+                            borderColor: 'var(--color-accent-red)',
+                            borderWidth: 1,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: 'var(--color-accent-red)',
+                            pointHoverBorderColor: '#fff'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'var(--color-text-primary)'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time Period',
+                                color: 'var(--color-text-secondary)'
+                            },
+                            ticks: {
+                                color: 'var(--color-text-secondary)'
+                            },
+                            grid: {
+                                color: 'var(--color-border-light)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value',
+                                color: 'var(--color-text-secondary)'
+                            },
+                            ticks: {
+                                color: 'var(--color-text-secondary)'
+                            },
+                            grid: {
+                                color: 'var(--color-border-light)'
+                            }
+                        }
+                    }
+                }
+            };
+
+            if (type === 'scatter') {
+                config.options.scales = {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'X-Axis (Index)',
+                            color: 'var(--color-text-secondary)'
+                        },
+                        ticks: {
+                            color: 'var(--color-text-secondary)'
+                        },
+                        grid: {
+                            color: 'var(--color-border-light)'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Y-Axis (Value)',
+                            color: 'var(--color-text-secondary)'
+                        },
+                        ticks: {
+                            color: 'var(--color-text-secondary)'
+                        },
+                        grid: {
+                            color: 'var(--color-border-light)'
+                        }
+                    }
+                };
+            }
+
+            chart = new Chart(ctx, config);
+            return chart;
+        };
+
+        // Initialize Charts
+        const initialData = generateRandomData(30); // 30 data points
+        const lineChartCtx = document.getElementById('lineChart').getContext('2d');
+        lineChartInstance = updateChart({ type: 'line' }, 'line', initialData.labels, initialData.data1, initialData.data2, initialData.data3);
+
+        const barChartCtx = document.getElementById('barChart').getContext('2d');
+        barChartInstance = updateChart({ type: 'bar' }, 'bar', initialData.labels, initialData.data1, initialData.data2, initialData.data3);
+
+        const scatterChartCtx = document.getElementById('scatterChart').getContext('2d');
+        scatterChartInstance = updateChart({ type: 'scatter' }, 'scatter', initialData.labels, initialData.data1, initialData.data2, initialData.data3);
+
+
+        // Chart Type Switcher
+        chartTypeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const selectedType = button.dataset.chartType;
+                const currentChart = document.getElementById(button.dataset.chartId || 'currentChart'); // Use data-id for dynamic chart
+
+                if (selectedType === 'line') {
+                    lineChartInstance = updateChart(lineChartInstance, 'line', initialData.labels, initialData.data1, initialData.data2, initialData.data3);
+                } else if (selectedType === 'bar') {
+                    barChartInstance = updateChart(barChartInstance, 'bar', initialData.labels, initialData.data1, initialData.data2, initialData.data3);
+                } else if (selectedType === 'scatter') {
+                    scatterChartInstance = updateChart(scatterChartInstance, 'scatter', initialData.labels, initialData.data1, initialData.data2, initialData.data3);
+                }
+                button.classList.add('active');
+                chartTypeButtons.forEach(btn => btn.classList.remove('active'));
+            });
+        });
+
+        // Zoom/Zoom Out (for Chart.js, these are usually built-in, but for demonstration)
+        document.querySelectorAll('.chart-container button[title="Zoom In"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent chart type change
+                if (lineChartInstance) lineChartInstance.zoom('in');
+                if (barChartInstance) barChartInstance.zoom('in');
+                if (scatterChartInstance) scatterChartInstance.zoom('in');
+            });
+        });
+
+        document.querySelectorAll('.chart-container button[title="Zoom Out"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (lineChartInstance) lineChartInstance.zoom('out');
+                if (barChartInstance) barChartInstance.zoom('out');
+                if (scatterChartInstance) scatterChartInstance.zoom('out');
+            });
+        });
+
+        document.querySelectorAll('.chart-container button[title="Pan"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (lineChartInstance) lineChartInstance.pan();
+                if (barChartInstance) barChartInstance.pan();
+                if (scatterChartInstance) scatterChartInstance.pan();
+            });
+        });
+
+
+        // Tooltip functionality (Chart.js handles this by default, but for customizations, you might need to override)
+        // In a real application, you might need more advanced tooltip handling for specific interactions
+        // or use a library like D3.js for more complex visualizations.
+        // For Chart.js, the default tooltip is usually sufficient and is managed by the library.
+        // The custom tooltip in the HTML is for potential advanced usage or different tooltip styles.
+
+        // Example of a custom tooltip (simplified for demonstration, would be more complex in production)
+        const showCustomTooltip = (chart, event, element, chartType) => {
+            const { x, y, chartElementType, datasetIndex, index } = event;
+            const data = chart.data.datasets[datasetIndex].data[index];
+            const label = chart.data.labels[index];
+
+            let tooltipHtml = '';
+            if (chartType === 'line' || chartType === 'bar') {
+                tooltipHtml = `<div class="p-2 bg-gray-800 text-white rounded text-sm">
+                                <p><strong>${label}</strong></p>
+                                <p>${chart.data.datasets[datasetIndex].label}: ${data}</p>
+                            </div>`;
+            } else if (chartType === 'scatter') {
+                tooltipHtml = `<div class="p-2 bg-gray-800 text-white rounded text-sm">
+                                <p><strong>X:</strong> ${element.x}</p>
+                                <p><strong>Y:</strong> ${element.y}</p>
+                                <p><strong>Label:</strong> ${chart.data.labels[index]}</p>
+                                <p><strong>Value:</strong> ${chart.data.datasets[datasetIndex].data[index].y}</p>
+                            </div>`;
+            }
+
+            // For this example, we'll just show the default Chart.js tooltip
+            // if you wanted a custom one, you'd use the 'tooltip' event and update the div
+            // chart.tooltip.update({ position: { x, y, event: event }, html: tooltipHtml });
+        };
+
+        // Listen for Chart.js tooltip events
+        if (lineChartInstance) {
+            lineChartInstance.canvas.addEventListener('mousemove', (e) => {
+                if (lineChartInstance.tooltip._active.length > 0) {
+                    const activeElement = lineChartInstance.tooltip._active[0];
+                    showCustomTooltip(lineChartInstance, activeElement, activeElement.element, 'line');
+                }
+            });
+        }
+        if (barChartInstance) {
+            barChartInstance.canvas.addEventListener('mousemove', (e) => {
+                if (barChartInstance.tooltip._active.length > 0) {
+                    const activeElement = barChartInstance.tooltip._active[0];
+                    showCustomTooltip(barChartInstance, activeElement, activeElement.element, 'bar');
+                }
+            });
+        }
+        if (scatterChartInstance) {
+            scatterChartInstance.canvas.addEventListener('mousemove', (e) => {
+                if (scatterChartInstance.tooltip._active.length > 0) {
+                    const activeElement = scatterChartInstance.tooltip._active[0];
+                    showCustomTooltip(scatterChartInstance, activeElement, activeElement.element, 'scatter');
+                }
+            });
+        }
+
+        // Dynamic Table (Example)
+        const tableBody = document.querySelector('table tbody');
+        const activityLog = [
+            { timestamp: '2023-10-26 14:30:00', event: 'New Lead', value: '+$5,000' },
+            { timestamp: '2023-10-26 14:25:00', event: 'Sale Completed', value: '-$1,200' },
+            { timestamp: '2023-10-26 14:20:00', event: 'Lead Converted', value: '+$3,500' },
+            { timestamp: '2023-10-26 14:15:00', event: 'Marketing Campaign', value: '+$2,000' },
+            { timestamp: '2023-10-26 14:10:00', event: 'Customer Support', value: '-$500' },
+            { timestamp: '2023-10-26 14:05:00', event: 'New Feature Release', value: '+$1,500' },
+            { timestamp: '2023-10-26 14:00:00', event: 'System Update', value: '-$100' },
+            { timestamp: '2023-10-26 13:55:00', event: 'Sales Meeting', value: '-$0' },
+            { timestamp: '2023-10-26 13:50:00', event: 'Client Feedback', value: '-$0' },
+            { timestamp: '2023-10-26 13:45:00', event: 'Marketing Budget', value: '+$5,000' },
+            { timestamp: '2023-10-26 13:40:00', event: 'Product Launch', value: '-$2,000' },
+            { timestamp: '2023-10-26 13:35:00', event: 'Internal Training', value: '-$0' },
+            { timestamp: '2023-10-26 13:30:00', event: 'Customer Support', value: '-$150' },
+            { timestamp: '2023-10-26 13:25:00', event: 'New Lead', value: '+$4,000' },
+            { timestamp: '2023-10-26 13:20:00', event: 'Sale Completed', value: '-$1,800' },
+            { timestamp: '2023-10-26 13:15:00', event: 'Lead Converted', value: '+$2,500' },
+            { timestamp: '2023-10-26 13:10:00', event: 'Marketing Campaign', value: '+$1,000' },
+            { timestamp: '2023-10-26 13:05:00', event: 'Customer Support', value: '-$300' },
+            { timestamp: '2023-10-26 13:00:00', event: 'New Feature Release', value: '+$1,200' },
+            { timestamp: '2023-10-26 12:55:00', event: 'System Update', value: '-$50' },
+            { timestamp: '2023-10-26 12:50:00', event: 'Sales Meeting', value: '-$0' },
+            { timestamp: '2023-10-26 12:45:00', event: 'Client Feedback', value: '-$0' },
+            { timestamp: '2023-10-26 12:40:00', event: 'Marketing Budget', value: '+$6,000' },
+            { timestamp: '2023-10-26 12:35:00', event: 'Product Launch', value: '-$2,500' },
+            { timestamp: '2023-10-26 12:30:00', event: 'Internal Training', value: '-$0' },
+            { timestamp: '2023-10-26 12:25:00', event: 'Customer Support', value: '-$200' },
+            { timestamp: '2023-10-26 12:20:00', event: 'New Lead', value: '+$5,500' },
+            { timestamp: '2023-10-26 12:15:00', event: 'Sale Completed', value: '-$1,500' },
+            { timestamp: '2023-10-26 12:10:00', event: 'Lead Converted', value: '+$3,000' },
+        ];
+
+        activityLog.forEach(activity => {
+            const row = document.createElement('tr');
+            row.classList.add('hover:bg-gray-50');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${activity.timestamp}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${activity.event}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${activity.value}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameForge Studio - Level Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-primary': '#0f172a',
+                        'dark-secondary': '#1e293b',
+                        'dark-tertiary': '#334155',
+                        'accent-primary': '#7c3aed',
+                        'accent-secondary': '#8b5cf6',
+                        'accent-tertiary': '#a78bfa',
+                        'text-primary': '#f1f5f9',
+                        'text-muted': '#94a3b8',
+                        'border-primary': 'rgba(255, 255, 255, 0.1)',
+                        'border-secondary': 'rgba(255, 255, 255, 0.05)',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'space': ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                        'tile-pulse': 'tilePulse 1.5s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        },
+                        tilePulse: {
+                            '0%, 100%': { transform: 'scale(1)', opacity: 1 },
+                            '50%': { transform: 'scale(1.05)', opacity: 0.7 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-dark-primary: #0f172a;
+            --color-dark-secondary: #1e293b;
+            --color-dark-tertiary: #334155;
+            --color-accent-primary: #7c3aed;
+            --color-accent-secondary: #8b5cf6;
+            --color-accent-tertiary: #a78bfa;
+            --color-text-primary: #f1f5f9;
+            --color-text-muted: #94a3b8;
+            --color-border-primary: rgba(255, 255, 255, 0.1);
+            --color-border-secondary: rgba(255, 255, 255, 0.05);
+        }
+        
+        body {
+            background-color: var(--color-dark-primary);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .font-space {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .editor-grid {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            grid-template-rows: repeat(16, 1fr);
+            gap: 8px;
+        }
+        
+        .tile {
+            background-color: var(--color-dark-secondary);
+            border: 1px solid var(--color-border-primary);
+            transition: all 0.2s ease;
+        }
+        
+        .tile:hover {
+            background-color: var(--color-accent-secondary);
+            transform: scale(1.05);
+        }
+        
+        .tile.selected {
+            background-color: var(--color-accent-primary);
+            box-shadow: 0 0 0 2px white;
+        }
+        
+        .asset-card {
+            background-color: var(--color-dark-secondary);
+            border: 1px solid var(--color-border-primary);
+            transition: all 0.2s ease;
+        }
+        
+        .asset-card:hover {
+            background-color: var(--color-accent-secondary);
+            transform: translateY(-5px);
+        }
+        
+        .tool-button {
+            background-color: var(--color-dark-secondary);
+            border: 1px solid var(--color-border-primary);
+            transition: all 0.2s ease;
+        }
+        
+        .tool-button:hover, .tool-button.active {
+            background-color: var(--color-accent-primary);
+            border-color: var(--color-accent-primary);
+        }
+        
+        .property-input {
+            background-color: var(--color-dark-secondary);
+            border: 1px solid var(--color-border-primary);
+            color: var(--color-text-primary);
+        }
+        
+        .property-input:focus {
+            outline: none;
+            border-color: var(--color-accent-primary);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .level-preview {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid var(--color-border-primary);
+        }
+        
+        .grid-line {
+            stroke: var(--color-border-secondary);
+            stroke-width: 1;
+        }
+        
+        .grid-line-thick {
+            stroke: var(--color-accent-primary);
+            stroke-width: 2;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background-color: #10b981;
+        }
+        
+        .status-offline {
+            background-color: #ef4444;
+        }
+        
+        .status-sync {
+            background-color: #8b5cf6;
+        }
+    </style>
+</head>
+<body class="bg-dark-primary text-text-primary">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-dark-primary/90 backdrop-blur-md border-b border-border-primary">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-md bg-accent-primary flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <span class="ml-2 text-xl font-bold font-space">GameForge Studio</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Home</a>
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Templates</a>
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Documentation</a>
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Community</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <div class="absolute -top-1 -right-1 w-3 h-3 bg-accent-primary rounded-full border-2 border-dark-primary"></div>
+                        <div class="w-10 h-10 rounded-full bg-dark-secondary flex items-center justify-center">
+                            <span class="text-text-primary font-medium">JD</span>
+                        </div>
+                    </div>
+                    <button class="md:hidden text-text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Left Panel - Level Editor -->
+                <div class="lg:w-2/3">
+                    <div class="bg-dark-secondary rounded-xl border border-border-primary p-4 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold font-space">Level Editor</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex items-center">
+                                    <span class="status-indicator status-online"></span>
+                                    <span class="text-sm text-text-muted">Connected</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="status-indicator status-sync"></span>
+                                    <span class="text-sm text-text-muted">Synced</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-12 gap-4 text-sm text-text-muted mb-2">
+                            <div class="col-span-4">Tile (16x16)</div>
+                            <div class="col-span-4">Tile (32x32)</div>
+                            <div class="col-span-4">Tile (48x48)</div>
+                        </div>
+                        
+                        <div class="level-preview rounded-lg overflow-hidden">
+                            <svg viewBox="0 0 100 100" class="w-full h-64">
+                                <!-- Grid lines -->
+                                <svg class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                                    <line x1="0" y1="0" x2="100" y2="0" class="grid-line" />
+                                    <line x1="100" y1="0" x2="100" y2="100" class="grid-line" />
+                                    <line x1="0" y1="0" x2="0" y2="100" class="grid-line" />
+                                    <line x1="0" y1="100" x2="100" y2="100" class="grid-line" />
+                                    
+                                    <!-- Horizontal lines -->
+                                    <line x1="0" y1="12.5" x2="100" y2="12.5" class="grid-line" />
+                                    <line x1="0" y1="25" x2="100" y2="25" class="grid-line" />
+                                    <line x1="0" y1="37.5" x2="100" y2="37.5" class="grid-line" />
+                                    <line x1="0" y1="50" x2="100" y2="50" class="grid-line" />
+                                    <line x1="0" y1="62.5" x2="100" y2="62.5" class="grid-line" />
+                                    <line x1="0" y1="75" x2="100" y2="75" class="grid-line" />
+                                    <line x1="0" y1="87.5" x2="100" y2="87.5" class="grid-line" />
+                                    
+                                    <!-- Vertical lines -->
+                                    <line x1="12.5" y1="0" x2="12.5" y2="100" class="grid-line" />
+                                    <line x1="25" y1="0" x2="25" y2="100" class="grid-line" />
+                                    <line x1="37.5" y1="0" x2="37.5" y2="100" class="grid-line" />
+                                    <line x1="50" y1="0" x2="50" y2="100" class="grid-line" />
+                                    <line x1="62.5" y1="0" x2="62.5" y2="100" class="grid-line" />
+                                    <line x1="75" y1="0" x2="75" y2="100" class="grid-line" />
+                                    <line x1="87.5" y1="0" x2="87.5" y2="100" class="grid-line" />
+                                </svg>
+                                
+                                <!-- Tiles -->
+                                <rect x="10" y="10" width="80" height="80" class="tile selected" />
+                                <rect x="30" y="30" width="40" height="40" class="tile" />
+                                <rect x="70" y="70" width="30" height="30" class="tile" />
+                                <rect x="50" y="10" width="50" height="20" class="tile" />
+                                <rect x="80" y="60" width="20" height="40" class="tile" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Properties Panel -->
+                        <div class="lg:col-span-2 bg-dark-secondary rounded-xl border border-border-primary p-4">
+                            <h3 class="text-lg font-bold mb-4 font-space">Properties</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-text-muted mb-1">Tile Name</label>
+                                    <input type="text" class="property-input w-full px-3 py-2 rounded-lg" value="Platform">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-muted mb-1">Tile Type</label>
+                                    <select class="property-input w-full px-3 py-2 rounded-lg">
+                                        <option>Platform</option>
+                                        <option>Enemy</option>
+                                        <option>Player Start</option>
+                                        <option>Goal</option>
+                                        <option>Water</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-muted mb-1">Tile Value</label>
+                                    <input type="number" class="property-input w-full px-3 py-2 rounded-lg" value="10">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm text-text-muted mb-1">Tile Color</label>
+                                    <div class="flex space-x-2">
+                                        <div class="w-6 h-6 rounded-md bg-purple-500 border border-border-primary cursor-pointer"></div>
+                                        <div class="w-6 h-6 rounded-md bg-green-500 border border-border-primary cursor-pointer"></div>
+                                        <div class="w-6 h-6 rounded-md bg-red-500 border border-border-primary cursor-pointer"></div>
+                                        <div class="w-6 h-6 rounded-md bg-blue-500 border border-border-primary cursor-pointer"></div>
+                                        <div class="w-6 h-6 rounded-md bg-yellow-500 border border-border-primary cursor-pointer"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel - Tools -->
+                        <div class="bg-dark-secondary rounded-xl border border-border-primary p-4">
+                            <h3 class="text-lg font-bold mb-4 font-space">Tools</h3>
+                            
+                            <div class="grid grid-cols-4 gap-2 mb-6">
+                                <button class="tool-button p-3 rounded-lg flex flex-col items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span class="text-xs">Select</span>
+                                </button>
+                                
+                                <button class="tool-button active p-3 rounded-lg flex flex-col items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    <span class="text-xs">Move</span>
+                                </button>
+                                
+                                <button class="tool-button p-3 rounded-lg flex flex-col items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span class="text-xs">Delete</span>
+                                </button>
+                                
+                                <button class="tool-button p-3 rounded-lg flex flex-col items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <span class="text-xs">Properties</span>
+                                </button>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-sm font-medium mb-2 text-text-muted">Tile Palette</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Stone</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Grass</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Wood</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Water</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Lava</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Enemy</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Player</span>
+                                    </div>
+                                    <div class="tile w-10 h-10 flex items-center justify-center cursor-pointer">
+                                        <span class="text-xs">Goal</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-sm font-medium mb-2 text-text-muted">Recent Levels</h4>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span>Space Adventure</span>
+                                        <span class="text-text-muted">2h ago</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span>Underground Maze</span>
+                                        <span class="text-text-muted">1d ago</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span>Forest Quest</span>
+                                        <span class="text-text-muted">3d ago</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Panel - Asset Library -->
+                <div class="lg:w-1/3">
+                    <div class="bg-dark-secondary rounded-xl border border-border-primary p-4 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold font-space">Asset Library</h2>
+                            <div class="relative">
+                                <input type="text" placeholder="Search assets..." class="property-input px-3 py-2 rounded-lg pl-10 w-full sm:w-48">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                            <button class="px-3 py-1.5 text-sm rounded-lg bg-accent-primary">All</button>
+                            <button class="px-3 py-1.5 text-sm rounded-lg text-text-muted hover:bg-dark-tertiary">Sprites</button>
+                            <button class="px-3 py-1.5 text-sm rounded-lg text-text-muted hover:bg-dark-tertiary">Sounds</button>
+                            <button class="px-3 py-1.5 text-sm rounded-lg text-text-muted hover:bg-dark-tertiary">Animations</button>
+                            <button class="px-3 py-1.5 text-sm rounded-lg text-text-muted hover:bg-dark-tertiary">Tilesets</button>
+                            <button class="px-3 py-1.5 text-sm rounded-lg text-text-muted hover:bg-dark-tertiary">Prefabs</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-4 gap-4">
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-purple-500 to-indigo-700 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Hero</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-amber-500 to-orange-600 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Enemy</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Coin</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-rose-500 to-pink-600 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Door</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-600 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Platform</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-cyan-500 to-blue-600 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Water</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-amber-600 to-orange-500 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Lava</span>
+                            </div>
+                            
+                            <div class="asset-card rounded-lg p-3 flex flex-col items-center">
+                                <div class="w-full h-24 rounded-md bg-gradient-to-br from-emerald-600 to-teal-500 mb-2 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                </div>
+                                <span class="text-xs text-center">Tree</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-dark-secondary rounded-xl border border-border-primary p-4">
+                        <h3 class="text-lg font-bold mb-4 font-space">Recent Projects</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="p-3 rounded-lg bg-dark-tertiary">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium">Space Adventure</h4>
+                                        <p class="text-sm text-text-muted">2 levels completed</p>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 rounded-full bg-accent-primary">In Progress</span>
+                                </div>
+                                <div class="w-full bg-dark-tertiary rounded-full h-1.5 mt-2">
+                                    <div class="bg-accent-primary h-1.5 rounded-full" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 rounded-lg bg-dark-tertiary">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium">Underground Maze</h4>
+                                        <p class="text-sm text-text-muted">1 level completed</p>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 rounded-full bg-emerald-500">Completed</span>
+                                </div>
+                                <div class="w-full bg-dark-tertiary rounded-full h-1.5 mt-2">
+                                    <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 rounded-lg bg-dark-tertiary">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-medium">Forest Quest</h4>
+                                        <p class="text-sm text-text-muted">3 levels completed</p>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 rounded-full bg-emerald-500">Completed</span>
+                                </div>
+                                <div class="w-full bg-dark-tertiary rounded-full h-1.5 mt-2">
+                                    <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-12 py-6 border-t border-border-primary">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-md bg-accent-primary flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <span class="ml-2 text-lg font-bold font-space">GameForge Studio</span>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Documentation</a>
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Tutorials</a>
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Community</a>
+                    <a href="#" class="text-text-muted hover:text-text-primary transition-colors">Support</a>
+                </div>
+                
+                <div class="mt-4 md:mt-0 text-sm text-text-muted">
+                    © 2023 GameForge Studio. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple animation for the UI elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate the status indicators
+            const statusIndicators = document.querySelectorAll('.status-indicator');
+            statusIndicators.forEach(indicator => {
+                indicator.classList.add('animate-pulse');
+            });
+            
+            // Tool button selection
+            const toolButtons = document.querySelectorAll('.tool-button');
+            toolButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    toolButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // Tile selection
+            const tiles = document.querySelectorAll('.tile');
+            tiles.forEach(tile => {
+                tile.addEventListener('click', function() {
+                    tiles.forEach(t => t.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+            
+            // Simulate loading animation for the grid
+            const gridLine = document.querySelector('.grid-line');
+            if (gridLine) {
+                gridLine.classList.add('animate-pulse');
+            }
+        });
+    </script>
+</body>
+</html>

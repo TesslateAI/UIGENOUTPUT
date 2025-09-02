@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker | Daily Progress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+        
+        .habit-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        .habit-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .streak-badge {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .streak-badge::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: translateX(-100%);
+        }
+        
+        .streak-badge:hover::after {
+            animation: shine 1.5s infinite;
+        }
+        
+        @keyframes shine {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            transform: scale(1.05);
+        }
+        
+        .calendar-day.completed {
+            background-color: #14b8a6;
+            color: white;
+        }
+        
+        .calendar-day.missed {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        
+        .calendar-day.current {
+            box-shadow: 0 0 0 2px white, 0 0 0 4px #0ea5e9;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="font-sans text-dark-800 min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
+                    <i class="fas fa-check text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold text-primary-800">HabitFlow</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-bell text-gray-500"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span class="font-semibold text-primary-700">JD</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Overview -->
+        <section class="mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Current Streak</p>
+                            <p class="text-3xl font-bold mt-1">12 <span class="text-lg text-gray-500">days</span></p>
+                        </div>
+                        <div class="streak-badge bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <i class="fas fa-fire mr-1"></i> Active
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Progress</span>
+                            <span>75%</span>
+                        </div>
+                        <div class="progress-bar bg-gray-200 w-full">
+                            <div class="progress-fill bg-primary-500" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Habits Tracked</p>
+                            <p class="text-3xl font-bold mt-1">8</p>
+                        </div>
+                        <div class="bg-secondary-100 text-secondary-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <i class="fas fa-plus-circle mr-1"></i> 2 new
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Completion</span>
+                            <span>64%</span>
+                        </div>
+                        <div class="progress-bar bg-gray-200 w-full">
+                            <div class="progress-fill bg-secondary-500" style="width: 64%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 text-sm">Monthly Goal</p>
+                            <p class="text-3xl font-bold mt-1">24/30</p>
+                        </div>
+                        <div class="bg-accent-100 text-accent-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <i class="fas fa-trophy mr-1"></i> 80%
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Target</span>
+                            <span>80%</span>
+                        </div>
+                        <div class="progress-bar bg-gray-200 w-full">
+                            <div class="progress-fill bg-accent-500" style="width: 80%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Daily Habits -->
+        <section class="mb-10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-dark-900">Today's Habits</h2>
+                <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Habit
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Habit 1 -->
+                <div class="habit-card bg-white rounded-xl p-5 border border-gray-100 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-lg">Morning Meditation</h3>
+                            <p class="text-gray-500 text-sm mt-1">10 minutes of mindfulness</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="meditation" class="sr-only" checked>
+                            <label for="meditation" class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center cursor-pointer">
+                                <i class="fas fa-check text-primary-500"></i>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-sm text-gray-500">Completed 12 days</span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-calendar-alt mr-1"></i> Daily
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Habit 2 -->
+                <div class="habit-card bg-white rounded-xl p-5 border border-gray-100 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-lg">30-min Exercise</h3>
+                            <p class="text-gray-500 text-sm mt-1">Cardio or strength training</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="exercise" class="sr-only">
+                            <label for="exercise" class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer">
+                                <i class="fas fa-check text-gray-400"></i>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div>
+                            <span class="text-sm text-gray-500">Missed today</span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-calendar-alt mr-1"></i> Daily
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Habit 3 -->
+                <div class="habit-card bg-white rounded-xl p-5 border border-gray-100 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-lg">Read 20 Pages</h3>
+                            <p class="text-gray-500 text-sm mt-1">Expand your knowledge</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="reading" class="sr-only" checked>
+                            <label for="reading" class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center cursor-pointer">
+                                <i class="fas fa-check text-primary-500"></i>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-sm text-gray-500">Completed 8 days</span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-calendar-alt mr-1"></i> Daily
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Habit 4 -->
+                <div class="habit-card bg-white rounded-xl p-5 border border-gray-100 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-lg">Drink 2L Water</h3>
+                            <p class="text-gray-500 text-sm mt-1">Stay hydrated throughout the day</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="water" class="sr-only">
+                            <label for="water" class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer">
+                                <i class="fas fa-check text-gray-400"></i>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div>
+                            <span class="text-sm text-gray-500">Missed today</span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-calendar-alt mr-1"></i> Daily
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Calendar View -->
+        <section>
+            <h2 class="text-2xl font-bold text-dark-900 mb-6">Monthly Progress</h2>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <!-- Calendar Header -->
+                <div class="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Sun</div>
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Mon</div>
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Tue</div>
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Wed</div>
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Thu</div>
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Fri</div>
+                    <div class="py-3 text-center text-gray-500 font-medium text-sm">Sat</div>
+                </div>
+                
+                <!-- Calendar Body -->
+                <div class="grid grid-cols-7">
+                    <!-- Empty days -->
+                    <div class="h-24"></div>
+                    <div class="h-24"></div>
+                    <div class="h-24"></div>
+                    
+                    <!-- Calendar days -->
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">1</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">2</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">3</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">4</div>
+                    </div>
+                    
+                    <!-- Week 2 -->
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">5</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">6</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">7</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">8</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">9</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">10</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">11</div>
+                    </div>
+                    
+                    <!-- Week 3 -->
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">12</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">13</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">14</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">15</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">16</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">17</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">18</div>
+                    </div>
+                    
+                    <!-- Week 4 -->
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">19</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">20</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">21</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">22</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">23</div>
+                    </div>
+                    <div class="calendar-day completed h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm">24</div>
+                    </div>
+                    <div class="calendar-day current h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm font-medium">25</div>
+                    </div>
+                    
+                    <!-- Week 5 -->
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">26</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">27</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">28</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">29</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">30</div>
+                    </div>
+                    <div class="calendar-day h-24 p-1 border-r border-b border-gray-100 text-center">
+                        <div class="text-sm text-gray-400">31</div>
+                    </div>
+                    <div class="h-24"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <div class="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
+                        <i class="fas fa-check text-white text-xs"></i>
+                    </div>
+                    <span class="font-semibold text-primary-800">HabitFlow</span>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-500 hover:text-primary-500">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary-500">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary-500">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                
+                <p class="text-gray-500 text-sm mt-4 md:mt-0">© 2023 HabitFlow. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Toggle habit completion
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const label = this.nextElementSibling;
+                if (this.checked) {
+                    label.classList.remove('bg-gray-200');
+                    label.classList.add('bg-primary-100');
+                    label.querySelector('i').classList.remove('text-gray-400');
+                    label.querySelector('i').classList.add('text-primary-500');
+                } else {
+                    label.classList.remove('bg-primary-100');
+                    label.classList.add('bg-gray-200');
+                    label.querySelector('i').classList.remove('text-primary-500');
+                    label.querySelector('i').classList.add('text-gray-400');
+                }
+            });
+        });
+        
+        // Add fade-in animation to habit cards
+        document.querySelectorAll('.fade-in').forEach((el, index) => {
+            el.style.animationDelay = `${index * 0.1}s`;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .block-card {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .block-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .text-gradient {
+            background: linear-gradient(90deg, #0ea5e9, #7dd3fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .sidebar-link:hover {
+            background-color: rgba(2, 132, 199, 0.1);
+        }
+        
+        .sidebar-link.active {
+            background-color: rgba(2, 132, 199, 0.15);
+            color: #0ea5e9;
+        }
+        
+        .sidebar-link.active i {
+            color: #0ea5e9;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -0.25rem;
+            right: -0.25rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 9999px;
+            background-color: #ef4444;
+        }
+        
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+        
+        .overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Mobile menu button -->
+        <div class="md:hidden fixed top-4 left-4 z-30">
+            <button id="mobile-menu-button" class="p-2 rounded-lg bg-white shadow-md">
+                <i class="fas fa-bars text-gray-600 text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar hidden md:block w-64 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                        <i class="fas fa-cube text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-800">Notion<span class="text-primary-500">Workspace</span></h1>
+                </div>
+            </div>
+            
+            <div class="flex-1 px-4">
+                <nav class="space-y-1">
+                    <a href="#" class="sidebar-link active flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-home mr-3 text-gray-500"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-file-alt mr-3 text-gray-500"></i>
+                        <span>My Pages</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-cube mr-3 text-gray-500"></i>
+                        <span>Templates</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-users mr-3 text-gray-500"></i>
+                        <span>Team</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-cog mr-3 text-gray-500"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+                
+                <div class="mt-8 px-4">
+                    <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">Workspaces</h3>
+                    <div class="space-y-2">
+                        <a href="#" class="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <div class="w-2 h-2 rounded-full bg-primary-500 mr-3"></div>
+                            <span>Marketing Team</span>
+                        </a>
+                        <a href="#" class="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <div class="w-2 h-2 rounded-full bg-green-500 mr-3"></div>
+                            <span>Product Launch</span>
+                        </a>
+                        <a href="#" class="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <div class="w-2 h-2 rounded-full bg-purple-500 mr-3"></div>
+                            <span>Company Docs</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span class="text-gray-700 font-semibold">JD</span>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">John Doe</p>
+                        <p class="text-xs text-gray-500">john@example.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile sidebar -->
+        <div class="mobile-menu fixed inset-0 z-40 w-64 bg-white border-r border-gray-200 flex flex-col md:hidden">
+            <div class="p-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                        <i class="fas fa-cube text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-800">Notion<span class="text-primary-500">Workspace</span></h1>
+                </div>
+            </div>
+            
+            <div class="flex-1 px-4">
+                <nav class="space-y-1">
+                    <a href="#" class="sidebar-link active flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-home mr-3 text-gray-500"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-file-alt mr-3 text-gray-500"></i>
+                        <span>My Pages</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-cube mr-3 text-gray-500"></i>
+                        <span>Templates</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-users mr-3 text-gray-500"></i>
+                        <span>Team</span>
+                    </a>
+                    <a href="#" class="sidebar-link flex items-center px-4 py-3 rounded-lg text-gray-700">
+                        <i class="fas fa-cog mr-3 text-gray-500"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+                
+                <div class="mt-8 px-4">
+                    <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">Workspaces</h3>
+                    <div class="space-y-2">
+                        <a href="#" class="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <div class="w-2 h-2 rounded-full bg-primary-500 mr-3"></div>
+                            <span>Marketing Team</span>
+                        </a>
+                        <a href="#" class="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <div class="w-2 h-2 rounded-full bg-green-500 mr-3"></div>
+                            <span>Product Launch</span>
+                        </a>
+                        <a href="#" class="flex items-center px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                            <div class="w-2 h-2 rounded-full bg-purple-500 mr-3"></div>
+                            <span>Company Docs</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span class="text-gray-700 font-semibold">JD</span>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">John Doe</p>
+                        <p class="text-xs text-gray-500">john@example.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overlay for mobile -->
+        <div class="overlay fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"></div>
+        
+        <!-- Main content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <div class="flex items-center">
+                        <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="p-2 rounded-full hover:bg-gray-100">
+                                <i class="fas fa-bell text-gray-500"></i>
+                                <span class="notification-dot"></span>
+                            </button>
+                        </div>
+                        
+                        <div class="relative">
+                            <input type="text" placeholder="Search..." class="w-64 px-4 py-2 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:bg-white">
+                            <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-700 font-semibold text-sm">JD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Workspace content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-7xl mx-auto">
+                    <!-- Welcome section -->
+                    <div class="mb-8">
+                        <div class="bg-gradient-to-r from-primary-500 to-primary-700 rounded-2xl p-8 text-white">
+                            <div class="max-w-3xl">
+                                <h1 class="text-3xl md:text-4xl font-bold mb-4">Welcome to your workspace</h1>
+                                <p class="text-lg mb-6 opacity-90">Create, organize, and collaborate on all your projects in one place.</p>
+                                <div class="flex space-x-4">
+                                    <button class="bg-white text-primary-600 px-6 py-3 rounded-lg font-medium hover:bg-opacity-90 transition">
+                                        Create New Page
+                                    </button>
+                                    <button class="bg-transparent border-2 border-white px-6 py-3 rounded-lg font-medium hover:bg-white hover:bg-opacity-10 transition">
+                                        Explore Templates
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Workspace grid -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">Your Workspace</h2>
+                            <div class="flex space-x-3">
+                                <button class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
+                                    <i class="fas fa-filter text-gray-600"></i>
+                                </button>
+                                <button class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
+                                    <i class="fas fa-sort text-gray-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="workspace-grid">
+                            <!-- Block 1 -->
+                            <div class="block-card bg-white rounded-xl overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full mb-2">Project</span>
+                                            <h3 class="text-lg font-semibold text-gray-800">Marketing Campaign</h3>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                            <i class="fas fa-bullhorn text-blue-500"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 mt-3">Plan and track Q3 marketing initiatives and campaigns</p>
+                                    <div class="flex items-center mt-4 text-sm text-gray-500">
+                                        <i class="far fa-calendar mr-2"></i>
+                                        <span>Updated 2 hours ago</span>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-300 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center text-xs text-white">+2</div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Block 2 -->
+                            <div class="block-card bg-white rounded-xl overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full mb-2">Document</span>
+                                            <h3 class="text-lg font-semibold text-gray-800">Company Handbook</h3>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                                            <i class="fas fa-book text-green-500"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 mt-3">Employee policies, procedures, and company information</p>
+                                    <div class="flex items-center mt-4 text-sm text-gray-500">
+                                        <i class="far fa-calendar mr-2"></i>
+                                        <span>Updated yesterday</span>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Block 3 -->
+                            <div class="block-card bg-white rounded-xl overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full mb-2">Database</span>
+                                            <h3 class="text-lg font-semibold text-gray-800">Customer Database</h3>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                            <i class="fas fa-database text-purple-500"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 mt-3">Track all customer interactions and sales data</p>
+                                    <div class="flex items-center mt-4 text-sm text-gray-500">
+                                        <i class="far fa-calendar mr-2"></i>
+                                        <span>Updated 5 hours ago</span>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-300 border-2 border-white"></div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Block 4 -->
+                            <div class="block-card bg-white rounded-xl overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full mb-2">Task</span>
+                                            <h3 class="text-lg font-semibold text-gray-800">Product Roadmap</h3>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                                            <i class="fas fa-tasks text-yellow-500"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 mt-3">Q3 product development timeline and milestones</p>
+                                    <div class="flex items-center mt-4 text-sm text-gray-500">
+                                        <i class="far fa-calendar mr-2"></i>
+                                        <span>Updated 3 days ago</span>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-300 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center text-xs text-white">+3</div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Block 5 -->
+                            <div class="block-card bg-white rounded-xl overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold bg-pink-100 text-pink-800 rounded-full mb-2">Calendar</span>
+                                            <h3 class="text-lg font-semibold text-gray-800">Team Calendar</h3>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+                                            <i class="far fa-calendar-alt text-pink-500"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 mt-3">Upcoming meetings and deadlines for the entire team</p>
+                                    <div class="flex items-center mt-4 text-sm text-gray-500">
+                                        <i class="far fa-calendar mr-2"></i>
+                                        <span>Updated today</span>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-300 border-2 border-white"></div>
+                                        <div class="w-6 h-6 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center text-xs text-white">+5</div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Block 6 -->
+                            <div class="block-card bg-white rounded-xl overflow-hidden">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="inline-block px-3 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full mb-2">Note</span>
+                                            <h3 class="text-lg font-semibold text-gray-800">Ideas & Brainstorming</h3>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                            <i class="fas fa-lightbulb text-indigo-500"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 mt-3">Collection of ideas, concepts, and brainstorming sessions</p>
+                                    <div class="flex items-center mt-4 text-sm text-gray-500">
+                                        <i class="far fa-calendar mr-2"></i>
+                                        <span>Updated yesterday</span>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                    <div class="flex -space-x-2">
+                                        <div class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                    </div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats section -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mr-4">
+                                    <i class="fas fa-file-alt text-blue-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Total Pages</p>
+                                    <p class="text-2xl font-bold text-gray-800">42</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mr-4">
+                                    <i class="fas fa-users text-green-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Team Members</p>
+                                    <p class="text-2xl font-bold text-gray-800">18</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mr-4">
+                                    <i class="fas fa-database text-purple-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500">Storage Used</p>
+                                    <p class="text-2xl font-bold text-gray-800">1.2GB</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.querySelector('.mobile-menu');
+            const overlay = document.querySelector('.overlay');
+            
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('open');
+                overlay.classList.toggle('active');
+            });
+            
+            overlay.addEventListener('click', function() {
+                mobileMenu.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>

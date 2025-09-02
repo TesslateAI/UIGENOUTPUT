@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Financial Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a',
+                        'card-bg': '#1e293b',
+                        'card-border': '#334155',
+                        'primary': '#0ea5e9',
+                        'secondary': '#10b981',
+                        'accent': '#8b5cf6',
+                        'text-primary': '#f1f5f9',
+                        'text-secondary': '#94a3b8',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'danger': '#ef4444'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background-color: #1e293b;
+            border-right: 1px solid #334155;
+        }
+        
+        .header {
+            grid-area: header;
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .main-content {
+            grid-area: main;
+            padding: 1.5rem;
+        }
+        
+        .card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .kpi-card {
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+        }
+        
+        .kpi-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+        
+        .kpi-trend {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        
+        .trend-up {
+            color: #10b981;
+        }
+        
+        .trend-down {
+            color: #ef4444;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: #334155;
+        }
+        
+        .nav-link i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -0.25rem;
+            right: -0.25rem;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 9999px;
+            width: 1.25rem;
+            height: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+        
+        .search-input {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #0ea5e9;
+        }
+        
+        .user-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            background-color: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            height: 0.5rem;
+            border-radius: 0.25rem;
+            background-color: #334155;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 0.25rem;
+        }
+        
+        .recent-activity {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar p-4">
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mr-3">
+                    <i class="fas fa-chart-line text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold">FinTrack</h1>
+            </div>
+            
+            <nav class="space-y-1">
+                <a href="#" class="nav-link active">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-wallet"></i>
+                    <span>Accounts</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Transactions</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Billing</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-8">
+                <div class="bg-card p-4 rounded-lg">
+                    <h3 class="font-semibold mb-2">Upgrade to Pro</h3>
+                    <p class="text-sm text-text-secondary mb-3">Unlock advanced features and insights</p>
+                    <button class="w-full bg-primary hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium transition">
+                        Upgrade Now
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6">
+            <div class="relative w-64">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary"></i>
+                <input type="text" placeholder="Search..." class="search-input w-full pl-10 pr-4 py-2 rounded-lg">
+            </div>
+            
+            <div class="flex items-center space-x-6">
+                <div class="relative">
+                    <button class="text-text-secondary hover:text-text-primary">
+                        <i class="fas fa-bell text-xl"></i>
+                    </button>
+                    <span class="notification-badge">3</span>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="user-avatar mr-3">JD</div>
+                    <div>
+                        <p class="font-medium">John Doe</p>
+                        <p class="text-xs text-text-secondary">Admin</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold">Dashboard</h1>
+                <p class="text-text-secondary">Welcome back, John. Here's what's happening with your finances today.</p>
+            </div>
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="card kpi-card">
+                    <div class="flex justify-between">
+                        <h3 class="text-text-secondary font-medium">Total Revenue</h3>
+                        <i class="fas fa-arrow-up text-success"></i>
+                    </div>
+                    <div class="kpi-value">$42,567</div>
+                    <div class="kpi-trend trend-up">
+                        <i class="fas fa-caret-up mr-1"></i>
+                        <span>12.5% from last month</span>
+                    </div>
+                </div>
+                
+                <div class="card kpi-card">
+                    <div class="flex justify-between">
+                        <h3 class="text-text-secondary font-medium">Expenses</h3>
+                        <i class="fas fa-arrow-down text-danger"></i>
+                    </div>
+                    <div class="kpi-value">$18,342</div>
+                    <div class="kpi-trend trend-down">
+                        <i class="fas fa-caret-down mr-1"></i>
+                        <span>3.2% from last month</span>
+                    </div>
+                </div>
+                
+                <div class="card kpi-card">
+                    <div class="flex justify-between">
+                        <h3 class="text-text-secondary font-medium">Profit</h3>
+                        <i class="fas fa-arrow-up text-success"></i>
+                    </div>
+                    <div class="kpi-value">$24,225</div>
+                    <div class="kpi-trend trend-up">
+                        <i class="fas fa-caret-up mr-1"></i>
+                        <span>8.7% from last month</span>
+                    </div>
+                </div>
+                
+                <div class="card kpi-card">
+                    <div class="flex justify-between">
+                        <h3 class="text-text-secondary font-medium">Cash Flow</h3>
+                        <i class="fas fa-arrow-up text-success"></i>
+                    </div>
+                    <div class="kpi-value">$8,450</div>
+                    <div class="kpi-trend trend-up">
+                        <i class="fas fa-caret-up mr-1"></i>
+                        <span>5.3% from last month</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Revenue Chart -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Revenue Overview</h3>
+                        <div class="flex space-x-2">
+                            <button class="text-xs px-3 py-1 rounded-lg bg-card-border">Monthly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-card-border">Quarterly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-primary">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Expense Breakdown -->
+                <div class="card p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold">Expense Breakdown</h3>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Recent Activity -->
+                <div class="card p-5 lg:col-span-2">
+                    <h3 class="font-semibold mb-4">Recent Transactions</h3>
+                    <div class="recent-activity scrollbar-hide">
+                        <div class="activity-item flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-shopping-cart text-primary"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">Amazon Purchase</p>
+                                <p class="text-sm text-text-secondary">Shopping</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">-$86.99</p>
+                                <p class="text-sm text-text-secondary">Today, 10:30 AM</p>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-money-check text-success"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">Salary Deposit</p>
+                                <p class="text-sm text-text-secondary">Income</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium text-success">+$4,200.00</p>
+                                <p class="text-sm text-text-secondary">Yesterday, 9:00 AM</p>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-utensils text-accent"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">Restaurant Payment</p>
+                                <p class="text-sm text-text-secondary">Dining</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">-$64.50</p>
+                                <p class="text-sm text-text-secondary">Mar 12, 7:45 PM</p>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-home text-warning"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">Mortgage Payment</p>
+                                <p class="text-sm text-text-secondary">Housing</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">-$1,250.00</p>
+                                <p class="text-sm text-text-secondary">Mar 10, 8:00 AM</p>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center mr-3">
+                                <i class="fas fa-car text-danger"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">Car Insurance</p>
+                                <p class="text-sm text-text-secondary">Transportation</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">-$120.00</p>
+                                <p class="text-sm text-text-secondary">Mar 8, 11:30 AM</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Budget Progress -->
+                <div class="card p-5">
+                    <h3 class="font-semibold mb-4">Budget Progress</h3>
+                    
+                    <div class="mb-5">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Housing</span>
+                            <span class="text-sm text-text-secondary">$1,250 / $1,500</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-primary" style="width: 83%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Food & Dining</span>
+                            <span class="text-sm text-text-secondary">$420 / $600</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-success" style="width: 70%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Transportation</span>
+                            <span class="text-sm text-text-secondary">$180 / $300</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-warning" style="width: 60%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Entertainment</span>
+                            <span class="text-sm text-text-secondary">$90 / $200</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-accent" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">Utilities</span>
+                            <span class="text-sm text-text-secondary">$150 / $200</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-danger" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Revenue Chart
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [12000, 19000, 15000, 18000, 22000, 25000, 28000, 30000, 32000, 35000, 38000, 42000],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Expense Chart
+            const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+            const expenseChart = new Chart(expenseCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Housing', 'Food', 'Transport', 'Utilities', 'Entertainment', 'Healthcare'],
+                    datasets: [{
+                        data: [35, 20, 15, 10, 10, 10],
+                        backgroundColor: [
+                            '#0ea5e9',
+                            '#10b981',
+                            '#8b5cf6',
+                            '#f59e0b',
+                            '#ec4899',
+                            '#ef4444'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#94a3b8',
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

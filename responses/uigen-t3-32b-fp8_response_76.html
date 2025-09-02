@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Device Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-main: rgb(0, 0, 0);
+            --color-bg-alt: rgb(13, 13, 13);
+            --color-bg-card: rgb(13, 13, 13);
+            --color-text-primary: rgb(255, 255, 255);
+            --color-text-secondary: rgb(179, 179, 179);
+            --color-accent: rgb(0, 153, 255);
+            --color-accent-light: rgb(51, 204, 255);
+            --color-border: rgba(255, 255, 255, 0.1);
+            --color-success: rgb(34, 197, 94); /* Green for online status */
+            --color-warning: rgb(255, 159, 64); /* Orange for warnings */
+            --color-error: rgb(239, 68, 68); /* Red for errors */
+        }
+
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-main);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-accent);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-accent-light);
+        }
+
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .modal-content {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-[var(--color-bg-main)] text-[var(--color-text-primary)]">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 w-64 bg-[var(--color-bg-alt)] p-6 z-50 transform -translate-x-full md:relative md:translate-x-0">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-bold">IoT Hub</h1>
+                <button id="close-sidebar" class="md:hidden text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <nav>
+                <ul>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-[var(--color-text-primary)] bg-[var(--color-bg-card)]">
+                            <i class="fas fa-home text-xl"></i>
+                            <span class="font-medium">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-card)] transition-colors">
+                            <i class="fas fa-th-large text-xl"></i>
+                            <span class="font-medium">Devices</span>
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-card)] transition-colors">
+                            <i class="fas fa-chart-line text-xl"></i>
+                            <span class="font-medium">Analytics</span>
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-card)] transition-colors">
+                            <i class="fas fa-cog text-xl"></i>
+                            <span class="font-medium">Settings</span>
+                        </a>
+                    </li>
+                    <li class="mb-4">
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-card)] transition-colors">
+                            <i class="fas fa-question-circle text-xl"></i>
+                            <span class="font-medium">Help</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="mt-8 pt-6 border-t border-[var(--color-border)]">
+                <div class="flex items-center space-x-3">
+                    <img src="https://placehold.co/40x40/222222/FFFFFF/png?text=U" alt="User Avatar" class="rounded-full">
+                    <div>
+                        <p class="font-medium">John Doe</p>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Administrator</p>
+                    </div>
+                </div>
+                <button class="mt-4 w-full py-2 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+            <!-- Top Bar -->
+            <div class="flex justify-between items-center mb-6">
+                <button id="open-sidebar" class="md:hidden text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-3xl font-bold">Dashboard Overview</h2>
+                <div class="flex items-center space-x-4">
+                    <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                        <i class="fas fa-bell text-xl"></i>
+                    </button>
+                    <div class="relative">
+                        <button class="flex items-center space-x-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                            <img src="https://placehold.co/32x32/222222/FFFFFF/png?text=U" alt="User Avatar" class="rounded-full">
+                            <span>John Doe</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Status & Sensor Readings -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Device Status Card -->
+                <div class="lg:col-span-1 bg-[var(--color-bg-card)] rounded-xl p-6 shadow-lg border border-[var(--color-border)]">
+                    <h3 class="text-xl font-semibold mb-4">Device Status</h3>
+                    <div class="space-y-4">
+                        <!-- Device Card 1 -->
+                        <div class="flex items-center justify-between p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-[var(--color-success)] rounded-full flex items-center justify-center text-white text-lg">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Smart Thermostat (ID: TH-001)</p>
+                                    <p class="text-sm text-[var(--color-text-secondary)]">Online</p>
+                                </div>
+                            </div>
+                            <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-light)] text-lg" onclick="openDeviceModal('TH-001')">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                        <!-- Device Card 2 -->
+                        <div class="flex items-center justify-between p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-[var(--color-warning)] rounded-full flex items-center justify-center text-white text-lg">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Motion Sensor (ID: MS-002)</p>
+                                    <p class="text-sm text-[var(--color-text-secondary)]">Warning: Low Battery</p>
+                                </div>
+                            </div>
+                            <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-light)] text-lg" onclick="openDeviceModal('MS-002')">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                        <!-- Device Card 3 -->
+                        <div class="flex items-center justify-between p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-[var(--color-success)] rounded-full flex items-center justify-center text-white text-lg">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Smart Light (ID: SL-003)</p>
+                                    <p class="text-sm text-[var(--color-text-secondary)]">Online</p>
+                                </div>
+                            </div>
+                            <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-light)] text-lg" onclick="openDeviceModal('SL-003')">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-[var(--color-success)] rounded-full flex items-center justify-center text-white text-lg">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Water Meter (ID: WM-004)</p>
+                                    <p class="text-sm text-[var(--color-text-secondary)]">Online</p>
+                                </div>
+                            </div>
+                            <button class="text-[var(--color-accent)] hover:text-[var(--color-accent-light)] text-lg" onclick="openDeviceModal('WM-004')">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="mt-6 w-full py-2 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors text-sm">
+                        <i class="fas fa-plus-circle mr-2"></i>Add New Device
+                    </button>
+                </div>
+
+                <!-- Sensor Readings Card -->
+                <div class="lg:col-span-2 bg-[var(--color-bg-card)] rounded-xl p-6 shadow-lg border border-[var(--color-border)]">
+                    <h3 class="text-xl font-semibold mb-4">Sensor Readings</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Temperature Reading -->
+                        <div class="p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <h4 class="font-medium mb-2">Temperature</h4>
+                            <p class="text-3xl font-bold text-[var(--color-text-primary)]">22.5°C</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Last updated: 2 min ago</p>
+                        </div>
+                        <!-- Humidity Reading -->
+                        <div class="p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <h4 class="font-medium mb-2">Humidity</h4>
+                            <p class="text-3xl font-bold text-[var(--color-text-primary)]">65%</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Last updated: 2 min ago</p>
+                        </div>
+                        <!-- Pressure Reading -->
+                        <div class="p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <h4 class="font-medium mb-2">Air Pressure</h4>
+                            <p class="text-3xl font-bold text-[var(--color-text-primary)]">1013 hPa</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Last updated: 2 min ago</p>
+                        </div>
+                        <!-- Light Intensity Reading -->
+                        <div class="p-4 rounded-lg bg-[var(--color-bg-main)] border border-[var(--color-border)]">
+                            <h4 class="font-medium mb-2">Light Intensity</h4>
+                            <p class="text-3xl font-bold text-[var(--color-text-primary)]">500 lux</p>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Last updated: 2 min ago</p>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <h4 class="font-medium mb-3">Historical Data</h4>
+                        <canvas id="sensorChart" class="max-h-64"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity / Alerts (Placeholder) -->
+            <section class="bg-[var(--color-bg-card)] rounded-xl p-6 shadow-lg border border-[var(--color-border)]">
+                <h3 class="text-xl font-semibold mb-4">Recent Activity / Alerts</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3 text-sm">
+                        <div class="w-8 h-8 bg-[var(--color-success)] rounded-full flex items-center justify-center text-white text-lg">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <p class="flex-1">Device TH-001 status changed to <span class="text-[var(--color-success)] font-medium">Online</span>.</p>
+                        <span class="text-[var(--color-text-secondary)]">5 min ago</span>
+                    </div>
+                    <div class="flex items-center space-x-3 text-sm">
+                        <div class="w-8 h-8 bg-[var(--color-warning)] rounded-full flex items-center justify-center text-white text-lg">
+                            <i class="fas fa-exclamation"></i>
+                        </div>
+                        <p class="flex-1">Device MS-002 <span class="text-[var(--color-warning)] font-medium">Low Battery Alert</span>.</p>
+                        <span class="text-[var(--color-text-secondary)]">10 min ago</span>
+                    </div>
+                    <div class="flex items-center space-x-3 text-sm">
+                        <div class="w-8 h-8 bg-[var(--color-success)] rounded-full flex items-center justify-center text-white text-lg">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <p class="flex-1">Device SL-003 status changed to <span class="text-[var(--color-success)] font-medium">Online</span>.</p>
+                        <span class="text-[var(--color-text-secondary)]">15 min ago</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Device Details Modal -->
+    <div id="device-modal" class="fixed inset-0 hidden items-center justify-center z-50 modal-overlay">
+        <div class="modal-content p-8 rounded-xl shadow-xl w-full max-w-2xl mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">Device Details</h3>
+                <button id="close-modal" class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="space-y-4">
+                <!-- Content will be loaded here by JavaScript -->
+            </div>
+            <div class="mt-8 flex justify-end space-x-3">
+                <button class="py-2 px-4 rounded-lg bg-[var(--color-bg-alt)] text-[var(--color-text-primary)] hover:bg-[var(--color-border)] transition-colors">
+                    <i class="fas fa-cog mr-2"></i>Configure
+                </button>
+                <button class="py-2 px-4 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors">
+                    <i class="fas fa-history mr-2"></i>View History
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Sidebar Toggle
+            const sidebar = document.getElementById('sidebar');
+            const openSidebarBtn = document.getElementById('open-sidebar');
+            const closeSidebarBtn = document.getElementById('close-sidebar');
+
+            openSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.add('active');
+            });
+
+            closeSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.remove('active');
+            });
+
+            // Modal Logic
+            const deviceModal = document.getElementById('device-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+            const modalContent = document.getElementById('modal-content');
+
+            window.openDeviceModal = function(deviceId) {
+                // Simulate fetching device data
+                const deviceData = {
+                    'TH-001': {
+                        name: 'Smart Thermostat',
+                        id: 'TH-001',
+                        status: 'Online',
+                        battery: '85%',
+                        lastOnline: '2 min ago',
+                        readings: [
+                            { label: 'Temperature', value: '22.5°C', unit: '°C' },
+                            { label: 'Humidity', value: '65%', unit: '%' },
+                            { label: 'Power Usage', value: '12 W', unit: 'W' }
+                        ],
+                        logs: [
+                            'Status changed to Online (2 min ago)',
+                            'Temperature set to 22°C (5 min ago)',
+                            'Firmware update pending'
+                        ]
+                    },
+                    'MS-002': {
+                        name: 'Motion Sensor',
+                        id: 'MS-002',
+                        status: 'Warning: Low Battery',
+                        battery: '15%',
+                        lastOnline: '10 min ago',
+                        readings: [
+                            { label: 'Motion Detected', value: 'No', unit: '' },
+                            { label: 'Battery Level', value: '15%', unit: '%' }
+                        ],
+                        logs: [
+                            'Low battery alert (10 min ago)',
+                            'Motion detected in Living Room (1 hour ago)',
+                            'System reboot initiated (2 hours ago)'
+                        ]
+                    },
+                    'SL-003': {
+                        name: 'Smart Light',
+                        id: 'SL-003',
+                        status: 'Online',
+                        battery: '90%',
+                        lastOnline: '3 min ago',
+                        readings: [
+                            { label: 'Brightness', value: '75%', unit: '%' },
+                            { label: 'Color Temperature', value: '2700K', unit: 'K' }
+                        ],
+                        logs: [
+                            'Brightness adjusted to 75% (3 min ago)',
+                            'Color temperature set to 2700K (15 min ago)',
+                            'Turned on (30 min ago)'
+                        ]
+                    },
+                    'WM-004': {
+                        name: 'Water Meter',
+                        id: 'WM-004',
+                        status: 'Online',
+                        battery: '70%',
+                        lastOnline: '1 min ago',
+                        readings: [
+                            { label: 'Water Usage', value: '5.2 L/min', unit: 'L/min' },
+                            { label: 'Total Consumption', value: '1200 L', unit: 'L' }
+                        ],
+                        logs: [
+                            'New water usage recorded (1 min ago)',
+                            'Daily report generated (23 hours ago)',
+                            'Alert: High consumption detected (1 day ago)'
+                        ]
+                    }
+                };
+
+                const data = deviceData[deviceId];
+                if (data) {
+                    modalContent.innerHTML = `
+                        <div class="flex items-center space-x-4 mb-4">
+                            <div class="w-16 h-16 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-3xl">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-bold">${data.name} (${data.id})</h4>
+                                <p class="text-sm text-[var(--color-text-secondary)]">${data.status}</p>
+                                <p class="text-sm text-[var(--color-text-secondary)]">Battery: ${data.battery} | Last Online: ${data.lastOnline}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            ${data.readings.map(reading => `
+                                <div class="p-3 bg-[var(--color-bg-main)] rounded-lg border border-[var(--color-border)]">
+                                    <h5 class="font-medium">${reading.label}</h5>
+                                    <p class="text-xl font-bold text-[var(--color-text-primary)]">${reading.value} ${reading.unit}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="mt-6">
+                            <h5 class="font-medium mb-3">Recent Logs</h5>
+                            <ul class="text-sm space-y-2">
+                                ${data.logs.map(log => `<li><span class="text-[var(--color-text-secondary)]">${log}</span></li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    deviceModal.classList.remove('hidden');
+                }
+            };
+
+            closeModalBtn.addEventListener('click', () => {
+                deviceModal.classList.add('hidden');
+            });
+
+            // Close modal when clicking outside
+            deviceModal.addEventListener('click', (e) => {
+                if (e.target === deviceModal) {
+                    deviceModal.classList.add('hidden');
+                }
+            });
+
+            // Chart.js for Sensor Readings
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            const sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: [20, 20.5, 21, 21.5, 22, 22.5, 23, 22.8, 22.5, 22, 21.5, 21],
+                            borderColor: 'rgb(0, 153, 255)',
+                            backgroundColor: 'rgba(0, 153, 255, 0.2)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: [60, 62, 63, 65, 64, 65, 63, 62, 61, 60, 62, 63],
+                            borderColor: 'rgb(255, 159, 64)',
+                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allows the chart to respect parent container height
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'var(--color-text-secondary)'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'var(--color-text-secondary)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'var(--color-text-primary)'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

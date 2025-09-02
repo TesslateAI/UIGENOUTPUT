@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authenticate | Secure Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            200: '#fbcfe8',
+                            300: '#f9a8d4',
+                            400: '#f472b6',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            800: '#9d174d',
+                            900: '#831843',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Instrument Serif', 'serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-in': 'slideIn 0.4s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0ea5e9, #ec4899);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .auth-card {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border-radius: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .tab-active {
+            position: relative;
+            color: #0ea5e9;
+        }
+        
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #0ea5e9;
+            border-radius: 3px;
+        }
+        
+        .input-field {
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9, #ec4899);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(14, 165, 233, 0.4);
+        }
+        
+        .social-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .form-container {
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.4s ease;
+        }
+        
+        .form-hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+        }
+        
+        .form-visible {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .password-toggle {
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #94a3b8;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .divider::before {
+            margin-right: 1rem;
+        }
+        
+        .divider::after {
+            margin-left: 1rem;
+        }
+        
+        .floating-label {
+            position: absolute;
+            top: 0.75rem;
+            left: 1rem;
+            color: #94a3b8;
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+        
+        .input-field:focus + .floating-label,
+        .input-field:not(:placeholder-shown) + .floating-label {
+            top: -0.5rem;
+            left: 0.75rem;
+            font-size: 0.75rem;
+            background: white;
+            padding: 0 0.25rem;
+            color: #0ea5e9;
+        }
+    </style>
+</head>
+<body>
+    <div class="w-full max-w-md">
+        <div class="auth-card bg-white">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200">
+                <button id="login-tab" class="flex-1 py-4 px-6 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors tab-active">
+                    Sign In
+                </button>
+                <button id="register-tab" class="flex-1 py-4 px-6 text-center font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                    Create Account
+                </button>
+            </div>
+            
+            <!-- Forms Container -->
+            <div class="relative overflow-hidden">
+                <!-- Login Form -->
+                <form id="login-form" class="form-container p-8 form-visible">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome back</h2>
+                    <p class="text-gray-500 mb-8">Sign in to your account to continue</p>
+                    
+                    <div class="mb-5">
+                        <div class="relative">
+                            <input type="email" id="login-email" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                            <label for="login-email" class="floating-label">Email Address</label>
+                            <i class="fas fa-envelope absolute right-3 top-3.5 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="relative">
+                            <input type="password" id="login-password" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                            <label for="login-password" class="floating-label">Password</label>
+                            <i class="fas fa-lock absolute right-3 top-3.5 text-gray-400"></i>
+                            <span class="password-toggle absolute text-gray-500">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember" class="h-4 w-4 text-primary-500 focus:ring-primary-500 border-gray-300 rounded">
+                            <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                        </div>
+                        <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-500">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary w-full py-3 px-4 rounded-lg text-white font-medium mb-6">
+                        Sign In
+                    </button>
+                    
+                    <div class="divider text-sm text-gray-500 mb-6">Or continue with</div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" class="social-btn flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            <i class="fab fa-google text-red-500 mr-2"></i>
+                            <span>Google</span>
+                        </button>
+                        <button type="button" class="social-btn flex items-center justify-center py-2.5 px-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            <i class="fab fa-github text-gray-800 mr-2"></i>
+                            <span>GitHub</span>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Registration Form -->
+                <form id="register-form" class="form-container p-8 form-hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
+                    <p class="text-gray-500 mb-8">Join our community today</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-5">
+                        <div>
+                            <div class="relative">
+                                <input type="text" id="first-name" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                                <label for="first-name" class="floating-label">First Name</label>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="relative">
+                                <input type="text" id="last-name" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                                <label for="last-name" class="floating-label">Last Name</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="relative">
+                            <input type="email" id="register-email" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                            <label for="register-email" class="floating-label">Email Address</label>
+                            <i class="fas fa-envelope absolute right-3 top-3.5 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="relative">
+                            <input type="password" id="register-password" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                            <label for="register-password" class="floating-label">Password</label>
+                            <i class="fas fa-lock absolute right-3 top-3.5 text-gray-400"></i>
+                            <span class="password-toggle absolute text-gray-500">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <div class="relative">
+                            <input type="password" id="confirm-password" class="input-field w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500" placeholder=" " required>
+                            <label for="confirm-password" class="floating-label">Confirm Password</label>
+                            <i class="fas fa-lock absolute right-3 top-3.5 text-gray-400"></i>
+                            <span class="password-toggle absolute text-gray-500">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center mb-6">
+                        <input type="checkbox" id="terms" class="h-4 w-4 text-primary-500 focus:ring-primary-500 border-gray-300 rounded" required>
+                        <label for="terms" class="ml-2 block text-sm text-gray-700">
+                            I agree to the <a href="#" class="text-primary-600 hover:text-primary-500">Terms of Service</a> and <a href="#" class="text-primary-600 hover:text-primary-500">Privacy Policy</a>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary w-full py-3 px-4 rounded-lg text-white font-medium">
+                        Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-6 text-gray-600">
+            <p>© 2023 Secure Access. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            
+            loginTab.addEventListener('click', () => {
+                loginTab.classList.add('tab-active');
+                registerTab.classList.remove('tab-active');
+                loginForm.classList.remove('form-hidden');
+                loginForm.classList.add('form-visible');
+                registerForm.classList.remove('form-visible');
+                registerForm.classList.add('form-hidden');
+            });
+            
+            registerTab.addEventListener('click', () => {
+                registerTab.classList.add('tab-active');
+                loginTab.classList.remove('tab-active');
+                registerForm.classList.remove('form-hidden');
+                registerForm.classList.add('form-visible');
+                loginForm.classList.remove('form-visible');
+                loginForm.classList.add('form-hidden');
+            });
+            
+            // Password visibility toggle
+            const passwordToggles = document.querySelectorAll('.password-toggle');
+            passwordToggles.forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const input = this.previousElementSibling;
+                    const icon = this.querySelector('i');
+                    
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
+            });
+            
+            // Form submission
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                // Simple validation
+                if (!email || !password) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                // Simulate login process
+                alert(`Login attempt with:\nEmail: ${email}\nPassword: ${password}`);
+            });
+            
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const firstName = document.getElementById('first-name').value;
+                const lastName = document.getElementById('last-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                const terms = document.getElementById('terms').checked;
+                
+                // Simple validation
+                if (!firstName || !lastName || !email || !password || !confirmPassword) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+                
+                if (!terms) {
+                    alert('You must agree to the terms and conditions');
+                    return;
+                }
+                
+                // Simulate registration process
+                alert(`Registration attempt with:\nName: ${firstName} ${lastName}\nEmail: ${email}`);
+            });
+        });
+    </script>
+</body>
+</html>

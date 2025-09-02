@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #0f172a;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #94a3b8;
+            --color-divider: #1e293b;
+            --color-accent: #6366f1;
+            --color-accent-light: #818cf8;
+            --color-work: #0ea5e9;
+            --color-personal: #8b5cf6;
+            --color-meeting: #ec4899;
+            --color-other: #f59e0b;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        .font-display { font-family: 'Big Shoulders Display', sans-serif; }
+        .font-body { font-family: 'Inter', sans-serif; }
+
+        /* Calendar styling */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 1px solid var(--color-divider);
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+
+        .calendar-day-header {
+            border-bottom: 1px solid var(--color-divider);
+            padding: 0.5rem;
+            font-weight: 600;
+        }
+
+        .calendar-day-number {
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto;
+        }
+
+        .event-indicator {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            margin: 0.1rem;
+        }
+
+        .event-item {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event-item:hover {
+            opacity: 0.9;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-divider);
+            border-radius: 0.75rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .category-color {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .category-color:hover {
+            transform: scale(1.1);
+        }
+
+        .category-color.selected {
+            outline: 2px solid var(--color-accent-light);
+            outline-offset: 2px;
+        }
+
+        .event-dot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] font-body">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 py-4 px-6 md:px-12 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-[var(--color-accent)] rounded-md flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <h1 class="font-display text-2xl">Calendar</h1>
+        </div>
+        <button id="new-event-btn" class="bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] text-white px-4 py-2 rounded-md transition-colors flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            New Event
+        </button>
+    </header>
+
+    <main class="pt-24 pb-16 px-4 md:px-8 max-w-6xl mx-auto">
+        <!-- Calendar Controls -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                <button id="prev-month" class="p-2 rounded-full hover:bg-[var(--color-divider)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <h2 id="current-month" class="font-display text-3xl md:text-4xl">May 2024</h2>
+                <button id="next-month" class="p-2 rounded-full hover:bg-[var(--color-divider)] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <div class="flex space-x-2">
+                <button id="today-btn" class="px-4 py-2 rounded-md border border-[var(--color-divider)] hover:bg-[var(--color-divider)] transition-colors">
+                    Today
+                </button>
+                <button id="month-view" class="px-4 py-2 rounded-md bg-[var(--color-divider)] text-[var(--color-text-primary)]">
+                    Month
+                </button>
+                <button id="week-view" class="px-4 py-2 rounded-md hover:bg-[var(--color-divider)] transition-colors">
+                    Week
+                </button>
+            </div>
+        </div>
+
+        <!-- Weekday Headers -->
+        <div class="calendar-grid mb-2">
+            <div class="calendar-day-header text-center">Sun</div>
+            <div class="calendar-day-header text-center">Mon</div>
+            <div class="calendar-day-header text-center">Tue</div>
+            <div class="calendar-day-header text-center">Wed</div>
+            <div class="calendar-day-header text-center">Thu</div>
+            <div class="calendar-day-header text-center">Fri</div>
+            <div class="calendar-day-header text-center">Sat</div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div id="calendar" class="calendar-grid">
+            <!-- Calendar days will be populated by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Event Modal -->
+    <div id="event-modal" class="modal-overlay hidden">
+        <div class="modal-content slide-in p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-display text-2xl">New Event</h3>
+                <button id="close-modal" class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="event-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">Event Title</label>
+                    <input type="text" id="event-title" class="w-full bg-[var(--color-divider)] border border-[var(--color-divider)] rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]" placeholder="Meeting with team" required>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">Date</label>
+                        <input type="date" id="event-date" class="w-full bg-[var(--color-divider)] border border-[var(--color-divider)] rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">Time</label>
+                        <input type="time" id="event-time" class="w-full bg-[var(--color-divider)] border border-[var(--color-divider)] rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">Category</label>
+                    <div class="flex space-x-3 mb-4">
+                        <div class="category-color bg-[var(--color-work)]" data-category="work"></div>
+                        <div class="category-color bg-[var(--color-personal)]" data-category="personal"></div>
+                        <div class="category-color bg-[var(--color-meeting)]" data-category="meeting"></div>
+                        <div class="category-color bg-[var(--color-other)]" data-category="other"></div>
+                    </div>
+                    <input type="hidden" id="event-category" value="work">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">Description</label>
+                    <textarea id="event-description" class="w-full bg-[var(--color-divider)] border border-[var(--color-divider)] rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]" rows="3" placeholder="Add event details..."></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="cancel-event" class="px-4 py-2 rounded-md border border-[var(--color-divider)] hover:bg-[var(--color-divider)] transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-md bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)] text-white transition-colors">Save Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Event Detail Modal -->
+    <div id="event-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content slide-in p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="detail-title" class="font-display text-2xl">Event Details</h3>
+                <button id="close-detail-modal" class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="event-detail-content" class="space-y-6">
+                <!-- Event details will be populated by JavaScript -->
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-6">
+                <button id="edit-event" class="px-4 py-2 rounded-md border border-[var(--color-divider)] hover:bg-[var(--color-divider)] transition-colors">Edit</button>
+                <button id="delete-event" class="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Current date
+            let currentDate = new Date();
+            let currentMonth = currentDate.getMonth();
+            let currentYear = currentDate.getFullYear();
+            
+            // Sample events data
+            let events = [
+                { id: 1, title: "Team Meeting", date: "2024-05-15", time: "10:00", category: "work", description: "Weekly team sync to discuss project progress" },
+                { id: 2, title: "Lunch with Sarah", date: "2024-05-16", time: "12:30", category: "personal", description: "Catch up over lunch at the new Italian place" },
+                { id: 3, title: "Client Presentation", date: "2024-05-18", time: "14:00", category: "meeting", description: "Present Q2 results to key client stakeholders" },
+                { id: 4, title: "Dentist Appointment", date: "2024-05-20", time: "11:00", category: "personal", description: "Regular dental checkup" },
+                { id: 5, title: "Project Deadline", date: "2024-05-22", time: "17:00", category: "work", description: "Final submission for the client project" }
+            ];
+            
+            // DOM Elements
+            const calendarEl = document.getElementById('calendar');
+            const currentMonthEl = document.getElementById('current-month');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+            const todayBtn = document.getElementById('today-btn');
+            const newEventBtn = document.getElementById('new-event-btn');
+            const eventModal = document.getElementById('event-modal');
+            const eventDetailModal = document.getElementById('event-detail-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+            const closeDetailModalBtn = document.getElementById('close-detail-modal');
+            const cancelEventBtn = document.getElementById('cancel-event');
+            const eventForm = document.getElementById('event-form');
+            const categoryColors = document.querySelectorAll('.category-color');
+            const eventCategoryInput = document.getElementById('event-category');
+            const editEventBtn = document.getElementById('edit-event');
+            const deleteEventBtn = document.getElementById('delete-event');
+            
+            // Set up category selection
+            categoryColors.forEach(color => {
+                color.addEventListener('click', () => {
+                    // Remove selected class from all
+                    categoryColors.forEach(c => c.classList.remove('selected'));
+                    // Add selected class to clicked
+                    color.classList.add('selected');
+                    // Set category value
+                    eventCategoryInput.value = color.dataset.category;
+                });
+            });
+            
+            // Set first category as selected by default
+            if (categoryColors.length > 0) {
+                categoryColors[0].classList.add('selected');
+            }
+            
+            // Render calendar
+            function renderCalendar(month, year) {
+                // Update current month display
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                                   "July", "August", "September", "October", "November", "December"];
+                currentMonthEl.textContent = `${monthNames[month]} ${year}`;
+                
+                // Clear calendar
+                calendarEl.innerHTML = '';
+                
+                // Get first day of month
+                const firstDay = new Date(year, month, 1);
+                // Get last day of month
+                const lastDay = new Date(year, month + 1, 0);
+                // Get day of week for first day (0 = Sunday, 6 = Saturday)
+                const firstDayOfWeek = firstDay.getDay();
+                // Total days in month
+                const daysInMonth = lastDay.getDate();
+                
+                // Create empty cells for days before first day of month
+                for (let i = 0; i < firstDayOfWeek; i++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.className = 'calendar-day opacity-30';
+                    calendarEl.appendChild(emptyDay);
+                }
+                
+                // Create cells for each day of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'calendar-day fade-in';
+                    
+                    // Check if this is today
+                    const today = new Date();
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        dayEl.classList.add('border-[var(--color-accent)]');
+                    }
+                    
+                    // Day header with number
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'calendar-day-header flex justify-between items-center';
+                    
+                    const dayNumber = document.createElement('div');
+                    dayNumber.className = 'calendar-day-number';
+                    dayNumber.textContent = day;
+                    
+                    // Add events for this day
+                    const dayEvents = events.filter(event => {
+                        const eventDate = new Date(event.date);
+                        return eventDate.getDate() === day && 
+                               eventDate.getMonth() === month && 
+                               eventDate.getFullYear() === year;
+                    });
+                    
+                    // Add event indicators
+                    const eventsContainer = document.createElement('div');
+                    eventsContainer.className = 'px-2 py-1';
+                    
+                    // Add event dots for each event
+                    dayEvents.forEach(event => {
+                        const eventDot = document.createElement('div');
+                        eventDot.className = 'event-indicator';
+                        
+                        // Set color based on category
+                        switch(event.category) {
+                            case 'work': eventDot.style.backgroundColor = 'var(--color-work)'; break;
+                            case 'personal': eventDot.style.backgroundColor = 'var(--color-personal)'; break;
+                            case 'meeting': eventDot.style.backgroundColor = 'var(--color-meeting)'; break;
+                            case 'other': eventDot.style.backgroundColor = 'var(--color-other)'; break;
+                            default: eventDot.style.backgroundColor = 'var(--color-accent)';
+                        }
+                        
+                        eventDot.dataset.id = event.id;
+                        eventDot.addEventListener('click', () => showEventDetails(event.id));
+                        eventsContainer.appendChild(eventDot);
+                    });
+                    
+                    // Add event titles if there's space
+                    if (dayEvents.length > 0 && dayEvents.length <= 2) {
+                        dayEvents.forEach(event => {
+                            const eventEl = document.createElement('div');
+                            eventEl.className = 'event-item truncate';
+                            
+                            // Set background color based on category
+                            switch(event.category) {
+                                case 'work': eventEl.style.backgroundColor = 'rgba(14, 165, 233, 0.2)'; break;
+                                case 'personal': eventEl.style.backgroundColor = 'rgba(139, 92, 246, 0.2)'; break;
+                                case 'meeting': eventEl.style.backgroundColor = 'rgba(236, 72, 153, 0.2)'; break;
+                                case 'other': eventEl.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'; break;
+                                default: eventEl.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
+                            }
+                            
+                            // Add dot
+                            const eventDot = document.createElement('span');
+                            eventDot.className = 'event-dot inline-block';
+                            
+                            switch(event.category) {
+                                case 'work': eventDot.style.backgroundColor = 'var(--color-work)'; break;
+                                case 'personal': eventDot.style.backgroundColor = 'var(--color-personal)'; break;
+                                case 'meeting': eventDot.style.backgroundColor = 'var(--color-meeting)'; break;
+                                case 'other': eventDot.style.backgroundColor = 'var(--color-other)'; break;
+                                default: eventDot.style.backgroundColor = 'var(--color-accent)';
+                            }
+                            
+                            eventEl.appendChild(eventDot);
+                            
+                            // Add title
+                            const eventTitle = document.createElement('span');
+                            eventTitle.textContent = event.title;
+                            eventEl.appendChild(eventTitle);
+                            
+                            eventsContainer.appendChild(eventEl);
+                        });
+                    } else if (dayEvents.length > 2) {
+                        const moreEvents = document.createElement('div');
+                        moreEvents.className = 'text-xs text-[var(--color-text-secondary)] px-2 py-1';
+                        moreEvents.textContent = `+${dayEvents.length} more`;
+                        eventsContainer.appendChild(moreEvents);
+                    }
+                    
+                    dayHeader.appendChild(dayNumber);
+                    dayEl.appendChild(dayHeader);
+                    dayEl.appendChild(eventsContainer);
+                    
+                    // Add click event to create new event
+                    dayEl.addEventListener('click', (e) => {
+                        // Only open modal if clicking on the day number area
+                        if (e.target === dayNumber || e.target === dayHeader || e.target === dayEl) {
+                            openEventModal(day, month, year);
+                        }
+                    });
+                    
+                    calendarEl.appendChild(dayEl);
+                }
+            }
+            
+            // Open event modal for a specific date
+            function openEventModal(day, month, year) {
+                const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                document.getElementById('event-date').value = date;
+                eventModal.classList.remove('hidden');
+            }
+            
+            // Show event details
+            function showEventDetails(eventId) {
+                const event = events.find(e => e.id === eventId);
+                if (!event) return;
+                
+                const detailTitle = document.getElementById('detail-title');
+                const detailContent = document.getElementById('event-detail-content');
+                
+                detailTitle.textContent = event.title;
+                
+                detailContent.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <div class="event-dot mr-2" style="background-color: ${getCategoryColor(event.category)}"></div>
+                        <span class="text-sm font-medium uppercase">${event.category}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Date</p>
+                            <p>${formatDate(event.date)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-[var(--color-text-secondary)]">Time</p>
+                            <p>${event.time || 'All day'}</p>
+                        </div>
+                    </div>
+                    
+                    ${event.description ? `
+                    <div>
+                        <p class="text-sm text-[var(--color-text-secondary)] mb-2">Description</p>
+                        <p>${event.description}</p>
+                    </div>
+                    ` : ''}
+                `;
+                
+                eventDetailModal.classList.remove('hidden');
+            }
+            
+            // Get color for category
+            function getCategoryColor(category) {
+                switch(category) {
+                    case 'work': return 'var(--color-work)';
+                    case 'personal': return 'var(--color-personal)';
+                    case 'meeting': return 'var(--color-meeting)';
+                    case 'other': return 'var(--color-other)';
+                    default: return 'var(--color-accent)';
+                }
+            }
+            
+            // Format date for display
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+            }
+            
+            // Event Handlers
+            prevMonthBtn.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar(currentMonth, currentYear);
+            });
+            
+            nextMonthBtn.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar(currentMonth, currentYear);
+            });
+            
+            todayBtn.addEventListener('click', () => {
+                const today = new Date();
+                currentMonth = today.getMonth();
+                currentYear = today.getFullYear();
+                renderCalendar(currentMonth, currentYear);
+            });
+            
+            newEventBtn.addEventListener('click', () => {
+                const today = new Date();
+                const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                document.getElementById('event-date').value = date;
+                eventModal.classList.remove('hidden');
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                eventModal.classList.add('hidden');
+            });
+            
+            closeDetailModalBtn.addEventListener('click', () => {
+                eventDetailModal.classList.add('hidden');
+            });
+            
+            cancelEventBtn.addEventListener('click', () => {
+                eventModal.classList.add('hidden');
+            });
+            
+            eventForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const title = document.getElementById('event-title').value;
+                const date = document.getElementById('event-date').value;
+                const time = document.getElementById('event-time').value;
+                const category = eventCategoryInput.value;
+                const description = document.getElementById('event-description').value;
+                
+                // Create new event
+                const newEvent = {
+                    id: Date.now(), // Simple unique ID
+                    title,
+                    date,
+                    time,
+                    category,
+                    description
+                };
+                
+                events.push(newEvent);
+                
+                // Close modal and refresh calendar
+                eventModal.classList.add('hidden');
+                renderCalendar(currentMonth, currentYear);
+                
+                // Reset form
+                eventForm.reset();
+                
+                // Reset category selection
+                categoryColors.forEach(c => c.classList.remove('selected'));
+                if (categoryColors.length > 0) {
+                    categoryColors[0].classList.add('selected');
+                }
+                eventCategoryInput.value = 'work';
+            });
+            
+            editEventBtn.addEventListener('click', () => {
+                // In a real app, this would open the form with event data
+                eventDetailModal.classList.add('hidden');
+                eventModal.classList.remove('hidden');
+            });
+            
+            deleteEventBtn.addEventListener('click', () => {
+                const eventId = parseInt(document.getElementById('detail-title').dataset.id);
+                events = events.filter(event => event.id !== eventId);
+                eventDetailModal.classList.add('hidden');
+                renderCalendar(currentMonth, currentYear);
+            });
+            
+            // Initial render
+            renderCalendar(currentMonth, currentYear);
+        });
+    </script>
+</body>
+</html>

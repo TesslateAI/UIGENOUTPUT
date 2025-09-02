@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Black Hole Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-space-deep: #0a0e17;
+            --color-space-dark: #121a2a;
+            --color-space-medium: #1a243a;
+            --color-cosmic-purple: #7c3aed;
+            --color-cosmic-blue: #3b82f6;
+            --color-starlight: #e2e8f0;
+            --color-starlight-muted: #94a3b8;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-space-deep);
+            color: var(--color-starlight);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        
+        .font-space-grotesk {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .space-card {
+            background: linear-gradient(145deg, var(--color-space-dark), var(--color-space-medium));
+            border: 1px solid rgba(124, 58, 237, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .space-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(124, 58, 237, 0.2);
+        }
+        
+        .glow {
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+        }
+        
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-cosmic-purple);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.7);
+        }
+        
+        .slider-thumb::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--color-cosmic-purple);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.7);
+        }
+        
+        .orbit-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            animation: rotate 20s linear infinite;
+        }
+        
+        .orbit-ring:nth-child(2) {
+            animation-duration: 15s;
+        }
+        
+        .orbit-ring:nth-child(3) {
+            animation-duration: 10s;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-in forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .starry-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 10px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 5px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 10px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+        }
+        
+        .starry-bg::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(10, 14, 23, 0.9) 0%, 
+                rgba(18, 26, 42, 0.7) 50%, 
+                rgba(10, 14, 23, 0.9) 100%);
+        }
+        
+        .black-hole {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #000 0%, #0a0e17 70%);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+        
+        .event-horizon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid var(--color-cosmic-purple);
+            animation: rotate 20s linear infinite;
+        }
+        
+        .photon-sphere {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            animation: rotate 10s linear infinite reverse;
+        }
+        
+        .spaghettification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 20px;
+            background: linear-gradient(to right, #f8fafc, #94a3b8);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            transition: all 0.5s ease;
+        }
+        
+        .spaghettification::before,
+        .spaghettification::after {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .time-dilation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--color-cosmic-blue);
+        }
+        
+        .time-dilation::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid var(--color-cosmic-blue);
+            animation: rotate 10s linear infinite;
+        }
+        
+        .time-dilation::after {
+            content: "";
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            border: 1px solid var(--color-cosmic-blue);
+            animation: rotate 8s linear infinite reverse;
+        }
+        
+        .time-dilation .dilation-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--color-cosmic-blue);
+        }
+        
+        .orbiting-body {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-cosmic-blue);
+            box-shadow: 0 0 10px var(--color-cosmic-blue);
+        }
+        
+        .orbiting-body::before {
+            content: "";
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: white;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+    <!-- Starry background -->
+    <div class="starry-bg"></div>
+    
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 py-4 px-6 backdrop-blur-md bg-[rgba(10,14,23,0.7)] border-b border-[rgba(124,58,237,0.1)]">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#3b82f6] flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                </div>
+                <span class="font-space-grotesk text-xl font-bold">Cosmic Explorer</span>
+            </div>
+            
+            <div class="hidden md:flex space-x-8">
+                <a href="#intro" class="text-[#94a3b8] hover:text-white transition-colors">Introduction</a>
+                <a href="#sliders" class="text-[#94a3b8] hover:text-white transition-colors">Simulations</a>
+                <a href="#facts" class="text-[#94a3b8] hover:text-white transition-colors">Facts</a>
+                <a href="#visuals" class="text-[#94a3b8] hover:text-white transition-colors">Visualizations</a>
+            </div>
+            
+            <button class="bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] text-white px-6 py-2 rounded-full font-medium hover:opacity-90 transition-opacity">
+                Learn More
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section id="intro" class="min-h-screen flex flex-col justify-center items-center px-4 pt-24 pb-16 relative">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="inline-block px-4 py-2 bg-[rgba(124,58,237,0.1)] rounded-full mb-6 fade-in">
+                <span class="text-[#7c3aed] font-medium">The Universe's Most Mysterious Objects</span>
+            </div>
+            
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-space-grotesk font-bold mb-6 max-w-3xl mx-auto fade-in" style="animation-delay: 0.2s">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#7c3aed] to-[#3b82f6]">Black Holes</span> Explained
+            </h1>
+            
+            <p class="text-xl text-[#94a3b8] max-w-2xl mx-auto mb-10 fade-in" style="animation-delay: 0.4s">
+                Explore the mysteries of black holes through interactive simulations. Understand event horizons, spaghettification, and time dilation with our cosmic playground.
+            </p>
+            
+            <div class="flex flex-wrap justify-center gap-4 fade-in" style="animation-delay: 0.6s">
+                <a href="#sliders" class="bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] text-white px-8 py-3 rounded-full font-medium hover:opacity-90 transition-opacity">
+                    Start Exploring
+                </a>
+                <a href="#facts" class="bg-[rgba(30,41,59,0.7)] text-white px-8 py-3 rounded-full font-medium border border-[rgba(124,58,237,0.3)] hover:bg-[rgba(51,65,85,0.7)] transition-colors">
+                    Read More
+                </a>
+            </div>
+        </div>
+        
+        <!-- Animated black hole visualization -->
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-64 h-64 fade-in" style="animation-delay: 0.8s">
+            <div class="black-hole">
+                <div class="event-horizon"></div>
+                <div class="photon-sphere"></div>
+                <div class="orbiting-body" style="top: 20%; left: 30%; animation: orbit 8s linear infinite;"></div>
+                <div class="orbiting-body" style="top: 40%; left: 70%; animation: orbit 10s linear infinite reverse;"></div>
+                <div class="orbiting-body" style="top: 70%; left: 50%; animation: orbit 12s linear infinite;"></div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Interactive Sliders Section -->
+    <section id="sliders" class="py-20 px-4 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-space-grotesk font-bold mb-4">Interactive Simulations</h2>
+                <p class="text-[#94a3b8] max-w-2xl mx-auto">
+                    Adjust the sliders to see how different factors affect black hole phenomena
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <!-- Event Horizon Slider -->
+                <div class="space-card p-8 fade-in">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-[rgba(124,58,237,0.1)] flex items-center justify-center mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-space-grotesk font-semibold">Event Horizon</h3>
+                    </div>
+                    
+                    <p class="text-[#94a3b8] mb-6">
+                        The event horizon is the point of no return around a black hole. Adjust the mass to see how it changes.
+                    </p>
+                    
+                    <div class="mb-8">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-[#94a3b8]">Mass (Solar Masses)</span>
+                            <span id="event-horizon-value" class="text-[#7c3aed] font-medium">5</span>
+                        </div>
+                        <input type="range" min="1" max="20" value="5" class="w-full h-2 bg-[#1a243a] rounded-lg appearance-none cursor-pointer slider-thumb" id="event-horizon-slider">
+                    </div>
+                    
+                    <div class="relative h-64 flex items-center justify-center">
+                        <div class="black-hole" style="width: 200px; height: 200px;">
+                            <div class="event-horizon" id="event-horizon-visual"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Spaghettification Slider -->
+                <div class="space-card p-8 fade-in" style="animation-delay: 0.2s">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-[rgba(59,130,246,0.1)] flex items-center justify-center mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#3b82f6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-space-grotesk font-semibold">Spaghettification</h3>
+                    </div>
+                    
+                    <p class="text-[#94a3b8] mb-6">
+                        As you approach a black hole, tidal forces stretch you into a long, thin shape. See how distance affects this effect.
+                    </p>
+                    
+                    <div class="mb-8">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-[#94a3b8]">Distance from Black Hole</span>
+                            <span id="spaghettification-value" class="text-[#3b82f6] font-medium">1000 km</span>
+                        </div>
+                        <input type="range" min="100" max="5000" value="1000" class="w-full h-2 bg-[#1a243a] rounded-lg appearance-none cursor-pointer slider-thumb" id="spaghettification-slider">
+                    </div>
+                    
+                    <div class="relative h-64 flex items-center justify-center">
+                        <div class="black-hole" style="width: 150px; height: 150px;">
+                            <div class="event-horizon"></div>
+                            <div class="spaghettification" id="spaghettification-visual"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Time Dilation Slider -->
+                <div class="space-card p-8 fade-in" style="animation-delay: 0.4s">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-[rgba(236,72,153,0.1)] flex items-center justify-center mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-space-grotesk font-semibold">Time Dilation</h3>
+                    </div>
+                    
+                    <p class="text-[#94a3b8] mb-6">
+                        Time moves slower near a black hole. Adjust the proximity to see how much time would slow for an observer.
+                    </p>
+                    
+                    <div class="mb-8">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-[#94a3b8]">Distance from Event Horizon</span>
+                            <span id="time-dilation-value" class="text-[#ec4899] font-medium">100 km</span>
+                        </div>
+                        <input type="range" min="10" max="500" value="100" class="w-full h-2 bg-[#1a243a] rounded-lg appearance-none cursor-pointer slider-thumb" id="time-dilation-slider">
+                    </div>
+                    
+                    <div class="relative h-64 flex items-center justify-center">
+                        <div class="black-hole" style="width: 180px; height: 180px;">
+                            <div class="event-horizon"></div>
+                            <div class="time-dilation">
+                                <span class="dilation-value" id="dilation-value">10x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Accretion Disk Slider -->
+                <div class="space-card p-8 fade-in" style="animation-delay: 0.6s">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-[rgba(245,158,11,0.1)] flex items-center justify-center mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#f59e0b]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-space-grotesk font-semibold">Accretion Disk</h3>
+                    </div>
+                    
+                    <p class="text-[#94a3b8] mb-6">
+                        The accretion disk forms as matter spirals into the black hole. See how mass affects the disk's appearance.
+                    </p>
+                    
+                    <div class="mb-8">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm text-[#94a3b8]">Disk Mass (Earth Masses)</span>
+                            <span id="accretion-value" class="text-[#f59e0b] font-medium">100</span>
+                        </div>
+                        <input type="range" min="10" max="500" value="100" class="w-full h-2 bg-[#1a243a] rounded-lg appearance-none cursor-pointer slider-thumb" id="accretion-slider">
+                    </div>
+                    
+                    <div class="relative h-64 flex items-center justify-center">
+                        <div class="black-hole" style="width: 220px; height: 220px;">
+                            <div class="event-horizon"></div>
+                            <div class="orbit-ring" style="width: 180px; height: 180px;"></div>
+                            <div class="orbit-ring" style="width: 150px; height: 150px;"></div>
+                            <div class="orbit-ring" style="width: 120px; height: 120px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Facts Section -->
+    <section id="facts" class="py-20 px-4 bg-[rgba(18,26,42,0.5)] relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-space-grotesk font-bold mb-4">Black Hole Facts</h2>
+                <p class="text-[#94a3b8] max-w-2xl mx-auto">
+                    Discover fascinating facts about these mysterious cosmic objects
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="space-card p-6 text-center fade-in">
+                    <div class="w-16 h-16 rounded-full bg-[rgba(124,58,237,0.1)] flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-space-grotesk font-semibold mb-2">Supermassive Giants</h3>
+                    <p class="text-[#94a3b8]">
+                        The largest black holes can be billions of times more massive than our Sun, with event horizons spanning millions of kilometers.
+                    </p>
+                </div>
+                
+                <div class="space-card p-6 text-center fade-in" style="animation-delay: 0.2s">
+                    <div class="w-16 h-16 rounded-full bg-[rgba(59,130,246,0.1)] flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#3b82f6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-space-grotesk font-semibold mb-2">No Escape</h3>
+                    <p class="text-[#94a3b8]">
+                        Once past the event horizon, not even light can escape a black hole's gravitational pull. This is why they appear completely black.
+                    </p>
+                </div>
+                
+                <div class="space-card p-6 text-center fade-in" style="animation-delay: 0.4s">
+                    <div class="w-16 h-16 rounded-full bg-[rgba(236,72,153,0.1)] flex items-center justify-center mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-space-grotesk font-semibold mb-2">Time Warp</h3>
+                    <p class="text-[#94a3b8]">
+                        Time slows dramatically near a black hole. An observer far away would see a person falling in appear to freeze at the event horizon.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="py-12 px-4 border-t border-[rgba(124,58,237,0.1)]">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#3b82f6] flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <span class="font-space-grotesk text-lg font-bold">Cosmic Explorer</span>
+                    </div>
+                    <p class="text-[#94a3b8] mt-2 text-sm">
+                        Exploring the mysteries of the universe
+                    </p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-[#94a3b8] hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="#" class="text-[#94a3b8] hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="#" class="text-[#94a3b8] hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="border-t border-[rgba(124,58,237,0.1)] mt-8 pt-8 text-center text-[#94a3b8] text-sm">
+                <p>© 2023 Cosmic Explorer. All rights reserved. This is a simulation for educational purposes only.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Event Horizon Slider
+        const eventHorizonSlider = document.getElementById('event-horizon-slider');
+        const eventHorizonValue = document.getElementById('event-horizon-value');
+        const eventHorizonVisual = document.getElementById('event-horizon-visual');
+        
+        eventHorizonSlider.addEventListener('input', function() {
+            eventHorizonValue.textContent = this.value;
+            const size = 200 + (this.value * 5);
+            eventHorizonVisual.style.width = `${size}px`;
+            eventHorizonVisual.style.height = `${size}px`;
+        });
+        
+        // Spaghettification Slider
+        const spaghettificationSlider = document.getElementById('spaghettification-slider');
+        const spaghettificationValue = document.getElementById('spaghettification-value');
+        const spaghettificationVisual = document.getElementById('spaghettification-visual');
+        
+        spaghettificationSlider.addEventListener('input', function() {
+            spaghettificationValue.textContent = this.value + ' km';
+            const length = 100 + (this.value / 50);
+            spaghettificationVisual.style.width = `${length}px`;
+        });
+        
+        // Time Dilation Slider
+        const timeDilationSlider = document.getElementById('time-dilation-slider');
+        const timeDilationValue = document.getElementById('time-dilation-value');
+        const dilationValue = document.getElementById('dilation-value');
+        
+        timeDilationSlider.addEventListener('input', function() {
+            timeDilationValue.textContent = this.value + ' km';
+            const factor = 10 + (this.value / 10);
+            dilationValue.textContent = `${factor.toFixed(1)}x`;
+        });
+        
+        // Accretion Disk Slider
+        const accretionSlider = document.getElementById('accretion-slider');
+        const accretionValue = document.getElementById('accretion-value');
+        
+        accretionSlider.addEventListener('input', function() {
+            accretionValue.textContent = this.value;
+        });
+        
+        // Animation on scroll
+        const fadeElements = document.querySelectorAll('.fade-in');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        fadeElements.forEach(el => {
+            el.style.opacity = 0;
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+        
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

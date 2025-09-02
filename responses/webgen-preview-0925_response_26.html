@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollabBoard – Online Collaborative Whiteboard</title>
+    <meta name="description" content="A minimalist online collaborative whiteboard tool with drawing tools and easy sharing.">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Color Tokens – a fresh teal palette */
+            --color-white: rgb(255, 255, 255);
+            --color-black: rgb(0, 0, 0);
+            --color-bg-light: rgb(245, 250, 255);
+            --color-primary: rgb(0, 123, 255);          /* main accent */
+            --color-primary-dark: rgb(0, 90, 180);
+            --color-text-muted: rgba(0, 0, 0, .5);
+            --color-border-light: rgba(0, 0, 0, .1);
+            --color-border-white-light: rgba(255, 255, 255, .1);
+            --color-bg-dark: rgb(10, 20, 30);
+            --color-bg-dark-alt: rgb(20, 30, 40);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-white);
+            color: var(--color-black);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-serif-display {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .font-heading-display {
+            font-family: 'Playfair Display', serif;
+            font-weight: 400;
+        }
+
+        /* Animation Setup */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .8s cubic-bezier(.25,.46,.45,.94), transform .8s cubic-bezier(.25,.46,.45,.94);
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Hero text animation */
+        .hero-text-animate {
+            opacity: 0;
+            transform: translateY(100px);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+        .hero-text-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Menu icon animation */
+        .menu-icon-line {
+            transition: transform .3s ease-in-out, opacity .3s ease-in-out;
+        }
+        .menu-open .menu-icon-top {
+            transform: translateY(5px) rotate(45deg);
+        }
+        .menu-open .menu-icon-middle {
+            opacity: 0;
+        }
+        .menu-open .menu-icon-bottom {
+            transform: translateY(-5px) rotate(-45deg);
+        }
+
+        /* Underline link hover effect */
+        .link-underline {
+            position: relative;
+            text-decoration: none;
+        }
+        .link-underline::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            display: block;
+            margin-top: 2px;
+            right: 0;
+            background: currentColor;
+            transition: width .3s ease;
+        }
+        .link-underline:hover::after {
+            width: 100%;
+            left: 0;
+            right: auto;
+        }
+
+        /* Button hover effect */
+        .btn-hover-effect {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .btn-hover-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background-color: var(--color-primary);
+            transition: left .4s cubic-bezier(.23,1,.32,1);
+            z-index: -1;
+        }
+        .btn-hover-effect:hover::before {
+            left: 0;
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-colors duration-300 bg-[var(--color-bg-light)]">
+        <nav class="container mx-auto px-6 md:px-12 py-4 flex justify-between items-center">
+            <a href="#" class="font-serif-display text-3xl font-medium">CollabBoard</a>
+
+            <!-- Desktop Nav -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#" class="text-sm font-medium hover:text-[var(--color-primary)] transition-colors">Home</a>
+                <a href="#" class="text-sm font-medium hover:text-[var(--color-primary)] transition-colors">Features</a>
+                <a href="#" class="text-sm font-medium hover:text-[var(--color-primary)] transition-colors">Pricing</a>
+                <a href="#" class="text-sm font-medium hover:text-[var(--color-primary)] transition-colors">Contact</a>
+                <a href="#" class="btn-hover-effect relative z-10 px-6 py-2.5 bg-[var(--color-primary)] text-[var(--color-white)] text-sm font-semibold rounded-full shadow-sm hover:shadow-lg transition-shadow">
+                    Get Started
+                </a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-button" class="md:hidden z-50 flex flex-col items-end gap-1.5 w-8 h-8">
+                <span class="menu-icon-line menu-icon-top block w-5 h-0.5 bg-black"></span>
+                <span class="menu-icon-line menu-icon-middle block w-5 h-0.5 bg-black"></span>
+                <span class="menu-icon-line menu-icon-bottom block w-5 h-0.5 bg-black"></span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-[var(--color-black)] z-40 flex flex-col items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="flex flex-col items-center gap-8 text-center">
+            <a href="#" class="text-2xl font-medium text-[var(--color-white)]">Home</a>
+            <a href="#" class="text-2xl font-medium text-[var(--color-white)]">Features</a>
+            <a href="#" class="text-2xl font-medium text-[var(--color-white)]">Pricing</a>
+            <a href="#" class="text-2xl font-medium text-[var(--color-white)]">Contact</a>
+            <a href="#" class="mt-4 px-8 py-3 bg-[var(--color-primary)] text-[var(--color-white)] text-lg font-semibold rounded-full shadow-lg">
+                Get Started
+            </a>
+        </div>
+    </div>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-16 md:pt-32 md:pb-20 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70 z-10"></div>
+            <div class="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30" style="background-image:url('https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1600&q=80');"></div>
+
+            <div class="relative z-20 container mx-auto px-6 md:px-12 flex flex-col md:flex-row items-end gap-8 md:gap-12 animate-on-scroll">
+                <div class="flex-grow">
+                    <h1 class="font-serif-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[160px] leading-none text-balance">
+                        <span class="hero-text-animate inline-block">Collaborate</span>
+                        <span class="hero-text-animate inline-block" style="transition-delay:.1s;">on</span>
+                        <span class="hero-text-animate inline-block" style="transition-delay:.2s;">the</span>
+                        <span class="hero-text-animate inline-block" style="transition-delay:.3s;">same</span>
+                        <span class="hero-text-animate inline-block" style="transition-delay:.4s;">canvas</span>
+                    </h1>
+                </div>
+                <div class="hidden md:block w-28 h-32 md:w-40 md:h-48">
+                    <svg viewBox="0 0 100 100" class="w-full h-full animate-spin-slow">
+                        <path id="heroCirclePath" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="none"/>
+                        <text>
+                            <textPath href="#heroCirclePath" class="font-heading-display text-[10px] fill-[var(--color-black)] leading-[90%] tracking-[-0.03em]" startOffset="50%">
+                                ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️ ✍️
+                            </textPath>
+                        </text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="container mx-auto px-6 md:px-12 mt-12 md:mt-20 animate-on-scroll" style="transition-delay:.5s;">
+                <p class="max-w-xl text-center md:text-left text-lg md:text-2xl text-[var(--color-text-muted)] leading-relaxed">
+                    Draw, annotate, and brainstorm together in real time. All your sessions stay private until you share the link.
+                </p>
+            </div>
+        </section>
+
+        <!-- Whiteboard Section (Featured) -->
+        <section class="py-20 md:py-32 bg-[var(--color-bg-light)]">
+            <div class="container mx-auto px-6 md:px-12">
+                <div class="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+                    <div class="animate-on-scroll">
+                        <div class="aspect-[4/3] bg-gray-200 rounded-3xl shadow-lg overflow-hidden">
+                            <img src="https://static.photos/nature/640x360/123" alt="Collaborative whiteboard with sticky notes" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    <div class="animate-on-scroll" style="transition-delay:.2s;">
+                        <span class="inline-block border border-[var(--color-border-light)] rounded-full px-4 py-1.5 text-sm mb-3">Whiteboard</span>
+                        <h2 class="font-serif-display text-4xl md:text-5xl text-balance mb-6">Draw Together, Instantly</h2>
+                        <p class="text-lg text-[var(--color-text-muted)] leading-relaxed mb-8">
+                            Our intuitive UI lets you select pens, erasers, shapes, and text tools with a single click. All collaborators see the same canvas live.
+                        </p>
+                        <a href="#" class="btn-hover-effect relative px-8 py-3 bg-[var(--color-primary)] text-[var(--color-white)] text-base font-semibold rounded-full shadow-sm hover:shadow-lg transition-shadow">
+                            Explore Tools
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Drawing Tools Section -->
+        <section class="py-20 md:py-32">
+            <div class="container mx-auto px-6 md:px-12">
+                <div class="text-center mb-16 md:mb-24 animate-on-scroll">
+                    <span class="inline-block border border-[var(--color-border-light)] rounded-full px-4 py-1.5 text-sm mb-3">Tools</span>
+                    <h2 class="font-serif-display text-4xl md:text-5xl text-balance">Your Creative Arsenal</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <!-- Tool Card 1 -->
+                    <div class="animate-on-scroll text-center">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold">✏️</div>
+                        <h3 class="font-semibold text-lg mb-2">Pen Tool</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Draw freehand with adjustable line width.</p>
+                    </div>
+                    <!-- Tool Card 2 -->
+                    <div class="animate-on-scroll text-center" style="transition-delay:.1s;">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold">🗑️</div>
+                        <h3 class="font-semibold text-lg mb-2">Erase</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Quickly clear sections of your drawing.</p>
+                    </div>
+                    <!-- Tool Card 3 -->
+                    <div class="animate-on-scroll text-center" style="transition-delay:.2s;">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold">📏</div>
+                        <h3 class="font-semibold text-lg mb-2">Shape Tool</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Add rectangles, circles, arrows, and more.</p>
+                    </div>
+                    <!-- Tool Card 4 -->
+                    <div class="animate-on-scroll text-center" style="transition-delay:.3s;">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-white text-2xl font-bold">🖋️</div>
+                        <h3 class="font-semibold text-lg mb-2">Text Tool</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Insert notes, labels, or titles.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Share Button Section -->
+        <section class="py-20 md:py-32 bg-[var(--color-bg-light)]">
+            <div class="container mx-auto px-6 md:px-12 text-center">
+                <h2 class="font-serif-display text-4xl md:text-5xl mb-8 animate-on-scroll">Share Your Session</h2>
+                <p class="max-w-2xl mx-auto text-lg text-[var(--color-text-muted)] mb-12 animate-on-scroll" style="transition-delay:.2s;">
+                    Generate a unique link and invite your team. The link expires after 30 days, ensuring your work stays secure.
+                </p>
+                <a href="#" class="btn-hover-effect relative px-12 py-4 bg-[var(--color-primary)] text-[var(--color-white)] text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow animate-on-scroll" style="transition-delay:.4s;">
+                    Copy Share Link
+                </a>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section class="py-20 md:py-32 bg-[var(--color-bg-light)]">
+            <div class="container mx-auto px-6 md:px-12">
+                <div class="text-center mb-16 md:mb-24 animate-on-scroll">
+                    <span class="inline-block border border-[var(--color-border-light)] rounded-full px-4 py-1.5 text-sm mb-3">Testimonials</span>
+                    <h2 class="font-serif-display text-4xl md:text-5xl text-balance">What Our Users Say</h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Testimonial Card 1 -->
+                    <div class="animate-on-scroll p-8 bg-white border border-[var(--color-border-light)] rounded-3xl shadow-sm">
+                        <div class="w-12 h-12 mb-6 bg-gray-100 rounded-full flex items-center justify-center text-xl font-bold text-[var(--color-primary)]">A</div>
+                        <h4 class="font-semibold text-lg mb-2">Alex P.</h4>
+                        <p class="text-sm text-[var(--color-text-muted)] mb-4">Product Designer</p>
+                        <p class="text-sm leading-relaxed">“CollabBoard turned our brainstorming sessions into a seamless visual experience. The real‑time updates are a game‑changer.”</p>
+                    </div>
+                    <!-- Testimonial Card 2 -->
+                    <div class="animate-on-scroll p-8 bg-white border border-[var(--color-border-light)] rounded-3xl shadow-sm" style="transition-delay:.1s;">
+                        <div class="w-12 h-12 mb-6 bg-gray-100 rounded-full flex items-center justify-center text-xl font-bold text-[var(--color-primary)]">M</div>
+                        <h4 class="font-semibold text-lg mb-2">Mia L.</h4>
+                        <p class="text-sm text-[var(--color-text-muted)] mb-4">Marketing Manager</p>
+                        <p class="text-sm leading-relaxed">“The clean UI and easy sharing made it simple to collaborate with remote teams. No more sticky‑note chaos!”</p>
+                    </div>
+                    <!-- Testimonial Card 3 -->
+                    <div class="animate-on-scroll p-8 bg-white border border-[var(--color-border-light)] rounded-3xl shadow-sm" style="transition-delay:.2s;">
+                        <div class="w-12 h-12 mb-6 bg-gray-100 rounded-full flex items-center justify-center text-xl font-bold text-[var(--color-primary)]">J</div>
+                        <h4 class="font-semibold text-lg mb-2">James K.</h4>
+                        <p class="text-sm text-[var(--color-text-muted)] mb-4">Freelance Consultant</p>
+                        <p class="text-sm leading-relaxed">“I love the variety of tools. The ability to erase and redo instantly keeps my workflow smooth.”</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-black)] text-[var(--color-white)] py-16 md:py-24">
+        <div class="container mx-auto px-6 md:px-12">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8">
+                <!-- Logo & Desc -->
+                <div class="md:col-span-4 animate-on-scroll">
+                    <h2 class="font-serif-display text-4xl mb-4">CollabBoard</h2>
+                    <p class="text-sm text-[var(--color-text-muted)] leading-relaxed max-w-sm">
+                        A minimalist online whiteboard that lets you draw, annotate, and share ideas in real time.
+                    </p>
+                </div>
+
+                <!-- Links -->
+                <div class="md:col-span-8 grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-4 animate-on-scroll" style="transition-delay:.2s;">
+                    <div>
+                        <h4 class="font-semibold text-base mb-4">Product</h4>
+                        <ul class="space-y-3">
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Features</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Pricing</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Integrations</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">API</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-base mb-4">Company</h4>
+                        <ul class="space-y-3">
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">About Us</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Careers</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Blog</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-base mb-4">Legal</h4>
+                        <ul class="space-y-3">
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Privacy Policy</a></li>
+                            <li><a href="#" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Terms of Service</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-16 md:mt-24 pt-8 border-t border-[var(--color-border-white-light)]">
+                <div class="container mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <p class="text-xs text-[var(--color-text-muted)] text-center md:text-left">
+                        © 2026 CollabBoard. All rights reserved.
+                    </p>
+                    <div class="flex gap-6 text-sm">
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">Twitter</a>
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">LinkedIn</a>
+                        <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-white)] link-underline">GitHub</a>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center text-xs text-[var(--color-text-muted)]">
+                    Built with <a href="https://tesslate.com" class="underline hover:text-[var(--color-white)]">Tesslate</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu Toggle
+            const menuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const header = document.getElementById('header');
+
+            menuButton.addEventListener('click', () => {
+                menuButton.classList.toggle('menu-open');
+                if (mobileMenu.classList.contains('opacity-0')) {
+                    mobileMenu.classList.remove('opacity-0', 'pointer-events-none');
+                } else {
+                    mobileMenu.classList.add('opacity-0', 'pointer-events-none');
+                }
+            });
+
+            // Header background on scroll
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    header.classList.add('bg-[var(--color-bg-dark-alt)]', 'shadow-sm');
+                } else {
+                    header.classList.remove('bg-[var(--color-bg-dark-alt)]', 'shadow-sm');
+                }
+            });
+
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => observer.observe(el));
+
+            // Hero text animation
+            const heroTexts = document.querySelectorAll('.hero-text-animate');
+            heroTexts.forEach((el, i) => {
+                setTimeout(() => el.classList.add('is-visible'), 100 + i * 100);
+            });
+        });
+    </script>
+</body>
+</html>

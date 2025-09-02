@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Management System Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        warning: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-link:hover {
+            background-color: rgba(14, 165, 233, 0.1);
+        }
+        
+        .sidebar-link.active {
+            background-color: rgba(14, 165, 233, 0.2);
+            border-left: 3px solid #0ea5e9;
+        }
+        
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-row:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-published {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        
+        .status-draft {
+            background-color: rgba(234, 179, 8, 0.1);
+            color: #ca8a04;
+        }
+        
+        .status-pending {
+            background-color: rgba(14, 165, 233, 0.1);
+            color: #0ea5e9;
+        }
+        
+        .status-archived {
+            background-color: rgba(100, 116, 139, 0.1);
+            color: #475569;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -0.25rem;
+            right: -0.25rem;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 9999px;
+            background-color: #ef4444;
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 20;
+            }
+            
+            .overlay.open {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Mobile menu button -->
+        <div class="md:hidden fixed top-4 left-4 z-30">
+            <button id="mobile-menu-button" class="p-2 rounded-lg bg-white shadow-md">
+                <i class="fas fa-bars text-gray-600"></i>
+            </button>
+        </div>
+        
+        <!-- Sidebar overlay for mobile -->
+        <div id="overlay" class="overlay"></div>
+        
+        <!-- Sidebar -->
+        <aside class="sidebar bg-white w-64 border-r border-gray-200 fixed h-full z-20">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                        <i class="fas fa-cube text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-800">ContentHub</h1>
+                </div>
+            </div>
+            
+            <nav class="p-4">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="sidebar-link active flex items-center p-3 rounded-lg text-gray-700">
+                            <i class="fas fa-home mr-3 text-primary-500"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                            <i class="fas fa-file-alt mr-3 text-secondary-500"></i>
+                            <span>Content</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                            <i class="fas fa-image mr-3 text-warning-500"></i>
+                            <span>Media Library</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                            <i class="fas fa-users mr-3 text-success-500"></i>
+                            <span>Users</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                            <i class="fas fa-chart-bar mr-3 text-danger-500"></i>
+                            <span>Analytics</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                            <i class="fas fa-cog mr-3 text-gray-500"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="mt-8 pt-4 border-t border-gray-200">
+                    <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-2">Categories</h3>
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                                <i class="fas fa-newspaper mr-3 text-blue-400"></i>
+                                <span>Articles</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                                <i class="fas fa-video mr-3 text-red-400"></i>
+                                <span>Videos</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                                <i class="fas fa-image mr-3 text-yellow-400"></i>
+                                <span>Images</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-link flex items-center p-3 rounded-lg text-gray-700">
+                                <i class="fas fa-file-pdf mr-3 text-green-400"></i>
+                                <span>Documents</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <div class="absolute bottom-0 w-full p-4 border-t border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <i class="fas fa-user text-gray-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">Alex Morgan</p>
+                        <p class="text-xs text-gray-500">Admin</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 md:ml-64 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200 py-4 px-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
+                    <p class="text-sm text-gray-500">Welcome back, Alex. Here's what's happening today.</p>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-bell text-gray-600"></i>
+                            <span class="notification-dot"></span>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <button class="p-2 rounded-full hover:bg-gray-100">
+                            <i class="fas fa-envelope text-gray-600"></i>
+                            <span class="notification-dot"></span>
+                        </button>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <i class="fas fa-user text-gray-600"></i>
+                        </div>
+                        <span class="ml-2 text-gray-700 hidden md:block">Alex Morgan</span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Stats Cards -->
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Card 1 -->
+                    <div class="card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500">Total Content</p>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-1">1,248</h3>
+                            </div>
+                            <div class="p-3 rounded-lg bg-blue-50 text-blue-500">
+                                <i class="fas fa-file-alt text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-green-500">
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                <span>12.5% from last month</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card 2 -->
+                    <div class="card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500">Published</p>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-1">892</h3>
+                            </div>
+                            <div class="p-3 rounded-lg bg-green-50 text-green-500">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-green-500">
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                <span>8.2% from last month</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card 3 -->
+                    <div class="card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500">Pending Review</p>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-1">146</h3>
+                            </div>
+                            <div class="p-3 rounded-lg bg-yellow-50 text-yellow-500">
+                                <i class="fas fa-clock text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-red-500">
+                                <i class="fas fa-arrow-down mr-1"></i>
+                                <span>3.1% from last month</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card 4 -->
+                    <div class="card bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500">Storage Used</p>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-1">78%</h3>
+                            </div>
+                            <div class="p-3 rounded-lg bg-purple-50 text-purple-500">
+                                <i class="fas fa-database text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary-500 h-2 rounded-full" style="width: 78%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts and Recent Activity -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <!-- Chart -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800">Content Performance</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-600">Week</button>
+                                <button class="px-3 py-1 text-sm rounded-lg bg-primary-500 text-white">Month</button>
+                                <button class="px-3 py-1 text-sm rounded-lg bg-gray-100 text-gray-600">Year</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-6">Recent Activity</h3>
+                        <div class="space-y-4">
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <i class="fas fa-file-alt text-blue-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">New article published</p>
+                                    <p class="text-xs text-gray-500">"How to optimize your content strategy"</p>
+                                    <p class="text-xs text-gray-400 mt-1">2 hours ago</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                        <i class="fas fa-user-plus text-green-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">New user registered</p>
+                                    <p class="text-xs text-gray-500">Sarah Johnson joined as content editor</p>
+                                    <p class="text-xs text-gray-400 mt-1">5 hours ago</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                                        <i class="fas fa-image text-yellow-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Images uploaded</p>
+                                    <p class="text-xs text-gray-500">12 new images added to media library</p>
+                                    <p class="text-xs text-gray-400 mt-1">Yesterday</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-3">
+                                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                        <i class="fas fa-comment-alt text-purple-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">New comment</p>
+                                    <p class="text-xs text-gray-500">On "Content marketing trends 2023"</p>
+                                    <p class="text-xs text-gray-400 mt-1">2 days ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Content Table -->
+                <div class="mt-6 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800">Recent Content</h3>
+                        <button class="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium flex items-center">
+                            <i class="fas fa-plus mr-2"></i> Add New
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-xs text-gray-500 uppercase border-b">
+                                    <th class="pb-3 font-medium">Title</th>
+                                    <th class="pb-3 font-medium">Author</th>
+                                    <th class="pb-3 font-medium">Category</th>
+                                    <th class="pb-3 font-medium">Status</th>
+                                    <th class="pb-3 font-medium">Date</th>
+                                    <th class="pb-3 font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                <tr class="table-row">
+                                    <td class="py-4">
+                                        <div class="font-medium text-gray-800">How to optimize your content strategy</div>
+                                        <div class="text-sm text-gray-500">Article</div>
+                                    </td>
+                                    <td class="py-4 text-gray-600">Alex Morgan</td>
+                                    <td class="py-4 text-gray-600">Marketing</td>
+                                    <td class="py-4">
+                                        <span class="status-badge status-published">Published</span>
+                                    </td>
+                                    <td class="py-4 text-gray-600">May 12, 2023</td>
+                                    <td class="py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-edit text-gray-500"></i>
+                                            </button>
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-trash-alt text-gray-500"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="table-row">
+                                    <td class="py-4">
+                                        <div class="font-medium text-gray-800">Content marketing trends 2023</div>
+                                        <div class="text-sm text-gray-500">Article</div>
+                                    </td>
+                                    <td class="py-4 text-gray-600">Jamie Smith</td>
+                                    <td class="py-4 text-gray-600">Marketing</td>
+                                    <td class="py-4">
+                                        <span class="status-badge status-published">Published</span>
+                                    </td>
+                                    <td class="py-4 text-gray-600">May 10, 2023</td>
+                                    <td class="py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-edit text-gray-500"></i>
+                                            </button>
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-trash-alt text-gray-500"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="table-row">
+                                    <td class="py-4">
+                                        <div class="font-medium text-gray-800">The future of video content</div>
+                                        <div class="text-sm text-gray-500">Video</div>
+                                    </td>
+                                    <td class="py-4 text-gray-600">Taylor Brown</td>
+                                    <td class="py-4 text-gray-600">Video</td>
+                                    <td class="py-4">
+                                        <span class="status-badge status-pending">Pending</span>
+                                    </td>
+                                    <td class="py-4 text-gray-600">May 8, 2023</td>
+                                    <td class="py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-edit text-gray-500"></i>
+                                            </button>
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-trash-alt text-gray-500"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="table-row">
+                                    <td class="py-4">
+                                        <div class="font-medium text-gray-800">Social media best practices</div>
+                                        <div class="text-sm text-gray-500">Article</div>
+                                    </td>
+                                    <td class="py-4 text-gray-600">Alex Morgan</td>
+                                    <td class="py-4 text-gray-600">Social Media</td>
+                                    <td class="py-4">
+                                        <span class="status-badge status-draft">Draft</span>
+                                    </td>
+                                    <td class="py-4 text-gray-600">May 5, 2023</td>
+                                    <td class="py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-edit text-gray-500"></i>
+                                            </button>
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-trash-alt text-gray-500"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="table-row">
+                                    <td class="py-4">
+                                        <div class="font-medium text-gray-800">SEO optimization guide</div>
+                                        <div class="text-sm text-gray-500">Article</div>
+                                    </td>
+                                    <td class="py-4 text-gray-600">Michael Chen</td>
+                                    <td class="py-4 text-gray-600">SEO</td>
+                                    <td class="py-4">
+                                        <span class="status-badge status-archived">Archived</span>
+                                    </td>
+                                    <td class="py-4 text-gray-600">May 1, 2023</td>
+                                    <td class="py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-edit text-gray-500"></i>
+                                            </button>
+                                            <button class="p-2 rounded-lg hover:bg-gray-100">
+                                                <i class="fas fa-trash-alt text-gray-500"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-between items-center">
+                        <p class="text-sm text-gray-500">Showing 1 to 5 of 42 results</p>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600">
+                                Previous
+                            </button>
+                            <button class="px-3 py-1 rounded-lg bg-primary-500 text-white">
+                                1
+                            </button>
+                            <button class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600">
+                                2
+                            </button>
+                            <button class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600">
+                                3
+                            </button>
+                            <button class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('overlay');
+        
+        mobileMenuButton.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        });
+        
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+        
+        // Initialize chart
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {
+                        label: 'Views',
+                        data: [12000, 19000, 15000, 18000, 22000, 19000, 25000, 28000, 26000, 30000, 32000, 35000],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Engagement',
+                        data: [8000, 12000, 10000, 14000, 16000, 18000, 20000, 22000, 24000, 26000, 28000, 30000],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

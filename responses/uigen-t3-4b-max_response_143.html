@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Showcase Carousel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-main: rgb(24, 24, 24);
+            --color-text-primary: rgb(255, 255, 255);
+            --color-text-secondary: rgb(120, 120, 120);
+            --color-divider: rgb(60, 60, 60);
+            --color-accent: rgb(0, 153, 255); /* Blue for primary actions/highlights */
+            --color-button-bg: rgb(50, 50, 50);
+            --color-button-hover-bg: rgb(70, 70, 70);
+            --color-carousel-track: rgb(40, 40, 40);
+            --color-carousel-thumb: rgb(100, 100, 100);
+            --color-carousel-thumb-hover: rgb(150, 150, 150);
+            --color-carousel-thumb-active: rgb(0, 153, 255);
+        }
+
+        body {
+            background-color: var(--color-bg-main);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for carousel */
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 90%;
+            max-width: 1200px;
+            overflow: hidden;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background-color: var(--color-carousel-track);
+        }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+            will-change: transform;
+        }
+
+        .carousel-slide {
+            flex-shrink: 0;
+            width: 100%;
+            background-color: var(--color-bg-main);
+            border: 1px solid var(--color-divider);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative; /* For overlay text */
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 200px; /* Fixed height for consistency */
+            object-fit: cover;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .carousel-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1rem;
+            color: var(--color-text-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .carousel-slide.active .carousel-overlay {
+            opacity: 1;
+        }
+
+        .carousel-caption {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .carousel-description {
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+        }
+
+        .carousel-controls {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .carousel-prev, .carousel-next {
+            color: var(--color-text-primary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 1rem;
+            transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+        }
+
+        .carousel-prev:hover, .carousel-next:hover {
+            background-color: rgba(0, 153, 255, 0.2);
+        }
+
+        .carousel-prev {
+            left: 1rem;
+            transform: translateX(-50%); /* Align with center */
+        }
+
+        .carousel-next {
+            right: 1rem;
+            transform: translateX(50%); /* Align with center */
+        }
+
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .carousel-dot {
+            width: 12px;
+            height: 12px;
+            background-color: var(--color-carousel-thumb);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .carousel-dot.active {
+            background-color: var(--color-carousel-thumb-active);
+            transform: scale(1.2);
+        }
+
+        .carousel-thumb {
+            position: absolute;
+            bottom: 50%;
+            transform: translateY(50%);
+            background-color: var(--color-carousel-thumb);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .carousel-thumb.active {
+            background-color: var(--color-carousel-thumb-active);
+            box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
+        }
+
+        .carousel-thumb:hover {
+            background-color: var(--color-carousel-thumb-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="carousel-container">
+        <div class="carousel-track" role="region" aria-label="Product Showcase Carousel">
+            <!-- Slide 1 -->
+            <div class="carousel-slide active" role="group" aria-roledescription="slide">
+                <img src="https://placehold.co/600x400/242424/FFFFFF?text=Product+1" alt="Product 1 Image">
+                <div class="carousel-overlay">
+                    <h3 class="carousel-caption">Innovative Product A</h3>
+                    <p class="carousel-description">Discover the future of your daily routine with our cutting-edge Product A.</p>
+                </div>
+            </div>
+            <!-- Slide 2 -->
+            <div class="carousel-slide" role="group" aria-roledescription="slide">
+                <img src="https://placehold.co/600x400/242424/FFFFFF?text=Product+2" alt="Product 2 Image">
+                <div class="carousel-overlay">
+                    <h3 class="carousel-caption">Eco-Friendly Solution B</h3>
+                    <p class="carousel-description">Sustainable and efficient, Product B helps you reduce your environmental impact.</p>
+                </div>
+            </div>
+            <!-- Slide 3 -->
+            <div class="carousel-slide" role="group" aria-roledescription="slide">
+                <img src="https://placehold.co/600x400/242424/FFFFFF?text=Product+3" alt="Product 3 Image">
+                <div class="carousel-overlay">
+                    <h3 class="carousel-caption">Smart Home Device C</h3>
+                    <p class="carousel-description">Control your home with ease using our intuitive and powerful Product C.</p>
+                </div>
+            </div>
+            <!-- Slide 4 -->
+            <div class="carousel-slide" role="group" aria-roledescription="slide">
+                <img src="https://placehold.co/600x400/242424/FFFFFF?text=Product+4" alt="Product 4 Image">
+                <div class="carousel-overlay">
+                    <h3 class="carousel-caption">Premium Service D</h3>
+                    <p class="carousel-description">Experience unparalleled support and quality with our top-tier Service D.</p>
+                </div>
+            </div>
+            <!-- Slide 5 -->
+            <div class="carousel-slide" role="group" aria-roledescription="slide">
+                <img src="https://placehold.co/600x400/242424/FFFFFF?text=Product+5" alt="Product 5 Image">
+                <div class="carousel-overlay">
+                    <h3 class="carousel-caption">Creative Tools E</h3>
+                    <p class="carousel-description">Unleash your creativity with the powerful suite of Product E.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="carousel-controls" aria-hidden="true">
+            <button class="carousel-prev" aria-label="Previous slide" role="button">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-next" aria-label="Next slide" role="button">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="carousel-dots" role="tablist" aria-label="Carousel navigation dots">
+            <!-- Dots will be dynamically added by JavaScript -->
+        </div>
+
+        <div class="carousel-thumb" id="carouselThumb" role="button" aria-label="Navigate to current slide" aria-controls="carousel-track">
+            <i class="fas fa-circle"></i>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const track = document.querySelector('.carousel-track');
+            const slides = document.querySelectorAll('.carousel-slide');
+            const dotsContainer = document.querySelector('.carousel-dots');
+            const prevButton = document.querySelector('.carousel-prev');
+            const nextButton = document.querySelector('.carousel-next');
+            const thumb = document.getElementById('carouselThumb');
+            let currentIndex = 0;
+
+            function updateCarousel() {
+                track.style.transform = `translateX(-${currentIndex * 100}%)`;
+                slides.forEach((slide, index) => {
+                    if (index === currentIndex) {
+                        slide.classList.add('active');
+                        slide.setAttribute('aria-hidden', 'false');
+                        slide.setAttribute('tabindex', '0'); // Make active slide focusable
+                    } else {
+                        slide.classList.remove('active');
+                        slide.setAttribute('aria-hidden', 'true');
+                        slide.removeAttribute('tabindex'); // Remove tabindex for inactive slides
+                    }
+                });
+
+                // Update dots
+                dotsContainer.innerHTML = ''; // Clear existing dots
+                slides.forEach((_, index) => {
+                    const dot = document.createElement('button');
+                    dot.classList.add('carousel-dot');
+                    if (index === currentIndex) {
+                        dot.classList.add('active');
+                    }
+                    dot.setAttribute('role', 'tab');
+                    dot.setAttribute('aria-controls', 'carousel-track');
+                    dot.setAttribute('aria-label', `Go to slide ${index + 1}`);
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateCarousel();
+                    });
+                    dotsContainer.appendChild(dot);
+                });
+
+                // Update thumb position
+                const trackRect = track.getBoundingClientRect();
+                const thumbX = (trackRect.width / 5) * (currentIndex * 2 + 1); // 1 for active, 2 for 1-2, etc.
+                thumb.style.left = `${thumbX - thumb.offsetWidth / 2}px`;
+            }
+
+            function moveSlide(direction) {
+                if (direction === 'next') {
+                    currentIndex = (currentIndex + 1) % slides.length;
+                } else { // 'prev'
+                    currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+                }
+                updateCarousel();
+            }
+
+            // Event Listeners for Navigation
+            prevButton.addEventListener('click', () => moveSlide('prev'));
+            nextButton.addEventListener('click', () => moveSlide('next'));
+
+            // Keyboard navigation (for accessibility)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    moveSlide('next');
+                } else if (e.key === 'ArrowLeft') {
+                    moveSlide('prev');
+                }
+            });
+
+            // Touch navigation (for mobile)
+            let touchStartX = 0;
+            track.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+            });
+
+            track.addEventListener('touchmove', (e) => {
+                if (Math.abs(e.touches[0].clientX - touchStartX) > 50) { // Threshold for swipe
+                    const swipeDistance = e.touches[0].clientX - touchStartX;
+                    if (swipeDistance > 0) { // Swiped right
+                        moveSlide('next');
+                    } else { // Swiped left
+                        moveSlide('prev');
+                    }
+                    touchStartX = 0; // Reset for next swipe
+                }
+            });
+
+            // Initial update
+            updateCarousel();
+
+            // ARIA live region for screen readers
+            const liveRegion = document.createElement('div');
+            liveRegion.id = 'carousel-live-region';
+            liveRegion.setAttribute('aria-live', 'polite');
+            liveRegion.setAttribute('aria-atomic', 'true');
+            liveRegion.classList.add('sr-only'); // Visually hidden
+            document.body.appendChild(liveRegion);
+
+            function announceSlideChange() {
+                liveRegion.textContent = `Now showing: ${slides[currentIndex].querySelector('h3').textContent}`;
+            }
+
+            // Announce changes when slides are updated
+            slides.forEach((slide, index) => {
+                slide.addEventListener('transitionend', () => {
+                    if (index === currentIndex) { // Only announce when the current slide is finally visible
+                        announceSlideChange();
+                    }
+                });
+            });
+
+            // Initial announcement
+            announceSlideChange();
+        });
+    </script>
+</body>
+</html>

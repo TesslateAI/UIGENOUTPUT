@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Garden Monitoring UI</title>
+    <meta name="description" content="Monitor plant health, watering schedule and sensor data with a sleek, responsive UI built with Tailwind CSS.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Color Tokens – a fresh garden palette */
+            --token-bg-dark: rgb(18, 23, 27);
+            --token-bg-medium: rgb(26, 32, 38);
+            --token-bg-light: rgb(44, 52, 60);
+            --token-text-primary: rgb(255, 255, 255);
+            --token-text-secondary: rgba(255, 255, 255, .6);
+            --token-text-muted: rgba(255, 255, 255, .5);
+            --token-accent: rgb(76, 175, 80);               /* fresh green */
+            --token-border-light: rgba(255, 255, 255, .1);
+            --token-border-dark: rgba(255, 255, 255, .05);
+            --token-shadow-dark: rgba(0, 0, 0, .25);
+            --token-shadow-medium: rgba(0, 0, 0, .45);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-bg-dark);
+            color: var(--token-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .8s cubic-bezier(.215,.610,.355,1), transform .8s cubic-bezier(.215,.610,.355,1);
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .animate-on-scroll-delay-100 { transition-delay: .1s; }
+        .animate-on-scroll-delay-200 { transition-delay: .2s; }
+        .animate-on-scroll-delay-300 { transition-delay: .3s; }
+        .animate-on-scroll-delay-400 { transition-delay: .4s; }
+        .animate-on-scroll-delay-500 { transition-delay: .5s; }
+        .hero-text-reveal span {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity .6s ease, transform .6s ease;
+        }
+        .hero-text-reveal span.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .hamburger-line {
+            transition: transform .3s ease-in-out, opacity .3s ease-in-out;
+        }
+        .menu-open .hamburger-line-1 {
+            transform: translateY(6px) rotate(45deg);
+        }
+        .menu-open .hamburger-line-2 {
+            opacity: 0;
+        }
+        .menu-open .hamburger-line-3 {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+        .mobile-menu {
+            transition: opacity .3s ease-in-out, transform .3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Header -->
+    <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="relative flex items-center justify-between h-12">
+                <!-- Logo -->
+                <a href="#" class="text-2xl font-bold tracking-tight">
+                    GardenSense<span class="text-[var(--token-accent)]">AI</span>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#" class="text-sm font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Home</a>
+                    <a href="#" class="text-sm font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Dashboard</a>
+                    <a href="#" class="text-sm font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Sensors</a>
+                    <a href="#" class="text-sm font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Watering</a>
+                </nav>
+
+                <!-- CTA & Mobile Menu Button -->
+                <div class="flex items-center">
+                    <a href="#" class="hidden sm:inline-block px-5 py-2 text-sm font-medium bg-[var(--token-bg-light)] text-[var(--token-text-primary)] rounded-xl hover:bg-gray-700 transition-colors border border-[var(--token-border-light)]">
+                        Get Started
+                    </a>
+                    <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-[var(--token-text-primary)] focus:outline-none">
+                        <span class="sr-only">Open main menu</span>
+                        <div class="space-y-1.5">
+                            <span class="block w-6 h-0.5 bg-current hamburger-line hamburger-line-1"></span>
+                            <span class="block w-6 h-0.5 bg-current hamburger-line hamburger-line-2"></span>
+                            <span class="block w-6 h-0.5 bg-current hamburger-line hamburger-line-3"></span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="mobile-menu md:hidden fixed inset-0 bg-[var(--token-bg-dark)] bg-opacity-90 backdrop-blur-md flex flex-col items-center justify-center space-y-8 opacity-0 -translate-y-full">
+            <a href="#" class="text-2xl font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Home</a>
+            <a href="#" class="text-2xl font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Dashboard</a>
+            <a href="#" class="text-2xl font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Sensors</a>
+            <a href="#" class="text-2xl font-medium text-[var(--token-text-primary)] hover:text-[var(--token-text-secondary)] transition-colors">Watering</a>
+            <a href="#" class="mt-8 sm:hidden px-6 py-3 text-lg font-medium bg-[var(--token-bg-light)] text-[var(--token-text-primary)] rounded-xl hover:bg-gray-700 transition-colors">
+                Get Started
+            </a>
+        </div>
+    </header>
+
+    <main class="pt-20">
+
+        <!-- Hero Section -->
+        <section class="relative pt-32 pb-16 md:pt-48 md:pb-24 min-h-[80vh] md:min-h-[90vh] flex items-center overflow-hidden">
+            <div class="absolute inset-0 z-0">
+                <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1920&q=80" alt="Garden background" class="w-full h-full object-cover opacity-20">
+            </div>
+            <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-[var(--token-bg-dark)] z-10"></div>
+
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-20">
+                <div class="max-w-3xl mx-auto">
+                    <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-normal tracking-tighter text-gradient bg-gradient-to-b from-white via-gray-300 to-black animate-on-scroll hero-text-reveal">
+                        <span>Smart</span> <span>Garden</span> <span>Monitoring</span>
+                    </h1>
+                    <p class="mt-6 text-lg sm:text-xl text-[var(--token-text-secondary)] max-w-xl mx-auto animate-on-scroll animate-on-scroll-delay-100">
+                        Keep your plants thriving with real‑time health insights, automated watering, and sensor data.
+                    </p>
+                    <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4 animate-on-scroll animate-on-scroll-delay-200">
+                        <a href="#" class="w-full sm:w-auto px-8 py-3.5 text-base font-medium bg-[var(--token-bg-light)] text-[var(--token-text-primary)] rounded-xl hover:bg-gray-700 transition-colors border border-[var(--token-border-light)]">
+                            Explore Dashboard
+                        </a>
+                        <a href="#" class="w-full sm:w-auto px-8 py-3.5 text-base font-medium bg-[var(--token-accent)] text-[var(--token-bg-dark)] rounded-xl hover:opacity-90 transition-colors">
+                            View Sensors
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-16 md:py-24 bg-[var(--token-bg-medium)]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 md:mb-16">
+                    <p class="text-sm font-medium text-[var(--token-accent)] animate-on-scroll">Plant Health</p>
+                    <h2 class="mt-2 text-4xl sm:text-5xl font-normal tracking-tight text-[var(--token-text-primary)] animate-on-scroll animate-on-scroll-delay-100">
+                        Real‑time Monitoring & Insights
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Feature Card 1 -->
+                    <div class="p-8 border border-[var(--token-border-dark)] rounded-2xl bg-[var(--token-bg-dark)] backdrop-blur-xl animate-on-scroll animate-on-scroll-delay-200">
+                        <div class="w-12 h-12 rounded-full bg-[var(--token-bg-light)] text-[var(--token-accent)] flex items-center justify-center text-xl mb-4">
+                            🌱
+                        </div>
+                        <h3 class="text-xl font-semibold text-[var(--token-text-primary)] mb-2">Health Metrics</h3>
+                        <p class="text-sm text-[var(--token-text-secondary)]">Leaf moisture, soil pH, and nutrient levels tracked continuously.</p>
+                    </div>
+                    <!-- Feature Card 2 -->
+                    <div class="p-8 border border-[var(--token-border-dark)] rounded-2xl bg-[var(--token-bg-dark)] backdrop-blur-xl animate-on-scroll animate-on-scroll-delay-300">
+                        <div class="w-12 h-12 rounded-full bg-[var(--token-bg-light)] text-[var(--token-accent)] flex items-center justify-center text-xl mb-4">
+                            💧
+                        </div>
+                        <h3 class="text-xl font-semibold text-[var(--token-text-primary)] mb-2">Watering Schedule</h3>
+                        <p class="text-sm text-[var(--token-text-secondary)]">Automated irrigation based on plant needs and weather.</p>
+                    </div>
+                    <!-- Feature Card 3 -->
+                    <div class="p-8 border border-[var(--token-border-dark)] rounded-2xl bg-[var(--token-bg-dark)] backdrop-blur-xl animate-on-scroll animate-on-scroll-delay-400">
+                        <div class="w-12 h-12 rounded-full bg-[var(--token-bg-light)] text-[var(--token-accent)] flex items-center justify-center text-xl mb-4">
+                            📊
+                        </div>
+                        <h3 class="text-xl font-semibold text-[var(--token-text-primary)] mb-2">Sensor Dashboard</h3>
+                        <p class="text-sm text-[var(--token-text-secondary)]">Live graphs for temperature, humidity, light, and more.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sensor Data Section -->
+        <section class="py-16 md:py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div class="animate-on-scroll">
+                        <p class="text-sm font-medium text-[var(--token-accent)]">Live Sensor Data</p>
+                        <h2 class="mt-2 text-4xl sm:text-5xl font-normal tracking-tight text-[var(--token-text-primary)]">Stay Informed</h2>
+                        <p class="mt-6 text-lg text-[var(--token-text-secondary)]">
+                            View current environmental conditions for each plant. All data is updated every 30 seconds.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-on-scroll animate-on-scroll-delay-100">
+                        <!-- Sensor Card 1 -->
+                        <div class="p-6 border border-[var(--token-border-dark)] rounded-xl bg-[var(--token-bg-light)] text-[var(--token-text-primary)]">
+                            <h3 class="text-xl font-semibold mb-2">Temperature</h3>
+                            <p class="text-4xl font-bold">22 °C</p>
+                            <p class="text-sm text-[var(--token-text-muted)] mt-1">Optimal range: 18‑26 °C</p>
+                        </div>
+                        <!-- Sensor Card 2 -->
+                        <div class="p-6 border border-[var(--token-border-dark)] rounded-xl bg-[var(--token-bg-light)] text-[var(--token-text-primary)]">
+                            <h3 class="text-xl font-semibold mb-2">Humidity</h3>
+                            <p class="text-4xl font-bold">58 %</p>
+                            <p class="text-sm text-[var(--token-text-muted)] mt-1">Ideal: 40‑60 %</p>
+                        </div>
+                        <!-- Sensor Card 3 -->
+                        <div class="p-6 border border-[var(--token-border-dark)] rounded-xl bg-[var(--token-bg-light)] text-[var(--token-text-primary)]">
+                            <h3 class="text-xl font-semibold mb-2">Light Intensity</h3>
+                            <p class="text-4xl font-bold">320 lux</p>
+                            <p class="text-sm text-[var(--token-text-muted)] mt-1">Good for most foliage</p>
+                        </div>
+                        <!-- Sensor Card 4 -->
+                        <div class="p-6 border border-[var(--token-border-dark)] rounded-xl bg-[var(--token-bg-light)] text-[var(--token-text-primary)]">
+                            <h3 class="text-xl font-semibold mb-2">Soil Moisture</h3>
+                            <p class="text-4xl font-bold">45 %</p>
+                            <p class="text-sm text-[var(--token-text-muted)] mt-1">Ideal: 30‑60 %</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Watering Schedule Section -->
+        <section class="py-16 md:py-24 bg-[var(--token-bg-medium)]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 md:mb-16">
+                    <p class="text-sm font-medium text-[var(--token-accent)] animate-on-scroll">Watering</p>
+                    <h2 class="mt-2 text-4xl sm:text-5xl font-normal tracking-tight text-[var(--token-text-primary)] animate-on-scroll animate-on-scroll-delay-100">
+                        Automated Irrigation
+                    </h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Schedule Card -->
+                    <div class="p-8 border border-[var(--token-border-dark)] rounded-2xl bg-[var(--token-bg-dark)] backdrop-blur-xl animate-on-scroll animate-on-scroll-delay-200">
+                        <h3 class="text-2xl font-semibold text-[var(--token-text-primary)] mb-4">Plant Schedule</h3>
+                        <ul class="space-y-2 text-[var(--token-text-secondary)]">
+                            <li>📅 Monday – 8 am – 15 min</li>
+                            <li>📅 Wednesday – 8 am – 15 min</li>
+                            <li>📅 Friday – 8 am – 15 min</li>
+                            <li>📅 Weekend – Off</li>
+                        </ul>
+                        <p class="mt-4 text-sm text-[var(--token-text-muted)]">Adjustable via the dashboard.</p>
+                    </div>
+                    <!-- Watering Card -->
+                    <div class="p-8 border border-[var(--token-border-dark)] rounded-2xl bg-[var(--token-bg-dark)] backdrop-blur-xl animate-on-scroll animate-on-scroll-delay-300">
+                        <h3 class="text-2xl font-semibold text-[var(--token-text-primary)] mb-4">Irrigation Status</h3>
+                        <div class="flex items-center justify-between">
+                            <span class="text-lg font-medium text-[var(--token-text-secondary)]">Active</span>
+                            <div class="w-12 h-12 rounded-full bg-[var(--token-accent)] flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[var(--token-bg-dark)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-[var(--token-text-muted)]">Watering cycle completed.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 md:py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="relative p-8 md:p-16 lg:p-24 border border-[var(--token-border-dark)] rounded-3xl overflow-hidden text-center bg-[var(--token-bg-dark)] animate-on-scroll">
+                    <div class="absolute inset-0 z-0 opacity-10">
+                        <img src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=1200&q=80" alt="Garden abstract background" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-br from-black/50 via-transparent to-black/30"></div>
+                    </div>
+                    <div class="relative z-10 max-w-2xl mx-auto">
+                        <h2 class="text-4xl sm:text-5xl font-normal tracking-tight text-[var(--token-text-primary)]">
+                            Ready to Grow with GardenSense AI?
+                        </h2>
+                        <p class="mt-6 text-lg text-[var(--token-text-secondary)]">
+                            Join thousands of gardeners who trust our AI‑driven insights to keep their plants thriving.
+                        </p>
+                        <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+                            <a href="#" class="w-full sm:w-auto px-8 py-3.5 text-base font-medium bg-[var(--token-bg-light)] text-[var(--token-text-primary)] rounded-xl hover:bg-gray-700 transition-colors border border-[var(--token-border-light)]">
+                                Get Started
+                            </a>
+                            <a href="#" class="w-full sm:w-auto px-8 py-3.5 text-base font-medium bg-[var(--token-accent)] text-[var(--token-bg-dark)] rounded-xl hover:opacity-90 transition-colors">
+                                Contact Support
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-16 md:py-24 bg-[var(--token-bg-dark)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Column 1: Logo & About -->
+                <div class="md:col-span-1 mb-8 md:mb-0">
+                    <a href="#" class="text-2xl font-bold tracking-tight">
+                        GardenSense<span class="text-[var(--token-accent)]">AI</span>
+                    </a>
+                    <p class="mt-4 text-sm text-[var(--token-text-secondary)] max-w-xs">
+                        AI‑powered garden monitoring for modern home growers.
+                    </p>
+                </div>
+                <!-- Column 2: Quick Links -->
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--token-text-primary)] tracking-wider uppercase">Quick Links</h3>
+                    <ul class="mt-4 space-y-2">
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Home</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Dashboard</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Sensors</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Watering</a></li>
+                    </ul>
+                </div>
+                <!-- Column 3: Company -->
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--token-text-primary)] tracking-wider uppercase">Company</h3>
+                    <ul class="mt-4 space-y-2">
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">About Us</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Careers</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Blog</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                <!-- Column 4: Legal -->
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--token-text-primary)] tracking-wider uppercase">Legal</h3>
+                    <ul class="mt-4 space-y-2">
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-sm text-[var(--token-text-secondary)] hover:text-[var(--token-text-primary)] transition-colors">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 border-t border-[var(--token-border-dark)] pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-[var(--token-text-muted)]">
+                <p>&copy; 2026 GardenSense AI. All rights reserved.</p>
+                <p class="mt-4 sm:mt-0">Built with <a href="https://tesslate.com" class="underline hover:text-[var(--token-text-primary)]">Tesslate</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Navbar scroll effect
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('bg-[var(--token-bg-dark)]', 'bg-opacity-90', 'backdrop-blur-md', 'shadow-lg', 'shadow-[var(--token-shadow-medium)]');
+                } else {
+                    navbar.classList.remove('bg-[var(--token-bg-dark)]', 'bg-opacity-90', 'backdrop-blur-md', 'shadow-lg', 'shadow-[var(--token-shadow-medium)]');
+                }
+            });
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('opacity-0');
+                mobileMenu.classList.toggle('-translate-y-full');
+                mobileMenu.classList.toggle('flex');
+                mobileMenu.classList.toggle('hidden');
+                mobileMenuButton.classList.toggle('menu-open');
+            });
+
+            // Intersection Observer for scroll animations
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => observer.observe(el));
+
+            // Hero text staggered animation
+            const heroText = document.querySelector('.hero-text-reveal');
+            if (heroText) {
+                const words = heroText.querySelectorAll('span');
+                const chars = Array.from(heroText.textContent.trim().split(''));
+                heroText.innerHTML = '';
+                chars.forEach((char, i) => {
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    span.style.transitionDelay = `${i * 0.03}s`;
+                    heroText.appendChild(span);
+                });
+                const heroObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            words.forEach((word, wIdx) => {
+                                const charsInWord = word.querySelectorAll('span');
+                                charsInWord.forEach((charSpan, cIdx) => {
+                                    charSpan.style.transitionDelay = `${wIdx * 0.05 + cIdx * 0.02}s`;
+                                });
+                            });
+                            heroObserver.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                heroObserver.observe(heroText);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Builder – Drag & Drop UI</title>
+    <meta name="description" content="Online resume builder with drag‑and‑drop sections and live preview. Built with Tailwind CSS.">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom CSS for animations & specific styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Scroll reveal animations */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.215, 0.610, 0.355, 1), transform 0.8s cubic-bezier(0.215, 0.610, 0.355, 1);
+            transition-delay: 0.1s;
+        }
+        .scroll-reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Marquee animation */
+        .marquee-container {
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
+        .marquee-content {
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Link hover underline */
+        .link-underline {
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+        }
+        .link-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: currentColor;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease-in-out;
+        }
+        .link-underline:hover::after {
+            transform: scaleX(1);
+        }
+
+        /* FAQ Accordion */
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 200px;
+            padding-top: 1rem;
+        }
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+        }
+        .faq-icon {
+            transition: transform 0.3s ease;
+        }
+
+        /* Mobile Nav */
+        #mobile-menu {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s;
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #mobile-menu.open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Project Card Hover */
+        .project-card-image-wrapper {
+            transition: transform 0.4s cubic-bezier(0.44, 0, 0.56, 1);
+        }
+        .project-card:hover .project-card-image-wrapper {
+            transform: scale(1.05);
+        }
+        .project-card-arrow-wrapper {
+            transition: transform 0.4s cubic-bezier(0.44, 0, 0.56, 1);
+        }
+        .project-card:hover .project-card-arrow-wrapper {
+            transform: translateY(-5px);
+        }
+
+        /* Button hover effect */
+        .btn-hover-wrapper {
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            vertical-align: middle;
+        }
+        .btn-hover-wrapper .btn-text {
+            display: block;
+            transition: transform 0.4s cubic-bezier(0.44, 0, 0.56, 1);
+        }
+        .btn-hover-wrapper:hover .btn-text {
+            transform: translateY(-100%);
+        }
+        .btn-hover-wrapper .btn-text-hover {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800">
+
+    <div id="main" class="w-full mx-auto">
+
+        <!-- HEADER -->
+        <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+            <nav class="max-w-7xl mx-auto px-6 md:px-12 py-4">
+                <div class="flex items-center justify-between backdrop-blur-sm bg-white/50 rounded-full p-2 border border-white/50">
+                    <a href="#" class="text-xl font-bold">ResumeBuilder</a>
+
+                    <!-- Desktop Nav -->
+                    <div class="hidden lg:flex items-center gap-2">
+                        <a href="#hero" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-black rounded-full transition-colors">Home</a>
+                        <a href="#sections" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-black rounded-full transition-colors">Sections</a>
+                        <a href="#preview" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-black rounded-full transition-colors">Preview</a>
+                        <a href="#faq" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-black rounded-full transition-colors">FAQ</a>
+                        <a href="#contact" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-black rounded-full transition-colors">Contact</a>
+                    </div>
+
+                    <div class="hidden lg:flex items-center">
+                        <a href="#contact" class="btn-hover-wrapper bg-white text-black text-sm font-medium py-2 px-5 rounded-full shadow-sm hover:bg-gray-100 transition-colors">
+                            <span class="btn-text">Get Started</span>
+                            <span class="btn-text btn-text-hover">Get Started</span>
+                        </a>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <div class="lg:hidden">
+                        <button id="mobile-menu-button" class="p-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="lg:hidden fixed inset-0 z-40 bg-white/95 backdrop-blur-xl">
+            <div class="flex flex-col items-center justify-center h-full gap-8">
+                <a href="#hero" class="text-2xl font-medium text-gray-70">Home</a>
+                <a href="#sections" class="text-2xl font-medium text-gray-70">Sections</a>
+                <a href="#preview" class="text-2xl font-medium text-gray-70">Preview</a>
+                <a href="#faq" class="text-2xl font-medium text-gray-70">FAQ</a>
+                <a href="#contact" class="text-2xl font-medium text-gray-70">Contact</a>
+                <a href="#contact" class="mt-4 bg-black text-white text-sm font-medium py-3 px-8 rounded-full shadow-lg">
+                    Get Started
+                </a>
+            </div>
+        </div>
+
+        <main>
+            <!-- HERO SECTION -->
+            <section id="hero" class="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-6 overflow-hidden">
+                <div class="absolute inset-0 z-0">
+                    <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80" alt="Abstract background" class="w-full h-full object-cover opacity-10">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/70"></div>
+                </div>
+
+                <div class="relative z-10 flex flex-col items-center gap-10 max-w-7xl mx-auto w-full">
+                    <div class="scroll-reveal flex flex-col items-center gap-6 text-center">
+                        <h1 class="text-4xl md:text-6xl lg:text-7xl font-normal tracking-tighter max-w-4xl">Build Your Perfect Resume in Minutes</h1>
+                        <p class="text-lg text-gray-600 max-w-xl">Drag‑and‑drop sections, add photos, and see a live preview – all in one sleek interface.</p>
+                    </div>
+
+                    <div class="scroll-reveal w-full flex flex-col lg:flex-row items-center justify-center gap-10">
+                        <a href="#contact" class="btn-hover-wrapper bg-black text-white text-sm font-medium py-3 px-8 rounded-full shadow-lg hover:bg-gray-800 transition-colors">
+                            <span class="btn-text">Get Started</span>
+                            <span class="btn-text btn-text-hover">Get Started</span>
+                        </a>
+                        <a href="#preview" class="btn-hover-wrapper bg-white text-black text-sm font-medium py-3 px-8 rounded-full shadow-sm hover:bg-gray-100 transition-colors">
+                            <span class="btn-text">Live Preview</span>
+                            <span class="btn-text btn-text-hover">Live Preview</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LIVE PREVIEW SECTION -->
+            <section id="preview" class="bg-gray-50 py-20 px-6">
+                <div class="max-w-7xl mx-auto">
+                    <h2 class="text-3xl font-medium text-center mb-8 scroll-reveal">Live Preview</h2>
+                    <div class="flex justify-center scroll-reveal">
+                        <img src="https://static.photos/nature/1200x630/42" alt="Nature background" class="w-full max-w-3xl rounded-lg shadow-lg">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION DROPZONES -->
+            <section id="sections" class="bg-white py-20 px-6">
+                <div class="max-w-7xl mx-auto">
+                    <h2 class="text-3xl font-medium text-center mb-12 scroll-reveal">Drag & Drop Sections</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <!-- Section 1 – Personal Info -->
+                        <div class="scroll-reveal bg-gray-100 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-medium mb-4">Personal Info</h3>
+                            <p class="text-gray-600 mb-4">Name, email, phone, LinkedIn, and location.</p>
+                            <img src="https://static.photos/people/640x360/133" alt="People" class="w-full h-48 object-cover rounded">
+                        </div>
+
+                        <!-- Section 2 – Experience -->
+                        <div class="scroll-reveal bg-gray-100 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-medium mb-4">Experience</h3>
+                            <p class="text-gray-600 mb-4">Add work history with dates, titles, and bullet points.</p>
+                            <img src="https://static.photos/office/320x240/42" alt="Office" class="w-full h-48 object-cover rounded">
+                        </div>
+
+                        <!-- Section 3 – Education -->
+                        <div class="scroll-reveal bg-gray-100 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-medium mb-4">Education</h3>
+                            <p class="text-gray-600 mb-4">List degrees, institutions, and graduation years.</p>
+                            <img src="https://static.photos/abstract/1024x576/133" alt="Abstract" class="w-full h-48 object-cover rounded">
+                        </div>
+
+                        <!-- Section 4 – Skills -->
+                        <div class="scroll-reveal bg-gray-100 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-medium mb-4">Skills</h3>
+                            <p class="text-gray-600 mb-4">Highlight technical and soft skills.</p>
+                            <img src="https://static.photos/technology/200x200/42" alt="Technology" class="w-full h-48 object-cover rounded">
+                        </div>
+
+                        <!-- Section 5 – Projects -->
+                        <div class="scroll-reveal bg-gray-100 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-medium mb-4">Projects</h3>
+                            <p class="text-gray-600 mb-4">Showcase key projects with brief descriptions.</p>
+                            <img src="https://static.photos/industrial/640x360/133" alt="Industrial" class="w-full h-48 object-cover rounded">
+                        </div>
+
+                        <!-- Section 6 – Certifications -->
+                        <div class="scroll-reveal bg-gray-100 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-medium mb-4">Certifications</h3>
+                            <p class="text-gray-600 mb-4">Add certifications and training programs.</p>
+                            <img src="https://static.photos/education/320x240/42" alt="Education" class="w-full h-48 object-cover rounded">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TESTIMONIALS -->
+            <section id="testimonials" class="bg-white py-20 px-6">
+                <div class="max-w-7xl mx-auto">
+                    <h2 class="text-3xl font-medium text-center mb-12 scroll-reveal">What Users Say</h2>
+                    <div class="relative scroll-reveal">
+                        <div class="flex marquee-container">
+                            <div class="flex flex-shrink-0 gap-8">
+                                <!-- Card 1 -->
+                                <div class="w-[450px] flex-shrink-0 bg-gray-100 p-8 rounded-lg shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://static.photos/people/200x200/133" alt="Alex" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium">Alex Martinez</h4>
+                                            <p class="text-sm text-gray-500">@alexmar</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-gray-700">"The drag‑and‑drop interface made building my resume a breeze. I could see the changes instantly in the preview!"</p>
+                                </div>
+                                <!-- Card 2 -->
+                                <div class="w-[450px] flex-shrink-0 bg-gray-100 p-8 rounded-lg shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://static.photos/nature/200x200/42" alt="Sofia" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium">Sofia Lee</h4>
+                                            <p class="text-sm text-gray-500">@sofiap</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-gray-700">"I love the live preview – it feels like I'm actually designing my resume in real time."</p>
+                                </div>
+                                <!-- Card 3 -->
+                                <div class="w-[450px] flex-shrink-0 bg-gray-100 p-8 rounded-lg shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://static.photos/office/200x200/133" alt="Jordan" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium">Jordan Patel</h4>
+                                            <p class="text-sm text-gray-500">@jordanp</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-gray-700">"The photo placeholders are perfect – I can swap them out with my own headshots easily."</p>
+                                </div>
+                            </div>
+                            <!-- Duplicate for seamless scroll -->
+                            <div class="flex flex-shrink-0 gap-8">
+                                <div class="w-[450px] flex-shrink-0 bg-gray-100 p-8 rounded-lg shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://static.photos/people/200x200/133" alt="Alex" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium">Alex Martinez</h4>
+                                            <p class="text-sm text-gray-500">@alexmar</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-gray-700">"The drag‑and‑drop interface made building my resume a breeze. I could see the changes instantly in the preview!"</p>
+                                </div>
+                                <div class="w-[450px] flex-shrink-0 bg-gray-100 p-8 rounded-lg shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://static.photos/nature/200x200/42" alt="Sofia" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium">Sofia Lee</h4>
+                                            <p class="text-sm text-gray-500">@sofiap</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-gray-700">"I love the live preview – it feels like I'm actually designing my resume in real time."</p>
+                                </div>
+                                <div class="w-[450px] flex-shrink-0 bg-gray-100 p-8 rounded-lg shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <img src="https://static.photos/office/200x200/133" alt="Jordan" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-medium">Jordan Patel</h4>
+                                            <p class="text-sm text-gray-500">@jordanp</p>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-gray-700">"The photo placeholders are perfect – I can swap them out with my own headshots easily."</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section id="faq" class="bg-gray-50 py-20 px-6">
+                <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
+                    <div class="lg:w-1/3 scroll-reveal">
+                        <h2 class="text-3xl font-medium">Frequently Asked Questions</h2>
+                    </div>
+                    <div class="lg:w-2/3 space-y-4 scroll-reveal">
+                        <!-- FAQ 1 -->
+                        <div class="faq-item bg-white rounded-lg shadow-sm">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-5">
+                                <span class="font-medium">How do I add a photo?</span>
+                                <span class="faq-icon text-xl text-gray-500">+</span>
+                            </button>
+                            <div class="faq-answer px-5">
+                                <p class="text-gray-600">Simply click on any section (e.g., Personal Info) and choose a photo from the available static.photos library. Replace the placeholder image with your own.</p>
+                            </div>
+                        </div>
+                        <!-- FAQ 2 -->
+                        <div class="faq-item bg-white rounded-lg shadow-sm">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-5">
+                                <span class="font-medium">Can I export the final resume?</span>
+                                <span class="faq-icon text-xl text-gray-500">+</span>
+                            </button>
+                            <div class="faq-answer px-5">
+                                <p class="text-gray-600">Yes! After you're happy with the layout, click the “Export PDF” button in the preview pane to download a professional PDF.</p>
+                            </div>
+                        </div>
+                        <!-- FAQ 3 -->
+                        <div class="faq-item bg-white rounded-lg shadow-sm">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-5">
+                                <span class="font-medium">Is there a free tier?</span>
+                                <span class="faq-icon text-xl text-gray-500">+</span>
+                            </button>
+                            <div class="faq-answer px-5">
+                                <p class="text-gray-600">Absolutely! The core drag‑and‑drop functionality is free. Premium features (advanced templates, branding) are available via a subscription.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CONTACT -->
+            <section id="contact" class="bg-white py-20 px-6">
+                <div class="max-w-7xl mx-auto">
+                    <h2 class="text-3xl font-medium text-center mb-12 scroll-reveal">Get In Touch</h2>
+                    <div class="flex flex-col lg:flex-row justify-center gap-8">
+                        <div class="scroll-reveal w-full lg:w-1/2 bg-gray-100 p-8 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-medium mb-4">Contact Details</h3>
+                            <p class="text-gray-600 mb-4">We’re here to help you customize your resume.</p>
+                            <a href="mailto:support@resumebuilder.com" class="link-underline">support@resumebuilder.com</a>
+                        </div>
+                        <div class="scroll-reveal w-full lg:w-1/2 bg-gray-100 p-8 rounded-lg shadow-sm">
+                            <h3 class="text-xl font-medium mb-4">Socials</h3>
+                            <p class="text-gray-600 mb-4">Follow us for updates and tips.</p>
+                            <a href="https://twitter.com/resumebuilder" class="link-underline">Twitter</a>
+                            <a href="https://linkedin.com/company/resumebuilder" class="link-underline">LinkedIn</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-white py-16 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col items-center gap-8">
+                    <a href="#" class="text-2xl font-bold">ResumeBuilder</a>
+                    <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+                        <a href="#hero" class="link-underline">Home</a>
+                        <a href="#sections" class="link-underline">Sections</a>
+                        <a href="#preview" class="link-underline">Preview</a>
+                        <a href="#faq" class="link-underline">FAQ</a>
+                        <a href="#contact" class="link-underline">Contact</a>
+                    </div>
+                    <div class="flex items-center gap-4 text-gray-500 text-sm">
+                        <span>&copy; 2026 ResumeBuilder</span>
+                    </div>
+                    <div class="text-gray-500 text-sm">
+                        Built with <a href="https://tesslate.com" class="link-underline">Tesslate</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Header scroll effect
+            const header = document.getElementById('header');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    header.classList.add('py-2');
+                    header.querySelector('nav > div').classList.remove('border-t');
+                } else {
+                    header.classList.remove('py-2');
+                    header.querySelector('nav > div').classList.add('border-t');
+                }
+            });
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('open');
+            });
+
+            // FAQ accordion
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    const isOpen = item.classList.contains('open');
+                    // close others
+                    faqItems.forEach(i => i.classList.remove('open'));
+                    // toggle current
+                    if (!isOpen) {
+                        item.classList.add('open');
+                    }
+                });
+            });
+
+            // Scroll reveal
+            const revealElements = document.querySelectorAll('.scroll-reveal');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            revealElements.forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

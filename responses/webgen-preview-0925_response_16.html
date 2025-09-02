@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player – Play &amp; Stream</title>
+    <meta name="description" content="A sleek music player UI with vibrant album art, prominent play/pause controls, and an interactive progress bar. Built with Tailwind CSS.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-text-primary: rgb(255, 255, 255);
+            --color-background-primary: rgb(0, 0, 0);
+            --color-border-primary: rgb(31, 31, 31);
+            --color-text-muted: rgba(255, 255, 255, 0.5);
+            --color-accent: rgb(255, 115, 0);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        .font-switzer {font-family: 'Inter', sans-serif;}
+        .animate-on-scroll {opacity:0;transform:translateY(30px);transition:opacity .8s cubic-bezier(.25,.46,.45,.94),transform .8s cubic-bezier(.25,.46,.45,.94);}
+        .animate-on-scroll.is-visible {opacity:1;transform:translateY(0);}
+        .hero-bg-animate {opacity:0;transform:scale(1.1);transition:opacity 2s cubic-bezier(.16,1,.3,1),transform 2s cubic-bezier(.16,1,.3,1);}
+        .hero-bg-animate.is-visible {opacity:1;transform:scale(1);}
+        .hero-title-animate {opacity:0;transform:translateY(50px);transition:opacity .8s ease-out,transform .8s ease-out;}
+        .hero-title-animate.is-visible {opacity:1;transform:translateY(0);}
+        .hero-subtitle-animate {opacity:0;transform:translateY(50px);transition:opacity .8s ease-out,transform .8s ease-out;}
+        .hero-subtitle-animate.is-visible {opacity:1;transform:translateY(0);}
+        .hero-button-animate {opacity:0;transform:translateY(30px);transition:opacity .6s ease-out,transform .6s ease-out;}
+        .hero-button-animate.is-visible {opacity:1;transform:translateY(0);}
+        .nav-link-animate {opacity:0;transform:translateY(15px);transition:opacity .4s ease-out,transform .4s ease-out;}
+        .nav-link-animate.is-visible {opacity:1;transform:translateY(0);}
+        .nav-link-animate.active {font-weight:600;}
+        .hamburger-line {transition:transform .3s ease-in-out,opacity .2s ease-in-out;}
+        .menu-open .hamburger-line-1 {transform:translateY(7px) rotate(45deg);}
+        .menu-open .hamburger-line-2 {opacity:0;}
+        .menu-open .hamburger-line-3 {transform:translateY(-7px) rotate(-45deg);}
+        .mobile-menu {transform:translateX(100%);transition:transform .4s cubic-bezier(.23,1,.32,1);}
+        .mobile-menu.is-open {transform:translateX(0);}
+        .marquee-container {overflow:hidden;position:relative;width:100%;-webkit-mask-image:linear-gradient(to right,transparent 0%,black 10%,black 90%,transparent 100%);mask-image:linear-gradient(to right,transparent 0%,black 10%,black 90%,transparent 100%);}
+        .marquee-content {display:flex;animation:marquee 30s linear infinite;will-change:transform;}
+        .marquee-content>*{flex-shrink:0;padding:0 2rem;}
+        @keyframes marquee{0%{transform:translateX(0%)}100%{transform:translateX(-50%)}}
+        .card-image-placeholder {background-size:cover;background-position:center;}
+    </style>
+</head>
+<body class="bg-[var(--color-background-primary)] text-[var(--color-text-primary)]">
+
+    <!-- Header -->
+    <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20 md:h-24">
+                <!-- Logo -->
+                <a href="#" class="font-switzer text-2xl font-medium text-[var(--color-text-primary)]">MUSIC PLAYER</a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#hero" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium">Home</a>
+                    <a href="#features" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium">Features</a>
+                    <a href="#gallery" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium">Gallery</a>
+                    <a href="#pricing" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium">Pricing</a>
+                    <a href="#contact" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] font-medium">Contact</a>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="p-2 rounded-md text-[var(--color-text-primary)] focus:outline-none">
+                        <div class="space-y-1.5">
+                            <span class="hamburger-line hamburger-line-1 block w-6 h-0.5 bg-current"></span>
+                            <span class="hamburger-line hamburger-line-2 block w-6 h-0.5 bg-current"></span>
+                            <span class="hamburger-line hamburger-line-3 block w-4 h-0.5 bg-current ml-auto"></span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="mobile-menu fixed inset-0 bg-[var(--color-background-primary)] transform translate-x-full md:hidden z-40 p-6">
+            <div class="flex justify-between items-center mb-8">
+                <a href="#" class="font-switzer text-2xl font-medium text-[var(--color-text-primary)]">MUSIC PLAYER</a>
+                <button id="close-mobile-menu-button" class="p-2 rounded-md text-[var(--color-text-primary)]">
+                    <span class="hamburger-line hamburger-line-1 block w-6 h-0.5 bg-current"></span>
+                    <span class="hamburger-line hamburger-line-2 block w-6 h-0.5 bg-current"></span>
+                    <span class="hamburger-line hamburger-line-3 block w-4 h-0.5 bg-current ml-auto"></span>
+                </button>
+            </div>
+            <nav class="flex flex-col space-y-6 text-xl">
+                <a href="#hero" class="nav-link-animate mobile-nav-link text-[var(--color-text-primary)]">Home</a>
+                <a href="#features" class="nav-link-animate mobile-nav-link text-[var(--color-text-primary)]">Features</a>
+                <a href="#gallery" class="nav-link-animate mobile-nav-link text-[var(--color-text-primary)]">Gallery</a>
+                <a href="#pricing" class="nav-link-animate mobile-nav-link text-[var(--color-text-primary)]">Pricing</a>
+                <a href="#contact" class="nav-link-animate mobile-nav-link text-[var(--color-text-primary)]">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="pt-20 md:pt-24">
+
+        <!-- Hero Section -->
+        <section id="hero" class="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden pt-24 pb-12">
+            <!-- Background Image -->
+            <div class="absolute inset-0 z-0">
+                <div class="absolute inset-0 hero-bg-animate opacity-100 bg-cover bg-center" style="background-image:url('https://static.photos/abstract/1200x630/123');"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--color-background-primary)] via-60%"></div>
+            </div>
+
+            <!-- Decorative Shapes -->
+            <div class="absolute top-1/4 left-1/4 w-24 h-24 bg-[var(--color-accent)] opacity-20 rounded-full blur-2xl animate-on-scroll" style="animation-delay:1s;"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-32 h-32 bg-[var(--color-accent)] opacity-10 rounded-full blur-3xl animate-on-scroll" style="animation-delay:1.5s;"></div>
+
+            <div class="relative z-10 flex flex-col items-center px-4">
+                <div id="hero-title" class="hero-title-animate font-switzer text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-medium tracking-tighter leading-tight">
+                    <h1>Play. Stream. <span class="text-[var(--color-accent)]">Listen.</span></h1>
+                </div>
+                <div id="hero-subtitle" class="hero-subtitle-animate mt-4 text-[var(--color-text-muted)] max-w-xl">
+                    <p>Discover vibrant album art, smooth playback, and an interactive progress bar—all in one sleek UI.</p>
+                </div>
+                <div id="hero-button" class="hero-button-animate mt-8">
+                    <a href="#features" class="inline-block bg-[var(--color-text-primary)] text-[var(--color-background-primary)] px-8 py-3 rounded-full text-lg font-medium hover:opacity-80 transition-opacity">
+                        Explore Features
+                    </a>
+                </div>
+            </div>
+
+            <div class="relative z-10 w-full max-w-5xl mt-16 animate-on-scroll" style="animation-delay:0.5s;">
+                <div class="aspect-video bg-[var(--color-border-primary)] rounded-2xl shadow-2xl flex items-center justify-center">
+                    <p class="text-[var(--color-text-muted)]">[Music Player Preview]</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center md:text-left mb-12 md:mb-16">
+                    <div class="inline-block bg-[var(--color-border-primary)] bg-opacity-50 border border-[var(--color-border-primary)] rounded-full px-4 py-2 text-sm text-[var(--color-text-muted)] mb-4 animate-on-scroll">
+                        Features
+                    </div>
+                    <h2 class="font-switzer text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight animate-on-scroll hero-title-animate" style="animation-delay:0.2s;">
+                        Powerful Tools for Every Music Lover
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Feature Card 1 -->
+                    <div class="bg-[var(--color-border-primary)] bg-opacity-30 border border-[var(--color-border-primary)] rounded-2xl p-8 text-center md:text-left animate-on-scroll" style="animation-delay:0.3s;">
+                        <div class="w-16 h-16 bg-[var(--color-accent)] opacity-80 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-6">
+                            <svg class="w-8 h-8 text-[var(--color-background-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2M12 8V6a2 2 0 012-2h2a2 2 0 012 2v2M12 8v8a2 2 0 01-2 2h-2a2 2 0 01-2-2v-8"/></svg>
+                        </div>
+                        <h3 class="font-switzer text-xl font-medium mb-2">Vibrant Album Art</h3>
+                        <p class="text-[var(--color-text-muted)]">High‑resolution images from static.photos to showcase every track.</p>
+                    </div>
+                    <!-- Feature Card 2 -->
+                    <div class="bg-[var(--color-border-primary)] bg-opacity-30 border border-[var(--color-border-primary)] rounded-2xl p-8 text-center md:text-left animate-on-scroll" style="animation-delay:0.4s;">
+                        <div class="w-16 h-16 bg-[var(--color-accent)] opacity-80 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-6">
+                            <svg class="w-8 h-8 text-[var(--color-background-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <h3 class="font-switzer text-xl font-medium mb-2">Play/Pause Controls</h3>
+                        <p class="text-[var(--color-text-muted)]">Intuitive, large buttons that respond instantly to user interaction.</p>
+                    </div>
+                    <!-- Feature Card 3 -->
+                    <div class="bg-[var(--color-border-primary)] bg-opacity-30 border border-[var(--color-border-primary)] rounded-2xl p-8 text-center md:text-left animate-on-scroll" style="animation-delay:0.5s;">
+                        <div class="w-16 h-16 bg-[var(--color-accent)] opacity-80 rounded-full flex items-center justify-center mx-auto md:mx-0 mb-6">
+                            <svg class="w-8 h-8 text-[var(--color-background-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6"/></svg>
+                        </div>
+                        <h3 class="font-switzer text-xl font-medium mb-2">Interactive Progress Bar</h3>
+                        <p class="text-[var(--color-text-muted)]">Drag‑to‑seek, real‑time visual feedback, and smooth transitions.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery Section (Album Art) -->
+        <section id="gallery" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center md:text-left mb-12 md:mb-16">
+                    <div class="inline-block bg-[var(--color-border-primary)] bg-opacity-50 border border-[var(--color-border-primary)] rounded-full px-4 py-2 text-sm text-[var(--color-text-muted)] mb-4 animate-on-scroll">
+                        Gallery
+                    </div>
+                    <h2 class="font-switzer text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight animate-on-scroll hero-title-animate" style="animation-delay:0.2s;">
+                        Vibrant Album Art Collection
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Album 1 -->
+                    <div class="animate-on-scroll" style="animation-delay:0.3s;">
+                        <div class="aspect-[4/3] card-image-placeholder bg-gray-700 mb-4 rounded-xl"></div>
+                        <h3 class="font-switzer text-xl font-medium mb-1">Echoes of Summer</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Summer vibes, pastel tones.</p>
+                    </div>
+                    <!-- Album 2 -->
+                    <div class="animate-on-scroll" style="animation-delay:0.4s;">
+                        <div class="aspect-[4/3] card-image-placeholder bg-gray-700 mb-4 rounded-xl"></div>
+                        <h3 class="font-switzer text-xl font-medium mb-1">Midnight City</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Nighttime cityscape, neon lights.</p>
+                    </div>
+                    <!-- Album 3 -->
+                    <div class="animate-on-scroll" style="animation-delay:0.5s;">
+                        <div class="aspect-[4/3] card-image-placeholder bg-gray-700 mb-4 rounded-xl"></div>
+                        <h3 class="font-switzer text-xl font-medium mb-1">Ocean Waves</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Calming blues and waves.</p>
+                    </div>
+                    <!-- Album 4 -->
+                    <div class="animate-on-scroll" style="animation-delay:0.6s;">
+                        <div class="aspect-[4/3] card-image-placeholder bg-gray-700 mb-4 rounded-xl"></div>
+                        <h3 class="font-switzer text-xl font-medium mb-1">Forest Whisper</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Misty forest, soft greens.</p>
+                    </div>
+                    <!-- Album 5 -->
+                    <div class="animate-on-scroll" style="animation-delay:0.7s;">
+                        <div class="aspect-[4/3] card-image-placeholder bg-gray-700 mb-4 rounded-xl"></div>
+                        <h3 class="font-switzer text-xl font-medium mb-1">Starlight Dreams</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Celestial night sky.</p>
+                    </div>
+                    <!-- Album 6 -->
+                    <div class="animate-on-scroll" style="animation-delay:0.8s;">
+                        <div class="aspect-[4/3] card-image-placeholder bg-gray-700 mb-4 rounded-xl"></div>
+                        <h3 class="font-switzer text-xl font-medium mb-1">Retro Beats</h3>
+                        <p class="text-sm text-[var(--color-text-muted)]">Vintage synth tones.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center md:text-left mb-12 md:mb-16">
+                    <div class="inline-block bg-[var(--color-border-primary)] bg-opacity-50 border border-[var(--color-border-primary)] rounded-full px-4 py-2 text-sm text-[var(--color-text-muted)] mb-4 animate-on-scroll">
+                        Pricing
+                    </div>
+                    <h2 class="font-switzer text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight animate-on-scroll hero-title-animate" style="animation-delay:0.2s;">
+                        Simple, Transparent Pricing
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Pricing Card 1 -->
+                    <div class="bg-[var(--color-border-primary)] bg-opacity-30 border border-[var(--color-border-primary)] rounded-2xl p-8 text-center animate-on-scroll" style="animation-delay:0.3s;">
+                        <h3 class="font-switzer text-xl font-medium mb-4">Free Tier</h3>
+                        <p class="text-5xl font-switzer font-bold mb-6">$0<span class="text-lg font-medium text-[var(--color-text-muted)]">/mo</span></p>
+                        <ul class="text-left mb-6 space-y-2">
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Unlimited playback</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Basic album art</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Email support</li>
+                        </ul>
+                        <a href="#" class="inline-block bg-[var(--color-text-primary)] text-[var(--color-background-primary)] px-6 py-2 rounded-full text-sm font-medium hover:opacity-80 transition-opacity">Get Started</a>
+                    </div>
+                    <!-- Pricing Card 2 (Highlighted) -->
+                    <div class="bg-[var(--color-border-primary)] bg-opacity-50 border border-[var(--color-accent)] rounded-2xl p-8 text-center animate-on-scroll" style="animation-delay:0.4s;">
+                        <h3 class="font-switzer text-xl font-medium mb-4">Pro Tier</h3>
+                        <p class="text-5xl font-switzer font-bold mb-6">$9<span class="text-lg font-medium text-[var(--color-text-muted)]">/mo</span></p>
+                        <ul class="text-left mb-6 space-y-2">
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>All Free features</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>HD album art</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Priority support</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Custom themes</li>
+                        </ul>
+                        <a href="#" class="inline-block bg-[var(--color-accent)] text-[var(--color-background-primary)] px-6 py-2 rounded-full text-sm font-medium hover:opacity-80 transition-opacity">Choose Pro</a>
+                    </div>
+                    <!-- Pricing Card 3 -->
+                    <div class="bg-[var(--color-border-primary)] bg-opacity-30 border border-[var(--color-border-primary)] rounded-2xl p-8 text-center animate-on-scroll" style="animation-delay:0.5s;">
+                        <h3 class="font-switzer text-xl font-medium mb-4">Enterprise</h3>
+                        <p class="text-5xl font-switzer font-bold mb-6">Contact<span class="text-lg font-medium text-[var(--color-text-muted)]"></span></p>
+                        <ul class="text-left mb-6 space-y-2">
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Unlimited users</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Dedicated account manager</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>Custom integrations</li>
+                            <li class="flex items-center"><span class="w-5 h-5 bg-[var(--color-accent)] rounded-full mr-2 flex-shrink-0"></span>SLA &amp; support 24/7</li>
+                        </ul>
+                        <a href="#" class="inline-block bg-[var(--color-text-primary)] text-[var(--color-background-primary)] px-6 py-2 rounded-full text-sm font-medium hover:opacity-80 transition-opacity">Contact Sales</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer id="contact" class="py-16 md:py-24 px-4 sm:px-6 lg:px-8 border-t border-[var(--color-border-primary)]">
+            <div class="max-w-6xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+                    <!-- Column 1: Logo & Social -->
+                    <div class="space-y-6">
+                        <a href="#" class="font-switzer text-2xl font-medium text-[var(--color-text-primary)]">MUSIC PLAYER</a>
+                        <div class="flex space-x-4">
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">[FB]</a>
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">[TW]</a>
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">[IG]</a>
+                            <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">[LN]</a>
+                        </div>
+                    </div>
+                    <!-- Column 2: Links -->
+                    <div class="space-y-4">
+                        <h4 class="font-semibold text-[var(--color-text-muted)] tracking-wider">LINKS</h4>
+                        <nav class="flex flex-col space-y-2">
+                            <a href="#hero" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Home</a>
+                            <a href="#features" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Features</a>
+                            <a href="#gallery" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Gallery</a>
+                            <a href="#pricing" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Pricing</a>
+                            <a href="#contact" class="nav-link-animate text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Contact</a>
+                        </nav>
+                    </div>
+                    <!-- Column 3: Contact -->
+                    <div class="space-y-4">
+                        <h4 class="font-semibold text-[var(--color-text-muted)] tracking-wider">CONTACT</h4>
+                        <div class="space-y-2 text-[var(--color-text-muted)]">
+                            <p>123 Music Avenue</p>
+                            <p>Portland, OR 97201</p>
+                            <p>United States</p>
+                            <p>support@musicplayer.com</p>
+                            <p>(555) 123‑4567</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-12 pt-8 border-t border-[var(--color-border-primary)] text-center text-sm text-[var(--color-text-muted)]">
+                    <p>&copy; 2026 Music Player. All Rights Reserved.</p>
+                    <p class="mt-2"><a href="https://tesslate.com" class="hover:text-[var(--color-text-primary)]">Built with Tesslate</a></p>
+                </div>
+            </div>
+        </footer>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Navbar scroll effect
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('bg-[var(--color-background-primary)]', 'bg-opacity-90', 'backdrop-blur-md', 'shadow-lg');
+                } else {
+                    navbar.classList.remove('bg-[var(--color-background-primary)]', 'bg-opacity-90', 'backdrop-blur-md', 'shadow-lg');
+                }
+            });
+
+            // Intersection Observer for scroll animations
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('is-visible');
+                });
+            }, {threshold: 0.1});
+
+            document.querySelectorAll('.animate-on-scroll, .hero-bg-animate, .hero-title-animate, .hero-subtitle-animate, .hero-button-animate').forEach(el => observer.observe(el));
+
+            // Mobile menu toggle
+            const mobileBtn = document.getElementById('mobile-menu-button');
+            const closeBtn = document.getElementById('close-mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileBtn.addEventListener('click', () => mobileMenu.classList.add('is-open'));
+            closeBtn.addEventListener('click', () => mobileMenu.classList.remove('is-open'));
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) target.scrollIntoView({behavior: 'smooth'});
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibrant Music Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Icon library for play/pause, volume, and other controls -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary-dark: #1A1A1A; /* Dark, rich background */
+            --color-primary-light: #FFFFFF; /* White for contrast */
+            --color-accent: #FF6B6B; /* Vibrant red for accents */
+            --color-text-light: #F0F0F0;
+            --color-text-dark: #333333;
+            --color-background-light: #F8F8F8; /* Light background for sections */
+            --color-border-light: #E0E0E0;
+            --color-interactive-hover: #FF8C8C; /* Lighter red for hover */
+            --color-progress-fill: #FFD700; /* Gold for progress bar */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .album-art {
+            background-color: #222; /* Darker background for album art */
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .album-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .album-art:hover img {
+            transform: scale(1.05);
+        }
+
+        .progress-bar-container {
+            position: relative;
+            width: 100%;
+            height: 8px;
+            background-color: var(--color-border-light);
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--color-progress-fill);
+            border-radius: 4px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: width 0.1s linear; /* Smooth progress update */
+        }
+
+        .progress-thumb {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: var(--color-accent);
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 0 0 4px var(--color-accent);
+            transition: transform 0.2s ease-in-out;
+        }
+        .progress-thumb:active {
+            transform: translateY(-50%) scale(1.2);
+        }
+
+        .progress-bar-container:hover .progress-thumb {
+            transform: translateY(-50%) scale(1.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-white shadow-xl rounded-lg p-6 md:p-8 flex flex-col md:flex-row gap-6">
+        <!-- Left Column: Album Art and Song Info -->
+        <div class="flex-1 flex flex-col items-center">
+            <div class="album-art w-full max-w-[300px] aspect-square mb-4">
+                <img src="https://placehold.co/400x400/222/FFF?text=Album+Art" alt="Vibrant Album Art" class="w-full h-full object-cover">
+            </div>
+            <div class="text-center">
+                <h2 class="text-2xl md:text-3xl font-bold text-[var(--color-text-dark)] mb-1">Song Title Here</h2>
+                <p class="text-lg text-[var(--color-text-dark)] opacity-80">Artist Name</p>
+            </div>
+        </div>
+
+        <!-- Right Column: Controls and Progress Bar -->
+        <div class="flex-1 flex flex-col items-center">
+            <!-- Progress Bar -->
+            <div class="progress-bar-container w-3/4 sm:w-2/3 md:w-1/2">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+                <div class="progress-thumb" id="progress-thumb"></div>
+            </div>
+            <div class="flex justify-between w-full mt-4 text-sm text-[var(--color-text-dark)]">
+                <span id="current-time">0:00</span>
+                <span id="duration">3:45</span>
+            </div>
+
+            <!-- Play/Pause Button -->
+            <button id="play-pause-btn" class="w-24 h-24 md:w-32 md:h-32 bg-[var(--color-accent)] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[var(--color-interactive-hover)] transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-[var(--color-accent)]/50" aria-label="Play or Pause Song">
+                <i class="fas fa-play text-4xl md:text-5xl" id="play-pause-icon"></i>
+            </button>
+
+            <!-- Volume Control (optional, can be added) -->
+            <div class="w-2/3 flex items-center mt-6">
+                <i class="fas fa-volume-up text-[var(--color-text-dark)] mr-2"></i>
+                <input type="range" min="0" max="100" value="75" class="w-full h-2 bg-[var(--color-border-light)] rounded-lg appearance-none cursor-pointer" style="background-color: var(--color-border-light);">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const playPauseIcon = document.getElementById('play-pause-icon');
+        const progressBarFill = document.getElementById('progress-fill');
+        const progressBarThumb = document.getElementById('progress-thumb');
+        const currentTimeSpan = document.getElementById('current-time');
+        const durationSpan = document.getElementById('duration');
+
+        let isPlaying = false;
+        let progress = 0; // 0 to 100
+        let intervalId;
+
+        // Simulate song duration (in seconds)
+        const totalDuration = 225; // 3:45
+        let currentDuration = 0;
+
+        function updateProgressBar(e) {
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left; // x position within the element, from left
+            const clickX = x / rect.width; // 0 to 1
+            progress = Math.max(0, Math.min(100, clickX * 100));
+            progressBarFill.style.width = `${progress}%`;
+            progressBarThumb.style.left = `${progress}%`;
+            updateCurrentTime();
+        }
+
+        function startProgress() {
+            intervalId = setInterval(() => {
+                if (isPlaying) {
+                    currentDuration++;
+                    if (currentDuration > totalDuration) {
+                        currentDuration = 0; // Loop the song
+                        isPlaying = false;
+                        playPauseIcon.classList.remove('fa-pause');
+                        playPauseIcon.classList.add('fa-play');
+                        clearInterval(intervalId);
+                    }
+                    updateCurrentTime();
+                }
+            }, 1000); // Update every second
+        }
+
+        function updateCurrentTime() {
+            const minutes = Math.floor(currentDuration / 60);
+            const seconds = Math.floor(currentDuration % 60);
+            currentTimeSpan.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        playPauseBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playPauseIcon.classList.remove('fa-play');
+                playPauseIcon.classList.add('fa-pause');
+                startProgress();
+            } else {
+                playPauseIcon.classList.remove('fa-pause');
+                playPauseIcon.classList.add('fa-play');
+                clearInterval(intervalId);
+            }
+        });
+
+        // Make progress bar draggable
+        let isDragging = false;
+        progressBarContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            updateProgressBar(e); // Initial position
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && progressBarContainer.contains(e.target)) {
+                updateProgressBar(e);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Initial progress bar update (for initial time display)
+        updateCurrentTime();
+    </script>
+</body>
+</html>

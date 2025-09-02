@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Pro - Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1E293B',
+                        light: '#F8FAFC',
+                        'light-blue': '#E0F2FE',
+                        'light-green': '#D1FAE5',
+                        'light-orange': '#FEF3C7'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
+            min-height: 100vh;
+        }
+        
+        .task-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .task-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .task-card.completed {
+            opacity: 0.7;
+            border-left: 4px solid #10B981;
+        }
+        
+        .priority-high {
+            border-left: 4px solid #EF4444;
+        }
+        
+        .priority-medium {
+            border-left: 4px solid #F59E0B;
+        }
+        
+        .priority-low {
+            border-left: 4px solid #3B82F6;
+        }
+        
+        .reminder-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .filter-btn.active {
+            background-color: #3B82F6;
+            color: white;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .checkmark {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #CBD5E1;
+            border-radius: 50%;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .checkmark.completed {
+            background-color: #10B981;
+            border-color: #10B981;
+        }
+        
+        .checkmark.completed::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        
+        .date-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        
+        .date-today {
+            background-color: #3B82F6;
+            color: white;
+        }
+        
+        .date-tomorrow {
+            background-color: #F59E0B;
+            color: white;
+        }
+        
+        .date-upcoming {
+            background-color: #10B981;
+            color: white;
+        }
+        
+        .date-completed {
+            background-color: #94A3B8;
+            color: white;
+        }
+    </style>
+</head>
+<body class="text-dark">
+    <!-- Header -->
+    <header class="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
+        <div class="flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mr-3">
+                <i class="fas fa-tasks text-white text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-display font-bold text-dark">Productivity Pro</h1>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <button class="bg-light-blue text-primary p-2 rounded-full hover:bg-blue-50 transition">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <span class="reminder-badge bg-accent text-dark">3</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-light-green flex items-center justify-center text-dark font-medium mr-2">JD</div>
+                <span class="font-medium">John Doe</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Stats Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-600">Total Tasks</h3>
+                    <div class="w-10 h-10 rounded-full bg-light-blue flex items-center justify-center">
+                        <i class="fas fa-tasks text-primary"></i>
+                    </div>
+                </div>
+                <p class="text-3xl font-bold mt-2">24</p>
+                <p class="text-sm text-gray-500 mt-1">Completed: 8</p>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-600">Pending</h3>
+                    <div class="w-10 h-10 rounded-full bg-light-orange flex items-center justify-center">
+                        <i class="fas fa-clock text-accent"></i>
+                    </div>
+                </div>
+                <p class="text-3xl font-bold mt-2">16</p>
+                <p class="text-sm text-gray-500 mt-1">Due today: 5</p>
+            </div>
+            
+            <div class="bg-white rounded-xl p-6 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-600">Productivity</h3>
+                    <div class="w-10 h-10 rounded-full bg-light-green flex items-center justify-center">
+                        <i class="fas fa-chart-line text-secondary"></i>
+                    </div>
+                </div>
+                <p class="text-3xl font-bold mt-2">78%</p>
+                <p class="text-sm text-gray-500 mt-1">Weekly average</p>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Task Input Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <h2 class="text-xl font-display font-bold mb-4">Add New Task</h2>
+                    <form id="task-form">
+                        <div class="mb-4">
+                            <label for="task-title" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                            <input type="text" id="task-title" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="What needs to be done?" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="task-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="task-description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Add details..."></textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="due-date" class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                                <input type="date" id="due-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            </div>
+                            <div>
+                                <label for="reminder-time" class="block text-sm font-medium text-gray-700 mb-1">Reminder</label>
+                                <input type="time" id="reminder-time" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                            <div class="flex space-x-2">
+                                <button type="button" data-priority="high" class="flex-1 py-2 px-3 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition">High</button>
+                                <button type="button" data-priority="medium" class="flex-1 py-2 px-3 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition">Medium</button>
+                                <button type="button" data-priority="low" class="flex-1 py-2 px-3 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200 transition">Low</button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i> Add Task
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Filter Section -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-display font-bold mb-4">Filter & Sort</h2>
+                    
+                    <div class="mb-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Status</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="filter-btn active px-3 py-1 bg-primary text-white rounded-full text-sm" data-filter="all">All</button>
+                            <button class="filter-btn px-3 py-1 bg-light-blue text-primary rounded-full text-sm" data-filter="active">Active</button>
+                            <button class="filter-btn px-3 py-1 bg-light-blue text-primary rounded-full text-sm" data-filter="completed">Completed</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Due Date</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="filter-btn px-3 py-1 bg-light-blue text-primary rounded-full text-sm" data-filter="today">Today</button>
+                            <button class="filter-btn px-3 py-1 bg-light-blue text-primary rounded-full text-sm" data-filter="tomorrow">Tomorrow</button>
+                            <button class="filter-btn px-3 py-1 bg-light-blue text-primary rounded-full text-sm" data-filter="upcoming">Upcoming</button>
+                            <button class="filter-btn px-3 py-1 bg-light-blue text-primary rounded-full text-sm" data-filter="completed">Completed</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Sort By</h3>
+                        <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option>Due Date (Ascending)</option>
+                            <option>Due Date (Descending)</option>
+                            <option>Priority (High to Low)</option>
+                            <option>Priority (Low to High)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Task List Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-display font-bold">Your Tasks</h2>
+                        <div class="text-sm text-gray-500">
+                            <span id="task-count">16</span> tasks
+                        </div>
+                    </div>
+                    
+                    <div id="tasks-container" class="space-y-4">
+                        <!-- Tasks will be dynamically added here -->
+                        <div class="task-card bg-white rounded-lg p-4 fade-in priority-high">
+                            <div class="flex items-start">
+                                <div class="checkmark completed mr-3 mt-1"></div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-medium text-gray-800">Complete project proposal</h3>
+                                        <div class="text-xs text-gray-500">Today</div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Finish the client proposal document and send for review</p>
+                                    <div class="flex items-center mt-3 text-xs">
+                                        <span class="date-badge date-today mr-2">Today</span>
+                                        <span class="text-gray-500 flex items-center">
+                                            <i class="far fa-clock mr-1"></i> 10:00 AM
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="task-card bg-white rounded-lg p-4 fade-in priority-medium">
+                            <div class="flex items-start">
+                                <div class="checkmark mr-3 mt-1"></div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-medium text-gray-800">Team meeting</h3>
+                                        <div class="text-xs text-gray-500">Tomorrow</div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Weekly team sync to discuss project progress</p>
+                                    <div class="flex items-center mt-3 text-xs">
+                                        <span class="date-badge date-tomorrow mr-2">Tomorrow</span>
+                                        <span class="text-gray-500 flex items-center">
+                                            <i class="far fa-clock mr-1"></i> 2:00 PM
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="task-card bg-white rounded-lg p-4 fade-in priority-low">
+                            <div class="flex items-start">
+                                <div class="checkmark mr-3 mt-1"></div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-medium text-gray-800">Research new tools</h3>
+                                        <div class="text-xs text-gray-500">Jun 15</div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Explore new productivity tools for the team</p>
+                                    <div class="flex items-center mt-3 text-xs">
+                                        <span class="date-badge date-upcoming mr-2">Jun 15</span>
+                                        <span class="text-gray-500 flex items-center">
+                                            <i class="far fa-clock mr-1"></i> 4:00 PM
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="task-card bg-white rounded-lg p-4 fade-in priority-high">
+                            <div class="flex items-start">
+                                <div class="checkmark mr-3 mt-1"></div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-medium text-gray-800">Client presentation</h3>
+                                        <div class="text-xs text-gray-500">Jun 18</div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Prepare and deliver quarterly review to key client</p>
+                                    <div class="flex items-center mt-3 text-xs">
+                                        <span class="date-badge date-upcoming mr-2">Jun 18</span>
+                                        <span class="text-gray-500 flex items-center">
+                                            <i class="far fa-clock mr-1"></i> 11:00 AM
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="task-card bg-white rounded-lg p-4 fade-in priority-medium">
+                            <div class="flex items-start">
+                                <div class="checkmark completed mr-3 mt-1"></div>
+                                <div class="flex-1">
+                                    <div class="flex justify-between">
+                                        <h3 class="font-medium text-gray-800">Update documentation</h3>
+                                        <div class="text-xs text-gray-500">Completed</div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">Update API documentation for new features</p>
+                                    <div class="flex items-center mt-3 text-xs">
+                                        <span class="date-badge date-completed mr-2">Jun 10</span>
+                                        <span class="text-gray-500 flex items-center">
+                                            <i class="far fa-clock mr-1"></i> 3:30 PM
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-center">
+                        <button class="bg-light-blue text-primary px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition">
+                            <i class="fas fa-sync-alt mr-2"></i> Load More Tasks
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12 py-6 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mr-3">
+                        <i class="fas fa-tasks text-white"></i>
+                    </div>
+                    <span class="text-lg font-display font-bold">Productivity Pro</span>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-600 hover:text-primary transition">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-600 hover:text-primary transition">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-gray-600 hover:text-primary transition">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="text-gray-600 hover:text-primary transition">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+                
+                <div class="mt-4 md:mt-0 text-sm text-gray-500">
+                    © 2023 Productivity Pro. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Task form submission
+            const taskForm = document.getElementById('task-form');
+            if (taskForm) {
+                taskForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Get form values
+                    const title = document.getElementById('task-title').value;
+                    const description = document.getElementById('task-description').value;
+                    const dueDate = document.getElementById('due-date').value;
+                    const reminderTime = document.getElementById('reminder-time').value;
+                    const priority = document.querySelector('button[data-priority="*"]:active')?.dataset.priority || 'medium';
+                    
+                    // Create task element
+                    const taskCard = createTaskElement(title, description, dueDate, reminderTime, priority);
+                    
+                    // Add to tasks container
+                    const tasksContainer = document.getElementById('tasks-container');
+                    tasksContainer.insertBefore(taskCard, tasksContainer.firstChild);
+                    
+                    // Reset form
+                    taskForm.reset();
+                    
+                    // Show success message
+                    showSuccessMessage();
+                });
+            }
+            
+            // Priority buttons
+            document.querySelectorAll('[data-priority]').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('[data-priority]').forEach(btn => {
+                        btn.classList.remove('bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-100', 'text-gray-700');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.add('bg-primary', 'text-white');
+                    this.classList.remove('bg-gray-100', 'text-gray-700');
+                });
+            });
+            
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                        btn.classList.remove('bg-primary');
+                        btn.classList.remove('text-white');
+                        btn.classList.add('bg-light-blue');
+                        btn.classList.add('text-primary');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    this.classList.add('bg-primary');
+                    this.classList.add('text-white');
+                    this.classList.remove('bg-light-blue');
+                    this.classList.remove('text-primary');
+                });
+            });
+            
+            // Task completion toggle
+            document.querySelectorAll('.checkmark').forEach(checkmark => {
+                checkmark.addEventListener('click', function() {
+                    this.classList.toggle('completed');
+                    
+                    const taskCard = this.closest('.task-card');
+                    if (this.classList.contains('completed')) {
+                        taskCard.classList.add('completed');
+                    } else {
+                        taskCard.classList.remove('completed');
+                    }
+                });
+            });
+            
+            // Show success message
+            function showSuccessMessage() {
+                const originalText = taskForm.querySelector('button[type="submit"]').innerHTML;
+                taskForm.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-check mr-2"></i> Task Added!';
+                
+                setTimeout(() => {
+                    taskForm.querySelector('button[type="submit"]').innerHTML = originalText;
+                }, 2000);
+            }
+            
+            // Create task element
+            function createTaskElement(title, description, dueDate, reminderTime, priority) {
+                const priorityClass = `priority-${priority}`;
+                const priorityText = priority.charAt(0).toUpperCase() + priority.slice(1);
+                
+                const taskCard = document.createElement('div');
+                taskCard.className = `task-card bg-white rounded-lg p-4 fade-in ${priorityClass}`;
+                taskCard.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="checkmark mr-3 mt-1"></div>
+                        <div class="flex-1">
+                            <div class="flex justify-between">
+                                <h3 class="font-medium text-gray-800">${title}</h3>
+                                <div class="text-xs text-gray-500">${dueDate}</div>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">${description || 'No description'}</p>
+                            <div class="flex items-center mt-3 text-xs">
+                                <span class="date-badge date-upcoming mr-2">Upcoming</span>
+                                <span class="text-gray-500 flex items-center">
+                                    <i class="far fa-clock mr-1"></i> ${reminderTime || 'No reminder'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                return taskCard;
+            }
+            
+            // Set today's date in the form
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('due-date').value = formattedDate;
+        });
+    </script>
+</body>
+</html>

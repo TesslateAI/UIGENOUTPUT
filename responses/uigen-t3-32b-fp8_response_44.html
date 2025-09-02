@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #121212;
+            --color-bg-medium: #202020;
+            --color-bg-light: #333333;
+            --color-text-light: #E0E0E0;
+            --color-text-medium: #A0A0A0;
+            --color-accent: #1A73E8; /* Google Blue */
+            --color-border-light: #404040;
+            --color-border-medium: #606060;
+            --font-primary: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            font-family: var(--font-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden; /* Prevent body scroll, main content will scroll */
+        }
+
+        .file-item:hover {
+            background-color: var(--color-bg-medium);
+        }
+
+        .file-item.active {
+            background-color: var(--color-accent);
+            color: white;
+            border: 1px solid var(--color-accent);
+        }
+
+        .file-preview-pane {
+            background-color: var(--color-bg-medium);
+            border-left: 1px solid var(--color-border-light);
+        }
+
+        @media (max-width: 768px) {
+            .file-preview-pane {
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid var(--color-border-light);
+            }
+            .file-list-container {
+                width: 100%;
+            }
+            .hidden-mobile {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Header / Top Bar -->
+    <header class="bg-[var(--color-bg-dark)] p-4 border-b border-[var(--color-border-light)] flex justify-between items-center z-10">
+        <h1 class="text-2xl font-bold text-[var(--color-text-light)]">My Drive</h1>
+        <div class="flex items-center space-x-4">
+            <button id="uploadButton" class="bg-[var(--color-accent)] text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-plus"></i>
+                <span>Upload</span>
+            </button>
+            <button class="text-[var(--color-text-medium)] hover:text-[var(--color-text-light)]">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex flex-1 overflow-hidden">
+        <!-- File List Sidebar -->
+        <aside class="file-list-container flex-1 min-w-0 overflow-y-auto bg-[var(--color-bg-dark)] border-r border-[var(--color-border-light)]">
+            <div class="p-4">
+                <input type="text" placeholder="Search files..." class="w-full bg-[var(--color-bg-medium)] text-[var(--color-text-light)] px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]">
+            </div>
+            <ul id="fileList" class="divide-y divide-[var(--color-border-light)]">
+                <!-- File items will be injected here by JS -->
+            </ul>
+        </aside>
+
+        <!-- File Preview Pane -->
+        <aside id="filePreviewPane" class="file-preview-pane flex-1 min-w-0 hidden-mobile p-6 overflow-y-auto transition-all duration-300 ease-in-out">
+            <h2 id="previewTitle" class="text-xl font-semibold mb-4">Select a file to preview</h2>
+            <div id="previewContent" class="text-[var(--color-text-medium)] text-center py-10">
+                <i class="fas fa-folder-open text-6xl mb-4"></i>
+                <p>No file selected.</p>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Upload Modal (initially hidden) -->
+    <div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-[var(--color-bg-dark)] p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Upload Files</h3>
+            <input type="file" id="fileInput" multiple class="w-full text-[var(--color-text-light)] bg-[var(--color-bg-medium)] border border-[var(--color-border-light)] rounded-md py-2 px-3 mb-4 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]">
+            <div class="flex justify-end space-x-3">
+                <button id="cancelUpload" class="bg-[var(--color-bg-medium)] text-[var(--color-text-light)] px-4 py-2 rounded-md hover:bg-[var(--color-border-light)] transition-colors">Cancel</button>
+                <button id="confirmUpload" class="bg-[var(--color-accent)] text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileList = document.getElementById('fileList');
+        const filePreviewPane = document.getElementById('filePreviewPane');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewContent = document.getElementById('previewContent');
+        const uploadButton = document.getElementById('uploadButton');
+        const uploadModal = document.getElementById('uploadModal');
+        const fileInput = document.getElementById('fileInput');
+        const cancelUploadButton = document.getElementById('cancelUpload');
+        const confirmUploadButton = document.getElementById('confirmUpload');
+
+        // Sample files (can be replaced with actual data from backend)
+        const files = [
+            { id: '1', name: 'Project Report.docx', type: 'document', icon: 'fas fa-file-word', size: '1.2 MB' },
+            { id: '2', name: 'Vacation Photos.zip', type: 'archive', icon: 'fas fa-file-archive', size: '5.8 MB' },
+            { id: '3', name: 'Meeting Notes.pdf', type: 'document', icon: 'fas fa-file-pdf', size: '0.9 MB' },
+            { id: '4', name: 'Design Mockups.png', type: 'image', icon: 'fas fa-file-image', size: '3.1 MB' },
+            { id: '5', name: 'Marketing Plan.pptx', type: 'document', icon: 'fas fa-file-powerpoint', size: '2.5 MB' },
+            { id: '6', name: 'Music.mp3', type: 'audio', icon: 'fas fa-file-audio', size: '7.0 MB' },
+            { id: '7', name: 'Videos Folder', type: 'folder', icon: 'fas fa-folder', size: 'N/A' },
+            { id: '8', name: 'Budget.xlsx', type: 'document', icon: 'fas fa-file-excel', size: '1.5 MB' },
+        ];
+
+        let activeFileId = null;
+
+        // Function to render file list
+        function renderFileList() {
+            fileList.innerHTML = ''; // Clear existing list
+            files.forEach(file => {
+                const fileItem = document.createElement('li');
+                fileItem.className = `file-item p-4 flex items-center space-x-3 cursor-pointer rounded-md transition-colors duration-200 ${activeFileId === file.id ? 'active' : ''}`;
+                fileItem.dataset.id = file.id;
+
+                fileItem.innerHTML = `
+                    <div class="flex-shrink-0 text-xl text-[var(--color-text-medium)]">
+                        <i class="${file.icon}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-[var(--color-text-light)] font-medium">${file.name}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm">${file.size}</p>
+                    </div>
+                `;
+
+                fileItem.addEventListener('click', () => {
+                    selectFile(file.id);
+                });
+
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        // Function to handle file selection and preview
+        function selectFile(id) {
+            activeFileId = id;
+            renderFileList(); // Re-render to update active state
+
+            const selectedFile = files.find(f => f.id === id);
+            if (selectedFile) {
+                previewTitle.textContent = selectedFile.name;
+                previewContent.innerHTML = ''; // Clear previous content
+
+                // Display appropriate preview based on file type
+                if (selectedFile.type === 'image') {
+                    previewContent.innerHTML = `<img src="https://placehold.co/600x400/333/EEE?text=${selectedFile.name}" alt="${selectedFile.name}" class="max-w-full h-auto rounded-md">`;
+                } else if (selectedFile.type === 'document' || selectedFile.type === 'archive') {
+                    previewContent.innerHTML = `
+                        <div class="flex items-center justify-center h-48 bg-[var(--color-bg-light)] rounded-md mb-4">
+                            <i class="${selectedFile.icon} text-6xl text-[var(--color-text-medium)]"></i>
+                        </div>
+                        <p class="text-[var(--color-text-light)]">File: ${selectedFile.name}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm">Size: ${selectedFile.size}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm mt-2">This is a preview for a ${selectedFile.type} file.</p>
+                    `;
+                } else if (selectedFile.type === 'folder') {
+                    previewContent.innerHTML = `
+                        <div class="flex items-center justify-center h-48 bg-[var(--color-bg-light)] rounded-md mb-4">
+                            <i class="${selectedFile.icon} text-6xl text-[var(--color-text-medium)]"></i>
+                        </div>
+                        <p class="text-[var(--color-text-light)]">Folder: ${selectedFile.name}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm">Click to open or manage contents.</p>
+                    `;
+                } else if (selectedFile.type === 'audio') {
+                    previewContent.innerHTML = `
+                        <div class="flex items-center justify-center h-48 bg-[var(--color-bg-light)] rounded-md mb-4">
+                            <i class="${selectedFile.icon} text-6xl text-[var(--color-text-medium)]"></i>
+                        </div>
+                        <p class="text-[var(--color-text-light)]">Audio: ${selectedFile.name}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm">Size: ${selectedFile.size}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm mt-2">This is a preview for an audio file.</p>
+                    `;
+                } else {
+                    previewContent.innerHTML = `
+                        <div class="flex items-center justify-center h-48 bg-[var(--color-bg-light)] rounded-md mb-4">
+                            <i class="fas fa-file text-6xl text-[var(--color-text-medium)]"></i>
+                        </div>
+                        <p class="text-[var(--color-text-light)]">File: ${selectedFile.name}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm">Size: ${selectedFile.size}</p>
+                        <p class="text-[var(--color-text-medium)] text-sm mt-2">This is a generic file preview.</p>
+                    `;
+                }
+            } else {
+                previewTitle.textContent = 'Select a file to preview';
+                previewContent.innerHTML = `<i class="fas fa-folder-open text-6xl mb-4"></i><p>No file selected.</p>`;
+            }
+        }
+
+        // Upload functionality
+        uploadButton.addEventListener('click', () => {
+            uploadModal.classList.remove('hidden');
+            fileInput.value = ''; // Clear previous selections
+        });
+
+        cancelUploadButton.addEventListener('click', () => {
+            uploadModal.classList.add('hidden');
+        });
+
+        confirmUploadButton.addEventListener('click', () => {
+            const selectedFiles = fileInput.files;
+            if (selectedFiles.length > 0) {
+                alert(`Uploading ${selectedFiles.length} file(s)... (Simulated)`);
+                // In a real application, you would send these files to a server
+                // For this clone, we'll just add them to our 'files' array
+                Array.from(selectedFiles).forEach(file => {
+                    const newFile = {
+                        id: String(files.length + 1), // Simple ID generation
+                        name: file.name,
+                        type: file.type.includes('image') ? 'image' :
+                              file.type.includes('application/pdf') ? 'document' :
+                              file.type.includes('audio') ? 'audio' :
+                              file.type.includes('video') ? 'video' :
+                              file.type.includes('text') ? 'document' :
+                              file.type.includes('zip') ? 'archive' :
+                              file.type.includes('folder') ? 'folder' : 'document', // Fallback
+                        icon: file.type.includes('image') ? 'fas fa-file-image' :
+                              file.type.includes('application/pdf') ? 'fas fa-file-pdf' :
+                              file.type.includes('audio') ? 'fas fa-file-audio' :
+                              file.type.includes('video') ? 'fas fa-file-video' :
+                              file.type.includes('text') ? 'fas fa-file-alt' :
+                              file.type.includes('zip') ? 'fas fa-file-archive' :
+                              file.type.includes('folder') ? 'fas fa-folder' :
+                              'fas fa-file', // Fallback icon
+                        size: (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+                    };
+                    files.push(newFile);
+                });
+                renderFileList();
+                if (files.length > 0) {
+                    selectFile(files[files.length - 1].id); // Select the last uploaded file
+                } else {
+                    selectFile(null); // Clear preview if no files
+                }
+            }
+            uploadModal.classList.add('hidden');
+        });
+
+        // Initial render
+        renderFileList();
+        selectFile(null); // Start with no file selected
+
+        // Responsive adjustments for preview pane
+        function adjustLayout() {
+            if (window.innerWidth <= 768) { // Mobile breakpoint
+                if (activeFileId) {
+                    filePreviewPane.classList.remove('hidden-mobile');
+                    filePreviewPane.style.width = '100%';
+                    filePreviewPane.style.borderLeft = 'none';
+                    filePreviewPane.style.borderTop = '1px solid var(--color-border-light)';
+                } else {
+                    filePreviewPane.classList.add('hidden-mobile');
+                    filePreviewPane.style.width = '0';
+                    filePreviewPane.style.borderLeft = '1px solid var(--color-border-light)';
+                    filePreviewPane.style.borderTop = 'none';
+                }
+            } else { // Desktop breakpoint
+                filePreviewPane.classList.remove('hidden-mobile');
+                filePreviewPane.style.width = '50%';
+                filePreviewPane.style.borderLeft = '1px solid var(--color-border-light)';
+                filePreviewPane.style.borderTop = 'none';
+            }
+        }
+
+        window.addEventListener('resize', adjustLayout);
+        adjustLayout(); // Call on initial load
+    </script>
+</body>
+</html>

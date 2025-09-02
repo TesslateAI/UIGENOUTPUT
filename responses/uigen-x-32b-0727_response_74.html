@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmony Speaker Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --token-primary: rgb(59, 130, 246); /* Blue */
+            --token-secondary: rgb(139, 92, 246); /* Purple */
+            --token-dark-bg: rgb(15, 23, 42);
+            --token-darker-bg: rgb(8, 12, 24);
+            --token-card-bg: rgba(30, 41, 59, 0.7);
+            --token-text-primary: rgb(241, 245, 249);
+            --token-text-secondary: rgb(148, 163, 184);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-dark-bg);
+            color: var(--token-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Familjen Grotesk', sans-serif;
+        }
+
+        .card {
+            background: var(--token-card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--token-primary), var(--token-secondary));
+            color: white;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--token-primary), var(--token-secondary));
+            border-radius: 3px;
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--token-primary);
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+        }
+
+        .nav-item {
+            position: relative;
+            padding: 12px 20px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--token-primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .history-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--token-primary);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        .device-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background-color: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-offline {
+            background-color: #ef4444;
+        }
+
+        .status-connecting {
+            background-color: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-[var(--token-dark-bg)] text-[var(--token-text-primary)]">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <div class="w-64 bg-[var(--token-darker-bg)] flex flex-col border-r border-gray-800">
+            <div class="p-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <i class="fas fa-speaker-waveform text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold font-['Familjen_Grotesk']">Harmony Speaker</h1>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 py-6">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="nav-item active flex items-center space-x-3">
+                            <i class="fas fa-sliders-h w-5 text-center"></i>
+                            <span>Device Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item flex items-center space-x-3">
+                            <i class="fas fa-music w-5 text-center"></i>
+                            <span>Music Control</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item flex items-center space-x-3">
+                            <i class="fas fa-microphone w-5 text-center"></i>
+                            <span>Voice History</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item flex items-center space-x-3">
+                            <i class="fas fa-bell w-5 text-center"></i>
+                            <span>Notifications</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item flex items-center space-x-3">
+                            <i class="fas fa-cog w-5 text-center"></i>
+                            <span>Advanced</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-800">
+                <div class="flex items-center space-x-3 p-3 rounded-lg bg-gray-900/50">
+                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                        <i class="fas fa-user text-gray-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium">Alex Morgan</p>
+                        <p class="text-xs text-gray-400">Premium Member</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="p-6 border-b border-gray-800 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold font-['Familjen_Grotesk']">Device Settings</h2>
+                    <p class="text-gray-400">Manage your Harmony Speaker</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 rounded-lg hover:bg-gray-800">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </button>
+                    <button class="p-2 rounded-lg hover:bg-gray-800">
+                        <i class="fas fa-bell text-gray-400"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="p-6">
+                <!-- Device Status Card -->
+                <div class="card p-6 mb-6 fade-in">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Speaker Status</h3>
+                            <div class="flex items-center mb-4">
+                                <span class="device-status status-online"></span>
+                                <span class="text-green-400">Online - Connected</span>
+                            </div>
+                            <p class="text-gray-400 text-sm">Last updated: Just now</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-gray-400 text-sm">Model</p>
+                            <p class="font-medium">Harmony Pro X</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-400">2.4.1</div>
+                            <div class="text-gray-400 text-sm">Firmware Version</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-400">42°C</div>
+                            <div class="text-gray-400 text-sm">Current Temperature</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Controls -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Volume Control -->
+                    <div class="card p-6 fade-in">
+                        <h3 class="text-xl font-bold mb-4">Volume Settings</h3>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm text-gray-400">Current Volume</span>
+                                <span class="font-medium">75%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="75" class="volume-slider">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm text-gray-400">Media Volume</span>
+                                <span class="font-medium">65%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="65" class="volume-slider">
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm text-gray-400">Alarm Volume</span>
+                                <span class="font-medium">85%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="85" class="volume-slider">
+                        </div>
+                    </div>
+
+                    <!-- Sound Quality -->
+                    <div class="card p-6 fade-in">
+                        <h3 class="text-xl font-bold mb-4">Sound Quality</h3>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-sm text-gray-400">Equalizer Preset</span>
+                                <span class="font-medium">Balanced</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button class="py-2 px-4 rounded-lg bg-gray-800 text-sm">Flat</button>
+                                <button class="py-2 px-4 rounded-lg bg-blue-500 text-sm">Balanced</button>
+                                <button class="py-2 px-4 rounded-lg bg-gray-800 text-sm">Bass</button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-sm text-gray-400">Sound Mode</span>
+                                <span class="font-medium">Standard</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button class="py-2 px-4 rounded-lg bg-gray-800 text-sm">Standard</button>
+                                <button class="py-2 px-4 rounded-lg bg-gray-800 text-sm">Movie</button>
+                                <button class="py-2 px-4 rounded-lg bg-gray-800 text-sm">Music</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="card p-6 mt-6 fade-in">
+                    <h3 class="text-xl font-bold mb-4">Advanced Settings</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">Wi-Fi Network</p>
+                                <p class="text-sm text-gray-400">Connected to HomeNetwork</p>
+                            </div>
+                            <button class="px-4 py-2 rounded-lg bg-gray-800 text-sm">Change</button>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">Voice Assistant</p>
+                                <p class="text-sm text-gray-400">Enabled</p>
+                            </div>
+                            <div class="relative inline-block w-12 h-6">
+                                <input type="checkbox" class="opacity-0 w-0 h-0" id="voice-assistant" checked>
+                                <span class="slider absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-700 rounded-full transition duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition before:duration-300"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">Night Mode</p>
+                                <p class="text-sm text-gray-400">Disabled</p>
+                            </div>
+                            <div class="relative inline-block w-12 h-6">
+                                <input type="checkbox" class="opacity-0 w-0 h-0" id="night-mode">
+                                <span class="slider absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-700 rounded-full transition duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition before:duration-300"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">Auto Update</p>
+                                <p class="text-sm text-gray-400">Enabled</p>
+                            </div>
+                            <div class="relative inline-block w-12 h-6">
+                                <input type="checkbox" class="opacity-0 w-0 h-0" id="auto-update" checked>
+                                <span class="slider absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-700 rounded-full transition duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition before:duration-300"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle switch functionality
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const slider = this.nextElementSibling;
+                if (this.checked) {
+                    slider.classList.add('bg-blue-500');
+                    slider.style.backgroundColor = '#3b82f6';
+                } else {
+                    slider.classList.remove('bg-blue-500');
+                    slider.style.backgroundColor = '#4b5563';
+                }
+            });
+        });
+
+        // Navigation functionality
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                // In a real app, this would switch content sections
+                document.querySelectorAll('.fade-in').forEach(el => {
+                    el.classList.remove('fade-in');
+                    setTimeout(() => el.classList.add('fade-in'), 10);
+                });
+            });
+        });
+
+        // Volume slider styling
+        document.querySelectorAll('.volume-slider').forEach(slider => {
+            slider.addEventListener('input', function() {
+                const value = this.value;
+                this.style.background = `linear-gradient(90deg, var(--token-primary) 0%, var(--token-primary) ${value}%, rgba(255,255,255,0.1) ${value}%, rgba(255,255,255,0.1) 100%)`;
+            });
+        });
+    </script>
+</body>
+</html>

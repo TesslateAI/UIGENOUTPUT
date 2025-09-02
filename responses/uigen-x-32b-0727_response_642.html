@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Personal Finance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Urbanist:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-text-base: rgb(30, 30, 30);
+            --color-text-muted: rgb(100, 100, 100);
+            --color-text-subtle: rgb(120, 120, 120);
+            --color-text-light: rgb(180, 180, 180);
+            --color-text-inverted: rgb(255, 255, 255);
+            --color-bg-base: rgb(255, 255, 255);
+            --color-bg-subtle: rgb(245, 245, 245);
+            --color-bg-muted: rgb(230, 230, 230);
+            --color-bg-dark: rgb(20, 20, 20);
+            --color-border-base: rgb(220, 220, 220);
+            --color-accent: rgb(0, 120, 215);
+            --color-success: rgb(0, 200, 100);
+            --color-warning: rgb(255, 180, 0);
+            --color-danger: rgb(255, 80, 80);
+            --font-primary: 'Inter', sans-serif;
+            --font-secondary: 'Urbanist', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--color-text-base);
+            background-color: var(--color-bg-base);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-urbanist {
+            font-family: var(--font-secondary);
+        }
+
+        .dashboard-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .transaction-row:hover {
+            background-color: var(--color-bg-subtle);
+        }
+
+        .goal-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .goal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--color-accent);
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-bg-base)] text-[var(--color-text-base)]">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-white mr-3">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h1 class="text-xl font-bold font-urbanist">FinTrack</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="text-[var(--color-text-base)] hover:text-[var(--color-accent)] font-medium">Dashboard</a>
+                <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] font-medium">Transactions</a>
+                <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] font-medium">Budgets</a>
+                <a href="#" class="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] font-medium">Reports</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-[var(--color-bg-subtle)]">
+                    <i class="fas fa-bell text-[var(--color-text-muted)]"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white">
+                    <span class="font-medium">JD</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Dashboard Header -->
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold font-urbanist mb-2">Your Financial Dashboard</h2>
+            <p class="text-[var(--color-text-muted)]">Track your spending, savings, and financial goals</p>
+        </div>
+
+        <!-- Financial Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Balance -->
+            <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)] mb-1">Total Balance</p>
+                        <h3 class="text-2xl font-bold">$24,568.00</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <i class="fas fa-wallet text-[var(--color-accent)]"></i>
+                    </div>
+                </div>
+                <p class="text-[var(--color-success)] text-sm mt-3">
+                    <i class="fas fa-arrow-up mr-1"></i> 2.5% from last month
+                </p>
+            </div>
+
+            <!-- Income -->
+            <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)] mb-1">Monthly Income</p>
+                        <h3 class="text-2xl font-bold">$5,200.00</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                        <i class="fas fa-arrow-down text-[var(--color-success)]"></i>
+                    </div>
+                </div>
+                <p class="text-[var(--color-text-muted)] text-sm mt-3">
+                    Next paycheck: Aug 30
+                </p>
+            </div>
+
+            <!-- Expenses -->
+            <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)] mb-1">Monthly Expenses</p>
+                        <h3 class="text-2xl font-bold">$3,450.00</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                        <i class="fas fa-arrow-up text-[var(--color-danger)]"></i>
+                    </div>
+                </div>
+                <p class="text-[var(--color-text-muted)] text-sm mt-3">
+                    12% over budget this month
+                </p>
+            </div>
+
+            <!-- Net Worth -->
+            <div class="dashboard-card bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[var(--color-text-muted)] mb-1">Net Worth</p>
+                        <h3 class="text-2xl font-bold">$189,200.00</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                        <i class="fas fa-chart-pie text-purple-500"></i>
+                    </div>
+                </div>
+                <p class="text-[var(--color-success)] text-sm mt-3">
+                    <i class="fas fa-arrow-up mr-1"></i> 5.2% from last quarter
+                </p>
+            </div>
+        </div>
+
+        <!-- Charts and Goals Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Spending Chart -->
+            <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold font-urbanist">Spending Overview</h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm rounded-lg bg-[var(--color-bg-subtle)]">Week</button>
+                        <button class="px-3 py-1 text-sm rounded-lg bg-[var(--color-accent)] text-white">Month</button>
+                        <button class="px-3 py-1 text-sm rounded-lg bg-[var(--color-bg-subtle)]">Year</button>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="spendingChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Goals Section -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold font-urbanist">Your Goals</h3>
+                    <button class="w-8 h-8 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- Goal 1 -->
+                    <div class="goal-card p-4 bg-[var(--color-bg-subtle)] rounded-lg">
+                        <div class="flex justify-between mb-2">
+                            <h4 class="font-medium">Emergency Fund</h4>
+                            <span class="text-sm font-medium">$1,200/$5,000</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-[var(--color-accent)]" style="width: 24%"></div>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] text-sm mt-2">Target date: Dec 2023</p>
+                    </div>
+                    
+                    <!-- Goal 2 -->
+                    <div class="goal-card p-4 bg-[var(--color-bg-subtle)] rounded-lg">
+                        <div class="flex justify-between mb-2">
+                            <h4 class="font-medium">Vacation Fund</h4>
+                            <span class="text-sm font-medium">$850/$3,000</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-[var(--color-success)]" style="width: 28%"></div>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] text-sm mt-2">Target date: Jun 2024</p>
+                    </div>
+                    
+                    <!-- Goal 3 -->
+                    <div class="goal-card p-4 bg-[var(--color-bg-subtle)] rounded-lg">
+                        <div class="flex justify-between mb-2">
+                            <h4 class="font-medium">New Car</h4>
+                            <span class="text-sm font-medium">$4,200/$20,000</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-[var(--color-warning)]" style="width: 21%"></div>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] text-sm mt-2">Target date: Jan 2025</p>
+                    </div>
+                    
+                    <!-- Goal 4 -->
+                    <div class="goal-card p-4 bg-[var(--color-bg-subtle)] rounded-lg">
+                        <div class="flex justify-between mb-2">
+                            <h4 class="font-medium">Retirement</h4>
+                            <span class="text-sm font-medium">$24,500/$100,000</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-purple-500" style="width: 24.5%"></div>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] text-sm mt-2">Target date: Dec 2040</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)] mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold font-urbanist">Recent Transactions</h3>
+                <button class="text-[var(--color-accent)] font-medium flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Transaction
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-[var(--color-text-muted)] text-sm border-b border-[var(--color-border-base)]">
+                            <th class="pb-3">Description</th>
+                            <th class="pb-3">Category</th>
+                            <th class="pb-3">Date</th>
+                            <th class="pb-3 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Transaction 1 -->
+                        <tr class="transaction-row border-b border-[var(--color-border-base)]">
+                            <td class="py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mr-3">
+                                        <i class="fas fa-shopping-cart text-[var(--color-accent)]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Amazon Purchase</p>
+                                        <p class="text-[var(--color-text-muted)] text-sm">Shopping</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4">
+                                <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-[var(--color-accent)]">Shopping</span>
+                            </td>
+                            <td class="py-4 text-[var(--color-text-muted)]">Aug 12, 2023</td>
+                            <td class="py-4 text-right font-medium text-[var(--color-danger)]">-$89.99</td>
+                        </tr>
+                        
+                        <!-- Transaction 2 -->
+                        <tr class="transaction-row border-b border-[var(--color-border-base)]">
+                            <td class="py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mr-3">
+                                        <i class="fas fa-money-check text-[var(--color-success)]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Salary Deposit</p>
+                                        <p class="text-[var(--color-text-muted)] text-sm">Income</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4">
+                                <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-[var(--color-success)]">Income</span>
+                            </td>
+                            <td class="py-4 text-[var(--color-text-muted)]">Aug 10, 2023</td>
+                            <td class="py-4 text-right font-medium text-[var(--color-success)]">+$2,600.00</td>
+                        </tr>
+                        
+                        <!-- Transaction 3 -->
+                        <tr class="transaction-row border-b border-[var(--color-border-base)]">
+                            <td class="py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center mr-3">
+                                        <i class="fas fa-utensils text-[var(--color-warning)]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Dinner at Bistro</p>
+                                        <p class="text-[var(--color-text-muted)] text-sm">Dining</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4">
+                                <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-[var(--color-warning)]">Dining</span>
+                            </td>
+                            <td class="py-4 text-[var(--color-text-muted)]">Aug 8, 2023</td>
+                            <td class="py-4 text-right font-medium text-[var(--color-danger)]">-$64.50</td>
+                        </tr>
+                        
+                        <!-- Transaction 4 -->
+                        <tr class="transaction-row border-b border-[var(--color-border-base)]">
+                            <td class="py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center mr-3">
+                                        <i class="fas fa-home text-purple-500"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Mortgage Payment</p>
+                                        <p class="text-[var(--color-text-muted)] text-sm">Housing</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4">
+                                <span class="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-500">Housing</span>
+                            </td>
+                            <td class="py-4 text-[var(--color-text-muted)]">Aug 5, 2023</td>
+                            <td class="py-4 text-right font-medium text-[var(--color-danger)]">-$1,450.00</td>
+                        </tr>
+                        
+                        <!-- Transaction 5 -->
+                        <tr class="transaction-row">
+                            <td class="py-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center mr-3">
+                                        <i class="fas fa-gas-pump text-[var(--color-danger)]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Gas Station</p>
+                                        <p class="text-[var(--color-text-muted)] text-sm">Transportation</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4">
+                                <span class="px-2 py-1 rounded-full text-xs bg-red-100 text-[var(--color-danger)]">Transportation</span>
+                            </td>
+                            <td class="py-4 text-[var(--color-text-muted)]">Aug 3, 2023</td>
+                            <td class="py-4 text-right font-medium text-[var(--color-danger)]">-$45.75</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Budgets Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Budget Overview -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-[var(--color-border-base)]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold font-urbanist">Budget Overview</h3>
+                    <button class="text-[var(--color-accent)] font-medium">Manage Budgets</button>
+                </div>
+                
+                <div class="space-y-5">
+                    <!-- Budget 1 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="font-medium">Housing</span>
+                            <span class="text-sm">$1,450 / $1,500</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-[var(--color-accent)]" style="width: 97%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget 2 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="font-medium">Food & Dining</span>
+                            <span class="text-sm">$320 / $500</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-[var(--color-success)]" style="width: 64%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget 3 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="font-medium">Transportation</span>
+                            <span class="text-sm">$180 / $200</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-[var(--color-warning)]" style="width: 90%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget 4 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="font-medium">Entertainment</span>
+                            <span class="text-sm">$90 / $150</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-purple-500" style="width: 60%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget 5 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="font-medium">Shopping</span>
+                            <span class="text-sm">$210 / $300</span>
+                        </div>
+                        <div class="progress-bar bg-[var(--color-bg-muted)] w-full">
+                            <div class="progress-fill bg-pink-500" style="width: 70%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Financial Tips -->
+            <div class="bg-gradient-to-br from-[var(--color-accent)] to-blue-600 rounded-xl p-6 text-white">
+                <h3 class="text-xl font-bold font-urbanist mb-4">Financial Tips</h3>
+                <p class="mb-6 opacity-90">Here are some personalized tips to help you save more and spend wisely:</p>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3 flex-shrink-0">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <p>Consider setting up automatic transfers to your savings account to build your emergency fund faster.</p>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3 flex-shrink-0">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <p>You're spending 15% more on dining out than your budget. Try cooking at home more this month.</p>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-3 flex-shrink-0">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <p>Your retirement savings are on track! Keep contributing the maximum to your 401(k).</p>
+                    </div>
+                </div>
+                
+                <button class="mt-6 w-full py-3 bg-white text-[var(--color-accent)] font-medium rounded-lg hover:bg-opacity-90 transition">
+                    View All Recommendations
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-[var(--color-bg-dark)] text-[var(--color-text-inverted)] py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-[var(--color-accent)] flex items-center justify-center text-white mr-3">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h2 class="text-xl font-bold font-urbanist">FinTrack</h2>
+                    </div>
+                    <p class="text-[var(--color-text-light)] mb-4">Take control of your finances with our intuitive dashboard and powerful tools.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-[var(--color-text-light)] hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-[var(--color-text-light)] hover:text-white"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-[var(--color-text-light)] hover:text-white"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-[var(--color-text-light)] hover:text-white"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Features</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Dashboard</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Budget Tracking</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Expense Analysis</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Goal Setting</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Reports</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Guides</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Financial Calculators</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">Support Center</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] hover:text-white">API Documentation</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Subscribe</h3>
+                    <p class="text-[var(--color-text-light)] mb-4">Get financial tips and updates delivered to your inbox.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-[var(--color-text-base)]">
+                        <button class="bg-[var(--color-accent)] px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-[var(--color-border-dark)] mt-8 pt-8 text-center text-[var(--color-text-light)] text-sm">
+                <p>© 2023 FinTrack. All rights reserved. Designed with ❤️ for better financial health.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Spending Chart
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            const spendingChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                    datasets: [{
+                        label: 'Income',
+                        data: [4200, 4300, 4500, 4800, 5000, 5100, 5200, 5200],
+                        borderColor: 'rgb(0, 200, 100)',
+                        backgroundColor: 'rgba(0, 200, 100, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }, {
+                        label: 'Expenses',
+                        data: [3200, 3350, 3400, 3500, 3600, 3500, 3600, 3450],
+                        borderColor: 'rgb(255, 80, 80)',
+                        backgroundColor: 'rgba(255, 80, 80, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Animate on scroll
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>

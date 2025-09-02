@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdventureTours - Discover Your Next Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #FF6B35; /* Orange-Red for Adventure */
+            --color-primary-dark: #E64A00;
+            --color-text-dark: #0A2F6C; /* Dark Blue */
+            --color-text-light: #FEFFFE; /* Off-White */
+            --color-bg-light: #F8F8F8; /* Light Grey */
+            --color-bg-dark: #0A2F6C;
+            --color-border-light: #E0E0E0;
+            --font-main: 'Inter', sans-serif;
+            --font-heading: 'Playfair Display', serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            color: var(--color-text-dark);
+            background-color: var(--color-bg-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-heading { font-family: var(--font-heading); }
+        .text-primary { color: var(--color-primary); }
+        .bg-primary { background-color: var(--color-primary); }
+        .bg-primary-dark { background-color: var(--color-primary-dark); }
+        .text-dark { color: var(--color-text-dark); }
+        .text-light { color: var(--color-text-light); }
+        .bg-dark { background-color: var(--color-bg-dark); }
+        .bg-light { background-color: var(--color-bg-light); }
+        .border-light { border-color: var(--color-border-light); }
+
+        .hero-bg {
+            background-color: var(--color-bg-dark);
+            background-image: url('https://placehold.co/1920x800/0A2F6C/FEFFFE?text=Adventure+Hero');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%);
+        }
+
+        .gallery-item img {
+            transition: transform 0.3s ease-in-out;
+        }
+        .gallery-item img:hover {
+            transform: scale(1.05);
+        }
+
+        .booking-modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+
+        .booking-modal {
+            background-color: var(--color-bg-light);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+            padding: 2rem;
+            position: relative;
+            transform: scale(0.9);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .booking-modal.open {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .scroll-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
+            .hero-text p {
+                font-size: 1rem;
+            }
+            .cta-button {
+                width: 100%;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+            .booking-modal {
+                max-width: 90%;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light text-dark">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <a href="#" class="text-3xl font-heading text-primary">AdventureTours</a>
+            <div class="hidden md:flex space-x-6">
+                <a href="#gallery" class="text-dark hover:text-primary transition-colors">Gallery</a>
+                <a href="#adventures" class="text-dark hover:text-primary transition-colors">Adventures</a>
+                <a href="#booking" class="text-dark hover:text-primary transition-colors">Booking</a>
+                <a href="#contact" class="text-dark hover:text-primary transition-colors">Contact</a>
+            </div>
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-dark focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute top-16 left-0 w-full">
+            <a href="#gallery" class="block py-3 px-4 text-dark hover:bg-gray-100">Gallery</a>
+            <a href="#adventures" class="block py-3 px-4 text-dark hover:bg-gray-100">Adventures</a>
+            <a href="#booking" class="block py-3 px-4 text-dark hover:bg-gray-100">Booking</a>
+            <a href="#contact" class="block py-3 px-4 text-dark hover:bg-gray-100">Contact</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-bg h-[600px] md:h-[750px] flex items-center justify-center relative">
+        <div class="hero-content max-w-4xl mx-auto px-4 text-center md:text-left">
+            <div class="hero-text">
+                <h1 class="text-5xl md:text-6xl font-heading text-light mb-4 scroll-animate">
+                    Your Next Great Adventure Awaits
+                </h1>
+                <p class="text-lg md:text-xl text-light opacity-90 mb-8 scroll-animate" style="transition-delay: 0.2s;">
+                    Discover breathtaking destinations, thrilling experiences, and unforgettable memories.
+                </p>
+                <a href="#booking" class="cta-button bg-primary text-light text-xl px-8 py-4 rounded-full font-semibold hover:bg-primary-dark transition-colors scroll-animate" style="transition-delay: 0.4s;">
+                    Book Your Trip Now!
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Image Gallery Section -->
+    <section id="gallery" class="py-16 md:py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl md:text-5xl font-heading text-center mb-12 scroll-animate">
+                Immerse Yourself in Our Adventures
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Gallery Item 1 -->
+                <div class="gallery-item group cursor-pointer scroll-animate" data-adventure-id="trekking">
+                    <img src="https://placehold.co/600x400/FF6B35/FEFFFE?text=Mountain+Trekking" alt="Mountain Trekking" class="w-full h-64 object-cover rounded-lg shadow-md mb-4">
+                    <h3 class="text-2xl font-semibold text-dark group-hover:text-primary transition-colors">Mountain Trekking</h3>
+                    <p class="text-gray-600">Conquer peaks and discover hidden valleys.</p>
+                </div>
+                <!-- Gallery Item 2 -->
+                <div class="gallery-item group cursor-pointer scroll-animate" data-adventure-id="diving">
+                    <img src="https://placehold.co/600x400/0A2F6C/FEFFFE?text=Underwater+Adventures" alt="Underwater Adventures" class="w-full h-64 object-cover rounded-lg shadow-md mb-4">
+                    <h3 class="text-2xl font-semibold text-dark group-hover:text-primary transition-colors">Underwater Adventures</h3>
+                    <p class="text-gray-600">Dive into vibrant coral reefs and marine life.</p>
+                </div>
+                <!-- Gallery Item 3 -->
+                <div class="gallery-item group cursor-pointer scroll-animate" data-adventure-id="wilderness">
+                    <img src="https://placehold.co/600x400/FF6B35/FEFFFE?text=Wilderness+Exploration" alt="Wilderness Exploration" class="w-full h-64 object-cover rounded-lg shadow-md mb-4">
+                    <h3 class="text-2xl font-semibold text-dark group-hover:text-primary transition-colors">Wilderness Exploration</h3>
+                    <p class="text-gray-600">Explore untamed landscapes and ancient forests.</p>
+                </div>
+                <!-- Gallery Item 4 -->
+                <div class="gallery-item group cursor-pointer scroll-animate" data-adventure-id="safari">
+                    <img src="https://placehold.co/600x400/0A2F6C/FEFFFE?text=Wildlife+Safari" alt="Wildlife Safari" class="w-full h-64 object-cover rounded-lg shadow-md mb-4">
+                    <h3 class="text-2xl font-semibold text-dark group-hover:text-primary transition-colors">Wildlife Safari</h3>
+                    <p class="text-gray-600">Get up close with Africa's incredible wildlife.</p>
+                </div>
+                <!-- Gallery Item 5 -->
+                <div class="gallery-item group cursor-pointer scroll-animate" data-adventure-id="cycling">
+                    <img src="https://placehold.co/600x400/FF6B35/FEFFFE?text=Scenic+Cycling" alt="Scenic Cycling" class="w-full h-64 object-cover rounded-lg shadow-md mb-4">
+                    <h3 class="text-2xl font-semibold text-dark group-hover:text-primary transition-colors">Scenic Cycling</h3>
+                    <p class="text-gray-600">Pedal through picturesque routes and charming villages.</p>
+                </div>
+                <!-- Gallery Item 6 -->
+                <div class="gallery-item group cursor-pointer scroll-animate" data-adventure-id="hiking">
+                    <img src="https://placehold.co/600x400/0A2F6C/FEFFFE?text=Forest+Hiking" alt="Forest Hiking" class="w-full h-64 object-cover rounded-lg shadow-md mb-4">
+                    <h3 class="text-2xl font-semibold text-dark group-hover:text-primary transition-colors">Forest Hiking</h3>
+                    <p class="text-gray-600">Experience tranquility and natural beauty on forest trails.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Adventure Types Section -->
+    <section id="adventures" class="py-16 md:py-24 bg-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl md:text-5xl font-heading text-center mb-12 scroll-animate">
+                Choose Your Adventure
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Adventure Card 1 -->
+                <div class="bg-white p-6 rounded-lg shadow-md scroll-animate">
+                    <i class="fas fa-mountain text-primary text-5xl mb-4"></i>
+                    <h3 class="text-2xl font-semibold text-dark mb-2">Mountain Trekking</h3>
+                    <p class="text-gray-600">Conquer challenging peaks and enjoy panoramic views.</p>
+                    <a href="#" class="text-primary font-semibold mt-4 inline-block hover:underline">View Details</a>
+                </div>
+                <!-- Adventure Card 2 -->
+                <div class="bg-white p-6 rounded-lg shadow-md scroll-animate" style="transition-delay: 0.1s;">
+                    <i class="fas fa-scuba-diving text-primary text-5xl mb-4"></i>
+                    <h3 class="text-2xl font-semibold text-dark mb-2">Underwater Adventures</h3>
+                    <p class="text-gray-600">Dive into vibrant coral reefs and explore marine life.</p>
+                    <a href="#" class="text-primary font-semibold mt-4 inline-block hover:underline">View Details</a>
+                </div>
+                <!-- Adventure Card 3 -->
+                <div class="bg-white p-6 rounded-lg shadow-md scroll-animate" style="transition-delay: 0.2s;">
+                    <i class="fas fa-compass text-primary text-5xl mb-4"></i>
+                    <h3 class="text-2xl font-semibold text-dark mb-2">Wilderness Exploration</h3>
+                    <p class="text-gray-600">Discover untamed landscapes and ancient forests.</p>
+                    <a href="#" class="text-primary font-semibold mt-4 inline-block hover:underline">View Details</a>
+                </div>
+                <!-- Adventure Card 4 -->
+                <div class="bg-white p-6 rounded-lg shadow-md scroll-animate" style="transition-delay: 0.3s;">
+                    <i class="fas fa-kiwi-bird text-primary text-5xl mb-4"></i>
+                    <h3 class="text-2xl font-semibold text-dark mb-2">Wildlife Safari</h3>
+                    <p class="text-gray-600">Get up close with Africa's incredible wildlife.</p>
+                    <a href="#" class="text-primary font-semibold mt-4 inline-block hover:underline">View Details</a>
+                </div>
+                <!-- Adventure Card 5 -->
+                <div class="bg-white p-6 rounded-lg shadow-md scroll-animate" style="transition-delay: 0.4s;">
+                    <i class="fas fa-bicycle text-primary text-5xl mb-4"></i>
+                    <h3 class="text-2xl font-semibold text-dark mb-2">Scenic Cycling</h3>
+                    <p class="text-gray-600">Pedal through picturesque routes and charming villages.</p>
+                    <a href="#" class="text-primary font-semibold mt-4 inline-block hover:underline">View Details</a>
+                </div>
+                <!-- Adventure Card 6 -->
+                <div class="bg-white p-6 rounded-lg shadow-md scroll-animate" style="transition-delay: 0.5s;">
+                    <i class="fas fa-tree text-primary text-5xl mb-4"></i>
+                    <h3 class="text-2xl font-semibold text-dark mb-2">Forest Hiking</h3>
+                    <p class="text-gray-600">Experience tranquility and natural beauty on forest trails.</p>
+                    <a href="#" class="text-primary font-semibold mt-4 inline-block hover:underline">View Details</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Booking Section -->
+    <section id="booking" class="py-16 md:py-24 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-5xl font-heading text-dark mb-12 scroll-animate">
+                Ready for Your Adventure?
+            </h2>
+            <p class="text-lg text-gray-600 mb-8 scroll-animate" style="transition-delay: 0.2s;">
+                Fill out the form below to get started with your booking. We'll be in touch soon!
+            </p>
+            <form class="space-y-6 max-w-lg mx-auto scroll-animate" style="transition-delay: 0.4s;">
+                <div>
+                    <label for="name" class="block text-left text-gray-700 text-sm font-bold mb-2">Full Name</label>
+                    <input type="text" id="name" name="name" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="John Doe" required>
+                </div>
+                <div>
+                    <label for="email" class="block text-left text-gray-700 text-sm font-bold mb-2">Email Address</label>
+                    <input type="email" id="email" name="email" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="john.doe@example.com" required>
+                </div>
+                <div>
+                    <label for="phone" class="block text-left text-gray-700 text-sm font-bold mb-2">Phone Number (Optional)</label>
+                    <input type="tel" id="phone" name="phone" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="(123) 456-7890">
+                </div>
+                <div>
+                    <label for="adventure" class="block text-left text-gray-700 text-sm font-bold mb-2">Preferred Adventure Type</label>
+                    <select id="adventure" name="adventure" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                        <option value="">Select an adventure...</option>
+                        <option value="trekking">Mountain Trekking</option>
+                        <option value="diving">Underwater Adventures</option>
+                        <option value="wilderness">Wilderness Exploration</option>
+                        <option value="safari">Wildlife Safari</option>
+                        <option value="cycling">Scenic Cycling</option>
+                        <option value="hiking">Forest Hiking</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="date" class="block text-left text-gray-700 text-sm font-bold mb-2">Preferred Date (MM/DD/YYYY)</label>
+                    <input type="date" id="date" name="date" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <button type="submit" class="bg-primary text-light text-xl px-8 py-4 rounded-full font-semibold hover:bg-primary-dark transition-colors">
+                    Submit Booking Request
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Booking Modal (hidden by default) -->
+    <div id="booking-modal-overlay" class="booking-modal-overlay">
+        <div id="booking-modal" class="booking-modal">
+            <button id="close-modal" class="absolute top-4 right-4 text-gray-600 hover:text-dark text-2xl">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 id="modal-adventure-name" class="text-3xl font-heading text-dark mb-4">Adventure Name</h3>
+            <img id="modal-adventure-image" src="" alt="Adventure Image" class="w-full h-64 object-cover rounded-lg mb-4">
+            <p id="modal-adventure-description" class="text-gray-700 mb-6">Details about this adventure will go here.</p>
+            <form class="space-y-4">
+                <div>
+                    <label for="modal-name" class="block text-gray-700 text-sm font-bold mb-2">Your Name</label>
+                    <input type="text" id="modal-name" name="name" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="John Doe" required>
+                </div>
+                <div>
+                    <label for="modal-email" class="block text-gray-700 text-sm font-bold mb-2">Your Email</label>
+                    <input type="email" id="modal-email" name="email" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="john.doe@example.com" required>
+                </div>
+                <div>
+                    <label for="modal-phone" class="block text-gray-700 text-sm font-bold mb-2">Phone (Optional)</label>
+                    <input type="tel" id="modal-phone" name="phone" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="(123) 456-7890">
+                </div>
+                <div>
+                    <label for="modal-date" class="block text-gray-700 text-sm font-bold mb-2">Preferred Date</label>
+                    <input type="date" id="modal-date" name="date" class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <button type="submit" class="bg-primary text-light text-lg px-6 py-3 rounded-full font-semibold hover:bg-primary-dark transition-colors">
+                    Confirm Booking
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="contact" class="bg-dark text-light py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <a href="#" class="text-4xl font-heading text-primary mb-4 inline-block">AdventureTours</a>
+            <p class="text-gray-400 mb-6">Your Ultimate Adventure Destination</p>
+            <div class="flex justify-center space-x-6 mb-8">
+                <a href="#" class="text-gray-400 hover:text-primary transition-colors"><i class="fab fa-facebook-f text-2xl"></i></a>
+                <a href="#" class="text-gray-400 hover:text-primary transition-colors"><i class="fab fa-twitter text-2xl"></i></a>
+                <a href="#" class="text-gray-400 hover:text-primary transition-colors"><i class="fab fa-instagram text-2xl"></i></a>
+                <a href="#" class="text-gray-400 hover:text-primary transition-colors"><i class="fab fa-youtube text-2xl"></i></a>
+            </div>
+            <p class="text-sm text-gray-500">&copy; 2024 AdventureTours. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu when a link is clicked
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Scroll Animations
+        const scrollElements = document.querySelectorAll('.scroll-animate');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                } else {
+                    // Optional: remove is-visible if you want animation to re-run on scroll up
+                    // entry.target.classList.remove('is-visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        scrollElements.forEach(el => {
+            observer.observe(el);
+        });
+
+        // Booking Modal Logic
+        const bookingModalOverlay = document.getElementById('booking-modal-overlay');
+        const bookingModal = document.getElementById('booking-modal');
+        const closeModalButton = document.getElementById('close-modal');
+        const galleryItems = document.querySelectorAll('.gallery-item');
+        const modalAdventureName = document.getElementById('modal-adventure-name');
+        const modalAdventureImage = document.getElementById('modal-adventure-image');
+        const modalAdventureDescription = document.getElementById('modal-adventure-description');
+
+        const adventureDetails = {
+            trekking: {
+                name: "Mountain Trekking",
+                image: "https://placehold.co/600x400/FF6B35/FEFFFE?text=Mountain+Trekking+Detail",
+                description: "Embark on an epic journey through rugged mountain ranges, challenging yourself to new heights. Discover hidden valleys, alpine lakes, and breathtaking vistas."
+            },
+            diving: {
+                name: "Underwater Adventures",
+                image: "https://placehold.co/600x400/0A2F6C/FEFFFE?text=Underwater+Adventures+Detail",
+                description: "Dive into vibrant coral reefs teeming with marine life. Experience the wonder of the underwater world, from colorful fish to majestic manta rays."
+            },
+            wilderness: {
+                name: "Wilderness Exploration",
+                image: "https://placehold.co/600x400/FF6B35/FEFFFE?text=Wilderness+Exploration+Detail",
+                description: "Venture into pristine wilderness, where nature reigns supreme. Hike through ancient forests, spot elusive wildlife, and find serenity in untouched landscapes."
+            },
+            safari: {
+                name: "Wildlife Safari",
+                image: "https://placehold.co/600x400/0A2F6C/FEFFFE?text=Wildlife+Safari+Detail",
+                description: "Experience the thrill of a classic African safari. Get up close with lions, elephants, and giraffes in their natural habitat, guided by expert rangers."
+            },
+            cycling: {
+                name: "Scenic Cycling",
+                image: "https://placehold.co/600x400/FF6B35/FEFFFE?text=Scenic+Cycling+Detail",
+                description: "Pedal through picturesque landscapes, charming villages, and historic routes. Enjoy a mix of challenging climbs and leisurely rides with stunning views."
+            },
+            hiking: {
+                name: "Forest Hiking",
+                image: "https://placehold.co/600x400/0A2F6C/FEFFFE?text=Forest+Hiking+Detail",
+                description: "Explore serene forest trails, breathe in fresh air, and listen to the sounds of nature. Perfect for a peaceful escape and gentle exercise."
+            }
+        };
+
+        galleryItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const adventureId = item.dataset.adventureId;
+                const details = adventureDetails[adventureId];
+
+                modalAdventureName.textContent = details.name;
+                modalAdventureImage.src = details.image;
+                modalAdventureImage.alt = details.name;
+                modalAdventureDescription.textContent = details.description;
+
+                bookingModalOverlay.style.display = 'flex';
+                setTimeout(() => bookingModal.classList.add('open'), 50); // Delay to allow display change before transition
+            });
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            bookingModal.classList.remove('open');
+            setTimeout(() => bookingModalOverlay.style.display = 'none', 300); // Hide after transition
+        });
+
+        bookingModalOverlay.addEventListener('click', (e) => {
+            if (e.target === bookingModalOverlay) {
+                bookingModal.classList.remove('open');
+                setTimeout(() => bookingModalOverlay.style.display = 'none', 300);
+            }
+        });
+
+        // Form submission (for demonstration, can be extended to send data)
+        document.querySelector('#booking-modal form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Booking request submitted! (This is a demo)');
+            bookingModal.classList.remove('open');
+            setTimeout(() => bookingModalOverlay.style.display = 'none', 300);
+        });
+    </script>
+</body>
+</html>

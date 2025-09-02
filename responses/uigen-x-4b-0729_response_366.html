@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StyleCart | Checkout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        dark: {
+                            50: '#f8fafa',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        .checkout-container {
+            max-width: 1200px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .step-indicator {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #334155;
+            z-index: -1;
+        }
+        
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #334155;
+            transition: all 0.3s ease;
+        }
+        
+        .step-circle.active {
+            border-color: #14b8a6;
+            background: #14b8a6;
+            color: white;
+        }
+        
+        .step-circle.completed {
+            border-color: #14b8a6;
+            background: #14b8a6;
+            color: white;
+        }
+        
+        .step-label {
+            position: absolute;
+            top: 45px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        
+        .step-label.active {
+            color: #f1f5f9;
+            font-weight: 600;
+        }
+        
+        .form-step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        .payment-card {
+            transition: all 0.3s ease;
+            border: 2px solid #334155;
+        }
+        
+        .payment-card:hover, .payment-card.selected {
+            border-color: #14b8a6;
+            background: rgba(20, 184, 166, 0.1);
+        }
+        
+        .payment-card.selected {
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
+        }
+        
+        .cart-item {
+            transition: all 0.3s ease;
+        }
+        
+        .cart-item:hover {
+            background: rgba(20, 184, 166, 0.05);
+        }
+        
+        .summary-card {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(20, 184, 166, 0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #14b8a6;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="py-8 px-4 sm:px-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2 text-white">StyleCart</h1>
+            <p class="text-slate-400">Complete your purchase in a few simple steps</p>
+        </div>
+        
+        <div class="checkout-container bg-slate-900 rounded-2xl overflow-hidden">
+            <div class="p-6 md:p-8">
+                <!-- Progress Indicators -->
+                <div class="step-indicator flex justify-between mb-12 relative">
+                    <div class="flex flex-col items-center">
+                        <div class="step-circle rounded-full flex items-center justify-center mb-2 completed">
+                            <i class="fas fa-shopping-cart text-white"></i>
+                        </div>
+                        <span class="step-label active">Cart</span>
+                    </div>
+                    
+                    <div class="flex flex-col items-center">
+                        <div class="step-circle rounded-full flex items-center justify-center mb-2 active">
+                            <i class="fas fa-truck text-white"></i>
+                        </div>
+                        <span class="step-label">Shipping</span>
+                    </div>
+                    
+                    <div class="flex flex-col items-center">
+                        <div class="step-circle rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-credit-card text-white"></i>
+                        </div>
+                        <span class="step-label">Payment</span>
+                    </div>
+                    
+                    <div class="flex flex-col items-center">
+                        <div class="step-circle rounded-full flex items-center justify-center mb-2">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                        <span class="step-label">Confirmation</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Left Column - Form Steps -->
+                    <div class="lg:col-span-2">
+                        <div class="form-step active" id="step-cart">
+                            <div class="mb-8">
+                                <h2 class="text-2xl font-bold mb-6 text-white">Your Cart</h2>
+                                
+                                <div class="space-y-6">
+                                    <!-- Cart Item 1 -->
+                                    <div class="cart-item flex items-center p-4 rounded-lg bg-slate-800">
+                                        <div class="w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                            <span class="text-white text-xl">T</span>
+                                        </div>
+                                        <div class="ml-4 flex-1">
+                                            <h3 class="font-semibold text-white">Classic White T-Shirt</h3>
+                                            <p class="text-slate-400 text-sm">Size: M, Color: White</p>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <div class="flex items-center border border-slate-700 rounded-lg">
+                                                <button class="px-3 py-1 text-slate-300 hover:text-white">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <span class="px-3">1</span>
+                                                <button class="px-3 py-1 text-slate-300 hover:text-white">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <span class="ml-4 text-slate-300">$24.99</span>
+                                            <button class="ml-4 text-slate-500 hover:text-red-500">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Cart Item 2 -->
+                                    <div class="cart-item flex items-center p-4 rounded-lg bg-slate-800">
+                                        <div class="w-20 h-20 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                                            <span class="text-white text-xl">J</span>
+                                        </div>
+                                        <div class="ml-4 flex-1">
+                                            <h3 class="font-semibold text-white">Premium Denim Jacket</h3>
+                                            <p class="text-slate-400 text-sm">Size: L, Color: Blue</p>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <div class="flex items-center border border-slate-700 rounded-lg">
+                                                <button class="px-3 py-1 text-slate-300 hover:text-white">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <span class="px-3">1</span>
+                                                <button class="px-3 py-1 text-slate-300 hover:text-white">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <span class="ml-4 text-slate-300">$89.99</span>
+                                            <button class="ml-4 text-slate-500 hover:text-red-500">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <button class="btn-secondary px-6 py-3 rounded-lg font-medium">
+                                    Continue Shopping
+                                </button>
+                                <button class="btn-primary px-6 py-3 rounded-lg font-medium">
+                                    Proceed to Shipping <i class="fas fa-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-step" id="step-shipping">
+                            <div class="mb-8">
+                                <h2 class="text-2xl font-bold mb-6 text-white">Shipping Information</h2>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-slate-400 mb-2">First Name</label>
+                                        <input type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-slate-400 mb-2">Last Name</label>
+                                        <input type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-slate-400 mb-2">Address</label>
+                                        <input type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-slate-400 mb-2">City</label>
+                                        <input type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-slate-400 mb-2">State</label>
+                                        <select class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            <option>Select State</option>
+                                            <option>California</option>
+                                            <option>New York</option>
+                                            <option>Texas</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-slate-400 mb-2">ZIP Code</label>
+                                        <input type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-slate-400 mb-2">Phone</label>
+                                        <input type="tel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <button class="btn-secondary px-6 py-3 rounded-lg font-medium">
+                                    <i class="fas fa-arrow-left mr-2"></i> Back to Cart
+                                </button>
+                                <button class="btn-primary px-6 py-3 rounded-lg font-medium">
+                                    Continue to Payment <i class="fas fa-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-step" id="step-payment">
+                            <div class="mb-8">
+                                <h2 class="text-2xl font-bold mb-6 text-white">Payment Method</h2>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                    <div class="payment-card p-4 rounded-lg cursor-pointer">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mr-3">
+                                                <i class="fab fa-cc-visa text-blue-500 text-xl"></i>
+                                            </div>
+                                            <span class="font-medium text-white">Credit Card</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-card p-4 rounded-lg cursor-pointer">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mr-3">
+                                                <i class="fab fa-paypal text-blue-500 text-xl"></i>
+                                            </div>
+                                            <span class="font-medium text-white">PayPal</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-card p-4 rounded-lg cursor-pointer">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mr-3">
+                                                <i class="fab fa-apple-pay text-black text-xl"></i>
+                                            </div>
+                                            <span class="font-medium text-white">Apple Pay</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="payment-card p-4 rounded-lg cursor-pointer">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center mr-3">
+                                                <i class="fab fa-google-pay text-green-500 text-xl"></i>
+                                            </div>
+                                            <span class="font-medium text-white">Google Pay</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-slate-800 rounded-lg p-6">
+                                    <h3 class="font-bold text-white mb-4">Credit Card Details</h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="md:col-span-2">
+                                            <label class="block text-slate-400 mb-2">Card Number</label>
+                                            <div class="relative">
+                                                <input type="text" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 pl-12 focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="0000 0000 0000 0000">
+                                                <div class="absolute left-3 top-3.5 text-slate-500">
+                                                    <i class="fab fa-cc-visa text-2xl"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-slate-400 mb-2">Expiration Date</label>
+                                            <input type="text" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="MM/YY">
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-slate-400 mb-2">CVV</label>
+                                            <input type="text" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="123">
+                                        </div>
+                                        
+                                        <div class="md:col-span-2">
+                                            <label class="block text-slate-400 mb-2">Cardholder Name</label>
+                                            <input type="text" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <button class="btn-secondary px-6 py-3 rounded-lg font-medium">
+                                    <i class="fas fa-arrow-left mr-2"></i> Back to Shipping
+                                </button>
+                                <button class="btn-primary px-6 py-3 rounded-lg font-medium">
+                                    Complete Purchase <i class="fas fa-lock ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-step" id="step-confirmation">
+                            <div class="text-center py-12">
+                                <div class="success-icon rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-check text-white text-4xl"></i>
+                                </div>
+                                
+                                <h2 class="text-3xl font-bold text-white mb-4">Order Confirmed!</h2>
+                                <p class="text-slate-400 max-w-md mx-auto mb-8">
+                                    Thank you for your purchase! Your order #ORD-789456 has been confirmed and will be shipped within 2 business days.
+                                </p>
+                                
+                                <div class="bg-slate-800 rounded-lg p-6 max-w-md mx-auto mb-8">
+                                    <h3 class="font-bold text-white mb-4">Order Summary</h3>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-slate-400">Items (2)</span>
+                                        <span class="text-white">$114.98</span>
+                                    </div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-slate-400">Shipping</span>
+                                        <span class="text-white">$5.99</span>
+                                    </div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-slate-400">Tax</span>
+                                        <span class="text-white">$9.20</span>
+                                    </div>
+                                    <div class="flex justify-between mt-4 pt-4 border-t border-slate-700 font-bold">
+                                        <span class="text-white">Total</span>
+                                        <span class="text-primary-400">$129.17</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                                    <button class="btn-secondary px-6 py-3 rounded-lg font-medium">
+                                        <i class="fas fa-shopping-cart mr-2"></i> Continue Shopping
+                                    </button>
+                                    <button class="btn-primary px-6 py-3 rounded-lg font-medium">
+                                        View Order Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column - Order Summary -->
+                    <div class="lg:col-span-1">
+                        <div class="summary-card rounded-xl p-6 sticky top-6">
+                            <h2 class="text-xl font-bold mb-6 text-white">Order Summary</h2>
+                            
+                            <div class="space-y-4 mb-6">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Subtotal</span>
+                                    <span class="text-white">$114.98</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Shipping</span>
+                                    <span class="text-white">$5.99</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">Tax</span>
+                                    <span class="text-white">$9.20</span>
+                                </div>
+                                <div class="flex justify-between pt-4 border-t border-slate-700 font-bold">
+                                    <span class="text-white">Total</span>
+                                    <span class="text-primary-400">$129.17</span>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t border-slate-700 pt-4">
+                                <div class="flex items-center mb-4">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
+                                        <span class="text-white">T</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-white">Classic White T-Shirt</p>
+                                        <p class="text-slate-400 text-sm">1 × $24.99</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mr-3">
+                                        <span class="text-white">J</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-white">Premium Denim Jacket</p>
+                                        <p class="text-slate-400 text-sm">1 × $89.99</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 pt-6 border-t border-slate-700">
+                                <div class="flex items-center mb-4">
+                                    <i class="fas fa-truck text-primary-500 mr-3"></i>
+                                    <div>
+                                        <p class="text-slate-400 text-sm">Estimated delivery</p>
+                                        <p class="text-white">Monday, Dec 12</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <i class="fas fa-shield-alt text-primary-500 mr-3"></i>
+                                    <div>
+                                        <p class="text-slate-400 text-sm">Secure payment</p>
+                                        <p class="text-white">All transactions are encrypted</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-12 text-slate-500 text-sm">
+            <p>© 2023 StyleCart. All rights reserved. Secure shopping experience.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Step navigation
+        document.querySelectorAll('.btn-primary').forEach(button => {
+            button.addEventListener('click', function() {
+                const currentStep = document.querySelector('.form-step.active');
+                const nextStep = currentStep.nextElementSibling;
+                
+                if (nextStep) {
+                    currentStep.classList.remove('active');
+                    nextStep.classList.add('active');
+                    
+                    // Update step indicators
+                    const stepIndicator = document.querySelector('.step-indicator');
+                    const activeStep = stepIndicator.querySelectorAll('.step-circle.active')[0];
+                    activeStep.classList.remove('active');
+                    activeStep.nextElementSibling.classList.add('active');
+                }
+            });
+        });
+        
+        // Payment card selection
+        document.querySelectorAll('.payment-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.payment-card').forEach(c => {
+                    c.classList.remove('selected');
+                });
+                this.classList.add('selected');
+            });
+        });
+        
+        // Form validation would go here in a real implementation
+    </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Todo List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --token-text-primary: rgb(24, 24, 24);
+            --token-text-secondary: rgba(24, 24, 24, .5);
+            --token-bg-primary: rgb(255, 255, 255);
+            --token-bg-secondary: rgba(24, 24, 24, .04);
+            --token-bg-accent: rgb(243, 243, 243);
+            --token-border-primary: rgba(24, 24, 24, .1);
+            --token-accent-blue: rgb(0, 122, 255);
+            --token-priority-high: #EF4444; /* red-500 */
+            --token-priority-medium: #F59E0B; /* yellow-500 */
+            --token-priority-low: #22C55E; /* green-500 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--token-bg-primary);
+            color: var(--token-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .task-item {
+            background-color: var(--token-bg-primary);
+            border: 1px solid var(--token-border-primary);
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: grab;
+            position: relative;
+        }
+
+        .task-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .task-item.completed {
+            background-color: #f0f0f0;
+            text-decoration: line-through;
+            color: var(--token-text-secondary);
+        }
+
+        .task-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            background-color: var(--token-bg-accent);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .priority-high { background-color: var(--token-priority-high); color: white; }
+        .priority-medium { background-color: var(--token-priority-medium); color: white; }
+        .priority-low { background-color: var(--token-priority-low); color: white; }
+
+        /* Custom scrollbar for better aesthetics */
+        .task-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .task-list-container::-webkit-scrollbar-track {
+            background: var(--token-bg-accent);
+            border-radius: 10px;
+        }
+        .task-list-container::-webkit-scrollbar-thumb {
+            background: var(--token-border-primary);
+            border-radius: 10px;
+        }
+        .task-list-container::-webkit-scrollbar-thumb:hover {
+            background: var(--token-text-secondary);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md bg-[var(--token-bg-primary)] rounded-xl shadow-lg p-6 border border-[var(--token-border-primary)]">
+        <h1 class="text-2xl font-bold text-[var(--token-text-primary)] mb-6 text-center">My Todo List</h1>
+
+        <!-- Add Task Section -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <input type="text" id="newTaskInput" placeholder="Add a new task..."
+                   class="flex-grow p-3 border border-[var(--token-border-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--token-accent-blue)] text-[var(--token-text-primary)] bg-[var(--token-bg-primary)]">
+            <button id="addTaskBtn"
+                    class="bg-[var(--token-accent-blue)] text-white p-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center">
+                <i class="fas fa-plus mr-2"></i> Add Task
+            </button>
+        </div>
+
+        <!-- Priority Filter -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <button id="filterAll" class="priority-btn priority-low px-3 py-1 rounded-full text-xs font-semibold border border-[var(--token-border-primary)] hover:bg-[var(--token-bg-accent)] transition-colors" aria-current="page">All</button>
+            <button id="filterHigh" class="priority-btn priority-high px-3 py-1 rounded-full text-xs font-semibold border border-[var(--token-border-primary)] hover:bg-[var(--token-bg-accent)] transition-colors">High</button>
+            <button id="filterMedium" class="priority-btn priority-medium px-3 py-1 rounded-full text-xs font-semibold border border-[var(--token-border-primary)] hover:bg-[var(--token-bg-accent)] transition-colors">Medium</button>
+            <button id="filterLow" class="priority-btn priority-low px-3 py-1 rounded-full text-xs font-semibold border border-[var(--token-border-primary)] hover:bg-[var(--token-bg-accent)] transition-colors">Low</button>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList" class="task-list-container h-64 overflow-y-auto pr-2">
+            <!-- Tasks will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        const newTaskInput = document.getElementById('newTaskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const taskList = document.getElementById('taskList');
+        const filterButtons = document.querySelectorAll('.priority-btn');
+
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [
+            { id: Date.now(), text: 'Buy groceries', completed: false, priority: 'medium' },
+            { id: Date.now() + 1, text: 'Finish project report', completed: false, priority: 'high' },
+            { id: Date.now() + 2, text: 'Call mom', completed: false, priority: 'low' },
+            { id: Date.now() + 3, text: 'Plan weekend trip', completed: false, priority: 'medium' }
+        ];
+
+        let draggedItem = null;
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function renderTasks(filter = 'all') {
+            taskList.innerHTML = '';
+            const filteredTasks = tasks.filter(task => {
+                if (filter === 'all') return true;
+                return task.priority === filter;
+            });
+
+            filteredTasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.id = `task-${task.id}`;
+                taskItem.className = `task-item p-4 mb-3 rounded-lg flex items-center justify-between ${task.completed ? 'completed' : ''} priority-${task.priority}`;
+                taskItem.setAttribute('draggable', 'true');
+                taskItem.setAttribute('data-priority', task.priority);
+                taskItem.setAttribute('data-id', task.id);
+
+                taskItem.innerHTML = `
+                    <div class="flex items-center gap-3 flex-grow">
+                        <input type="checkbox" class="task-checkbox h-5 w-5 text-[var(--token-accent-blue)] rounded focus:ring-[var(--token-accent-blue)]" ${task.completed ? 'checked' : ''}>
+                        <span class="text-base flex-grow">${task.text}</span>
+                    </div>
+                    <button class="delete-task-btn text-[var(--token-text-secondary)] hover:text-red-500 transition-colors p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete task">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+
+                taskList.appendChild(taskItem);
+
+                // Event Listeners for checkboxes
+                taskItem.querySelector('.task-checkbox').addEventListener('change', (e) => {
+                    task.completed = e.target.checked;
+                    saveTasks();
+                    renderTasks(); // Re-render to apply completed class and update priority button states
+                });
+
+                // Event Listeners for delete buttons
+                taskItem.querySelector('.delete-task-btn').addEventListener('click', () => {
+                    tasks = tasks.filter(t => t.id !== task.id);
+                    saveTasks();
+                    renderTasks();
+                });
+            });
+        }
+
+        // Drag and Drop functionality
+        taskList.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('task-item')) {
+                draggedItem = e.target;
+                setTimeout(() => {
+                    e.target.classList.add('dragging');
+                }, 0);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', e.target.id);
+            }
+        });
+
+        taskList.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow drop
+            const afterElement = getDragAfterElement(taskList, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable && afterElement == null) {
+                taskList.appendChild(draggable);
+            } else if (draggable && afterElement) {
+                taskList.insertBefore(draggable, afterElement);
+            }
+        });
+
+        taskList.addEventListener('dragend', () => {
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+                draggedItem = null;
+            }
+            // Update task order in the data array
+            const reorderedTaskIds = Array.from(taskList.children).map(item => parseInt(item.dataset.id));
+            tasks.sort((a, b) => reorderedTaskIds.indexOf(a.id) - reorderedTaskIds.indexOf(b.id));
+            saveTasks();
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.task-item:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // Add Task functionality
+        addTaskBtn.addEventListener('click', () => {
+            const taskText = newTaskInput.value.trim();
+            if (taskText) {
+                const newTask = {
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false,
+                    priority: 'medium' // Default priority
+                };
+                tasks.unshift(newTask); // Add to the beginning
+                saveTasks();
+                renderTasks(); // Re-render to show new task and apply priority filter
+                newTaskInput.value = '';
+            }
+        });
+
+        newTaskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTaskBtn.click();
+            }
+        });
+
+        // Priority Filter functionality
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove 'active' class from all buttons
+                filterButtons.forEach(btn => btn.classList.remove('bg-[var(--token-bg-accent)]', 'border-transparent'));
+                // Add 'active' class to clicked button
+                button.classList.add('bg-[var(--token-bg-accent)]', 'border-transparent');
+                renderTasks(button.id.replace('filter', '').toLowerCase());
+            });
+        });
+
+        // Initial render
+        renderTasks(); // Render all tasks on load
+
+        // Set initial active state for 'All' filter
+        document.getElementById('filterAll').classList.add('bg-[var(--token-bg-accent)]', 'border-transparent');
+    </script>
+</body>
+</html>

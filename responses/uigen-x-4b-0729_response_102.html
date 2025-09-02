@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Timeline UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'twitter-blue': '#1DA1F2',
+                        'twitter-light': '#F8F9FA',
+                        'twitter-dark': '#202124',
+                        'twitter-card': '#FFFFFF',
+                        'twitter-gray': '#92949C',
+                        'twitter-light-gray': '#ECECEC',
+                        'twitter-green': '#2D9CDB',
+                        'twitter-red': '#E5383B',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'manrope': ['Manrope', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA;
+            color: #202124;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .tweet-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .tweet-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .media-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        
+        .media-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            padding: 12px;
+            color: white;
+        }
+        
+        .thread-indicator {
+            position: absolute;
+            top: -8px;
+            right: 16px;
+            background: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        
+        .thread-indicator:hover {
+            transform: scale(1.1);
+        }
+        
+        .like-btn, .retweet-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .like-btn:hover, .retweet-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .action-btn.active {
+            color: #1DA1F2;
+        }
+        
+        .comment-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse-slow 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-twitter-light min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-twitter-blue flex items-center justify-center mr-3">
+                    <i class="fas fa-twitter text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-manrope font-bold text-twitter-dark">Twitter Timeline</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" placeholder="Search tweets..." class="pl-10 pr-4 py-2 rounded-full border border-twitter-light-gray focus:outline-none focus:ring-2 focus:ring-twitter-blue focus:border-transparent">
+                    <i class="fas fa-search absolute left-3 top-3 text-twitter-gray"></i>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white"></div>
+                    <span class="text-sm font-medium text-twitter-dark">Alex Morgan</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Timeline Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-2xl font-manrope font-bold text-twitter-dark">Latest Tweets</h2>
+                <p class="text-twitter-gray">Stay updated with the latest conversations</p>
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-4 py-2 bg-white border border-twitter-light-gray rounded-full text-sm font-medium text-twitter-dark hover:bg-twitter-light transition-colors">
+                    <i class="fas fa-bell mr-1"></i> Notifications
+                </button>
+                <button class="px-4 py-2 bg-twitter-blue text-white rounded-full text-sm font-medium hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-plus mr-1"></i> New Tweet
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tweet Timeline -->
+        <div class="space-y-6">
+            <!-- Tweet 1 -->
+            <div class="tweet-card bg-white rounded-xl overflow-hidden animate-fade-in">
+                <div class="p-5">
+                    <div class="flex items-start">
+                        <div class="relative mr-4">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                            <div class="absolute bottom-0 right-0 w-4 h-4 border-2 border-white rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h3 class="font-manrope font-semibold text-twitter-dark">Sarah Johnson</h3>
+                                <span class="mx-2 text-twitter-gray">·</span>
+                                <span class="text-xs text-twitter-gray">2 hours ago</span>
+                                <span class="mx-2 text-twitter-gray">·</span>
+                                <span class="text-xs text-twitter-blue bg-blue-50 px-2 py-1 rounded-full">Tech</span>
+                            </div>
+                            <p class="text-twitter-dark mb-4">Just launched our new AI-powered analytics dashboard! 🚀 This tool helps teams make data-driven decisions 3x faster. #DataScience #AI</p>
+                            
+                            <!-- Embedded Media -->
+                            <div class="media-container rounded-xl mb-4 overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Dashboard preview" class="w-full h-auto">
+                                <div class="media-overlay">
+                                    <h4 class="font-semibold">AI Analytics Dashboard</h4>
+                                    <p class="text-sm opacity-80">Interactive visualization of key metrics</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex space-x-4 mb-4">
+                                <button class="like-btn flex items-center text-twitter-gray hover:text-twitter-red">
+                                    <i class="far fa-heart mr-1"></i> <span class="text-sm">Like</span>
+                                </button>
+                                <button class="retweet-btn flex items-center text-twitter-gray hover:text-twitter-blue">
+                                    <i class="fas fa-retweet mr-1"></i> <span class="text-sm">Retweet</span>
+                                </button>
+                                <button class="flex items-center text-twitter-gray hover:text-twitter-dark">
+                                    <i class="far fa-comment mr-1"></i> <span class="text-sm">Reply</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Reply Thread -->
+                            <div class="ml-8">
+                                <div class="thread-indicator">
+                                    <i class="fas fa-chevron-down text-xs text-twitter-gray"></i>
+                                </div>
+                                
+                                <div class="pl-4 mt-3 border-l-2 border-twitter-light-gray">
+                                    <div class="flex items-start mb-3">
+                                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Reply avatar" class="comment-avatar mr-3">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-1">
+                                                <h4 class="font-medium text-twitter-dark">Michael Chen</h4>
+                                                <span class="mx-2 text-twitter-gray">·</span>
+                                                <span class="text-xs text-twitter-gray">1 hour ago</span>
+                                            </div>
+                                            <p class="text-sm text-twitter-dark mb-2">This looks amazing! The predictive analytics features are particularly impressive. Would love to see a demo later this week.</p>
+                                            <div class="flex space-x-2">
+                                                <button class="text-xs text-twitter-gray hover:text-twitter-red">Like</button>
+                                                <button class="text-xs text-twitter-gray hover:text-twitter-blue">Reply</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start pl-4">
+                                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Reply avatar" class="comment-avatar mr-3">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-1">
+                                                <h4 class="font-medium text-twitter-dark">Emma Rodriguez</h4>
+                                                <span class="mx-2 text-twitter-gray">·</span>
+                                                <span class="text-xs text-twitter-gray">45 min ago</span>
+                                            </div>
+                                            <p class="text-sm text-twitter-dark mb-2">The customization options are a game-changer. Our team can now tailor dashboards to specific KPIs.</p>
+                                            <div class="flex space-x-2">
+                                                <button class="text-xs text-twitter-gray hover:text-twitter-red">Like</button>
+                                                <button class="text-xs text-twitter-gray hover:text-twitter-blue">Reply</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tweet 2 -->
+            <div class="tweet-card bg-white rounded-xl overflow-hidden animate-fade-in">
+                <div class="p-5">
+                    <div class="flex items-start">
+                        <div class="relative mr-4">
+                            <img src="https://randomuser.me/api/portraits/men/22.jpg" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h3 class="font-manrope font-semibold text-twitter-dark">David Wilson</h3>
+                                <span class="mx-2 text-twitter-gray">·</span>
+                                <span class="text-xs text-twitter-gray">5 hours ago</span>
+                            </div>
+                            <p class="text-twitter-dark mb-4">Just read the new research on renewable energy adoption in developing countries. The numbers are promising but we need more international support to accelerate progress. #Sustainability #ClimateAction</p>
+                            
+                            <!-- Embedded Video -->
+                            <div class="rounded-xl overflow-hidden mb-4">
+                                <div class="aspect-video bg-gray-200 border-2 border-dashed rounded-xl flex items-center justify-center">
+                                    <div class="text-center">
+                                        <i class="fas fa-play-circle text-4xl text-twitter-blue mb-2"></i>
+                                        <p class="text-sm text-twitter-gray">Embedded video preview</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex space-x-4 mb-4">
+                                <button class="like-btn flex items-center text-twitter-gray hover:text-twitter-red">
+                                    <i class="far fa-heart mr-1"></i> <span class="text-sm">Like</span>
+                                </button>
+                                <button class="retweet-btn flex items-center text-twitter-gray hover:text-twitter-blue">
+                                    <i class="fas fa-retweet mr-1"></i> <span class="text-sm">Retweet</span>
+                                </button>
+                                <button class="flex items-center text-twitter-gray hover:text-twitter-dark">
+                                    <i class="far fa-comment mr-1"></i> <span class="text-sm">Reply</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tweet 3 -->
+            <div class="tweet-card bg-white rounded-xl overflow-hidden animate-fade-in">
+                <div class="p-5">
+                    <div class="flex items-start">
+                        <div class="relative mr-4">
+                            <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                            <div class="absolute bottom-0 right-0 w-4 h-4 border-2 border-white rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h3 class="font-manrope font-semibold text-twitter-dark">TechNews Daily</h3>
+                                <span class="mx-2 text-twitter-gray">·</span>
+                                <span class="text-xs text-twitter-gray">1 day ago</span>
+                                <span class="mx-2 text-twitter-gray">·</span>
+                                <span class="text-xs text-twitter-blue bg-blue-50 px-2 py-1 rounded-full">News</span>
+                            </div>
+                            <p class="text-twitter-dark mb-4">Microsoft announces partnership with OpenAI to develop ethical AI frameworks. The collaboration aims to create responsible AI systems that prioritize human values. #AI #Microsoft</p>
+                            
+                            <!-- Embedded Media -->
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div class="rounded-xl overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1550439062-609e1531270e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="AI framework" class="w-full h-auto">
+                                </div>
+                                <div class="rounded-xl overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="AI collaboration" class="w-full h-auto">
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex space-x-4 mb-4">
+                                <button class="like-btn flex items-center text-twitter-gray hover:text-twitter-red">
+                                    <i class="far fa-heart mr-1"></i> <span class="text-sm">Like</span>
+                                </button>
+                                <button class="retweet-btn flex items-center text-twitter-gray hover:text-twitter-blue">
+                                    <i class="fas fa-retweet mr-1"></i> <span class="text-sm">Retweet</span>
+                                </button>
+                                <button class="flex items-center text-twitter-gray hover:text-twitter-dark">
+                                    <i class="far fa-comment mr-1"></i> <span class="text-sm">Reply</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tweet 4 -->
+            <div class="tweet-card bg-white rounded-xl overflow-hidden animate-fade-in">
+                <div class="p-5">
+                    <div class="flex items-start">
+                        <div class="relative mr-4">
+                            <img src="https://randomuser.me/api/portraits/men/41.jpg" alt="User avatar" class="w-12 h-12 rounded-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h3 class="font-manrope font-semibold text-twitter-dark">DesignInspiration</h3>
+                                <span class="mx-2 text-twitter-gray">·</span>
+                                <span class="text-xs text-twitter-gray">1 day ago</span>
+                            </div>
+                            <p class="text-twitter-dark mb-4">Just discovered this amazing UI kit that combines modern aesthetics with exceptional usability. Check it out and let me know what you think! 👇 #UI #UX #DesignResources</p>
+                            
+                            <!-- Embedded Media -->
+                            <div class="media-container rounded-xl mb-4 overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="UI kit preview" class="w-full h-auto">
+                                <div class="media-overlay">
+                                    <h4 class="font-semibold">Modern UI Kit</h4>
+                                    <p class="text-sm opacity-80">Premium design resources for developers</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex space-x-4 mb-4">
+                                <button class="like-btn flex items-center text-twitter-gray hover:text-twitter-red">
+                                    <i class="far fa-heart mr-1"></i> <span class="text-sm">Like</span>
+                                </button>
+                                <button class="retweet-btn flex items-center text-twitter-gray hover:text-twitter-blue">
+                                    <i class="fas fa-retweet mr-1"></i> <span class="text-sm">Retweet</span>
+                                </button>
+                                <button class="flex items-center text-twitter-gray hover:text-twitter-dark">
+                                    <i class="far fa-comment mr-1"></i> <span class="text-sm">Reply</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Reply Thread -->
+                            <div class="ml-8">
+                                <div class="thread-indicator">
+                                    <i class="fas fa-chevron-down text-xs text-twitter-gray"></i>
+                                </div>
+                                
+                                <div class="pl-4 mt-3 border-l-2 border-twitter-light-gray">
+                                    <div class="flex items-start mb-3">
+                                        <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="Reply avatar" class="comment-avatar mr-3">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-1">
+                                                <h4 class="font-medium text-twitter-dark">Sophia Lee</h4>
+                                                <span class="mx-2 text-twitter-gray">·</span>
+                                                <span class="text-xs text-twitter-gray">22 hours ago</span>
+                                            </div>
+                                            <p class="text-sm text-twitter-dark mb-2">Absolutely stunning! The animation library is particularly well thought out. This is exactly what I needed for my project.</p>
+                                            <div class="flex space-x-2">
+                                                <button class="text-xs text-twitter-gray hover:text-twitter-red">Like</button>
+                                                <button class="text-xs text-twitter-gray hover:text-twitter-blue">Reply</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Load More Button -->
+        <div class="mt-8 text-center">
+            <button class="px-6 py-3 bg-white border border-twitter-light-gray rounded-full text-sm font-medium text-twitter-dark hover:bg-twitter-light transition-colors">
+                Load More Tweets
+            </button>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t border-twitter-light-gray mt-12 py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-twitter-blue flex items-center justify-center mr-2">
+                            <i class="fas fa-twitter text-white"></i>
+                        </div>
+                        <span class="font-manrope font-bold text-lg text-twitter-dark">Twitter</span>
+                    </div>
+                    <p class="text-sm text-twitter-gray mt-2">The place to share what matters to you.</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-twitter-gray hover:text-twitter-blue">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-twitter-light-gray mt-6 pt-6 text-center text-sm text-twitter-gray">
+                <p>© 2023 Twitter. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Like button functionality
+        document.querySelectorAll('.like-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('far')) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                    this.classList.add('active');
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                    this.classList.remove('active');
+                }
+            });
+        });
+        
+        // Thread toggle functionality
+        document.querySelectorAll('.thread-indicator').forEach(indicator => {
+            indicator.addEventListener('click', function() {
+                const thread = this.closest('.ml-8').nextElementSibling;
+                thread.classList.toggle('hidden');
+                const icon = this.querySelector('i');
+                if (thread.classList.contains('hidden')) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-right');
+                } else {
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-down');
+                }
+            });
+        });
+        
+        // Simulate loading animation
+        document.querySelectorAll('.animate-fade-in').forEach((el, index) => {
+            el.style.animationDelay = `${index * 0.1}s`;
+        });
+    </script>
+</body>
+</html>

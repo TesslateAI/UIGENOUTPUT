@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Invoice Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        
+        .invoice-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+        
+        .line-item {
+            transition: all 0.3s ease;
+        }
+        
+        .line-item:hover {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        .tax-badge {
+            background: rgba(34, 197, 94, 0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(2, 132, 199, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(22, 197, 94, 0.3);
+        }
+        
+        .input-field {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+        }
+        
+        .preview-container {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+        
+        .preview-header {
+            background: linear-gradient(90deg, rgba(14, 165, 233, 0.1) 0%, rgba(30, 41, 59, 0.8) 100%);
+        }
+        
+        .footer-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="py-6 px-4 sm:px-8 lg:px-16">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center">
+                    <i class="fas fa-receipt text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white">Invoice<span class="text-primary-400">Pro</span></h1>
+            </div>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">Home</a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">Templates</a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">Pricing</a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">Contact</a>
+            </nav>
+            <button class="btn-primary px-6 py-2 rounded-lg font-medium text-white flex items-center">
+                <i class="fas fa-download mr-2"></i> Export
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 sm:px-8 lg:px-16 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - Invoice Form -->
+            <div class="lg:col-span-2">
+                <div class="invoice-card rounded-2xl p-6 mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-6">Create New Invoice</h2>
+                    
+                    <!-- Company Info -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                            <i class="fas fa-building mr-2 text-primary-400"></i> Company Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Company Name</label>
+                                <input type="text" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="Acme Inc.">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Tax ID</label>
+                                <input type="text" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="AB123456">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Address</label>
+                                <input type="text" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="123 Business Ave">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">City</label>
+                                <input type="text" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="New York">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Client Info -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                            <i class="fas fa-user-tie mr-2 text-primary-400"></i> Client Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Client Name</label>
+                                <input type="text" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="John Smith">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Client Email</label>
+                                <input type="email" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="john@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Client Address</label>
+                                <input type="text" class="input-field w-full px-4 py-2 rounded-lg text-white" placeholder="456 Client St">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Due Date</label>
+                                <input type="date" class="input-field w-full px-4 py-2 rounded-lg text-white">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Line Items -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-300 flex items-center">
+                                <i class="fas fa-list mr-2 text-primary-400"></i> Line Items
+                            </h3>
+                            <button id="add-item" class="btn-success px-4 py-2 rounded-lg font-medium text-white flex items-center">
+                                <i class="fas fa-plus mr-2"></i> Add Item
+                            </button>
+                        </div>
+                        
+                        <div id="line-items-container" class="space-y-4">
+                            <!-- Line items will be added here dynamically -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tax Section -->
+                <div class="invoice-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                        <i class="fas fa-calculator mr-2 text-primary-400"></i> Tax Calculations
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Tax Rate (%)</label>
+                            <input type="number" id="tax-rate" class="input-field w-full px-4 py-2 rounded-lg text-white" value="10" min="0" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Discount (%)</label>
+                            <input type="number" id="discount-rate" class="input-field w-full px-4 py-2 rounded-lg text-white" value="0" min="0" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Payment Terms</label>
+                            <select class="input-field w-full px-4 py-2 rounded-lg text-white">
+                                <option>Net 30 Days</option>
+                                <option>Due on Receipt</option>
+                                <option>Net 15 Days</option>
+                                <option>Net 45 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-6 border-t border-gray-700">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-400">Subtotal</span>
+                            <span id="subtotal" class="font-medium">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-400">Tax (10%)</span>
+                            <span id="tax-amount" class="font-medium">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-400">Discount</span>
+                            <span id="discount-amount" class="font-medium">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-700">
+                            <span class="text-lg font-semibold">Total</span>
+                            <span id="total" class="text-lg font-bold text-primary-400">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Preview -->
+            <div>
+                <div class="preview-container rounded-2xl p-6 sticky top-8">
+                    <div class="preview-header rounded-xl p-4 mb-6">
+                        <h3 class="text-xl font-bold text-white flex items-center">
+                            <i class="fas fa-eye mr-2 text-primary-400"></i> Invoice Preview
+                        </h3>
+                        <p class="text-gray-300 text-sm mt-1">Your invoice will look like this</p>
+                    </div>
+                    
+                    <div id="invoice-preview" class="bg-white rounded-xl p-6 text-gray-800">
+                        <!-- Preview content will be generated here -->
+                    </div>
+                    
+                    <div class="mt-6 flex space-x-3">
+                        <button class="btn-primary flex-1 py-3 rounded-lg font-medium text-white flex items-center justify-center">
+                            <i class="fas fa-file-pdf mr-2"></i> PDF
+                        </button>
+                        <button class="btn-success flex-1 py-3 rounded-lg font-medium text-white flex items-center justify-center">
+                            <i class="fas fa-envelope mr-2"></i> Email
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-blur bg-black/30 mt-12 py-8 px-4 sm:px-8 lg:px-16">
+        <div class="container mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+                            <i class="fas fa-receipt text-white"></i>
+                        </div>
+                        <span class="text-xl font-bold text-white">Invoice<span class="text-primary-400">Pro</span></span>
+                    </div>
+                    <p class="text-gray-400 text-sm mt-2">Professional invoice generator for modern businesses</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+                <p>© 2023 InvoicePro. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize the invoice with sample data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add initial line items
+            addLineItem("Web Design Services", 40, 120);
+            addLineItem("Hosting Plan", 1, 99);
+            addLineItem("Domain Registration", 1, 12);
+            
+            // Update totals
+            updateTotals();
+            
+            // Add event listeners
+            document.getElementById('add-item').addEventListener('click', function() {
+                addLineItem("New Service", 1, 0);
+                updateTotals();
+            });
+            
+            // Tax rate change
+            document.getElementById('tax-rate').addEventListener('input', updateTotals);
+            
+            // Discount rate change
+            document.getElementById('discount-rate').addEventListener('input', updateTotals);
+        });
+        
+        // Function to add a line item
+        function addLineItem(description, quantity, price) {
+            const container = document.getElementById('line-items-container');
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'line-item bg-gray-800/50 rounded-lg p-4 flex items-center';
+            itemDiv.innerHTML = `
+                <div class="w-1/4">
+                    <input type="text" class="input-field w-full px-3 py-2 rounded-lg text-white" value="${description}">
+                </div>
+                <div class="w-1/4">
+                    <input type="number" class="input-field w-full px-3 py-2 rounded-lg text-white" value="${quantity}" min="1">
+                </div>
+                <div class="w-1/4">
+                    <input type="number" class="input-field w-full px-3 py-2 rounded-lg text-white" value="${price}" min="0" step="0.01">
+                </div>
+                <div class="w-1/4 flex justify-end">
+                    <button class="text-red-400 hover:text-red-300">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(itemDiv);
+            
+            // Add event listener to the delete button
+            const deleteBtn = itemDiv.querySelector('button');
+            deleteBtn.addEventListener('click', function() {
+                container.removeChild(itemDiv);
+                updateTotals();
+            });
+            
+            // Add event listeners to input fields
+            const inputs = itemDiv.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateTotals);
+            });
+        }
+        
+        // Function to update totals
+        function updateTotals() {
+            let subtotal = 0;
+            const items = document.querySelectorAll('#line-items-container .line-item');
+            
+            items.forEach(item => {
+                const quantityInput = item.querySelector('input[type="number"]:nth-child(2)');
+                const priceInput = item.querySelector('input[type="number"]:nth-child(3)');
+                
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                
+                subtotal += quantity * price;
+            });
+            
+            const taxRate = parseFloat(document.getElementById('tax-rate').value) || 0;
+            const discountRate = parseFloat(document.getElementById('discount-rate').value) || 0;
+            
+            const taxAmount = subtotal * (taxRate / 100);
+            const discountAmount = subtotal * (discountRate / 100);
+            const total = subtotal + taxAmount - discountAmount;
+            
+            // Update the DOM
+            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('tax-amount').textContent = `$${taxAmount.toFixed(2)}`;
+            document.getElementById('discount-amount').textContent = `$${discountAmount.toFixed(2)}`;
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+            
+            // Update preview
+            updatePreview();
+        }
+        
+        // Function to update the preview
+        function updatePreview() {
+            const preview = document.getElementById('invoice-preview');
+            
+            // Get company info
+            const companyName = document.querySelector('input[placeholder="Acme Inc."]').value || "Acme Inc.";
+            const companyAddress = document.querySelector('input[placeholder="123 Business Ave"]').value || "123 Business Ave";
+            const companyCity = document.querySelector('input[placeholder="New York"]').value || "New York";
+            
+            // Get client info
+            const clientName = document.querySelector('input[placeholder="John Smith"]').value || "John Smith";
+            const clientEmail = document.querySelector('input[placeholder="john@example.com"]').value || "john@example.com";
+            const clientAddress = document.querySelector('input[placeholder="456 Client St"]').value || "456 Client St";
+            
+            // Get due date
+            const dueDate = document.querySelector('input[type="date"]').value || new Date().toISOString().split('T')[0];
+            
+            // Get tax rate
+            const taxRate = document.getElementById('tax-rate').value + "%";
+            
+            // Get line items
+            let itemsHtml = '';
+            const items = document.querySelectorAll('#line-items-container .line-item');
+            items.forEach(item => {
+                const description = item.querySelector('input[type="text"]').value;
+                const quantity = item.querySelector('input[type="number"]:nth-child(2)').value;
+                const price = item.querySelector('input[type="number"]:nth-child(3)').value;
+                const total = quantity * price;
+                
+                itemsHtml += `
+                    <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                        <div>
+                            <div class="font-medium">${description}</div>
+                            <div class="text-sm text-gray-500">${quantity} x $${price}</div>
+                        </div>
+                        <div class="font-medium">$${total.toFixed(2)}</div>
+                    </div>
+                `;
+            });
+            
+            // Get totals
+            const subtotal = document.getElementById('subtotal').textContent;
+            const taxAmount = document.getElementById('tax-amount').textContent;
+            const discountAmount = document.getElementById('discount-amount').textContent;
+            const total = document.getElementById('total').textContent;
+            
+            // Generate preview HTML
+            preview.innerHTML = `
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">INVOICE</h2>
+                    <p class="text-gray-600">Invoice #${Math.floor(Math.random() * 10000)}</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-2">Bill To:</h3>
+                        <p class="text-gray-700">${clientName}</p>
+                        <p class="text-gray-700">${clientAddress}</p>
+                        <p class="text-gray-700">${clientCity}</p>
+                        <p class="text-gray-700">${clientEmail}</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-2">From:</h3>
+                        <p class="text-gray-700">${companyName}</p>
+                        <p class="text-gray-700">${companyAddress}</p>
+                        <p class="text-gray-700">${companyCity}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold text-gray-800">Date: ${new Date().toLocaleDateString()}</h3>
+                        <h3 class="font-semibold text-gray-800">Due: ${new Date(dueDate).toLocaleDateString()}</h3>
+                    </div>
+                    
+                    <div class="border border-gray-200 rounded-lg">
+                        <div class="bg-gray-100 px-4 py-2 border-b border-gray-200">
+                            <div class="flex justify-between">
+                                <span class="font-medium">Description</span>
+                                <span class="font-medium">Amount</span>
+                            </div>
+                        </div>
+                        ${itemsHtml}
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="flex justify-between py-2">
+                        <span class="text-gray-600">Subtotal</span>
+                        <span>${subtotal}</span>
+                    </div>
+                    <div class="flex justify-between py-2">
+                        <span class="text-gray-600">Tax (${taxRate})</span>
+                        <span>${taxAmount}</span>
+                    </div>
+                    <div class="flex justify-between py-2">
+                        <span class="text-gray-600">Discount</span>
+                        <span>${discountAmount}</span>
+                    </div>
+                    <div class="flex justify-between py-4 border-t border-gray-200 mt-2">
+                        <span class="font-bold text-lg">Total</span>
+                        <span class="font-bold text-lg text-primary-600">${total}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <p class="text-gray-600 mb-2"><strong>Payment Terms:</strong> Net 30 Days</p>
+                    <p class="text-gray-600"><strong>Thank you for your business!</strong></p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

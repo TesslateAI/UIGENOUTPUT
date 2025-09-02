@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-dark: #0f172a;
+            --color-bg-card: #1e293b;
+            --color-primary: #6366f1;
+            --color-primary-light: #818cf8;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-text-light: #f1f5f9;
+            --color-text-muted: #94a3b8;
+            --color-border: #334155;
+        }
+
+        body {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-light);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 80px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background-color: var(--color-bg-card);
+            border-right: 1px solid var(--color-border);
+        }
+
+        .header {
+            grid-area: header;
+            background-color: var(--color-bg-card);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .main-content {
+            grid-area: main;
+            overflow-y: auto;
+        }
+
+        .card {
+            background-color: var(--color-bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .metric-change.positive {
+            color: var(--color-success);
+        }
+
+        .metric-change.negative {
+            color: var(--color-danger);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: var(--color-text-muted);
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--color-primary-light);
+        }
+
+        .nav-link i {
+            width: 24px;
+            text-align: center;
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .post-card {
+            padding: 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .post-card:last-child {
+            border-bottom: none;
+        }
+
+        .engagement-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: var(--color-border);
+            overflow: hidden;
+        }
+
+        .engagement-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .platform-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .platform-tag.facebook {
+            background-color: rgba(59, 89, 152, 0.2);
+            color: #3b5998;
+        }
+
+        .platform-tag.twitter {
+            background-color: rgba(29, 161, 242, 0.2);
+            color: #1da1f2;
+        }
+
+        .platform-tag.instagram {
+            background-color: rgba(225, 37, 27, 0.2);
+            color: #e1251b;
+        }
+
+        .platform-tag.linkedin {
+            background-color: rgba(0, 119, 181, 0.2);
+            color: #0077b5;
+        }
+
+        .platform-tag.youtube {
+            background-color: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+
+        .delay-200 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-300 {
+            animation-delay: 0.3s;
+        }
+
+        .delay-400 {
+            animation-delay: 0.4s;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar p-6">
+            <div class="flex items-center mb-10">
+                <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mr-3">
+                    <i class="fas fa-chart-line text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold">AnalyticsPro</h1>
+            </div>
+
+            <nav class="space-y-1">
+                <a href="#" class="nav-link active">
+                    <i class="fas fa-home"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Audience
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-bullhorn"></i>
+                    Content
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </nav>
+
+            <div class="mt-auto pt-10">
+                <div class="bg-indigo-900/30 rounded-xl p-4">
+                    <h3 class="font-semibold mb-2">Upgrade to Pro</h3>
+                    <p class="text-sm text-gray-300 mb-3">Get access to all features and advanced analytics</p>
+                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">
+                        Upgrade Now
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-8 py-4">
+            <div class="relative w-96">
+                <input type="text" placeholder="Search analytics..." class="w-full bg-gray-800 border border-gray-700 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <button class="relative p-2 rounded-full hover:bg-gray-800">
+                    <i class="fas fa-bell text-gray-300"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-800">
+                    <i class="fas fa-cog text-gray-300"></i>
+                </button>
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mr-2">
+                        <span class="font-semibold">JD</span>
+                    </div>
+                    <span class="hidden md:block">John Doe</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content p-8 overflow-y-auto">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold">Social Media Dashboard</h1>
+                <p class="text-gray-400">Monitor your social media performance in real-time</p>
+            </div>
+
+            <!-- Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="metric-card card animate-in">
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-gray-400">Total Followers</p>
+                            <div class="metric-value">24.8K</div>
+                            <div class="metric-change positive">
+                                <i class="fas fa-arrow-up mr-1"></i> 12.4%
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-indigo-900/30 flex items-center justify-center">
+                            <i class="fas fa-users text-indigo-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card card animate-in delay-100">
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-gray-400">Engagement Rate</p>
+                            <div class="metric-value">8.2%</div>
+                            <div class="metric-change positive">
+                                <i class="fas fa-arrow-up mr-1"></i> 3.1%
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-900/30 flex items-center justify-center">
+                            <i class="fas fa-heart text-green-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card card animate-in delay-200">
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-gray-400">Impressions</p>
+                            <div class="metric-value">1.2M</div>
+                            <div class="metric-change negative">
+                                <i class="fas fa-arrow-down mr-1"></i> 1.2%
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-amber-900/30 flex items-center justify-center">
+                            <i class="fas fa-eye text-amber-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-card card animate-in delay-300">
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-gray-400">New Followers</p>
+                            <div class="metric-value">1.2K</div>
+                            <div class="metric-change positive">
+                                <i class="fas fa-arrow-up mr-1"></i> 5.7%
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-cyan-900/30 flex items-center justify-center">
+                            <i class="fas fa-user-plus text-cyan-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Follower Growth Chart -->
+                <div class="card p-6 animate-in delay-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-semibold">Follower Growth</h2>
+                        <div class="flex space-x-2">
+                            <button class="text-xs px-3 py-1 rounded-lg bg-gray-800">Weekly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-indigo-600">Monthly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-gray-800">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="followerChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Engagement Rate Chart -->
+                <div class="card p-6 animate-in delay-200">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-semibold">Engagement Rate</h2>
+                        <div class="flex space-x-2">
+                            <button class="text-xs px-3 py-1 rounded-lg bg-gray-800">Weekly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-indigo-600">Monthly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-gray-800">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Platform Performance -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Platform Distribution -->
+                <div class="card p-6 animate-in delay-300">
+                    <h2 class="text-lg font-semibold mb-6">Platform Distribution</h2>
+                    <div class="chart-container">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Performing Content -->
+                <div class="card p-6 animate-in delay-400">
+                    <h2 class="text-lg font-semibold mb-6">Top Performing Content</h2>
+                    <div class="space-y-4">
+                        <div class="post-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <span class="platform-tag facebook">Facebook</span>
+                                        <span class="text-gray-400 text-sm ml-2">2 days ago</span>
+                                    </div>
+                                    <h3 class="font-medium">New product launch announcement</h3>
+                                    <div class="flex items-center mt-2 text-sm">
+                                        <span class="text-gray-400 mr-4">1.2K</span>
+                                        <span class="text-gray-400 mr-4">489</span>
+                                        <span class="text-gray-400">8.2%</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-gray-400 text-sm mb-1">24.5K</div>
+                                    <div class="engagement-bar">
+                                        <div class="engagement-fill bg-indigo-500" style="width: 82%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="post-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <span class="platform-tag instagram">Instagram</span>
+                                        <span class="text-gray-400 text-sm ml-2">1 day ago</span>
+                                    </div>
+                                    <h3 class="font-medium">Behind the scenes at our office</h3>
+                                    <div class="flex items-center mt-2 text-sm">
+                                        <span class="text-gray-400 mr-4">8.7K</span>
+                                        <span class="text-gray-400 mr-4">1.2K</span>
+                                        <span class="text-gray-400">14.2%</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-gray-400 text-sm mb-1">24.5K</div>
+                                    <div class="engagement-bar">
+                                        <div class="engagement-fill bg-pink-500" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="post-card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <span class="platform-tag twitter">Twitter</span>
+                                        <span class="text-gray-400 text-sm ml-2">3 days ago</span>
+                                    </div>
+                                    <h3 class="font-medium">Industry insights: Future trends</h3>
+                                    <div class="flex items-center mt-2 text-sm">
+                                        <span class="text-gray-400 mr-4">2.1K</span>
+                                        <span class="text-gray-400 mr-4">342</span>
+                                        <span class="text-gray-400">15.8%</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-gray-400 text-sm mb-1">24.5K</div>
+                                    <div class="engagement-bar">
+                                        <div class="engagement-fill bg-blue-500" style="width: 32%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audience Demographics -->
+                <div class="card p-6 animate-in delay-400">
+                    <h2 class="text-lg font-semibold mb-6">Audience Demographics</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-300">Age Distribution</span>
+                                <span class="text-gray-400">24-34 (42%)</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-indigo-500 h-2 rounded-full" style="width: 42%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-300">Gender Distribution</span>
+                                <span class="text-gray-400">Female (58%)</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-pink-500 h-2 rounded-full" style="width: 58%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-300">Location</span>
+                                <span class="text-gray-400">US (32%)</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 32%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card p-6 animate-in delay-400">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-semibold">Recent Activity</h2>
+                    <button class="text-sm text-indigo-400 hover:text-indigo-300">View All</button>
+                </div>
+                <div class="space-y-4">
+                    <div class="post-card">
+                        <div class="flex items-start">
+                            <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <span class="font-semibold">JD</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">John Doe</span>
+                                    <span class="text-gray-400 text-sm ml-2">2 hours ago</span>
+                                </div>
+                                <p class="mt-1">Just launched our new product! Check it out and let us know what you think. #innovation #tech</p>
+                                <div class="flex items-center mt-3 text-gray-400 text-sm">
+                                    <span class="mr-4"><i class="fas fa-heart mr-1"></i> 245</span>
+                                    <span class="mr-4"><i class="fas fa-comment mr-1"></i> 32</span>
+                                    <span><i class="fas fa-share mr-1"></i> 18</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="post-card">
+                        <div class="flex items-start">
+                            <div class="w-10 h-10 rounded-full bg-pink-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <span class="font-semibold">SD</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">Sarah Johnson</span>
+                                    <span class="text-gray-400 text-sm ml-2">5 hours ago</span>
+                                </div>
+                                <p class="mt-1">Our team just won the industry award for best customer service! Huge thanks to everyone who supported us along the way. 🎉 #teamwork #achievement</p>
+                                <div class="flex items-center mt-3 text-gray-400 text-sm">
+                                    <span class="mr-4"><i class="fas fa-heart mr-1"></i> 1.2K</span>
+                                    <span class="mr-4"><i class="fas fa-comment mr-1"></i> 87</span>
+                                    <span><i class="fas fa-share mr-1"></i> 42</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="post-card">
+                        <div class="flex items-start">
+                            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <span class="font-semibold">MJ</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <span class="font-medium">Mike Johnson</span>
+                                    <span class="text-gray-400 text-sm ml-2">1 day ago</span>
+                                </div>
+                                <p class="mt-1">Check out our latest blog post about digital marketing strategies for 2023. Great insights for marketers! #marketing #digitalstrategy</p>
+                                <div class="flex items-center mt-3 text-gray-400 text-sm">
+                                    <span class="mr-4"><i class="fas fa-heart mr-1"></i> 892</span>
+                                    <span class="mr-4"><i class="fas fa-comment mr-1"></i> 45</span>
+                                    <span><i class="fas fa-share mr-1"></i> 28</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Follower Growth Chart
+            const followerCtx = document.getElementById('followerChart').getContext('2d');
+            const followerChart = new Chart(followerCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Followers',
+                        data: [18500, 19200, 20100, 21500, 22300, 23100, 24800],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#6366f1',
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Engagement Rate Chart
+            const engagementCtx = document.getElementById('engagementChart').getContext('2d');
+            const engagementChart = new Chart(engagementCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Engagement Rate',
+                        data: [5.8, 6.2, 6.5, 7.1, 7.3, 7.5, 8.2],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(99, 102, 241, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(99, 102, 241, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Platform Distribution Chart
+            const platformCtx = document.getElementById('platformChart').getContext('2d');
+            const platformChart = new Chart(platformCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Instagram', 'Facebook', 'Twitter', 'LinkedIn', 'YouTube'],
+                    datasets: [{
+                        data: [35, 25, 20, 15, 5],
+                        backgroundColor: [
+                            'rgba(225, 37, 27, 0.8)',
+                            'rgba(59, 89, 152, 0.8)',
+                            'rgba(29, 161, 242, 0.8)',
+                            'rgba(0, 119, 181, 0.8)',
+                            'rgba(255, 0, 0, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(225, 37, 27, 1)',
+                            'rgba(59, 89, 152, 1)',
+                            'rgba(29, 161, 242, 1)',
+                            'rgba(0, 119, 181, 1)',
+                            'rgba(255, 0, 0, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#f1f5f9',
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Animation on scroll
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.card').forEach(card => {
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>

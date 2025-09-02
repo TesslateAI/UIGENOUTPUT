@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Data Grid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-white: rgb(255, 255, 255);
+            --color-primary-dark: rgb(18, 17, 17);
+            --color-text-light-gray: rgb(108, 117, 125);
+            --color-dark-gray-border: rgb(73, 80, 87);
+            --color-light-gray-bg: rgb(246, 246, 246);
+            --color-orange-accent: rgb(255, 70, 37);
+            --color-red-accent: rgb(255, 37, 37);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-light-gray-bg);
+            color: var(--color-primary-dark);
+        }
+
+        .font-manrope {
+            font-family: 'Manrope', sans-serif;
+        }
+
+        /* Custom scrollbar for grid container to prevent infinite extension */
+        .data-grid-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .data-grid-container::-webkit-scrollbar-track {
+            background: var(--color-light-gray-bg);
+        }
+
+        .data-grid-container::-webkit-scrollbar-thumb {
+            background: var(--color-dark-gray-border);
+            border-radius: 4px;
+        }
+
+        .data-grid-container::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-light-gray);
+        }
+
+        .filter-dropdown {
+            background-color: var(--color-white);
+            border: 1px solid var(--color-dark-gray-border);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            max-width: 300px;
+            overflow: hidden;
+        }
+
+        .filter-dropdown .filter-options {
+            max-height: 200px;
+            overflow-y: auto;
+            transition: max-height 0.3s ease-out;
+        }
+        .filter-dropdown.active .filter-options {
+            max-height: 500px; /* Or a larger value to allow scrolling */
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6 md:p-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <h1 class="text-3xl font-manrope font-bold text-[var(--color-primary-dark)] mb-4 md:mb-0">Sales Data Overview</h1>
+            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                <div class="relative w-full sm:w-auto">
+                    <input type="text" id="filter-input" placeholder="Search by name, product, or region..." class="w-full pl-10 pr-4 py-2 border border-[var(--color-dark-gray-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-orange-accent)] text-sm">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-light-gray)]"></i>
+                </div>
+                <div id="filter-dropdown" class="filter-dropdown relative">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-[var(--color-primary-dark)]">Filter By:</span>
+                        <button id="close-filter" class="text-[var(--color-text-light-gray)] hover:text-[var(--color-primary-dark)] focus:outline-none transition-colors" aria-label="Close filter options">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="filter-options flex flex-col space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="filter-category" class="form-checkbox text-[var(--color-orange-accent)] rounded-sm" checked>
+                            <label for="filter-category" class="text-sm text-[var(--color-primary-dark)]">Category</label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="filter-status" class="form-checkbox text-[var(--color-orange-accent)] rounded-sm" checked>
+                            <label for="filter-status" class="text-sm text-[var(--color-primary-dark)]">Status</label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="filter-quantity" class="form-checkbox text-[var(--color-orange-accent)] rounded-sm" checked>
+                            <label for="filter-quantity" class="text-sm text-[var(--color-primary-dark)]">Quantity</label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="filter-date" class="form-checkbox text-[var(--color-orange-accent)] rounded-sm" checked>
+                            <label for="filter-date" class="text-sm text-[var(--color-primary-dark)]">Date</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg shadow-md border border-[var(--color-dark-gray-border)] data-grid-container">
+            <table class="min-w-full divide-y divide-[var(--color-dark-gray-border)]">
+                <thead class="bg-[var(--color-light-gray-bg)]">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Product</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Category</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Price</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Quantity</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Total</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Date</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-light-gray)] uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-[var(--color-dark-gray-border)]">
+                    <!-- Data Rows will be populated by JS -->
+                    <tr class="hover:bg-[var(--color-light-gray-bg)]">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-primary-dark)]">Laptop Pro</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">Electronics</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">$1200.00</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">1</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">$1200.00</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">2023-10-26</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="#" class="text-[var(--color-orange-accent)] hover:text-[var(--color-orange-accent)]/80">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-[var(--color-light-gray-bg)]">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-primary-dark)]">Wireless Mouse</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">Accessories</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">$50.00</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">3</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">$150.00</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">2023-10-25</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="#" class="text-[var(--color-orange-accent)] hover:text-[var(--color-orange-accent)]/80">View</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-[var(--color-light-gray-bg)]">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-primary-dark)]">Smartphone X</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">Electronics</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">$900.00</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">2</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">$1800.00</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Cancelled</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-primary-dark)]">2023-10-24</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="#" class="text-[var(--color-orange-accent)] hover:text-[var(--color-orange-accent)]/80">View</a>
+                        </td>
+                    </tr>
+                    <!-- More rows can be added here, ensuring the table doesn't overflow -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex justify-end mt-8">
+            <button id="export-button" class="px-6 py-3 bg-[var(--color-orange-accent)] text-white rounded-lg font-medium hover:bg-[var(--color-orange-accent)]/90 transition-colors flex items-center">
+                <i class="fas fa-download mr-2"></i> Export Data
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterDropdown = document.getElementById('filter-dropdown');
+            const closeFilterButton = document.getElementById('close-filter');
+            const filterInput = document.getElementById('filter-input');
+            const exportButton = document.getElementById('export-button');
+
+            // Toggle filter dropdown
+            filterDropdown.addEventListener('click', (event) => {
+                filterDropdown.classList.toggle('active');
+                event.stopPropagation(); // Prevent document click from closing immediately
+            });
+
+            // Close filter dropdown when clicking outside
+            document.addEventListener('click', (event) => {
+                if (!filterDropdown.contains(event.target) && !filterInput.contains(event.target)) {
+                    filterDropdown.classList.remove('active');
+                }
+            });
+
+            // Export button logic (placeholder)
+            exportButton.addEventListener('click', () => {
+                alert('Exporting data... (This would trigger a download in a real application)');
+                // In a real app, you'd use a library like SheetJS (xlsx) or a backend API
+                // to convert the table to CSV/Excel and initiate the download.
+            });
+        });
+    </script>
+</body>
+</html>

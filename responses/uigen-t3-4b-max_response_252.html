@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Project Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Light gray background */
+            color: #2d3748; /* Darker text */
+        }
+        .kanban-board {
+            min-width: 320px;
+            max-width: 400px;
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        .kanban-column {
+            min-height: 100px;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .kanban-column:last-child {
+            border-bottom: none;
+        }
+        .kanban-todo {
+            width: 100%;
+            max-width: 300px;
+            background-color: #e2e8f0; /* Light gray for new tasks */
+            border-radius: 0.375rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            cursor: grab;
+            transition: background-color 0.2s, transform 0.1s;
+            position: relative;
+        }
+        .kanban-todo:active {
+            cursor: grabbing;
+            transform: scale(1.03);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .kanban-todo .drag-over {
+            border: 2px solid #6366f1; /* Indicate drop target */
+            background-color: #d1d5db; /* Slightly darker for hover */
+        }
+        .kanban-todo .task-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .kanban-todo .task-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        .kanban-todo .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #4b5563;
+        }
+        .kanban-todo .task-meta .status {
+            background-color: #d1fae5; /* Green for To Do */
+            color: #10b981;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .kanban-todo .task-meta .priority {
+            background-color: #fcd34d; /* Yellow for Medium */
+            color: #f59e0b;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .kanban-todo .task-meta .assignee {
+            color: #2563eb; /* Blue for Assignee */
+            font-weight: 600;
+        }
+        .kanban-todo .task-meta .due-date {
+            color: #9ca3af; /* Gray for Due Date */
+        }
+        .kanban-todo .drag-handle {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            cursor: grab;
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+
+        .gantt-chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px; /* Fixed height for Gantt chart */
+            background-color: #f0f4f8;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .gantt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background-color: #e2e8f0;
+            font-weight: 600;
+            color: #334155;
+        }
+        .gantt-row {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            height: 2.5rem;
+            position: relative;
+        }
+        .gantt-task {
+            position: absolute;
+            width: 20px; /* Task bar width */
+            height: 100%;
+            background-color: #4f46e5; /* Indigo for active tasks */
+            border-radius: 4px;
+            margin-left: 10px; /* Space between columns */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .gantt-task:hover {
+            background-color: #3730a3; /* Darker indigo on hover */
+            transform: translateY(-2px);
+        }
+        .gantt-task.active {
+            background-color: #10b981; /* Green for completed tasks */
+            transform: translateY(2px);
+        }
+        .gantt-task.in-progress {
+            background-color: #fbbf24; /* Amber for in progress */
+        }
+        .gantt-task.completed {
+            background-color: #60a5fa; /* Blue for completed */
+        }
+
+        .activity-feed {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            overflow-y: auto;
+            max-height: 400px; /* Limit height for activity feed */
+        }
+        .activity-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        .activity-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+        }
+        .activity-content {
+            flex-grow: 1;
+        }
+        .activity-content .timestamp {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        .activity-content .subject {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .activity-content .description {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin-bottom: 0.5rem;
+        }
+        .activity-content .status {
+            background-color: #d1fae5; /* Green for completed */
+            color: #10b981;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .kanban-board {
+                width: 100%;
+                margin-bottom: 1rem;
+                border-radius: 0;
+            }
+            .kanban-column {
+                flex-direction: row; /* Allow columns to stack */
+                justify-content: flex-start;
+                align-items: flex-start;
+                padding: 0.5rem;
+            }
+            .kanban-column:last-child {
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .kanban-todo {
+                width: 100%;
+                max-width: 100%;
+                padding: 0.5rem 0.75rem;
+            }
+            .kanban-todo .task-title,
+            .kanban-todo .task-description,
+            .kanban-todo .task-meta,
+            .kanban-todo .drag-handle {
+                font-size: 0.9rem;
+                line-height: 1.2;
+            }
+            .gantt-chart-container {
+                height: 300px;
+            }
+            .gantt-header {
+                padding: 0.5rem 0.75rem;
+            }
+            .gantt-row {
+                padding: 0.5rem 0.75rem;
+            }
+            .gantt-task {
+                width: 15px;
+                font-size: 0.65rem;
+            }
+            .activity-feed {
+                max-height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6">
+
+    <!-- Dashboard Header -->
+    <header class="bg-white shadow-sm p-4 mb-6 flex items-center justify-between sticky top-0 z-10">
+        <h1 class="text-3xl font-bold text-gray-800">Project Dashboard</h1>
+        <div class="flex items-center space-x-4">
+            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center">
+                <i class="fas fa-plus mr-2"></i> New Project
+            </button>
+            <div class="relative">
+                <input type="text" placeholder="Search tasks..." class="border border-gray-300 rounded-lg px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-lg">JD</div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left Column: Kanban Boards & Gantt Chart -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Kanban Board: To Do -->
+            <div class="kanban-board">
+                <div class="kanban-column">
+                    <h2 class="text-lg font-semibold mb-4">To Do</h2>
+                    <div id="todo-column" class="flex flex-col gap-3">
+                        <!-- Kanban Task 1 -->
+                        <div class="kanban-todo" draggable="true" data-status="todo">
+                            <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                            <div class="task-title">Design landing page layout</div>
+                            <div class="task-description">Create wireframes and mockups for the new product landing page.</div>
+                            <div class="task-meta">
+                                <span class="status">To Do</span>
+                                <span class="priority">High</span>
+                                <span class="assignee">Jane Doe</span>
+                                <span class="due-date">2023-10-26</span>
+                            </div>
+                        </div>
+                        <!-- Kanban Task 2 -->
+                        <div class="kanban-todo" draggable="true" data-status="todo">
+                            <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                            <div class="task-title">Develop user authentication module</div>
+                            <div class="task-description">Implement login, registration, and password reset features.</div>
+                            <div class="task-meta">
+                                <span class="status">To Do</span>
+                                <span class="priority">Medium</span>
+                                <span class="assignee">John Smith</span>
+                                <span class="due-date">2023-10-28</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="kanban-column">
+                    <h2 class="text-lg font-semibold mb-4">In Progress</h2>
+                    <div id="inprogress-column" class="flex flex-col gap-3">
+                        <!-- Kanban Task 3 -->
+                        <div class="kanban-todo" draggable="true" data-status="inprogress">
+                            <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                            <div class="task-title">Set up database schema</div>
+                            <div class="task-description">Define tables and relationships for the new application.</div>
+                            <div class="task-meta">
+                                <span class="status">In Progress</span>
+                                <span class="priority">High</span>
+                                <span class="assignee">Jane Doe</span>
+                                <span class="due-date">2023-10-26</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="kanban-column">
+                    <h2 class="text-lg font-semibold mb-4">Done</h2>
+                    <div id="done-column" class="flex flex-col gap-3">
+                        <!-- Kanban Task 4 -->
+                        <div class="kanban-todo" draggable="true" data-status="done">
+                            <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                            <div class="task-title">Initial API endpoint testing</div>
+                            <div class="task-description">Validated basic CRUD operations for user data.</div>
+                            <div class="task-meta">
+                                <span class="status">Done</span>
+                                <span class="priority">Medium</span>
+                                <span class="assignee">John Smith</span>
+                                <span class="due-date">2023-10-25</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gantt Chart -->
+            <div class="gantt-chart-container">
+                <div class="gantt-header">
+                    <span>Project Timeline</span>
+                    <span>2023-10-20</span>
+                </div>
+                <div id="gantt-chart" class="flex flex-col h-full">
+                    <!-- Gantt Rows (each representing a task) -->
+                    <!-- Example Task 1 (In Progress) -->
+                    <div class="gantt-row" data-task-id="1" data-task-status="inprogress">
+                        <div class="w-10 text-center text-gray-500">T1</div>
+                        <div class="w-10 text-center text-gray-500">T2</div>
+                        <div class="w-10 text-center text-gray-500">T3</div>
+                        <div class="w-10 text-center text-gray-500">T4</div>
+                        <div class="w-10 text-center text-gray-500">T5</div>
+                        <div class="w-10 text-center text-gray-500">T6</div>
+                        <div class="w-10 text-center text-gray-500">T7</div>
+                        <div class="w-10 text-center text-gray-500">T8</div>
+                        <div class="w-10 text-center text-gray-500">T9</div>
+                        <div class="w-10 text-center text-gray-500">T10</div>
+                        <div class="w-10 text-center text-gray-500">T11</div>
+                        <div class="w-10 text-center text-gray-500">T12</div>
+                        <div class="w-10 text-center text-gray-500">T13</div>
+                        <div class="w-10 text-center text-gray-500">T14</div>
+                        <div class="w-10 text-center text-gray-500">T15</div>
+                        <div class="w-10 text-center text-gray-500">T16</div>
+                        <div class="w-10 text-center text-gray-500">T17</div>
+                        <div class="w-10 text-center text-gray-500">T18</div>
+                        <div class="w-10 text-center text-gray-500">T19</div>
+                        <div class="w-10 text-center text-gray-500">T20</div>
+                        <div class="w-10 text-center text-gray-500">T21</div>
+                        <div class="w-10 text-center text-gray-500">T22</div>
+                        <div class="w-10 text-center text-gray-500">T23</div>
+                        <div class="w-10 text-center text-gray-500">T24</div>
+                        <div class="w-10 text-center text-gray-500">T25</div>
+                        <div class="w-10 text-center text-gray-500">T26</div>
+                        <div class="w-10 text-center text-gray-500">T27</div>
+                        <div class="w-10 text-center text-gray-500">T28</div>
+                        <div class="w-10 text-center text-gray-500">T29</div>
+                        <div class="w-10 text-center text-gray-500">T30</div>
+                        <div class="w-10 text-center text-gray-500">T31</div>
+                        <div class="w-10 text-center text-gray-500">T32</div>
+                        <div class="w-10 text-center text-gray-500">T33</div>
+                        <div class="w-10 text-center text-gray-500">T34</div>
+                        <div class="w-10 text-center text-gray-500">T35</div>
+                        <div class="w-10 text-center text-gray-500">T36</div>
+                        <div class="w-10 text-center text-gray-500">T37</div>
+                        <div class="w-10 text-center text-gray-500">T38</div>
+                        <div class="w-10 text-center text-gray-500">T39</div>
+                        <div class="w-10 text-center text-gray-500">T40</div>
+                        <div class="w-10 text-center text-gray-500">T41</div>
+                        <div class="w-10 text-center text-gray-500">T42</div>
+                        <div class="w-10 text-center text-gray-500">T43</div>
+                        <div class="w-10 text-center text-gray-500">T44</div>
+                        <div class="w-10 text-center text-gray-500">T45</div>
+                        <div class="w-10 text-center text-gray-500">T46</div>
+                        <div class="w-10 text-center text-gray-500">T47</div>
+                        <div class="w-10 text-center text-gray-500">T48</div>
+                        <div class="w-10 text-center text-gray-500">T49</div>
+                        <div class="w-10 text-center text-gray-500">T50</div>
+                        <div class="w-10 text-center text-gray-500">T51</div>
+                        <div class="w-10 text-center text-gray-500">T52</div>
+                        <div class="w-10 text-center text-gray-500">T53</div>
+                        <div class="w-10 text-center text-gray-500">T54</div>
+                        <div class="w-10 text-center text-gray-500">T55</div>
+                        <div class="w-10 text-center text-gray-500">T56</div>
+                        <div class="w-10 text-center text-gray-500">T57</div>
+                        <div class="w-10 text-center text-gray-500">T58</div>
+                        <div class="w-10 text-center text-gray-500">T59</div>
+                        <div class="w-10 text-center text-gray-500">T60</div>
+                        <div class="w-10 text-center text-gray-500">T61</div>
+                        <div class="w-10 text-center text-gray-500">T62</div>
+                        <div class="w-10 text-center text-gray-500">T63</div>
+                        <div class="w-10 text-center text-gray-500">T64</div>
+                        <div class="w-10 text-center text-gray-500">T65</div>
+                        <div class="w-10 text-center text-gray-500">T66</div>
+                        <div class="w-10 text-center text-gray-500">T67</div>
+                        <div class="w-10 text-center text-gray-500">T68</div>
+                        <div class="w-10 text-center text-gray-500">T69</div>
+                        <div class="w-10 text-center text-gray-500">T70</div>
+                        <div class="w-10 text-center text-gray-500">T71</div>
+                        <div class="w-10 text-center text-gray-500">T72</div>
+                        <div class="w-10 text-center text-gray-500">T73</div>
+                        <div class="w-10 text-center text-gray-500">T74</div>
+                        <div class="w-10 text-center text-gray-500">T75</div>
+                        <div class="w-10 text-center text-gray-500">T76</div>
+                        <div class="w-10 text-center text-gray-500">T77</div>
+                        <div class="w-10 text-center text-gray-500">T78</div>
+                        <div class="w-10 text-center text-gray-500">T79</div>
+                        <div class="w-10 text-center text-gray-500">T80</div>
+                        <div class="w-10 text-center text-gray-500">T81</div>
+                        <div class="w-10 text-center text-gray-500">T82</div>
+                        <div class="w-10 text-center text-gray-500">T83</div>
+                        <div class="w-10 text-center text-gray-500">T84</div>
+                        <div class="w-10 text-center text-gray-500">T85</div>
+                        <div class="w-10 text-center text-gray-500">T86</div>
+                        <div class="w-10 text-center text-gray-500">T87</div>
+                        <div class="w-10 text-center text-gray-500">T88</div>
+                        <div class="w-10 text-center text-gray-500">T89</div>
+                        <div class="w-10 text-center text-gray-500">T90</div>
+                        <div class="w-10 text-center text-gray-500">T91</div>
+                        <div class="w-10 text-center text-gray-500">T92</div>
+                        <div class="w-10 text-center text-gray-500">T93</div>
+                        <div class="w-10 text-center text-gray-500">T94</div>
+                        <div class="w-10 text-center text-gray-500">T95</div>
+                        <div class="w-10 text-center text-gray-500">T96</div>
+                        <div class="w-10 text-center text-gray-500">T97</div>
+                        <div class="w-10 text-center text-gray-500">T98</div>
+                        <div class="w-10 text-center text-gray-500">T99</div>
+                        <div class="w-10 text-center text-gray-500">T100</div>
+                    </div>
+                    <!-- Example Task 2 (Done) -->
+                    <div class="gantt-row" data-task-id="2" data-task-status="done">
+                        <div class="w-10 text-center text-gray-500">T1</div>
+                        <div class="w-10 text-center text-gray-500">T2</div>
+                        <div class="w-10 text-center text-gray-500">T3</div>
+                        <div class="w-10 text-center text-gray-500">T4</div>
+                        <div class="w-10 text-center text-gray-500">T5</div>
+                        <div class="w-10 text-center text-gray-500">T6</div>
+                        <div class="w-10 text-center text-gray-500">T7</div>
+                        <div class="w-10 text-center text-gray-500">T8</div>
+                        <div class="w-10 text-center text-gray-500">T9</div>
+                        <div class="w-10 text-center text-gray-500">T10</div>
+                        <div class="w-10 text-center text-gray-500">T11</div>
+                        <div class="w-10 text-center text-gray-500">T12</div>
+                        <div class="w-10 text-center text-gray-500">T13</div>
+                        <div class="w-10 text-center text-gray-500">T14</div>
+                        <div class="w-10 text-center text-gray-500">T15</div>
+                        <div class="w-10 text-center text-gray-500">T16</div>
+                        <div class="w-10 text-center text-gray-500">T17</div>
+                        <div class="w-10 text-center text-gray-500">T18</div>
+                        <div class="w-10 text-center text-gray-500">T19</div>
+                        <div class="w-10 text-center text-gray-500">T20</div>
+                        <div class="w-10 text-center text-gray-500">T21</div>
+                        <div class="w-10 text-center text-gray-500">T22</div>
+                        <div class="w-10 text-center text-gray-500">T23</div>
+                        <div class="w-10 text-center text-gray-500">T24</div>
+                        <div class="w-10 text-center text-gray-500">T25</div>
+                        <div class="w-10 text-center text-gray-500">T26</div>
+                        <div class="w-10 text-center text-gray-500">T27</div>
+                        <div class="w-10 text-center text-gray-500">T28</div>
+                        <div class="w-10 text-center text-gray-500">T29</div>
+                        <div class="w-10 text-center text-gray-500">T30</div>
+                        <div class="w-10 text-center text-gray-500">T31</div>
+                        <div class="w-10 text-center text-gray-500">T32</div>
+                        <div class="w-10 text-center text-gray-500">T33</div>
+                        <div class="w-10 text-center text-gray-500">T34</div>
+                        <div class="w-10 text-center text-gray-500">T35</div>
+                        <div class="w-10 text-center text-gray-500">T36</div>
+                        <div class="w-10 text-center text-gray-500">T37</div>
+                        <div class="w-10 text-center text-gray-500">T38</div>
+                        <div class="w-10 text-center text-gray-500">T39</div>
+                        <div class="w-10 text-center text-gray-500">T40</div>
+                        <div class="w-10 text-center text-gray-500">T41</div>
+                        <div class="w-10 text-center text-gray-500">T42</div>
+                        <div class="w-10 text-center text-gray-500">T43</div>
+                        <div class="w-10 text-center text-gray-500">T44</div>
+                        <div class="w-10 text-center text-gray-500">T45</div>
+                        <div class="w-10 text-center text-gray-500">T46</div>
+                        <div class="w-10 text-center text-gray-500">T47</div>
+                        <div class="w-10 text-center text-gray-500">T48</div>
+                        <div class="w-10 text-center text-gray-500">T49</div>
+                        <div class="w-10 text-center text-gray-500">T50</div>
+                        <div class="w-10 text-center text-gray-500">T51</div>
+                        <div class="w-10 text-center text-gray-500">T52</div>
+                        <div class="w-10 text-center text-gray-500">T53</div>
+                        <div class="w-10 text-center text-gray-500">T54</div>
+                        <div class="w-10 text-center text-gray-500">T55</div>
+                        <div class="w-10 text-center text-gray-500">T56</div>
+                        <div class="w-10 text-center text-gray-500">T57</div>
+                        <div class="w-10 text-center text-gray-500">T58</div>
+                        <div class="w-10 text-center text-gray-500">T59</div>
+                        <div class="w-10 text-center text-gray-500">T60</div>
+                        <div class="w-10 text-center text-gray-500">T61</div>
+                        <div class="w-10 text-center text-gray-500">T62</div>
+                        <div class="w-10 text-center text-gray-500">T63</div>
+                        <div class="w-10 text-center text-gray-500">T64</div>
+                        <div class="w-10 text-center text-gray-500">T65</div>
+                        <div class="w-10 text-center text-gray-500">T66</div>
+                        <div class="w-10 text-center text-gray-500">T67</div>
+                        <div class="w-10 text-center text-gray-500">T68</div>
+                        <div class="w-10 text-center text-gray-500">T69</div>
+                        <div class="w-10 text-center text-gray-500">T70</div>
+                        <div class="w-10 text-center text-gray-500">T71</div>
+                        <div class="w-10 text-center text-gray-500">T72</div>
+                        <div class="w-10 text-center text-gray-500">T73</div>
+                        <div class="w-10 text-center text-gray-500">T74</div>
+                        <div class="w-10 text-center text-gray-500">T75</div>
+                        <div class="w-10 text-center text-gray-500">T76</div>
+                        <div class="w-10 text-center text-gray-500">T77</div>
+                        <div class="w-10 text-center text-gray-500">T78</div>
+                        <div class="w-10 text-center text-gray-500">T79</div>
+                        <div class="w-10 text-center text-gray-500">T80</div>
+                        <div class="w-10 text-center text-gray-500">T81</div>
+                        <div class="w-10 text-center text-gray-500">T82</div>
+                        <div class="w-10 text-center text-gray-500">T83</div>
+                        <div class="w-10 text-center text-gray-500">T84</div>
+                        <div class="w-10 text-center text-gray-500">T85</div>
+                        <div class="w-10 text-center text-gray-500">T86</div>
+                        <div class="w-10 text-center text-gray-500">T87</div>
+                        <div class="w-10 text-center text-gray-500">T88</div>
+                        <div class="w-10 text-center text-gray-500">T89</div>
+                        <div class="w-10 text-center text-gray-500">T90</div>
+                        <div class="w-10 text-center text-gray-500">T91</div>
+                        <div class="w-10 text-center text-gray-500">T92</div>
+                        <div class="w-10 text-center text-gray-500">T93</div>
+                        <div class="w-10 text-center text-gray-500">T94</div>
+                        <div class="w-10 text-center text-gray-500">T95</div>
+                        <div class="w-10 text-center text-gray-500">T96</div>
+                        <div class="w-10 text-center text-gray-500">T97</div>
+                        <div class="w-10 text-center text-gray-500">T98</div>
+                        <div class="w-10 text-center text-gray-500">T99</div>
+                        <div class="w-10 text-center text-gray-500">T100</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Team Activity Feed -->
+        <div class="w-full">
+            <div class="activity-feed">
+                <div class="activity-item">
+                    <div class="activity-avatar bg-blue-400">JD</div>
+                    <div class="activity-content">
+                        <div class="timestamp">2023-10-25 10:30 AM</div>
+                        <div class="subject">New task created: "Develop user authentication module"</div>
+                        <div class="description">Assigned to John Smith. Due: 2023-10-28</div>
+                        <span class="status">In Progress</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bg-green-400">JS</div>
+                    <div class="activity-content">
+                        <div class="timestamp">2023-10-24 03:00 PM</div>
+                        <div class="subject">Commented on task: "Initial API endpoint testing"</div>
+                        <div class="description">"Testing successful, moving to next phase."</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bg-red-400">AD</div>
+                    <div class="activity-content">
+                        <div class="timestamp">2023-10-23 09:00 AM</div>
+                        <div class="subject">Task completed: "Initial API endpoint testing"</div>
+                        <div class="description">Status: Done. Assigned to John Smith.</div>
+                        <span class="status">Completed</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bg-purple-400">JD</div>
+                    <div class="activity-content">
+                        <div class="timestamp">2023-10-22 02:00 PM</div>
+                        <div class="subject">Project update: Q4 planning</div>
+                        <div class="description">Discussed upcoming sprint goals and resource allocation.</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bg-yellow-400">JS</div>
+                    <div class="activity-content">
+                        <div class="timestamp">2023-10-21 04:30 PM</div>
+                        <div class="subject">Bug report: Landing page image not loading</div>
+                        <div class="description">Reported by Jane Doe. Needs immediate attention.</div>
+                        <span class="status">To Do</span>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-avatar bg-blue-400">JD</div>
+                    <div class="activity-content">
+                        <div class="timestamp">2023-10-20 09:15 AM</div>
+                        <div class="subject">Meeting: Project review</div>
+                        <div class="description">All team members present. Progress update.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const kanbanColumns = document.querySelectorAll('.kanban-column');
+            const ganttChart = document.getElementById('gantt-chart');
+            const activityFeed = document.querySelector('.activity-feed');
+
+            // --- Kanban Board Interactivity ---
+            let draggedTask = null;
+
+            kanbanColumns.forEach(column => {
+                const todos = column.querySelector('.flex-col');
+                todos.addEventListener('dragover', (e) => {
+                    e.preventDefault(); // Allow drop
+                    const targetTask = e.target.closest('.kanban-todo');
+                    if (targetTask && targetTask !== draggedTask) {
+                        targetTask.classList.add('drag-over');
+                    }
+                });
+
+                todos.addEventListener('dragleave', (e) => {
+                    const targetTask = e.target.closest('.kanban-todo');
+                    if (targetTask) {
+                        targetTask.classList.remove('drag-over');
+                    }
+                });
+
+                todos.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const targetTask = e.target.closest('.kanban-todo');
+                    if (draggedTask && targetTask) {
+                        targetTask.classList.remove('drag-over');
+                        if (targetTask !== draggedTask) {
+                            todos.appendChild(draggedTask);
+                        }
+                        updateTaskStatus(draggedTask);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.kanban-todo').forEach(task => {
+                task.addEventListener('dragstart', (e) => {
+                    draggedTask = task;
+                    e.dataTransfer.effectAllowed = 'move';
+                    task.classList.add('dragging');
+                });
+
+                task.addEventListener('dragend', (e) => {
+                    draggedTask.classList.remove('dragging');
+                    draggedTask = null;
+                });
+            });
+
+            function updateTaskStatus(task) {
+                const status = task.dataset.status;
+                if (status === 'todo') {
+                    task.classList.remove('active', 'in-progress', 'completed');
+                } else if (status === 'inprogress') {
+                    task.classList.remove('todo', 'done');
+                } else if (status === 'done') {
+                    task.classList.remove('todo', 'in-progress');
+                }
+                // For Gantt chart, update the task's CSS class based on status
+                const ganttRow = ganttChart.querySelector(`.gantt-row[data-task-id="${task.querySelector('.task-title').textContent.replace(/\s/g, '')}"]`);
+                if (ganttRow) {
+                    ganttRow.querySelector('.gantt-task').classList.remove('active', 'in-progress', 'completed');
+                    if (status === 'inprogress') {
+                        ganttRow.querySelector('.gantt-task').classList.add('in-progress');
+                    } else if (status === 'done') {
+                        ganttRow.querySelector('.gantt-task').classList.add('completed');
+                    }
+                }
+            }
+
+            // --- Gantt Chart Interactivity (Basic) ---
+            ganttChart.addEventListener('click', (e) => {
+                if (e.target.classList.contains('gantt-task')) {
+                    const taskId = e.target.closest('.gantt-row').dataset.taskId;
+                    const taskTitle = ganttChart.querySelector(`.gantt-row[data-task-id="${taskId}"] .task-title`).textContent;
+                    alert(`Task "${taskTitle}" clicked! (This would trigger a modal or task view)`);
+                    // Example: Toggle status
+                    const currentStatus = e.target.classList.contains('in-progress') ? 'inprogress' :
+                                          e.target.classList.contains('completed') ? 'done' : 'todo';
+                    e.target.classList.remove(currentStatus);
+                    e.target.classList.add(currentStatus === 'inprogress' ? 'in-progress' : currentStatus === 'done' ? 'completed' : 'active');
+                }
+            });
+
+            // --- Team Activity Feed Interactivity (Placeholder for future chat/real-time) ---
+            // For a real SaaS, this would involve a WebSocket connection
+            // and dynamically updating the feed based on real-time data.
+            // For now, it's static.
+        });
+    </script>
+</body>
+</html>

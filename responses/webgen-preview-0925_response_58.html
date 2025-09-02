@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR/AR App Overlay UI – Minimalist Contextual Controls</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: rgb(255, 255, 255);
+            --color-bg-secondary: rgb(248, 248, 248);
+            --color-bg-tertiary: rgb(240, 240, 240);
+            --color-bg-dark: rgb(18, 18, 18);
+            --color-bg-dark-secondary: rgb(32, 32, 32);
+            --color-text-primary: rgb(18, 18, 18);
+            --color-text-secondary: rgb(80, 80, 80);
+            --color-text-light: rgb(255, 255, 255);
+            --color-accent: rgb(0, 122, 255);
+            --color-accent-dark: rgb(0, 90, 180);
+            --color-border-light: rgb(224, 224, 224);
+            --color-border-dark: rgba(255, 255, 255, .1);
+            --color-black: rgb(0, 0, 0);
+            --color-white: rgb(255, 255, 255);
+            --font-body: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+        .scroll-animate.is-visible { opacity: 1; transform: translateY(0); }
+
+        .hero-bg-element {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: .3;
+            z-index: -1;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .4s ease-in-out, padding .4s ease-in-out;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 200px;
+            padding-top: 1rem;
+        }
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+        }
+        .faq-icon {
+            transition: transform .3s ease-in-out;
+        }
+
+        .btn-hover-effect .btn-bg-hover {
+            opacity: 0;
+            transform: scale(.8);
+            transition: opacity .3s ease, transform .3s ease;
+        }
+        .btn-hover-effect:hover .btn-bg-hover {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .btn-hover-effect:hover .btn-text {
+            color: var(--color-black);
+        }
+
+        .link-underline {
+            position: relative;
+            text-decoration: none;
+        }
+        .link-underline::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            margin-top: 2px;
+            right: 0;
+            background-color: var(--color-text-primary);
+            transition: width .3s ease;
+        }
+        .link-underline:hover::after {
+            width: 100%;
+            left: 0;
+            right: auto;
+        }
+
+        .nav-link-underline {
+            position: relative;
+            text-decoration: none;
+        }
+        .nav-link-underline::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            margin-top: 2px;
+            left: 0;
+            background-color: var(--color-accent);
+            transition: width .3s ease;
+        }
+        .nav-link-underline:hover::after,
+        .nav-link-underline.active::after {
+            width: 100%;
+        }
+
+        .sticky-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            transition: top .3s ease-in-out;
+            background-color: var(--color-bg-primary);
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-3 lg:py-5">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="flex justify-between items-center">
+                <a href="#" class="text-2xl font-bold text-[var(--color-text-primary)]">VR/AR UI</a>
+                <div class="hidden lg:flex items-center space-x-6">
+                    <a href="#features" class="text-[var(--color-text-secondary)] nav-link-underline active">Features</a>
+                    <a href="#how-it-works" class="text-[var(--color-text-secondary)] nav-link-underline">How It Works</a>
+                    <a href="#pricing" class="text-[var(--color-text-secondary)] nav-link-underline">Pricing</a>
+                    <a href="#faq" class="text-[var(--color-text-secondary)] nav-link-underline">FAQ</a>
+                </div>
+                <a href="#contact" class="hidden lg:inline-block bg-[var(--color-accent)] text-[var(--color-text-light)] px-6 py-3 rounded-full text-sm font-medium hover:bg-[var(--color-accent-dark)] transition-colors">
+                    Get Started
+                </a>
+                <button id="mobile-menu-button" class="lg:hidden text-[var(--color-text-secondary)]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-[var(--color-bg-primary)] px-4 py-4 absolute top-full left-0 w-full shadow-lg">
+            <div class="flex flex-col space-y-3 text-center">
+                <a href="#features" class="py-2 text-[var(--color-text-secondary)] nav-link-underline active">Features</a>
+                <a href="#how-it-works" class="py-2 text-[var(--color-text-secondary)] nav-link-underline">How It Works</a>
+                <a href="#pricing" class="py-2 text-[var(--color-text-secondary)] nav-link-underline">Pricing</a>
+                <a href="#faq" class="py-2 text-[var(--color-text-secondary)] nav-link-underline">FAQ</a>
+                <a href="#contact" class="mt-2 inline-block bg-[var(--color-accent)] text-[var(--color-text-light)] px-6 py-3 rounded-full text-sm font-medium hover:bg-[var(--color-accent-dark)] transition-colors">
+                    Get Started
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-screen flex flex-col justify-center">
+        <div class="hero-bg-element w-[800px] h-[800px] bg-[var(--color-accent)] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="hero-bg-element w-[1000px] h-[1000px] bg-[var(--color-border-light)] bottom-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+
+        <div class="container mx-auto px-4 lg:px-8 relative z-10">
+            <div class="max-w-3xl mx-auto text-center">
+                <h1 class="text-4xl lg:text-6xl font-bold mb-6 scroll-animate">
+                    Seamless VR/AR Overlays with Minimalist UI
+                </h1>
+                <p class="text-lg lg:text-xl text-[var(--color-text-secondary)] mb-10 scroll-animate" style="transition-delay: .1s;">
+                    Contextual controls, real‑time data, and beautiful visual feedback—all built for immersive experiences.
+                </p>
+                <div class="flex justify-center space-x-4 scroll-animate" style="transition-delay: .2s;">
+                    <a href="#" class="bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)] px-6 py-3 rounded-full text-sm font-medium hover:bg-[var(--color-bg-tertiary)] transition-colors">
+                        Learn More
+                    </a>
+                    <a href="#" class="btn-hover-effect relative overflow-hidden bg-[var(--color-accent)] text-[var(--color-text-light)] px-6 py-3 rounded-full text-sm font-medium">
+                        <span class="btn-bg-hover absolute inset-0 bg-[var(--color-accent-dark)] rounded-full"></span>
+                        <span class="btn-text relative">Get Started</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-16 lg:mt-24 scroll-animate" style="transition-delay: .3s;">
+                <div class="aspect-w-16 aspect-h-9">
+                    <img src="https://static.photos/technology/640x360/123" alt="VR/AR UI Demo" class="w-full h-full object-cover rounded-2xl shadow-2xl">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 lg:py-24">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold mb-4 scroll-animate">Core Features</h2>
+                <p class="text-[var(--color-text-secondary)] scroll-animate" style="transition-delay: .1s;">
+                    Everything you need for a smooth, intuitive overlay experience.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature Card 1 -->
+                <div class="bg-[var(--color-bg-secondary)] p-8 rounded-2xl border border-[var(--color-border-light)] scroll-animate">
+                    <div class="w-12 h-12 bg-[var(--color-accent)] rounded-lg flex items-center justify-center mb-6 text-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Contextual Controls</h3>
+                    <p class="text-[var(--color-text-secondary)] text-sm">Adaptive UI elements that appear only when needed, keeping the experience clutter‑free.</p>
+                </div>
+                <!-- Feature Card 2 -->
+                <div class="bg-[var(--color-bg-secondary)] p-8 rounded-2xl border border-[var(--color-border-light)] scroll-animate" style="transition-delay: .1s;">
+                    <div class="w-12 h-12 bg-[var(--color-accent)] rounded-lg flex items-center justify-center mb-6 text-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m2 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2h1"/></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Real‑time Data Display</h3>
+                    <p class="text-[var(--color-text-secondary)] text-sm">Live metrics, text, and icons that update as the user interacts.</p>
+                </div>
+                <!-- Feature Card 3 -->
+                <div class="bg-[var(--color-bg-secondary)] p-8 rounded-2xl border border-[var(--color-border-light)] scroll-animate" style="transition-delay: .2s;">
+                    <div class="w-12 h-12 bg-[var(--color-accent)] rounded-lg flex items-center justify-center mb-6 text-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-white"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.695v-2.695A8.25 8.25 0 0021.75 3.75m-4.991 0H2.25m5.002 0L12 12.75l4.998-8.999"/></svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Customizable Themes</h3>
+                    <p class="text-[var(--color-text-secondary)] text-sm">Choose from a variety of color schemes and visual styles.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-16 lg:py-24 bg-[var(--color-bg-secondary)]">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold mb-4 scroll-animate">How It Works</h2>
+                <p class="text-[var(--color-text-secondary)] scroll-animate" style="transition-delay: .1s;">
+                    A simple three‑step process to bring your VR/AR overlay to life.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+                <div class="scroll-animate" style="transition-delay: .2s;">
+                    <div class="aspect-w-16 aspect-h-9">
+                        <img src="https://static.photos/technology/1200x630/456" alt="Step 1" class="w-full h-full object-cover rounded-2xl shadow-lg">
+                    </div>
+                </div>
+                <div class="space-y-8 scroll-animate" style="transition-delay: .3s;">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-white font-bold">1</div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-1">Integrate SDK</h3>
+                            <p class="text-[var(--color-text-secondary)] text-sm">Add the lightweight SDK to your existing VR/AR project.</p>
+                        </div>
+                    </div>
+                    <div class="h-px bg-[var(--color-border-light)] my-4"></div>
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-white font-bold">2</div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-1">Configure Overlay</h3>
+                            <p class="text-[var(--color-text-secondary)] text-sm">Set up the UI layout, controls, and data sources in the configuration panel.</p>
+                        </div>
+                    </div>
+                    <div class="h-px bg-[var(--color-border-light)] my-4"></div>
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-[var(--color-accent)] rounded-full flex items-center justify-center text-white font-bold">3</div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-1">Launch & Test</h3>
+                            <p class="text-[var(--color-text-secondary)] text-sm">Run the app, test the overlay in real‑time, and refine as needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-16 lg:py-24">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold mb-4 scroll-animate">Pricing Plans</h2>
+                <p class="text-[var(--color-text-secondary)] scroll-animate" style="transition-delay: .1s;">
+                    Choose a plan that fits your project size and budget.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Basic Plan -->
+                <div class="bg-[var(--color-bg-secondary)] p-8 rounded-2xl border border-[var(--color-border-light)] flex flex-col scroll-animate">
+                    <div class="mb-6">
+                        <div class="w-16 h-16 bg-[var(--color-accent)] rounded-xl flex items-center justify-center text-2xl text-white mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-semibold mb-2">Starter</h3>
+                        <p class="text-4xl font-bold mb-1">$99<span class="text-lg font-medium text-[var(--color-text-secondary)]">/mo</span></p>
+                        <p class="text-sm text-[var(--color-text-secondary)]">Ideal for small teams and prototypes.</p>
+                    </div>
+                    <a href="#" class="w-full text-center bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)] px-6 py-3 rounded-full text-sm font-medium hover:bg-[var(--color-bg-tertiary)] transition-colors mb-8">Choose Plan</a>
+                    <ul class="space-y-3 text-sm text-[var(--color-text-secondary)] flex-grow">
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Basic overlay UI</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Standard data sources</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Email support</li>
+                    </ul>
+                </div>
+
+                <!-- Pro Plan (Highlighted) -->
+                <div class="bg-[var(--color-bg-dark)] text-[var(--color-text-light)] p-8 rounded-2xl border border-[var(--color-border-dark)] flex flex-col shadow-xl transform lg:scale-105 scroll-animate" style="transition-delay: .1s;">
+                    <div class="mb-6">
+                        <div class="w-16 h-16 bg-[var(--color-accent)] rounded-xl flex items-center justify-center text-2xl text-white mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-semibold mb-2">Professional</h3>
+                        <p class="text-4xl font-bold mb-1">$299<span class="text-lg font-medium">/mo</span></p>
+                        <p class="text-sm">For growing teams and advanced integrations.</p>
+                    </div>
+                    <a href="#" class="w-full text-center bg-[var(--color-text-light)] text-[var(--color-text-dark)] px-6 py-3 rounded-full text-sm font-medium hover:bg-opacity-90 transition-colors mb-8">Choose Plan</a>
+                    <ul class="space-y-3 text-sm flex-grow">
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>All Starter features</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Advanced data sources</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Priority support</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Custom UI templates</li>
+                    </ul>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="bg-[var(--color-bg-secondary)] p-8 rounded-2xl border border-[var(--color-border-light)] flex flex-col scroll-animate" style="transition-delay: .2s;">
+                    <div class="mb-6">
+                        <div class="w-16 h-16 bg-[var(--color-accent)] rounded-xl flex items-center justify-center text-2xl text-white mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-semibold mb-2">Enterprise</h3>
+                        <p class="text-4xl font-bold mb-1">Contact</p>
+                        <p class="text-sm">Tailored solutions for large organizations.</p>
+                    </div>
+                    <a href="#" class="w-full text-center bg-[var(--color-bg-secondary)] border border-[var(--color-border-light)] px-6 py-3 rounded-full text-sm font-medium hover:bg-[var(--color-bg-tertiary)] transition-colors mb-8">Contact Sales</a>
+                    <ul class="space-y-3 text-sm text-[var(--color-text-secondary)] flex-grow">
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>All Pro features</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Dedicated account manager</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Custom integrations</li>
+                        <li class="flex items-center"><svg class="w-4 h-4 mr-2 text-[var(--color-accent)]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>SLA & 24/7 support</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-16 lg:py-24 bg-[var(--color-bg-secondary)]">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold mb-4 scroll-animate">Frequently Asked Questions</h2>
+                <p class="text-[var(--color-text-secondary)] scroll-animate" style="transition-delay: .1s;">
+                    Answers to the most common questions about our VR/AR overlay solution.
+                </p>
+            </div>
+
+            <div class="max-w-3xl mx-auto space-y-4">
+                <!-- FAQ Item 1 -->
+                <div class="faq-item bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-light)] scroll-animate">
+                    <button class="faq-question w-full flex justify-between items-center p-5 md:p-6 focus:outline-none">
+                        <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">Is the SDK compatible with all VR/AR platforms?</span>
+                        <svg class="faq-icon w-5 h-5 text-[var(--color-text-secondary)] transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                    <div class="faq-answer px-5 md:px-6 text-sm text-[var(--color-text-secondary)]">
+                        <p>Our SDK is built to work with the most popular VR/AR engines such as Unity, Unreal Engine, and WebXR, ensuring broad compatibility.</p>
+                    </div>
+                </div>
+                <!-- FAQ Item 2 -->
+                <div class="faq-item bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-light)] scroll-animate" style="transition-delay: .1s;">
+                    <button class="faq-question w-full flex justify-between items-center p-5 md:p-6 focus:outline-none">
+                        <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">How do I customize the UI theme?</span>
+                        <svg class="faq-icon w-5 h-5 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                    <div class="faq-answer px-5 md:px-6 text-sm text-[var(--color-text-secondary)]">
+                        <p>Choose from a set of predefined themes in the configuration panel, or create a custom CSS theme that matches your brand.</p>
+                    </div>
+                </div>
+                <!-- FAQ Item 3 -->
+                <div class="faq-item bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-light)] scroll-animate" style="transition-delay: .2s;">
+                    <button class="faq-question w-full flex justify-between items-center p-5 md:p-6 focus:outline-none">
+                        <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">What kind of support is included with each plan?</span>
+                        <svg class="faq-icon w-5 h-5 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </button>
+                    <div class="faq-answer px-5 md:px-6 text-sm text-[var(--color-text-secondary)]">
+                        <p>Starter includes email support, Pro offers priority email and chat support, and Enterprise provides 24/7 dedicated support with SLA guarantees.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact" class="bg-[var(--color-bg-dark)] text-[var(--color-text-light)] py-16 lg:py-24">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-12">
+                <div class="md:col-span-2 lg:col-span-1">
+                    <a href="#" class="text-2xl font-bold mb-4 inline-block scroll-animate">VR/AR UI</a>
+                    <p class="text-sm text-[var(--color-text-light)] opacity-70 mb-6 scroll-animate" style="transition-delay: .1s;">
+                        Minimalist, contextual overlay UI for immersive experiences.
+                    </p>
+                    <div class="flex space-x-3">
+                        <a href="#" class="w-8 h-8 bg-[var(--color-bg-dark-secondary)] rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-accent)] hover:text-white transition-colors scroll-animate" style="transition-delay: .2s;">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                        <a href="#" class="w-8 h-8 bg-[var(--color-bg-dark-secondary)] rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-accent)] hover:text-white transition-colors scroll-animate" style="transition-delay: .2s;">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616v.064c0 2.298 1.634 4.212 3.791 4.649-.69.188-1.452.23-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                        </a>
+                        <a href="#" class="w-8 h-8 bg-[var(--color-bg-dark-secondary)] rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:bg-[var(--color-accent)] hover:text-white transition-colors scroll-animate" style="transition-delay: .2s;">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 scroll-animate">Product</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#features" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .1s;">Features</a></li>
+                        <li><a href="#how-it-works" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .2s;">How It Works</a></li>
+                        <li><a href="#pricing" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .3s;">Pricing</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 scroll-animate">Company</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .1s;">About Us</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .2s;">Careers</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .3s;">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold mb-4 scroll-animate">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .1s;">Privacy Policy</a></li>
+                        <li><a href="#" class="text-[var(--color-text-light)] opacity-70 hover:opacity-100 link-underline scroll-animate" style="transition-delay: .2s;">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-[var(--color-border-dark)] pt-8 mt-8 text-center">
+                <p class="text-sm text-[var(--color-text-light)] opacity-70 scroll-animate">© 2026 VR/AR UI. All rights reserved. <a href="https://tesslate.com" class="text-[var(--color-accent)] hover:underline">Built with Tesslate</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            /* Sticky Navbar */
+            const navbar = document.getElementById('navbar');
+            const headerHeight = navbar.offsetHeight;
+            let lastScrollTop = 0;
+            window.addEventListener('scroll', () => {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                if (scrollTop > headerHeight && scrollTop > lastScrollTop) {
+                    navbar.style.top = `-${headerHeight}px`;
+                } else {
+                    navbar.style.top = '0';
+                }
+                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            });
+
+            /* Mobile Menu */
+            const mobileBtn = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+            });
+
+            /* Scroll Animations */
+            const animated = document.querySelectorAll('.scroll-animate');
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('is-visible');
+                });
+            }, { threshold: 0.1 });
+            animated.forEach(el => observer.observe(el));
+
+            /* FAQ Accordion */
+            document.querySelectorAll('.faq-item').forEach(item => {
+                const btn = item.querySelector('.faq-question');
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.faq-item').forEach(i => i !== item && i.classList.remove('open'));
+                    item.classList.toggle('open');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

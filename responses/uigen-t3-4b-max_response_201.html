@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizational Chart Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Tailwind slate-50 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for modal */
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 0.75rem; /* 1.5rem */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 90%;
+            max-height: 90%;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px; /* Ensure modal has a minimum height */
+        }
+
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f3f4f6; /* Tailwind slate-100 */
+        }
+
+        .modal-title {
+            font-weight: 600;
+            font-size: 1.25rem; /* 20px */
+            color: #1f2937; /* Tailwind slate-900 */
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: #6b7280; /* Tailwind gray-500 */
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.25rem;
+            border-radius: 0.375rem; /* 0.75rem */
+        }
+
+        .modal-body {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto; /* Enable scrolling for content */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container {
+            flex-grow: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f1f5f9; /* Tailwind slate-200 */
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #64748b; /* Tailwind slate-500 */
+        }
+
+        .chart-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #f1f5f9; /* Tailwind slate-200 */
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #64748b; /* Tailwind slate-500 */
+            z-index: 1; /* Canvas above background */
+        }
+
+        .chart-structure {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2; /* Structure above canvas */
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .chart-node {
+            position: absolute;
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem; /* 0.75rem */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            cursor: grab;
+            transition: all 0.1s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+            min-height: 40px;
+            border: 1px solid #2563eb; /* Tailwind blue-600 */
+            z-index: 10; /* Nodes above canvas */
+        }
+
+        .chart-node:active {
+            cursor: grabbing;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+            transform: scale(1.05);
+        }
+
+        .chart-node .node-name {
+            font-weight: 500;
+            font-size: 0.875rem; /* 14px */
+        }
+
+        .chart-node .node-role {
+            font-size: 0.75rem; /* 12px */
+            color: #d1d5db; /* Tailwind gray-400 */
+        }
+
+        .chart-node .drag-handle {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: -10px;
+            color: white;
+            cursor: grab;
+            font-size: 0.75rem;
+            opacity: 0.7;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .chart-node:hover .drag-handle {
+            opacity: 1;
+        }
+
+        .chart-node.dragging .drag-handle {
+            cursor: grabbing;
+        }
+
+        .chart-node.dragging {
+            border: 2px dashed #a78bfa; /* Tailwind purple-400 */
+            box-shadow: 0 0 0 4px rgba(167, 140, 250, 0.3);
+        }
+
+        .chart-connector {
+            position: absolute;
+            background: rgba(35, 35, 35, 0.2);
+            height: 2px;
+            width: 100%;
+            z-index: 5;
+        }
+
+        .chart-connector.active {
+            background: #10b981; /* Tailwind green-500 */
+        }
+
+        .modal-footer {
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb; /* Tailwind gray-200 */
+            background-color: #f3f4f6; /* Tailwind slate-100 */
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background-color: #10b981; /* Tailwind green-500 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .btn-primary:hover {
+            background-color: #059669; /* Tailwind green-600 */
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb; /* Tailwind gray-200 */
+            color: #1f2937; /* Tailwind slate-900 */
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db; /* Tailwind gray-300 */
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                height: 95%;
+                border-radius: 0;
+            }
+            .modal-header {
+                padding: 0.75rem;
+            }
+            .modal-title {
+                font-size: 1.125rem;
+            }
+            .modal-body {
+                padding: 1rem;
+            }
+            .chart-container {
+                height: 400px; /* Fixed height for smaller screens */
+            }
+            .chart-canvas {
+                height: 100%;
+            }
+            .chart-structure {
+                height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Your main application content would go here, but for this modal, we'll focus on it -->
+    <div class="flex items-center justify-center min-h-screen">
+        <button id="open-modal-btn" class="bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-600 transition-colors text-lg font-semibold">
+            <i class="fas fa-cogs mr-2"></i>Open Chart Editor
+        </button>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <!-- Modal Content -->
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Edit Organizational Chart</h2>
+                <button class="modal-close-btn" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Chart Editor Area) -->
+            <div class="modal-body">
+                <div class="chart-container" id="chart-editor-container">
+                    <div class="chart-canvas" id="chart-canvas"></div>
+                    <div class="chart-structure" id="chart-structure"></div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-edit">Cancel</button>
+                <button class="btn-primary" id="save-changes">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modalOverlay = document.getElementById('modal-overlay');
+        const openModalBtn = document.getElementById('open-modal-btn');
+        const closeModalBtn = document.querySelector('.modal-close-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const saveChangesBtn = document.getElementById('save-changes');
+        const chartStructure = document.getElementById('chart-structure');
+        const chartCanvas = document.getElementById('chart-canvas');
+
+        let isDraggingChart = false;
+        let initialChartX, initialChartY;
+        let currentChartTransform = { x: 0, y: 0, scale: 1 };
+
+        let isDraggingNode = false;
+        let activeNode = null;
+        let initialNodeX, initialNodeY;
+        let initialMouseX, initialMouseY;
+        let initialNodeTransform = { x: 0, y: 0, scale: 1 };
+
+        let isDraggingConnector = false;
+        let activeConnector = null;
+        let initialConnectorX, initialConnectorY;
+        let initialMouseX, initialMouseY;
+        let initialConnectorTransform = { x: 0, y: 0, scale: 1 };
+
+        let isDraggingHandle = false;
+        let activeHandle = null;
+        let initialHandleX, initialHandleY;
+        let initialMouseX, initialMouseY;
+        let initialHandleTransform = { x: 0, y: 0, scale: 1 };
+
+        let currentZoom = 1;
+        let currentPanX = 0;
+        let currentPanY = 0;
+
+        // Sample Data (replace with your actual data model)
+        const organizationalChart = [
+            {
+                id: 'manager1',
+                name: 'Alice Johnson',
+                role: 'Senior Manager, Sales',
+                children: [
+                    { id: 'sales_rep1', name: 'Bob Smith', role: 'Sales Representative', children: [] },
+                    { id: 'sales_rep2', name: 'Carol Davis', role: 'Sales Representative', children: [
+                        { id: 'support1', name: 'David Brown', role: 'Customer Support', children: [] },
+                        { id: 'support2', name: 'Eve Wilson', role: 'Customer Support', children: [] }
+                    ]},
+                    { id: 'marketing1', name: 'Frank White', role: 'Marketing Lead', children: [] }
+                ]
+            },
+            {
+                id: 'manager2',
+                name: 'Grace Lee',
+                role: 'Lead Developer',
+                children: [
+                    { id: 'dev1', name: 'Henry Green', role: 'Junior Developer', children: [] },
+                    { id: 'dev2', name: 'Ivy Brown', role: 'Senior Developer', children: [] }
+                ]
+            }
+        ];
+
+        // --- Chart Rendering & Manipulation ---
+        function renderChart(chartData, container) {
+            container.innerHTML = ''; // Clear existing elements
+
+            const canvas = document.createElement('canvas');
+            canvas.id = 'chart-canvas';
+            canvas.classList.add('chart-canvas'); // Re-use class for styling
+            container.appendChild(canvas);
+
+            const structureDiv = document.createElement('div');
+            structureDiv.id = 'chart-structure';
+            structureDiv.classList.add('chart-structure'); // Re-use class for styling
+            structureDiv.style.transformOrigin = '0 0';
+            structureDiv.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+
+            // Apply initial transform to structureDiv
+            structureDiv.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+
+            function createNodeElement(node, parentElement, level, parentWidth, parentHeight, parentX, parentY, parentYOffset) {
+                const nodeElement = document.createElement('div');
+                nodeElement.id = `node-${node.id}`;
+                nodeElement.classList.add('chart-node');
+                nodeElement.setAttribute('draggable', 'true');
+                nodeElement.setAttribute('data-node-id', node.id);
+
+                const nameSpan = document.createElement('span');
+                nameSpan.classList.add('node-name');
+                nameSpan.textContent = node.name;
+                nodeElement.appendChild(nameSpan);
+
+                const roleSpan = document.createElement('span');
+                roleSpan.classList.add('node-role');
+                roleSpan.textContent = node.role;
+                nodeElement.appendChild(roleSpan);
+
+                const dragHandle = document.createElement('span');
+                dragHandle.classList.add('drag-handle');
+                dragHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+                nodeElement.appendChild(dragHandle);
+
+                // Initial positioning
+                let nodeWidth = 150; // Base width
+                let nodeHeight = 40; // Base height
+                if (node.children && node.children.length > 0) {
+                    nodeWidth = 180; // Wider for nodes with children
+                }
+
+                const nodeX = parentX + (parentWidth / 2) - (nodeWidth / 2) + (level * 100); // Spacing for children
+                const nodeY = parentY + parentHeight / 2 + parentYOffset;
+
+                // Apply transform for positioning
+                nodeElement.style.transform = `translate(${nodeX}px, ${nodeY}px)`;
+                nodeElement.style.transformOrigin = 'center center';
+                nodeElement.style.zIndex = 10; // Nodes above canvas
+
+                // Add event listeners for dragging
+                nodeElement.addEventListener('mousedown', (e) => startNodeDrag(e, node, nodeElement));
+                nodeElement.addEventListener('touchstart', (e) => startNodeDrag(e, node, nodeElement, true));
+
+                // Add event listeners for handle dragging
+                dragHandle.addEventListener('mousedown', (e) => startHandleDrag(e, node, nodeElement, dragHandle, true));
+                dragHandle.addEventListener('touchstart', (e) => startHandleDrag(e, node, nodeElement, dragHandle, true));
+
+
+                // Add children
+                if (node.children && node.children.length > 0) {
+                    node.children.forEach(child => {
+                        const childWidth = 150 + (child.children ? 20 : 0); // Adjust child width if they have children
+                        const childHeight = 40;
+                        const childX = parentX + (parentWidth / 2) - (childWidth / 2) + (level * 100);
+                        const childY = parentY + parentHeight / 2 + parentYOffset + 50; // Position below parent
+
+                        const childElement = createNodeElement(child, structureDiv, level + 1, childWidth, childHeight, childX, childY, 0);
+                        structureDiv.appendChild(childElement);
+                    });
+                }
+
+                return nodeElement;
+            }
+
+            organizationalChart.forEach((node, index) => {
+                const nodeElement = createNodeElement(node, structureDiv, 0, 150, 40, 0, 0, 0);
+                structureDiv.appendChild(nodeElement);
+            });
+        }
+
+        // --- Drag and Drop Logic for Chart ---
+        function startChartDrag(e) {
+            isDraggingChart = true;
+            initialChartX = e.clientX - currentPanX;
+            initialChartY = e.clientY - currentPanY;
+            currentChartTransform = { x: currentPanX, y: currentPanY, scale: currentZoom };
+            structureDiv.style.cursor = 'grabbing';
+        }
+
+        function doChartDrag(e) {
+            if (!isDraggingChart) return;
+            const dx = e.clientX - initialChartX;
+            const dy = e.clientY - initialChartY;
+
+            currentPanX = dx;
+            currentPanY = dy;
+
+            structureDiv.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+        }
+
+        function endChartDrag() {
+            isDraggingChart = false;
+            structureDiv.style.cursor = 'grab';
+        }
+
+        function startNodeDrag(e, node, nodeElement, isTouch = false) {
+            isDraggingNode = true;
+            activeNode = node;
+            initialNodeX = nodeElement.offsetLeft;
+            initialNodeY = nodeElement.offsetTop;
+            initialMouseX = isTouch ? e.touches[0].clientX : e.clientX;
+            initialMouseY = isTouch ? e.touches[0].clientY : e.clientY;
+
+            // Apply a temporary transform to indicate dragging
+            nodeElement.style.transform = `translate(${initialNodeX}px, ${initialNodeY}px)`;
+            nodeElement.style.transformOrigin = 'center center';
+            nodeElement.style.cursor = 'grabbing';
+
+            // Prevent default for touch/mouse to allow drag
+            if (isTouch) {
+                e.preventDefault();
+            }
+        }
+
+        function doNodeDrag(e) {
+            if (!isDraggingNode) return;
+            const dx = e.clientX - initialMouseX;
+            const dy = e.clientY - initialMouseY;
+
+            const newX = initialNodeX + dx;
+            const newY = initialNodeY + dy;
+
+            activeNodeElement.style.transform = `translate(${newX}px, ${newY}px)`;
+
+            // Update actual position in the data model (simplified)
+            activeNode.x = newX;
+            activeNode.y = newY;
+        }
+
+        function endNodeDrag() {
+            isDraggingNode = false;
+            if (activeNodeElement) {
+                activeNodeElement.style.transform = `translate(${initialNodeX}px, ${initialNodeY}px)`; // Reset transform
+                activeNodeElement.style.transformOrigin = 'center center';
+            }
+            activeNode = null;
+            isDraggingNode = false;
+        }
+
+        function startHandleDrag(e, node, nodeElement, handleElement, isTouch = false) {
+            isDraggingHandle = true;
+            activeHandle = handleElement;
+            initialHandleX = nodeElement.offsetLeft + (handleElement.offsetWidth / 2);
+            initialHandleY = nodeElement.offsetTop + (handleElement.offsetHeight / 2);
+            initialMouseX = isTouch ? e.touches[0].clientX : e.clientX;
+            initialMouseY = isTouch ? e.touches[0].clientY : e.clientY;
+
+            // Apply a temporary transform to indicate dragging
+            nodeElement.style.transform = `translate(${initialHandleX}px, ${initialHandleY}px)`;
+            nodeElement.style.transformOrigin = 'center center';
+            nodeElement.style.cursor = 'grabbing';
+
+            // Prevent default for touch/mouse to allow drag
+            if (isTouch) {
+                e.preventDefault();
+            }
+        }
+
+        function doHandleDrag(e) {
+            if (!isDraggingHandle) return;
+            const dx = e.clientX - initialMouseX;
+            const dy = e.clientY - initialMouseY;
+
+            const newX = initialHandleX + dx;
+            const newY = initialHandleY + dy;
+
+            activeNodeElement.style.transform = `translate(${newX}px, ${newY}px)`;
+
+            // Update actual position in the data model (simplified)
+            activeNode.x = newX;
+            activeNode.y = newY;
+        }
+
+        function endHandleDrag() {
+            isDraggingHandle = false;
+            if (activeNodeElement) {
+                activeNodeElement.style.transform = `translate(${initialHandleX}px, ${initialHandleY}px)`; // Reset transform
+                activeNodeElement.style.transformOrigin = 'center center';
+            }
+            activeHandle = null;
+            isDraggingHandle = false;
+        }
+
+        // --- Event Listeners for Modal ---
+        function openModal() {
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.style.display = 'flex';
+            renderChart(organizationalChart, chartStructure);
+            document.addEventListener('mousemove', doChartDrag);
+            document.addEventListener('mouseup', endChartDrag);
+            document.addEventListener('touchmove', doChartDrag, { passive: false });
+            document.addEventListener('touchend', endChartDrag);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.add('hidden');
+            document.removeEventListener('mousemove', doChartDrag);
+            document.removeEventListener('mouseup', endChartDrag);
+            document.removeEventListener('touchmove', doChartDrag, { passive: false });
+            document.removeEventListener('touchend', endChartDrag);
+        }
+
+        function cancelEdit() {
+            // Revert to initial state or clear changes
+            console.log('Editing cancelled. Reverting to original data...');
+            organizationalChart.forEach(node => {
+                node.x = 0;
+                node.y = 0;
+            });
+            renderChart(organizationalChart, chartStructure);
+            closeModal();
+        }
+
+        function saveChanges() {
+            console.log('Changes saved! Current organizational chart data:', organizationalChart);
+            closeModal();
+        }
+
+        // --- Keyboard Shortcuts (for accessibility) ---
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) {
+                closeModal();
+            } else if (e.key === 'Enter' && !modalOverlay.classList.contains('hidden')) {
+                // If no active drag, simulate click on save button
+                saveChanges();
+            }
+        });
+
+        // Initial event listeners
+        openModalBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelEditBtn.addEventListener('click', cancelEdit);
+        saveChangesBtn.addEventListener('click', saveChanges);
+
+        // Add event listeners for canvas drag (chart overall drag)
+        chartCanvas.addEventListener('mousedown', startChartDrag);
+        chartCanvas.addEventListener('touchstart', (e) => startChartDrag(e, true)); // Pass true for touch
+        chartCanvas.addEventListener('mousemove', doChartDrag);
+        chartCanvas.addEventListener('touchmove', (e) => doChartDrag(e, true)); // Pass true for touch
+        chartCanvas.addEventListener('mouseup', endChartDrag);
+        chartCanvas.addEventListener('touchend', endChartDrag);
+
+        // Add event listeners for nodes and handles
+        chartStructure.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('chart-node') || e.target.closest('.chart-node .drag-handle')) {
+                const targetNode = e.target.closest('.chart-node');
+                if (targetNode) {
+                    const nodeDataId = targetNode.getAttribute('data-node-id');
+                    const nodeIndex = organizationalChart.findIndex(n => n.id === nodeDataId);
+                    if (nodeIndex !== -1) {
+                        activeNode = organizationalChart[nodeIndex];
+                        const nodeElement = document.getElementById(`node-${nodeDataId}`);
+                        if (nodeElement) {
+                            startNodeDrag(e, activeNode, nodeElement);
+                        }
+                    }
+                }
+            }
+        });
+        chartStructure.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('chart-node') || e.target.closest('.chart-node .drag-handle')) {
+                const targetNode = e.target.closest('.chart-node');
+                if (targetNode) {
+                    const nodeDataId = targetNode.getAttribute('data-node-id');
+                    const nodeIndex = organizationalChart.findIndex(n => n.id === nodeDataId);
+                    if (nodeIndex !== -1) {
+                        activeNode = organizationalChart[nodeIndex];
+                        const nodeElement = document.getElementById(`node-${nodeDataId}`);
+                        if (nodeElement) {
+                            startNodeDrag(e, activeNode, nodeElement, true);
+                        }
+                    }
+                }
+            }
+        });
+
+        // Add event listeners for handle dragging (already covered by startNodeDrag, but can be simplified)
+        // chartStructure.addEventListener('mousedown', (e) => {
+        //     if (e.target.classList.contains('drag-handle')) {
+        //         const targetHandle = e.target;
+        //         const nodeElement = targetHandle.closest('.chart-node');
+        //         if (nodeElement) {
+        //             const nodeDataId = nodeElement.getAttribute('data-node-id');
+        //             const nodeIndex = organizationalChart.findIndex(n => n.id === nodeDataId);
+        //             if (nodeIndex !== -1) {
+        //                 activeNode = organizationalChart[nodeIndex];
+        //                 startHandleDrag(e, activeNode, nodeElement, targetHandle);
+        //             }
+        //         }
+        //     }
+        // });
+        // chartStructure.addEventListener('touchstart', (e) => {
+        //     if (e.target.classList.contains('drag-handle')) {
+        //         const targetHandle = e.target;
+        //         const nodeElement = targetHandle.closest('.chart-node');
+        //         if (nodeElement) {
+        //             const nodeDataId = nodeElement.getAttribute('data-node-id');
+        //             const nodeIndex = organizationalChart.findIndex(n => n.id === nodeDataId);
+        //             if (nodeIndex !== -1) {
+        //                 activeNode = organizationalChart[nodeIndex];
+        //                 startHandleDrag(e, activeNode, nodeElement, targetHandle, true);
+        //             }
+        //         }
+        //     }
+        // });
+
+
+        // --- Zoom and Pan (simplified for canvas, more robust for structure div) ---
+        chartCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); // Prevent page scroll
+            const zoomFactor = 1.1;
+            const mouseX = e.clientX - chartCanvas.getBoundingClientRect().left;
+            const mouseY = e.clientY - chartCanvas.getBoundingClientRect().top;
+
+            const oldZoom = currentZoom;
+            if (e.deltaY < 0) { // Zoom in
+                currentZoom *= zoomFactor;
+            } else { // Zoom out
+                currentZoom /= zoomFactor;
+            }
+
+            // Clamp zoom to reasonable bounds
+            currentZoom = Math.max(0.5, Math.min(2.0, currentZoom));
+
+            // Recalculate pan to keep mouse position relative
+            const newPanX = mouseX - (mouseX - currentPanX) * (currentZoom / oldZoom);
+            const newPanY = mouseY - (mouseY - currentPanY) * (currentZoom / oldZoom);
+
+            currentPanX = newPanX;
+            currentPanY = newPanY;
+
+            structureDiv.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+        });
+
+        // --- Responsive Chart Rendering (for canvas size) ---
+        function resizeChart() {
+            const containerWidth = chartStructure.offsetWidth;
+            const containerHeight = chartStructure.offsetHeight;
+            const canvas = document.getElementById('chart-canvas');
+            if (canvas) {
+                canvas.width = containerWidth;
+                canvas.height = containerHeight;
+            }
+            // Re-render the canvas if needed, but structureDiv handles the positioning
+        }
+
+        window.addEventListener('resize', resizeChart);
+
+    </script>
+</body>
+</html>

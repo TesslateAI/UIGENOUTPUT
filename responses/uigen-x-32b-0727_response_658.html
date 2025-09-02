@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+        }
+        
+        .header {
+            grid-area: header;
+        }
+        
+        .main {
+            grid-area: main;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+        
+        .trend-up {
+            color: #10b981;
+        }
+        
+        .trend-down {
+            color: #ef4444;
+        }
+        
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: #0ea5e9;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 100%;
+        }
+        
+        .nav-link:hover,
+        .nav-link.active {
+            color: #0ea5e9;
+        }
+        
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .facebook { background: #1877F2; color: white; }
+        .instagram { background: linear-gradient(45deg, #833AB4, #FD1D1D, #FCB045); color: white; }
+        .twitter { background: #1DA1F2; color: white; }
+        .linkedin { background: #0A66C2; color: white; }
+        .youtube { background: #FF0000; color: white; }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-700">
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar bg-white border-r border-gray-200 py-6 px-4">
+            <div class="flex items-center mb-10">
+                <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xl">S</div>
+                <h1 class="text-xl font-bold ml-3">SocialInsights</h1>
+            </div>
+            
+            <nav class="space-y-1">
+                <a href="#" class="nav-link active flex items-center py-3 px-4 text-gray-700">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-4 text-gray-700">
+                    <i class="fas fa-users mr-3"></i>
+                    <span>Audience</span>
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-4 text-gray-700">
+                    <i class="fas fa-file-alt mr-3"></i>
+                    <span>Content</span>
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-4 text-gray-700">
+                    <i class="fas fa-bullhorn mr-3"></i>
+                    <span>Advertising</span>
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-4 text-gray-700">
+                    <i class="fas fa-chart-bar mr-3"></i>
+                    <span>Competitor</span>
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-4 text-gray-700">
+                    <i class="fas fa-cog mr-3"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-6 border-t border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <i class="fas fa-user text-gray-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="font-medium">Alex Morgan</p>
+                        <p class="text-sm text-gray-500">Admin</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <h2 class="text-xl font-bold">Dashboard</h2>
+                <div class="ml-4 relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-transparent">
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-bell text-gray-600"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100">
+                    <i class="fas fa-envelope text-gray-600"></i>
+                </button>
+                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-user text-primary-600"></i>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main p-6 overflow-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                <!-- Date Filter -->
+                <div class="lg:col-span-4 flex justify-between items-center">
+                    <h1 class="text-2xl font-bold">Analytics Dashboard</h1>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Today</button>
+                        <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Week</button>
+                        <button class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">Month</button>
+                        <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Quarter</button>
+                        <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Year</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="metric-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Total Followers</p>
+                            <h3 class="text-3xl font-bold mt-2">24.8K</h3>
+                        </div>
+                        <div class="bg-primary-100 p-3 rounded-lg">
+                            <i class="fas fa-users text-primary-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="trend-up flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 12.4%
+                        </span>
+                        <span class="text-gray-500 text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Engagement Rate</p>
+                            <h3 class="text-3xl font-bold mt-2">7.2%</h3>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-lg">
+                            <i class="fas fa-heart text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="trend-up flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 3.1%
+                        </span>
+                        <span class="text-gray-500 text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Impressions</p>
+                            <h3 class="text-3xl font-bold mt-2">1.2M</h3>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            <i class="fas fa-eye text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="trend-up flex items-center">
+                            <i class="fas fa-arrow-up mr-1"></i> 8.7%
+                        </span>
+                        <span class="text-gray-500 text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Avg. Reach</p>
+                            <h3 class="text-3xl font-bold mt-2">42.3K</h3>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-lg">
+                            <i class="fas fa-chart-line text-yellow-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span class="trend-down flex items-center">
+                            <i class="fas fa-arrow-down mr-1"></i> 1.2%
+                        </span>
+                        <span class="text-gray-500 text-sm ml-2">vs last month</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts and Data Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Engagement Chart -->
+                <div class="lg:col-span-2 card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold">Engagement Overview</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 bg-primary-50 text-primary-600 rounded-lg text-sm">Engagement</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm">Reach</button>
+                            <button class="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm">Impressions</button>
+                        </div>
+                    </div>
+                    <div class="h-80">
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Platform Distribution -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-6">Platform Distribution</h3>
+                    <div class="h-80">
+                        <canvas id="platformChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content Performance -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Top Performing Content -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-6">Top Performing Content</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <i class="fas fa-image text-gray-500"></i>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="font-medium">Summer Collection Launch</h4>
+                                <p class="text-gray-500 text-sm mt-1">Posted 2 days ago</p>
+                                <div class="flex mt-2">
+                                    <span class="text-gray-500 text-sm mr-4"><i class="fas fa-heart text-red-500 mr-1"></i> 2.4K</span>
+                                    <span class="text-gray-500 text-sm mr-4"><i class="fas fa-comment text-blue-500 mr-1"></i> 342</span>
+                                    <span class="text-gray-500 text-sm"><i class="fas fa-share text-green-500 mr-1"></i> 128</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <i class="fas fa-video text-gray-500"></i>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="font-medium">Behind the Scenes</h4>
+                                <p class="text-gray-500 text-sm mt-1">Posted 5 days ago</p>
+                                <div class="flex mt-2">
+                                    <span class="text-gray-500 text-sm mr-4"><i class="fas fa-heart text-red-500 mr-1"></i> 1.8K</span>
+                                    <span class="text-gray-500 text-sm mr-4"><i class="fas fa-comment text-blue-500 mr-1"></i> 214</span>
+                                    <span class="text-gray-500 text-sm"><i class="fas fa-share text-green-500 mr-1"></i> 98</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <i class="fas fa-poll text-gray-500"></i>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="font-medium">Customer Feedback Poll</h4>
+                                <p class="text-gray-500 text-sm mt-1">Posted 1 week ago</p>
+                                <div class="flex mt-2">
+                                    <span class="text-gray-500 text-sm mr-4"><i class="fas fa-heart text-red-500 mr-1"></i> 1.2K</span>
+                                    <span class="text-gray-500 text-sm mr-4"><i class="fas fa-comment text-blue-500 mr-1"></i> 421</span>
+                                    <span class="text-gray-500 text-sm"><i class="fas fa-share text-green-500 mr-1"></i> 76</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Audience Demographics -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-6">Audience Demographics</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-medium mb-3">Age Distribution</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>18-24</span>
+                                        <span>32%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary-500 h-2 rounded-full" style="width: 32%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>25-34</span>
+                                        <span>45%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary-500 h-2 rounded-full" style="width: 45%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>35-44</span>
+                                        <span>18%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary-500 h-2 rounded-full" style="width: 18%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>45+</span>
+                                        <span>5%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary-500 h-2 rounded-full" style="width: 5%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-medium mb-3">Gender Distribution</h4>
+                            <div class="flex items-center justify-center h-48">
+                                <canvas id="genderChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Competitor Analysis -->
+            <div class="card p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-6">Competitor Analysis</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-500 text-sm border-b">
+                                <th class="pb-3">Competitor</th>
+                                <th class="pb-3">Followers</th>
+                                <th class="pb-3">Engagement</th>
+                                <th class="pb-3">Avg. Likes</th>
+                                <th class="pb-3">Avg. Comments</th>
+                                <th class="pb-3">Change</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="social-icon facebook mr-3">
+                                            <i class="fab fa-facebook-f"></i>
+                                        </div>
+                                        <span>FashionHub</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">42.5K</td>
+                                <td class="py-4">8.2%</td>
+                                <td class="py-4">2.1K</td>
+                                <td class="py-4">312</td>
+                                <td class="py-4">
+                                    <span class="trend-up flex items-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> 4.3%
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="social-icon instagram mr-3">
+                                            <i class="fab fa-instagram"></i>
+                                        </div>
+                                        <span>StyleCentral</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">38.7K</td>
+                                <td class="py-4">6.8%</td>
+                                <td class="py-4">1.8K</td>
+                                <td class="py-4">245</td>
+                                <td class="py-4">
+                                    <span class="trend-up flex items-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> 2.1%
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="social-icon twitter mr-3">
+                                            <i class="fab fa-twitter"></i>
+                                        </div>
+                                        <span>TrendTalk</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">28.3K</td>
+                                <td class="py-4">5.4%</td>
+                                <td class="py-4">1.2K</td>
+                                <td class="py-4">187</td>
+                                <td class="py-4">
+                                    <span class="trend-down flex items-center">
+                                        <i class="fas fa-arrow-down mr-1"></i> 1.2%
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="social-icon linkedin mr-3">
+                                            <i class="fab fa-linkedin-in"></i>
+                                        </div>
+                                        <span>BusinessWear</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">18.9K</td>
+                                <td class="py-4">4.7%</td>
+                                <td class="py-4">892</td>
+                                <td class="py-4">132</td>
+                                <td class="py-4">
+                                    <span class="trend-up flex items-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> 0.8%
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Engagement Chart
+            const engagementCtx = document.getElementById('engagementChart').getContext('2d');
+            const engagementChart = new Chart(engagementCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [
+                        {
+                            label: 'Likes',
+                            data: [12000, 19000, 15000, 18000, 22000, 25000, 28000, 26000, 30000, 32000, 35000, 40000],
+                            borderColor: '#0ea5e9',
+                            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Comments',
+                            data: [800, 1200, 1000, 1500, 1800, 2000, 2200, 2100, 2400, 2600, 2800, 3000],
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Platform Distribution Chart
+            const platformCtx = document.getElementById('platformChart').getContext('2d');
+            const platformChart = new Chart(platformCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Instagram', 'Facebook', 'Twitter', 'LinkedIn', 'YouTube'],
+                    datasets: [{
+                        data: [35, 25, 15, 12, 13],
+                        backgroundColor: [
+                            '#8b5cf6',
+                            '#1877F2',
+                            '#1DA1F2',
+                            '#0A66C2',
+                            '#FF0000'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+            
+            // Gender Distribution Chart
+            const genderCtx = document.getElementById('genderChart').getContext('2d');
+            const genderChart = new Chart(genderCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Male', 'Female', 'Other'],
+                    datasets: [{
+                        data: [42, 55, 3],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#8b5cf6',
+                            '#94a3b8'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%'
+                }
+            });
+        });
+    </script>
+</body>
+</html>

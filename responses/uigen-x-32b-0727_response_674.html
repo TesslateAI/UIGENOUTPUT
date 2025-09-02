@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VolunteerHub - Volunteer Management Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f8fafc;
+        }
+        
+        .volunteer-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .volunteer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .event-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .skill-badge {
+            background-color: rgba(20, 184, 166, 0.1);
+            color: #0d9488;
+        }
+        
+        .volunteer-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: rgba(20, 184, 166, 0.1);
+            color: #0d9488;
+        }
+        
+        .status-pending {
+            background-color: rgba(250, 204, 21, 0.1);
+            color: #b45309;
+        }
+        
+        .status-inactive {
+            background-color: rgba(100, 116, 139, 0.1);
+            color: #475569;
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #0ea5e9;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-item {
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-item:hover {
+            background-color: rgba(14, 165, 233, 0.1);
+        }
+        
+        .sidebar-item.active {
+            background-color: rgba(14, 165, 233, 0.15);
+            border-left: 3px solid #0ea5e9;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+        
+        .volunteer-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .volunteer-avatar:nth-child(1) { background-color: #0ea5e9; }
+        .volunteer-avatar:nth-child(2) { background-color: #14b8a6; }
+        .volunteer-avatar:nth-child(3) { background-color: #8b5cf6; }
+        .volunteer-avatar:nth-child(4) { background-color: #f97316; }
+        .volunteer-avatar:nth-child(5) { background-color: #ec4899; }
+        
+        .event-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #0ea5e9;
+            border-radius: 3px;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="font-sans text-dark-800">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 bg-white shadow-md hidden md:block">
+            <div class="p-6 border-b border-dark-100">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                        <i class="fas fa-hands-helping text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-dark-900">VolunteerHub</h1>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <div class="mb-6">
+                    <h3 class="text-xs uppercase tracking-wider text-dark-500 font-semibold mb-2 px-3">Navigation</h3>
+                    <ul>
+                        <li>
+                            <a href="#" class="sidebar-item active flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-home text-dark-500"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-users text-dark-500"></i>
+                                <span>Volunteers</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-calendar-alt text-dark-500"></i>
+                                <span>Events</span>
+                                <span class="notification-dot"></span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-tasks text-dark-500"></i>
+                                <span>Tasks</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-chart-bar text-dark-500"></i>
+                                <span>Reports</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-xs uppercase tracking-wider text-dark-500 font-semibold mb-2 px-3">Tools</h3>
+                    <ul>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-envelope text-dark-500"></i>
+                                <span>Messages</span>
+                                <span class="notification-dot"></span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-bell text-dark-500"></i>
+                                <span>Notifications</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg">
+                                <i class="fas fa-cog text-dark-500"></i>
+                                <span>Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="mt-8 p-3 bg-primary-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                            <i class="fas fa-award text-primary-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-dark-900">Volunteer of the Month</p>
+                            <p class="text-xs text-dark-500">Sarah Johnson</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center">
+                        <button class="md:hidden mr-4 text-dark-500">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center">
+                                <i class="fas fa-hands-helping text-white"></i>
+                            </div>
+                            <h1 class="text-lg font-bold text-dark-900 hidden md:block">VolunteerHub</h1>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="text-dark-500 hover:text-primary-600">
+                                <i class="fas fa-bell text-xl"></i>
+                                <span class="notification-dot"></span>
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <button class="text-dark-500 hover:text-primary-600">
+                                <i class="fas fa-envelope text-xl"></i>
+                                <span class="notification-dot"></span>
+                            </button>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                <span class="text-primary-600 font-medium">AD</span>
+                            </div>
+                            <span class="hidden md:block font-medium text-dark-800">Admin User</span>
+                            <i class="fas fa-chevron-down text-dark-400"></i>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content Area -->
+            <main class="flex-1 p-4 md:p-6">
+                <div class="max-w-7xl mx-auto">
+                    <!-- Dashboard Header -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-dark-900">Volunteer Dashboard</h2>
+                            <p class="text-dark-500">Welcome back! Here's what's happening with your volunteers.</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-plus mr-2"></i> Add Volunteer
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-dark-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-dark-500 text-sm">Total Volunteers</p>
+                                    <h3 class="text-2xl font-bold text-dark-900 mt-1">248</h3>
+                                </div>
+                                <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center">
+                                    <i class="fas fa-users text-primary-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-center text-sm text-green-500">
+                                    <i class="fas fa-arrow-up mr-1"></i>
+                                    <span>12% from last month</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-dark-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-dark-500 text-sm">Active Events</p>
+                                    <h3 class="text-2xl font-bold text-dark-900 mt-1">14</h3>
+                                </div>
+                                <div class="w-12 h-12 rounded-lg bg-secondary-100 flex items-center justify-center">
+                                    <i class="fas fa-calendar-alt text-secondary-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-center text-sm text-green-500">
+                                    <i class="fas fa-arrow-up mr-1"></i>
+                                    <span>3 new this week</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-dark-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-dark-500 text-sm">Hours Logged</p>
+                                    <h3 class="text-2xl font-bold text-dark-900 mt-1">1,248</h3>
+                                </div>
+                                <div class="w-12 h-12 rounded-lg bg-accent-100 flex items-center justify-center">
+                                    <i class="fas fa-clock text-accent-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="flex items-center text-sm text-green-500">
+                                    <i class="fas fa-arrow-up mr-1"></i>
+                                    <span>8% increase</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl p-5 shadow-sm border border-dark-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-dark-500 text-sm">Tasks Completed</p>
+                                    <h3 class="text-2xl font-bold text-dark-900 mt-1">86%</h3>
+                                </div>
+                                <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                                    <i class="fas fa-tasks text-purple-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 86%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Content Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Volunteer List -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white rounded-xl shadow-sm border border-dark-100 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-dark-100 flex justify-between items-center">
+                                    <h3 class="font-bold text-lg text-dark-900">Volunteer Directory</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="text-dark-500 hover:text-primary-600">
+                                            <i class="fas fa-filter"></i>
+                                        </button>
+                                        <button class="text-dark-500 hover:text-primary-600">
+                                            <i class="fas fa-sort"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="bg-dark-50 text-dark-500 text-left text-sm">
+                                                <th class="py-3 px-6 font-medium">Volunteer</th>
+                                                <th class="py-3 px-6 font-medium">Skills</th>
+                                                <th class="py-3 px-6 font-medium">Status</th>
+                                                <th class="py-3 px-6 font-medium">Hours</th>
+                                                <th class="py-3 px-6 font-medium">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-dark-100">
+                                            <tr>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex items-center">
+                                                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                                            <span class="text-blue-600 font-medium">SJ</span>
+                                                        </div>
+                                                        <div>
+                                                            <p class="font-medium text-dark-900">Sarah Johnson</p>
+                                                            <p class="text-sm text-dark-500">sarah@example.com</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex flex-wrap gap-2">
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">Event Planning</span>
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">First Aid</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <span class="volunteer-status status-active">Active</span>
+                                                </td>
+                                                <td class="py-4 px-6 font-medium">42</td>
+                                                <td class="py-4 px-6">
+                                                    <button class="text-primary-500 hover:text-primary-700">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </button>
+                                                    <button class="text-dark-400 hover:text-dark-600 ml-3">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex items-center">
+                                                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                                            <span class="text-green-600 font-medium">MR</span>
+                                                        </div>
+                                                        <div>
+                                                            <p class="font-medium text-dark-900">Michael Rodriguez</p>
+                                                            <p class="text-sm text-dark-500">michael@example.com</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex flex-wrap gap-2">
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">Marketing</span>
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">Spanish</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <span class="volunteer-status status-pending">Pending</span>
+                                                </td>
+                                                <td class="py-4 px-6 font-medium">18</td>
+                                                <td class="py-4 px-6">
+                                                    <button class="text-primary-500 hover:text-primary-700">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </button>
+                                                    <button class="text-dark-400 hover:text-dark-600 ml-3">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex items-center">
+                                                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                                            <span class="text-purple-600 font-medium">EC</span>
+                                                        </div>
+                                                        <div>
+                                                            <p class="font-medium text-dark-900">Emma Chen</p>
+                                                            <p class="text-sm text-dark-500">emma@example.com</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex flex-wrap gap-2">
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">Photography</span>
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">Design</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <span class="volunteer-status status-active">Active</span>
+                                                </td>
+                                                <td class="py-4 px-6 font-medium">67</td>
+                                                <td class="py-4 px-6">
+                                                    <button class="text-primary-500 hover:text-primary-700">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </button>
+                                                    <button class="text-dark-400 hover:text-dark-600 ml-3">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex items-center">
+                                                        <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                                                            <span class="text-yellow-600 font-medium">DK</span>
+                                                        </div>
+                                                        <div>
+                                                            <p class="font-medium text-dark-900">David Kim</p>
+                                                            <p class="text-sm text-dark-500">david@example.com</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <div class="flex flex-wrap gap-2">
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">IT Support</span>
+                                                        <span class="skill-badge px-3 py-1 rounded-full text-xs">Translation</span>
+                                                    </div>
+                                                </td>
+                                                <td class="py-4 px-6">
+                                                    <span class="volunteer-status status-inactive">Inactive</span>
+                                                </td>
+                                                <td class="py-4 px-6 font-medium">32</td>
+                                                <td class="py-4 px-6">
+                                                    <button class="text-primary-500 hover:text-primary-700">
+                                                        <i class="fas fa-envelope"></i>
+                                                    </button>
+                                                    <button class="text-dark-400 hover:text-dark-600 ml-3">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="px-6 py-4 border-t border-dark-100 flex justify-between items-center">
+                                    <p class="text-sm text-dark-500">Showing 4 of 248 volunteers</p>
+                                    <button class="text-primary-500 hover:text-primary-700 font-medium">
+                                        View All Volunteers <i class="fas fa-arrow-right ml-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Upcoming Events -->
+                        <div>
+                            <div class="bg-white rounded-xl shadow-sm border border-dark-100 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-dark-100 flex justify-between items-center">
+                                    <h3 class="font-bold text-lg text-dark-900">Upcoming Events</h3>
+                                    <button class="text-primary-500 hover:text-primary-700">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div class="p-4">
+                                    <div class="event-card border-l-primary-500 bg-primary-50 p-4 mb-4 fade-in">
+                                        <div class="flex justify-between">
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Community Cleanup Day</h4>
+                                                <p class="text-sm text-dark-500 mt-1">Central Park, New York</p>
+                                            </div>
+                                            <span class="event-indicator"></span>
+                                        </div>
+                                        <div class="flex items-center mt-3 text-sm">
+                                            <i class="far fa-calendar text-primary-500 mr-2"></i>
+                                            <span>June 15, 2023 | 9:00 AM</span>
+                                        </div>
+                                        <div class="mt-3 flex items-center justify-between">
+                                            <div class="flex -space-x-2">
+                                                <div class="volunteer-avatar">SJ</div>
+                                                <div class="volunteer-avatar">MR</div>
+                                                <div class="volunteer-avatar">EC</div>
+                                                <div class="volunteer-avatar bg-dark-200">+4</div>
+                                            </div>
+                                            <span class="text-sm text-dark-500">24 attending</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="event-card border-l-secondary-500 bg-secondary-50 p-4 mb-4 fade-in">
+                                        <div class="flex justify-between">
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Food Drive Collection</h4>
+                                                <p class="text-sm text-dark-500 mt-1">Downtown Distribution Center</p>
+                                            </div>
+                                            <span class="event-indicator"></span>
+                                        </div>
+                                        <div class="flex items-center mt-3 text-sm">
+                                            <i class="far fa-calendar text-secondary-500 mr-2"></i>
+                                            <span>June 18, 2023 | 2:00 PM</span>
+                                        </div>
+                                        <div class="mt-3 flex items-center justify-between">
+                                            <div class="flex -space-x-2">
+                                                <div class="volunteer-avatar">DK</div>
+                                                <div class="volunteer-avatar">SJ</div>
+                                                <div class="volunteer-avatar">EC</div>
+                                            </div>
+                                            <span class="text-sm text-dark-500">18 attending</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="event-card border-l-purple-500 bg-purple-50 p-4 mb-4 fade-in">
+                                        <div class="flex justify-between">
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Senior Center Outreach</h4>
+                                                <p class="text-sm text-dark-500 mt-1">Sunset Senior Center</p>
+                                            </div>
+                                            <span class="event-indicator"></span>
+                                        </div>
+                                        <div class="flex items-center mt-3 text-sm">
+                                            <i class="far fa-calendar text-purple-500 mr-2"></i>
+                                            <span>June 22, 2023 | 10:00 AM</span>
+                                        </div>
+                                        <div class="mt-3 flex items-center justify-between">
+                                            <div class="flex -space-x-2">
+                                                <div class="volunteer-avatar">MR</div>
+                                                <div class="volunteer-avatar">DK</div>
+                                                <div class="volunteer-avatar">EC</div>
+                                            </div>
+                                            <span class="text-sm text-dark-500">15 attending</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="event-card border-l-yellow-500 bg-yellow-50 p-4 fade-in">
+                                        <div class="flex justify-between">
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Library Story Time</h4>
+                                                <p class="text-sm text-dark-500 mt-1">Main Public Library</p>
+                                            </div>
+                                            <span class="event-indicator"></span>
+                                        </div>
+                                        <div class="flex items-center mt-3 text-sm">
+                                            <i class="far fa-calendar text-yellow-500 mr-2"></i>
+                                            <span>June 25, 2023 | 1:00 PM</span>
+                                        </div>
+                                        <div class="mt-3 flex items-center justify-between">
+                                            <div class="flex -space-x-2">
+                                                <div class="volunteer-avatar">SJ</div>
+                                                <div class="volunteer-avatar">EC</div>
+                                            </div>
+                                            <span class="text-sm text-dark-500">12 attending</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="px-6 py-4 border-t border-dark-100">
+                                    <button class="w-full text-primary-500 hover:text-primary-700 font-medium py-2">
+                                        View All Events <i class="fas fa-arrow-right ml-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Skills Distribution -->
+                            <div class="bg-white rounded-xl shadow-sm border border-dark-100 mt-6 p-6">
+                                <h3 class="font-bold text-lg text-dark-900 mb-4">Skills Distribution</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm font-medium text-dark-700">Event Planning</span>
+                                            <span class="text-sm font-medium text-dark-700">42%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill bg-primary-500" style="width: 42%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm font-medium text-dark-700">First Aid</span>
+                                            <span class="text-sm font-medium text-dark-700">35%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill bg-secondary-500" style="width: 35%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm font-medium text-dark-700">Language Skills</span>
+                                            <span class="text-sm font-medium text-dark-700">28%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill bg-purple-500" style="width: 28%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm font-medium text-dark-700">Technical Skills</span>
+                                            <span class="text-sm font-medium text-dark-700">22%</span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill bg-yellow-500" style="width: 22%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script>
+        // Simple animation for the event cards
+        document.querySelectorAll('.fade-in').forEach((el, index) => {
+            el.style.animationDelay = `${index * 0.1}s`;
+        });
+        
+        // Toggle sidebar on mobile
+        document.querySelector('button[class*="md:hidden"]').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('hidden');
+        });
+        
+        // Toggle active class for sidebar items
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

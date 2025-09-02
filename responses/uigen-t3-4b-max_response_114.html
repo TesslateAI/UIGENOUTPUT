@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+        }
+        .chat-container {
+            max-width: 600px;
+            width: 100%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            height: 80vh; /* Make it take up a good portion of the viewport */
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+        .chat-header {
+            background-color: #007bff; /* Chatbot's blue */
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.25rem;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+        .chat-log {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f8f9fa; /* Slightly darker than body for log area */
+            display: flex;
+            flex-direction: column-reverse; /* New messages at the bottom */
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .user-message {
+            background-color: #007bff; /* Chatbot's blue */
+            color: white;
+            border-bottom-right-radius: 4px; /* Tail for user */
+        }
+        .bot-message {
+            background-color: #e0e0e0; /* Light gray for bot */
+            color: #333;
+            border-bottom-left-radius: 4px; /* Tail for bot */
+        }
+        .message-time {
+            font-size: 0.75rem;
+            color: #666;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .bot-response {
+            background-color: #e0e0e0; /* Light gray for bot */
+            color: #333;
+            border-bottom-left-radius: 4px; /* Tail for bot */
+        }
+        .chat-input-area {
+            background-color: #ffffff;
+            padding: 15px 20px;
+            display: flex;
+            border-top: 1px solid #e0e0e0;
+        }
+        .chat-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            margin-right: 10px;
+            outline: none;
+            resize: vertical; /* Allow vertical resizing */
+            min-height: 40px; /* Minimum height for input */
+            max-height: 100px; /* Max height to prevent excessive growth */
+            overflow-y: auto; /* Scroll for content if it exceeds max-height */
+        }
+        .send-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .send-button:hover {
+            background-color: #0056b3;
+        }
+        .typing-indicator {
+            padding: 10px 15px;
+            background-color: #e0e0e0;
+            color: #333;
+            border-radius: 18px;
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .chat-container {
+                height: 90vh;
+                border-radius: 0;
+                margin: 0; /* No margin for full screen on small screens */
+            }
+            .chat-header {
+                border-radius: 0 0 12px 12px;
+            }
+            .chat-log {
+                border-radius: 0 0 0 0; /* Remove bottom corners */
+            }
+            .chat-input-area {
+                border-radius: 0 0 12px 12px; /* Remove top corners */
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <i class="fas fa-robot mr-2"></i> Customer Support Bot
+        </div>
+
+        <div id="conversation-log" class="chat-log">
+            <!-- Messages will be appended here by JavaScript -->
+        </div>
+
+        <div class="chat-input-area">
+            <textarea id="user-input" class="chat-input" placeholder="Type your message..."></textarea>
+            <button id="send-button" class="send-button" aria-label="Send message">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const conversationLog = document.getElementById('conversation-log');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        let isTyping = false;
+        const typingTimeout = 1500; // 1.5 seconds
+
+        // Function to add a message to the conversation log
+        function addMessage(sender, text, isBot = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            if (isBot) {
+                messageDiv.classList.add('bot-message');
+            } else {
+                messageDiv.classList.add('user-message');
+            }
+            messageDiv.innerHTML = text; // Use innerHTML for the message itself
+
+            const timeElement = document.createElement('div');
+            timeElement.classList.add('message-time');
+            timeElement.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            messageDiv.appendChild(timeElement);
+
+            conversationLog.appendChild(messageDiv);
+            conversationLog.scrollTop = conversationLog.scrollHeight; // Scroll to the bottom
+        }
+
+        // Simulate bot response
+        function getBotResponse(message) {
+            message = message.toLowerCase();
+            if (message.includes("hello") || message.includes("hi")) {
+                return "Hello! How can I assist you today?";
+            } else if (message.includes("problem") || message.includes("issue")) {
+                return "I understand. Please describe the problem in more detail so I can help you.";
+            } else if (message.includes("order status")) {
+                return "To check your order status, please provide your order number or email address.";
+            } else if (message.includes("return")) {
+                return "Yes, we accept returns. What is it that you would like to return?";
+            } else if (message.includes("price")) {
+                return "Could you please tell me the product name or what you're looking for?";
+            } else if (message.includes("thank you")) {
+                return "You're welcome! Is there anything else I can help you with?";
+            } else {
+                return "I'm not sure how to respond to that. Can you please rephrase your question?";
+            }
+        }
+
+        // Handle sending messages
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage('user', message, false);
+                userInput.value = ''; // Clear input
+
+                // Simulate bot typing
+                isTyping = true;
+                conversationLog.innerHTML += '<div class="typing-indicator">Bot is typing...</div>';
+                conversationLog.scrollTop = conversationLog.scrollHeight;
+
+                setTimeout(() => {
+                    const botResponse = getBotResponse(message);
+                    addMessage('bot', botResponse, true);
+                    isTyping = false;
+                    conversationLog.innerHTML = conversationLog.innerHTML.replace('Bot is typing...', ''); // Remove typing indicator
+                }, typingTimeout);
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initial chat bot message
+        addMessage('bot', "Hello! How can I assist you today?", true);
+    </script>
+</body>
+</html>

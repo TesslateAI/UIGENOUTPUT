@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f5; /* Light gray for the overall background */
+        }
+        .sidebar {
+            width: 280px; /* Fixed width for the sidebar */
+            background-color: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto; /* Enable scrolling for the sidebar */
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
+        }
+        .main-content {
+            flex-grow: 1; /* Allow main content to take remaining space */
+            overflow-y: auto; /* Enable scrolling for the main content area */
+        }
+        .file-item, .folder-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-item:hover, .folder-item:hover {
+            background-color: #f0f0f0;
+        }
+        .file-item.selected, .folder-item.selected {
+            background-color: #e0f2f7; /* A light blue for selected items */
+            color: #007bff;
+        }
+        .file-item .file-icon, .folder-item .folder-icon {
+            font-size: 1.25rem; /* 20px */
+        }
+        .file-item .file-name {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-item .file-size, .folder-item .folder-size {
+            font-size: 0.875rem; /* 14px */
+            color: #666;
+        }
+        .file-item .file-preview, .folder-item .folder-preview {
+            display: none; /* Hidden by default */
+            margin-left: 16px; /* Space from the icon */
+        }
+        .file-item.selected .file-preview, .folder-item.selected .folder-preview {
+            display: block; /* Show when selected */
+        }
+        .file-preview {
+            width: 100px; /* Fixed width for preview */
+            height: 100px; /* Fixed height for preview */
+            background-color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .folder-preview {
+            background-color: #e0f2f7;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .folder-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .file-preview img, .folder-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .file-item .file-type-pdf::before {
+            content: '\f096'; /* fa-file-pdf */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-docx::before {
+            content: '\f09b'; /* fa-file-word */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-xlsx::before {
+            content: '\f09a'; /* fa-file-excel */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-jpg::before {
+            content: '\f1d1'; /* fa-image */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-png::before {
+            content: '\f1d0'; /* fa-image */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-txt::before {
+            content: '\f15a'; /* fa-file */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-mp4::before {
+            content: '\f00a'; /* fa-video */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-audio::before {
+            content: '\f001'; /* fa-music */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-unknown::before {
+            content: '\f09a'; /* Default icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .file-item .file-type-pdf::before, .file-item .file-type-docx::before, .file-item .file-type-xlsx::before,
+        .file-item .file-type-jpg::before, .file-item .file-type-png::before, .file-item .file-type-txt::before,
+        .file-item .file-type-mp4::before, .file-item .file-type-audio::before, .file-item .file-type-unknown::before {
+            color: #007bff; /* Blue for file types */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%; /* Full width on small screens */
+                height: 100%; /* Take full height */
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                padding: 1rem 1.5rem;
+                flex-direction: column;
+                overflow-y: auto;
+                position: fixed; /* Position sidebar fixed for mobile */
+                left: 0;
+                top: 0;
+                z-index: 50;
+                transform: translateX(-100%); /* Start hidden */
+                transition: transform 0.3s ease-in-out;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                padding-left: 2rem; /* Padding for the hidden sidebar */
+            }
+            .overlay {
+                position: fixed;
+                inset: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <!-- Overlay for mobile sidebar toggle -->
+    <div id="mobile-sidebar-overlay" class="overlay hidden md:hidden"></div>
+
+    <!-- Sidebar -->
+    <aside id="file-explorer-sidebar" class="sidebar hidden md:flex flex-col p-4">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-bold text-blue-600">Drive</h1>
+            <button id="close-sidebar-btn" class="md:hidden text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="mb-4">
+            <div class="flex items-center text-gray-600 text-sm mb-2">
+                <i class="fas fa-search mr-2"></i> Search
+            </div>
+            <input type="text" placeholder="Search files and folders..." class="w-full p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+        </div>
+
+        <nav class="flex-grow">
+            <ul>
+                <li>
+                    <a href="#" class="flex items-center py-2 px-3 rounded-md text-blue-700 font-medium bg-blue-50 hover:bg-blue-100 transition-colors">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i> Starred
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center py-2 px-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-trash-alt mr-2"></i> Trash
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center py-2 px-3 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-undo mr-2"></i> Recycle Bin
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="mt-4">
+            <div class="flex items-center text-gray-600 text-sm mb-2">
+                <i class="fas fa-folder mr-2"></i> My Drive
+            </div>
+            <ul>
+                <li class="folder-item selected">
+                    <i class="fas fa-folder folder-icon text-blue-600"></i>
+                    <div class="folder-preview">
+                        <img src="https://placehold.co/100x100/c0c0c0/ffffff?text=My+Drive" alt="My Drive preview">
+                    </div>
+                    <span class="folder-name text-gray-800">My Drive</span>
+                    <span class="folder-size text-gray-500">1.2 GB</span>
+                </li>
+                <li class="folder-item">
+                    <i class="fas fa-folder folder-icon text-blue-600"></i>
+                    <div class="folder-preview">
+                        <img src="https://placehold.co/100x100/d0d0d0/ffffff?text=Work" alt="Work Files preview">
+                    </div>
+                    <span class="folder-name text-gray-800">Work Files</span>
+                    <span class="folder-size text-gray-500">500 MB</span>
+                </li>
+                <li class="folder-item">
+                    <i class="fas fa-folder folder-icon text-blue-600"></i>
+                    <div class="folder-preview">
+                        <img src="https://placehold.co/100x100/e0e0e0/ffffff?text=Personal" alt="Personal Docs preview">
+                    </div>
+                    <span class="folder-name text-gray-800">Personal Docs</span>
+                    <span class="folder-size text-gray-500">2.8 GB</span>
+                </li>
+                <li class="folder-item">
+                    <i class="fas fa-folder folder-icon text-blue-600"></i>
+                    <div class="folder-preview">
+                        <img src="https://placehold.co/100x100/f0f0f0/ffffff?text=Photos" alt="Photos album preview">
+                    </div>
+                    <span class="folder-name text-gray-800">Photos</span>
+                    <span class="folder-size text-gray-500">3.5 GB</span>
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content p-6 md:p-8 flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">My Drive</h2>
+            <div class="flex items-center space-x-4">
+                <input type="text" placeholder="Type to search..." class="p-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+                <button class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-upload mr-1"></i> New
+                </button>
+            </div>
+        </div>
+
+        <!-- File and Folder Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 flex-grow">
+            <!-- File Item 1: PDF -->
+            <div class="file-item group" data-file-type="pdf">
+                <i class="fas fa-file-pdf file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/ff6347/ffffff?text=Report.pdf" alt="PDF Preview">
+                </div>
+                <span class="file-name">Quarterly Report.pdf</span>
+                <span class="file-size">1.5 MB</span>
+            </div>
+
+            <!-- File Item 2: Document -->
+            <div class="file-item group" data-file-type="docx">
+                <i class="fas fa-file-word file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/6a5acd/ffffff?text=Project.docx" alt="Word Document Preview">
+                </div>
+                <span class="file-name">Project Proposal.docx</span>
+                <span class="file-size">2.1 MB</span>
+            </div>
+
+            <!-- File Item 3: Excel Sheet -->
+            <div class="file-item group" data-file-type="xlsx">
+                <i class="fas fa-file-excel file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/4682b4/ffffff?text=Sales.xlsx" alt="Excel Sheet Preview">
+                </div>
+                <span class="file-name">Sales Data.xlsx</span>
+                <span class="file-size">3.8 MB</span>
+            </div>
+
+            <!-- File Item 4: Image (JPG) -->
+            <div class="file-item group" data-file-type="jpg">
+                <i class="fas fa-image file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/20b2aa/ffffff?text=Vacation.jpg" alt="JPG Image Preview">
+                </div>
+                <span class="file-name">Vacation Photo.jpg</span>
+                <span class="file-size">4.5 MB</span>
+            </div>
+
+            <!-- File Item 5: Image (PNG) -->
+            <div class="file-item group" data-file-type="png">
+                <i class="fas fa-image file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/6a5acd/ffffff?text=Logo.png" alt="PNG Image Preview">
+                </div>
+                <span class="file-name">Company Logo.png</span>
+                <span class="file-size">1.1 MB</span>
+            </div>
+
+            <!-- File Item 6: Text File -->
+            <div class="file-item group" data-file-type="txt">
+                <i class="fas fa-file file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/7a5c2f/ffffff?text=Notes.txt" alt="Text File Preview">
+                </div>
+                <span class="file-name">My Notes.txt</span>
+                <span class="file-size">500 KB</span>
+            </div>
+
+            <!-- File Item 7: Video (MP4) -->
+            <div class="file-item group" data-file-type="mp4">
+                <i class="fas fa-video file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/986868/ffffff?text=Video.mp4" alt="Video Preview">
+                </div>
+                <span class="file-name">Meeting Recording.mp4</span>
+                <span class="file-size">200 MB</span>
+            </div>
+
+            <!-- File Item 8: Audio (MP3) -->
+            <div class="file-item group" data-file-type="mp3">
+                <i class="fas fa-music file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/9932cc/ffffff?text=Song.mp3" alt="Audio Preview">
+                </div>
+                <span class="file-name">Relaxing Song.mp3</span>
+                <span class="file-size">3.2 MB</span>
+            </div>
+
+            <!-- File Item 9: Unknown Type (e.g., .zip, .tar) -->
+            <div class="file-item group" data-file-type="unknown">
+                <i class="fas fa-file-archives file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/20b2aa/ffffff?text=Archive.zip" alt="Unknown File Preview">
+                </div>
+                <span class="file-name">Project Archive.zip</span>
+                <span class="file-size">150 MB</span>
+            </div>
+
+            <!-- File Item 10: Image (PNG) -->
+            <div class="file-item group" data-file-type="png">
+                <i class="fas fa-image file-icon"></i>
+                <div class="file-preview">
+                    <img src="https://placehold.co/100x100/6a5acd/ffffff?text=Artwork.png" alt="PNG Image Preview">
+                </div>
+                <span class="file-name">Digital Art.png</span>
+                <span class="file-size">1.8 MB</span>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('file-explorer-sidebar');
+            const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+            const mobileSidebarOverlay = document.getElementById('mobile-sidebar-overlay');
+
+            // Mobile sidebar toggle
+            closeSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                mobileSidebarOverlay.classList.add('hidden');
+            });
+
+            mobileSidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                mobileSidebarOverlay.classList.add('hidden');
+            });
+
+            // File selection logic
+            document.querySelectorAll('.file-item, .folder-item').forEach(item => {
+                item.addEventListener('click', (event) => {
+                    // Prevent selecting the icon itself
+                    if (event.target.classList.contains('file-icon') || event.target.classList.contains('folder-icon')) {
+                        return;
+                    }
+
+                    // Remove 'selected' from all items
+                    document.querySelectorAll('.file-item, .folder-item').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+
+                    // Add 'selected' to the clicked item
+                    item.classList.add('selected');
+
+                    // In a real application, this would trigger a function to load content
+                    console.log('Selected item:', item.querySelector('.file-name').textContent);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

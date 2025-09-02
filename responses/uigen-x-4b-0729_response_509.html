@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoTrader Pro | Trading Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'crypto-bg': '#0a0a0a',
+                        'crypto-card': '#1a1a1a',
+                        'crypto-border': '#2a2a2a',
+                        'crypto-text': '#e0e0e0',
+                        'crypto-secondary': '#a0a0a0',
+                        'crypto-accent-green': '#00ff9d',
+                        'crypto-accent-orange': '#ff6b35',
+                        'crypto-accent-blue': '#3582ff',
+                        'crypto-accent-purple': '#8a2be2',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        
+        .crypto-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .crypto-scrollbar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+        
+        .crypto-scrollbar::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+        
+        .crypto-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+        
+        .chart-line {
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+        
+        .chart-area {
+            fill: url(#crypto-gradient);
+        }
+        
+        .order-book-item:hover {
+            background: rgba(53, 130, 255, 0.1);
+        }
+        
+        .tab-active {
+            border-bottom: 2px solid #00ff9d;
+            color: #00ff9d;
+        }
+        
+        .hotkey-btn.active {
+            background: rgba(0, 255, 157, 0.1);
+            color: #00ff9d;
+        }
+        
+        .screener-row:hover {
+            background: rgba(53, 130, 255, 0.05);
+        }
+        
+        .profit-row.positive {
+            background: rgba(0, 255, 157, 0.05);
+        }
+        
+        .profit-row.negative {
+            background: rgba(255, 107, 53, 0.05);
+        }
+        
+        .crypto-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .crypto-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-crypto-bg text-crypto-text min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-crypto-bg border-b border-crypto-border">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-crypto-accent-green flex items-center justify-center">
+                        <i class="fas fa-chart-line text-crypto-bg text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">Crypto<span class="text-crypto-accent-green">Trader</span> Pro</h1>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-crypto-secondary hover:text-crypto-accent-green transition">Dashboard</a>
+                    <a href="#" class="text-crypto-secondary hover:text-crypto-accent-green transition">Markets</a>
+                    <a href="#" class="text-crypto-secondary hover:text-crypto-accent-green transition">Portfolio</a>
+                    <a href="#" class="text-crypto-secondary hover:text-crypto-accent-green transition">News</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <i class="fas fa-bell text-xl text-crypto-secondary"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-crypto-accent-orange rounded-full"></span>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-crypto-card border border-crypto-border flex items-center justify-center">
+                        <i class="fas fa-user text-crypto-secondary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Trading Controls -->
+        <div class="bg-crypto-card border border-crypto-border rounded-xl p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <select class="bg-crypto-bg border border-crypto-border rounded-lg py-2 pl-4 pr-10 text-crypto-text focus:outline-none focus:ring-1 focus:ring-crypto-accent-green">
+                                <option>BTC/USD</option>
+                                <option>ETH/USD</option>
+                                <option>SOL/USD</option>
+                                <option>ADA/USD</option>
+                                <option>DOT/USD</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-3 top-3 text-crypto-secondary"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="w-10 h-10 rounded-lg bg-crypto-bg border border-crypto-border flex items-center justify-center hover:bg-crypto-accent-green hover:text-crypto-bg transition">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="w-10 h-10 rounded-lg bg-crypto-bg border border-crypto-border flex items-center justify-center hover:bg-crypto-accent-orange hover:text-crypto-bg transition">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="relative">
+                        <select class="bg-crypto-bg border border-crypto-border rounded-lg py-2 pl-4 pr-10 text-crypto-text focus:outline-none focus:ring-1 focus:ring-crypto-accent-green">
+                            <option>Buy</option>
+                            <option>Sell</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-3 text-crypto-secondary"></i>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="relative">
+                        <select class="bg-crypto-bg border border-crypto-border rounded-lg py-2 pl-4 pr-10 text-crypto-text focus:outline-none focus:ring-1 focus:ring-crypto-accent-green">
+                            <option>Market</option>
+                            <option>Limit</option>
+                            <option>Stop</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-3 text-crypto-secondary"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex items-center justify-between">
+                <div class="text-sm text-crypto-secondary">Quantity: 0.1 BTC</div>
+                <div class="flex space-x-3">
+                    <button class="px-4 py-2 rounded-lg bg-crypto-accent-green text-crypto-bg font-medium hover:bg-crypto-accent-green/90 transition">
+                        Execute Order
+                    </button>
+                    <button class="px-4 py-2 rounded-lg bg-crypto-card border border-crypto-border text-crypto-text hover:bg-crypto-border transition">
+                        Save Order
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabs Navigation -->
+        <div class="border-b border-crypto-border mb-6">
+            <div class="flex space-x-6">
+                <button class="tab-btn py-3 px-1 font-medium text-crypto-secondary hover:text-crypto-text transition tab-active">Order Book</button>
+                <button class="tab-btn py-3 px-1 font-medium text-crypto-secondary hover:text-crypto-text transition">Market</button>
+                <button class="tab-btn py-3 px-1 font-medium text-crypto-secondary hover:text-crypto-text transition">Portfolio</button>
+                <button class="tab-btn py-3 px-1 font-medium text-crypto-secondary hover:text-crypto-text transition">Analytics</button>
+            </div>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Order Book Tab -->
+            <div id="order-book" class="tab-pane active">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Order Book Chart -->
+                    <div class="lg:col-span-2 bg-crypto-card border border-crypto-border rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold">BTC/USD Order Book</h2>
+                            <div class="text-sm text-crypto-secondary">Last: $61,245.32</div>
+                        </div>
+                        
+                        <div class="h-96 relative">
+                            <svg viewBox="0 0 1200 400" class="w-full h-full">
+                                <defs>
+                                    <linearGradient id="crypto-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#00ff9d" stop-opacity="0.1"/>
+                                        <stop offset="100%" stop-color="#ff6b35" stop-opacity="0.1"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M0,200 L100,180 L200,220 L300,190 L400,250 L500,200 L600,230 L700,170 L800,210 L900,240 L1000,220 L1100,200 L1200,200 Z" 
+                                      class="chart-area" />
+                                
+                                <path d="M0,200 L100,180 L200,220 L300,190 L400,250 L500,200 L600,230 L700,170 L800,210 L900,240 L1000,220 L1100,200 L1200,200" 
+                                      class="chart-line stroke-crypto-accent-green" />
+                                
+                                <path d="M0,200 L100,180 L200,220 L300,190 L400,250 L500,200 L600,230 L700,170 L800,210 L900,240 L1000,220 L1100,200 L1200,200" 
+                                      class="chart-line stroke-crypto-accent-orange" />
+                            </svg>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between text-sm text-crypto-secondary">
+                            <div>50 bids</div>
+                            <div>120 asks</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Order Book Data -->
+                    <div class="bg-crypto-card border border-crypto-border rounded-xl p-4">
+                        <h2 class="text-lg font-semibold mb-4">Order Book Depth</h2>
+                        
+                        <div class="space-y-3 max-h-96 overflow-y-auto crypto-scrollbar">
+                            <!-- Bid Orders -->
+                            <div class="text-sm text-crypto-secondary mb-3">Bids</div>
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-down text-crypto-accent-green text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">0.5 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,100.00</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-green font-medium">$61,100.00</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-down text-crypto-accent-green text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">1.2 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,050.75</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-green font-medium">$61,050.75</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-down text-crypto-accent-green text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">3.8 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,000.50</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-green font-medium">$61,000.50</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-down text-crypto-accent-green text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">5.5 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$60,950.25</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-green font-medium">$60,950.25</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-down text-crypto-accent-green text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">8.2 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$60,900.00</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-green font-medium">$60,900.00</div>
+                            </div>
+                            
+                            <!-- Ask Orders -->
+                            <div class="text-sm text-crypto-secondary mt-6 mb-3">Asks</div>
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-orange/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-up text-crypto-accent-orange text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">0.3 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,250.00</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-orange font-medium">$61,250.00</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-orange/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-up text-crypto-accent-orange text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">0.7 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,275.50</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-orange font-medium">$61,275.50</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-orange/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-up text-crypto-accent-orange text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">1.5 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,300.25</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-orange font-medium">$61,300.25</div>
+                            </div>
+                            
+                            <div class="order-book-item flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-crypto-accent-orange/10 flex items-center justify-center mr-3">
+                                        <i class="fas fa-arrow-up text-crypto-accent-orange text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">2.1 BTC</div>
+                                        <div class="text-crypto-secondary text-sm">$61,325.00</div>
+                                    </div>
+                                </div>
+                                <div class="text-crypto-accent-orange font-medium">$61,325.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Market Screener Tab -->
+            <div id="market" class="tab-pane hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Market Overview -->
+                    <div class="lg:col-span-2 bg-crypto-card border border-crypto-border rounded-xl p-4">
+                        <h2 class="text-lg font-semibold mb-4">Market Overview</h2>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-crypto-border">
+                                        <th class="text-left py-3 px-4 text-crypto-secondary font-normal">Asset</th>
+                                        <th class="text-right py-3 px-4 text-crypto-secondary font-normal">Price</th>
+                                        <th class="text-right py-3 px-4 text-crypto-secondary font-normal">24h Change</th>
+                                        <th class="text-right py-3 px-4 text-crypto-secondary font-normal">Market Cap</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="screener-row border-b border-crypto-border">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-bitcoin text-crypto-accent-green"></i>
+                                                </div>
+                                                <div>BTC</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">$61,245.32</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-green">+2.3%</td>
+                                        <td class="py-3 px-4 text-right">$1.28T</td>
+                                    </tr>
+                                    <tr class="screener-row border-b border-crypto-border">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-blue/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-ethereum text-crypto-accent-blue"></i>
+                                                </div>
+                                                <div>ETH</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">$3,421.56</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-green">+1.8%</td>
+                                        <td class="py-3 px-4 text-right">$418.2B</td>
+                                    </tr>
+                                    <tr class="screener-row border-b border-crypto-border">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-purple/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-solana text-crypto-accent-purple"></i>
+                                                </div>
+                                                <div>SOL</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">$142.35</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-orange">-0.4%</td>
+                                        <td class="py-3 px-4 text-right">$54.7B</td>
+                                    </tr>
+                                    <tr class="screener-row border-b border-crypto-border">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-cardano text-crypto-accent-green"></i>
+                                                </div>
+                                                <div>ADA</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">$0.4521</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-green">+5.2%</td>
+                                        <td class="py-3 px-4 text-right">$15.8B</td>
+                                    </tr>
+                                    <tr class="screener-row">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-blue/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-dapp-radar text-crypto-accent-blue"></i>
+                                                </div>
+                                                <div>DOT</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">$7.89</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-orange">-1.2%</td>
+                                        <td class="py-3 px-4 text-right">$29.3B</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Hot Keys -->
+                    <div class="bg-crypto-card border border-crypto-border rounded-xl p-4">
+                        <h2 class="text-lg font-semibold mb-4">Hot Keys</h2>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="hotkey-btn py-3 rounded-lg bg-crypto-bg border border-crypto-border flex flex-col items-center justify-center text-crypto-text hover:bg-crypto-accent-green hover:text-crypto-bg transition active">
+                                <i class="fas fa-plus-circle text-xl mb-1"></i>
+                                <span>Buy</span>
+                            </button>
+                            <button class="hotkey-btn py-3 rounded-lg bg-crypto-bg border border-crypto-border flex flex-col items-center justify-center text-crypto-text hover:bg-crypto-accent-orange hover:text-crypto-bg transition">
+                                <i class="fas fa-minus-circle text-xl mb-1"></i>
+                                <span>Sell</span>
+                            </button>
+                            <button class="hotkey-btn py-3 rounded-lg bg-crypto-bg border border-crypto-border flex flex-col items-center justify-center text-crypto-text hover:bg-crypto-accent-blue hover:text-crypto-bg transition">
+                                <i class="fas fa-chart-line text-xl mb-1"></i>
+                                <span>Chart</span>
+                            </button>
+                            <button class="hotkey-btn py-3 rounded-lg bg-crypto-bg border border-crypto-border flex flex-col items-center justify-center text-crypto-text hover:bg-crypto-accent-purple hover:text-crypto-bg transition">
+                                <i class="fas fa-cog text-xl mb-1"></i>
+                                <span>Settings</span>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="font-medium mb-2">Recent Orders</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-crypto-secondary">BTC/USD</span>
+                                    <span class="text-crypto-accent-green">Buy</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-crypto-secondary">0.5 BTC @ $61,100</span>
+                                    <span class="text-crypto-accent-green">Completed</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-crypto-secondary">ETH/USD</span>
+                                    <span class="text-crypto-accent-green">Buy</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-crypto-secondary">1.2 ETH @ $3,400</span>
+                                    <span class="text-crypto-accent-green">Completed</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profit & Loss Tab -->
+            <div id="profit-loss" class="tab-pane hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Portfolio Summary -->
+                    <div class="lg:col-span-2 bg-crypto-card border border-crypto-border rounded-xl p-4">
+                        <h2 class="text-lg font-semibold mb-4">Portfolio Summary</h2>
+                        
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <div class="text-crypto-secondary">Total Balance</div>
+                                <div class="text-2xl font-bold">$42,568.90</div>
+                            </div>
+                            <div class="text-crypto-accent-green text-xl font-bold">
+                                <i class="fas fa-arrow-up"></i> $1,245.60 (3.0%)
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-crypto-border">
+                                        <th class="text-left py-3 px-4 text-crypto-secondary font-normal">Asset</th>
+                                        <th class="text-right py-3 px-4 text-crypto-secondary font-normal">Amount</th>
+                                        <th class="text-right py-3 px-4 text-crypto-secondary font-normal">Value</th>
+                                        <th class="text-right py-3 px-4 text-crypto-secondary font-normal">24h Change</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="profit-row positive">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-bitcoin text-crypto-accent-green"></i>
+                                                </div>
+                                                <div>BTC</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">0.52 BTC</td>
+                                        <td class="py-3 px-4 text-right">$31,850.12</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-green">+2.3%</td>
+                                    </tr>
+                                    <tr class="profit-row positive">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-blue/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-ethereum text-crypto-accent-blue"></i>
+                                                </div>
+                                                <div>ETH</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">2.1 ETH</td>
+                                        <td class="py-3 px-4 text-right">$7,200.00</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-green">+1.8%</td>
+                                    </tr>
+                                    <tr class="profit-row negative">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-purple/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-solana text-crypto-accent-purple"></i>
+                                                </div>
+                                                <div>SOL</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">15 SOL</td>
+                                        <td class="py-3 px-4 text-right">$2,135.25</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-orange">-0.4%</td>
+                                    </tr>
+                                    <tr class="profit-row positive">
+                                        <td class="py-3 px-4">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-crypto-accent-green/10 flex items-center justify-center mr-3">
+                                                    <i class="fab fa-cardano text-crypto-accent-green"></i>
+                                                </div>
+                                                <div>ADA</div>
+                                            </div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right">1,200 ADA</td>
+                                        <td class="py-3 px-4 text-right">$542.40</td>
+                                        <td class="py-3 px-4 text-right text-crypto-accent-green">+5.2%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Profit Timeline -->
+                    <div class="bg-crypto-card border border-crypto-border rounded-xl p-4">
+                        <h2 class="text-lg font-semibold mb-4">Profit Timeline</h2>
+                        
+                        <div class="h-80 relative">
+                            <svg viewBox="0 0 600 300" class="w-full h-full">
+                                <defs>
+                                    <linearGradient id="timeline-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#00ff9d" stop-opacity="0.1"/>
+                                        <stop offset="100%" stop-color="#ff6b35" stop-opacity="0.1"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M0,200 L100,180 L200,220 L300,190 L400,250 L500,200 L600,200 Z" 
+                                      class="chart-area" />
+                                
+                                <path d="M0,200 L100,180 L200,220 L300,190 L400,250 L500,200 L600,200" 
+                                      class="chart-line stroke-crypto-accent-green" />
+                                
+                                <path d="M0,200 L100,180 L200,220 L300,190 L400,250 L500,200 L600,200" 
+                                      class="chart-line stroke-crypto-accent-orange" />
+                            </svg>
+                        </div>
+                        
+                        <div class="mt-4 flex items-center justify-between text-sm">
+                            <div class="text-crypto-secondary">Today: +$1,245.60</div>
+                            <div class="text-crypto-accent-green">+$1,245.60 (3.0%)</div>
+                        </div>
+                        
+                        <div class="mt-6 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="text-crypto-secondary">BTC/USD</div>
+                                <div class="text-crypto-accent-green font-medium">+2.3%</div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="text-crypto-secondary">ETH/USD</div>
+                                <div class="text-crypto-accent-green font-medium">+1.8%</div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="text-crypto-secondary">SOL/USD</div>
+                                <div class="text-crypto-accent-orange font-medium">-0.4%</div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="text-crypto-secondary">ADA/USD</div>
+                                <div class="text-crypto-accent-green font-medium">+5.2%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-crypto-border mt-12 py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-crypto-accent-green flex items-center justify-center">
+                            <i class="fas fa-chart-line text-crypto-bg"></i>
+                        </div>
+                        <h3 class="text-lg font-bold">Crypto<span class="text-crypto-accent-green">Trader</span> Pro</h3>
+                    </div>
+                    <p class="text-crypto-secondary text-sm">
+                        Advanced trading platform for cryptocurrency enthusiasts. Real-time data, powerful tools, and secure execution.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Products</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Trading Platform</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Portfolio Tracker</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Market Analytics</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">API Access</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Documentation</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Tutorials</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">API Reference</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Privacy Policy</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Terms of Service</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Risk Disclosure</a></li>
+                        <li><a href="#" class="text-crypto-secondary hover:text-crypto-accent-green text-sm">Regulatory Information</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-crypto-border mt-8 pt-6 text-center text-crypto-secondary text-sm">
+                <p>© 2023 CryptoTrader Pro. All rights reserved. Cryptocurrency trading involves substantial risk.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('text-crypto-secondary');
+                });
+                
+                // Add active class to clicked button
+                button.classList.add('tab-active');
+                button.classList.remove('text-crypto-secondary');
+                
+                // Hide all tab panes
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.add('hidden');
+                });
+                
+                // Show the selected tab pane
+                const tabId = button.textContent.trim().toLowerCase().replace(' ', '-') + '-pane';
+                document.getElementById(tabId).classList.remove('hidden');
+            });
+        });
+        
+        // Hot key button activation
+        document.querySelectorAll('.hotkey-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                button.classList.toggle('active');
+            });
+        });
+        
+        // Simulate chart animation
+        document.querySelectorAll('.chart-line').forEach(line => {
+            const points = line.getAttribute('d').split(' ');
+            points.forEach(point => {
+                if (point.includes('L')) {
+                    const x = point.split(',')[0];
+                    const y = point.split(',')[1];
+                    line.setAttribute('transform', `translate(${x}, ${y})`);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

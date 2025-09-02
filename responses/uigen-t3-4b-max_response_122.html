@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Product Launch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-text-primary: rgb(26, 26, 26);
+            --color-text-secondary: rgb(102, 102, 102);
+            --color-bg-light: rgb(255, 255, 255);
+            --color-bg-dark: rgb(24, 24, 24);
+            --color-accent: rgb(0, 153, 255);
+            --color-particle-light: rgb(255, 224, 224); /* Light pink */
+            --color-particle-medium: rgb(224, 224, 255); /* Light blue */
+            --color-particle-dark: rgb(255, 224, 224); /* Light pink */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-primary);
+            background-color: var(--color-bg-light);
+            overflow: hidden; /* Prevent scroll for 3D scene */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            perspective: 1200px; /* For 3D perspective */
+        }
+
+        #3d-container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            position: relative;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-model {
+            position: absolute;
+            width: 150px; /* Adjust size as needed */
+            height: 150px;
+            background-color: #a0a0a0; /* Placeholder for product */
+            border-radius: 0.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease-out; /* For smooth camera movement */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background-image: url('https://placehold.co/150x150/808080/FFFFFF/png?text=Product'); /* Placeholder image */
+            background-size: cover;
+            background-position: center;
+            opacity: 0.9;
+        }
+
+        .product-model::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+            filter: blur(2px);
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background-color: var(--color-particle-light);
+            border-radius: 50%;
+            opacity: 0;
+            animation: pop 1s forwards;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .control-button {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-button:hover {
+            background-color: #0099cc; /* Darker accent */
+        }
+
+        .control-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="3d-container">
+        <div id="product-3d" class="product-model">
+            <!-- Product model will be loaded here by JS -->
+        </div>
+        <!-- Particle effects will be generated here by JS -->
+    </div>
+
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 p-4 bg-white rounded-lg shadow-xl z-10">
+        <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4">
+            <button id="zoom-in" class="control-button">Zoom In</button>
+            <button id="zoom-out" class="control-button">Zoom Out</button>
+            <button id="reset-view" class="control-button">Reset View</button>
+        </div>
+    </div>
+
+    <script>
+        const product3D = document.getElementById('product-3d');
+        const 3DContainer = document.getElementById('3d-container');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const resetViewBtn = document.getElementById('reset-view');
+
+        let rotationY = 0;
+        let rotationX = 0;
+        let scale = 1;
+
+        const zoomSpeed = 0.1;
+        const resetScale = 1;
+
+        // Function to apply 3D transformation
+        function apply3DTransform() {
+            product3D.style.transform = `rotateY(${rotationY}deg) rotateX(${rotationX}deg) scale(${scale})`;
+        }
+
+        // Function to add particle effects
+        function addParticle(x, y, z, color) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = `${x}%`;
+            particle.style.top = `${y}%`;
+            particle.style.width = '10px'; // Adjust size
+            particle.style.height = '10px';
+            particle.style.backgroundColor = color;
+
+            // Randomize initial size and duration
+            particle.style.width = `${Math.random() * 5 + 2}px`;
+            particle.style.height = `${Math.random() * 5 + 2}px`;
+            particle.style.animationDuration = `${Math.random() * 1 + 0.5}s`; // 0.5 to 1.5s
+            particle.style.animationDelay = `${Math.random() * 1}s`;
+
+            3DContainer.appendChild(particle);
+
+            // Remove particle after animation
+            particle.addEventListener('animationend', () => {
+                particle.remove();
+            });
+        }
+
+        // Rotate camera
+        function rotateCamera() {
+            rotationY += 5; // Adjust speed
+            if (rotationY > 360) rotationY = 0;
+            apply3DTransform();
+        }
+
+        // Zoom in
+        function zoomIn() {
+            scale += zoomSpeed;
+            apply3DTransform();
+        }
+
+        // Zoom out
+        function zoomOut() {
+            scale -= zoomSpeed;
+            if (scale < 0.5) scale = 0.5; // Prevent too much zoom out
+            apply3DTransform();
+        }
+
+        // Reset view
+        function resetView() {
+            rotationY = 0;
+            rotationX = 0;
+            scale = resetScale;
+            apply3DTransform();
+        }
+
+        // Event Listeners for controls
+        zoomInBtn.addEventListener('click', zoomIn);
+        zoomOutBtn.addEventListener('click', zoomOut);
+        resetViewBtn.addEventListener('click', resetView);
+
+        // Initial 3D transform
+        apply3DTransform();
+
+        // Set up a smooth loop for camera rotation
+        let animationFrameId;
+        const rotateInterval = 50; // ms
+        let rotationSpeed = 0.5; // degrees per animation frame
+
+        function startRotation() {
+            animationFrameId = requestAnimationFrame(() => {
+                rotationY += rotationSpeed;
+                if (rotationY > 360) rotationY = 0;
+                apply3DTransform();
+                startRotation();
+            });
+        }
+
+        startRotation();
+
+        // Handle mouse movement for interactive rotation
+        let lastX, lastY;
+        3DContainer.addEventListener('mousedown', (e) => {
+            lastX = e.clientX;
+            lastY = e.clientY;
+            3DContainer.style.cursor = 'grabbing';
+        });
+
+        3DContainer.addEventListener('mousemove', (e) => {
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            rotationY += dx * 0.5; // Adjust sensitivity
+            rotationX -= dy * 0.5; // Adjust sensitivity
+            apply3DTransform();
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        3DContainer.addEventListener('mouseup', () => {
+            3DContainer.style.cursor = 'grab';
+        });
+
+        3DContainer.addEventListener('mouseleave', () => {
+            3DContainer.style.cursor = 'grab';
+        });
+
+        // Add particle effects on click
+        3DContainer.addEventListener('click', (e) => {
+            const rect = 3DContainer.getBoundingClientRect();
+            const centerX = (e.clientX - rect.left) / rect.width;
+            const centerY = (e.clientY - rect.top) / rect.height;
+
+            // Randomize particle color and position
+            const colors = [
+                'var(--color-particle-light)',
+                'var(--color-particle-medium)',
+                'var(--color-particle-dark)',
+                'var(--color-accent)'
+            ];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            addParticle(centerX, centerY, 0, randomColor);
+        });
+    </script>
+</body>
+</html>

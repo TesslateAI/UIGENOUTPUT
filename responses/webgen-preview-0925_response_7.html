@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delish – Food Delivery App</title>
+    <meta name="description" content="Delish food delivery app – scrollable list of restaurants, search, and a floating cart summary. Built with Tailwind CSS.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .text-hero {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 600;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+        }
+        .text-subhero {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 500;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+        .text-body {
+            font-size: clamp(1rem, 1.5vw, 1.125rem);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            line-height: 1.4;
+        }
+        .text-nav {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.4;
+        }
+        .nav-link {
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: rgba(255,255,255,0.7);
+        }
+        .nav-link.active {
+            color: #fff;
+        }
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .hero-bg-animate {
+            opacity: 0;
+            transform: scale(1.1);
+            transition: opacity 1s cubic-bezier(0.16,1,0.3,1), transform 1s cubic-bezier(0.16,1,0.3,1);
+        }
+        .hero-bg-animate.is-visible {
+            opacity: 0.5;
+            transform: scale(1);
+        }
+        .shooting-star {
+            position: absolute;
+            width: 1px;
+            height: 100px;
+            background: linear-gradient(to top, transparent 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.8) 100%);
+            animation: shoot 5s linear infinite;
+        }
+        .shooting-star::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 1px;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.8) 100%);
+        }
+        @keyframes shoot {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(200vw) rotate(45deg); }
+        }
+        #cart-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: flex-end;
+            justify-content: flex-end;
+            z-index: 50;
+            transition: display 0.3s ease-in-out;
+        }
+        #cart-panel {
+            background: #111;
+            width: 100%;
+            max-width: 320px;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        #cart-items {
+            flex: 1 0 0;
+            margin-bottom: 1rem;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .cart-item img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+        }
+        .cart-total {
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+
+    <!-- Navigation -->
+    <nav id="main-nav" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4 px-4 md:px-8">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <a href="#" class="text-nav text-[rgba(255,255,255,0.8)]">DELISH</a>
+            <div class="hidden md:flex items-center space-x-6 text-nav">
+                <a href="#" class="nav-link active">Home</a>
+                <a href="#" class="nav-link">Restaurants</a>
+                <a href="#" class="nav-link">About</a>
+                <a href="#" class="nav-link">Contact</a>
+            </div>
+            <button id="cart-toggle" class="relative text-nav">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.35 2.7a1 1 0 00.9 1.5h12.9M7 13l4 8m6-8l1.35 2.7a1 1 0 01-.9 1.5H9"></path></svg>
+                <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-xs w-5 h-5 flex items-center justify-center rounded-full hidden">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Floating Cart Panel -->
+    <div id="cart-overlay">
+        <div id="cart-panel">
+            <h3 class="text-subhero mb-4">Your Order</h3>
+            <div id="cart-items"></div>
+            <div class="cart-total">Total: $<span id="cart-total">0.00</span></div>
+            <button id="checkout-btn" class="mt-4 w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors">Proceed to Checkout</button>
+            <button id="close-cart" class="mt-2 w-full bg-gray-700 text-white py-2 rounded hover:bg-gray-600 transition-colors">Close</button>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="h-screen w-full relative flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 hero-bg-animate">
+            <div class="w-full h-full bg-cover bg-center opacity-50"
+                 style="background-image: url('https://static.photos/food/1200x630/133');"></div>
+        </div>
+        <div class="relative z-10 text-center text-hero text-white mix-blend-difference animate-on-scroll">
+            <h1>Delish</h1>
+            <p class="text-subhero mt-2">Fast. Fresh. Delicious.</p>
+        </div>
+        <!-- Shooting Stars -->
+        <div class="absolute inset-0 overflow-hidden z-0">
+            <div class="shooting-star" style="left: 10%; top: 15%; animation-delay: 0s;"></div>
+            <div class="shooting-star" style="right: 15%; top: 50%; animation-delay: 1s;"></div>
+            <div class="shooting-star" style="left: 20%; bottom: 25%; animation-delay: 2s;"></div>
+            <div class="shooting-star" style="right: 25%; bottom: 10%; animation-delay: 3s;"></div>
+        </div>
+    </section>
+
+    <!-- Search Bar -->
+    <section class="py-8 md:py-12 animate-on-scroll">
+        <div class="max-w-2xl mx-auto flex justify-center">
+            <input type="text" placeholder="Search restaurants…" class="w-full p-4 text-body bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+        </div>
+    </section>
+
+    <!-- Restaurants Grid -->
+    <section class="py-16 md:py-24 px-4 md:px-8 animate-on-scroll">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-hero text-center mb-12">Featured Restaurants</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Restaurant Card 1 -->
+                <a href="#" class="group block">
+                    <div class="aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden mb-4">
+                        <img src="https://static.photos/restaurant/640x360/123" alt="Restaurant 1" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+                    </div>
+                    <h3 class="text-subhero text-white">Bistro Bella</h3>
+                    <div class="flex items-center text-body text-gray-400">
+                        <span>⭐ 4.9</span>
+                        <span class="mx-2">|</span>
+                        <span>5.2 km</span>
+                    </div>
+                </a>
+                <!-- Restaurant Card 2 -->
+                <a href="#" class="group block">
+                    <div class="aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden mb-4">
+                        <img src="https://static.photos/food/640x360/456" alt="Restaurant 2" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+                    </div>
+                    <h3 class="text-subhero text-white">Sushi Samba</h3>
+                    <div class="flex items-center text-body text-gray-400">
+                        <span>⭐ 4.7</span>
+                        <span class="mx-2">|</span>
+                        <span>3.8 km</span>
+                    </div>
+                </a>
+                <!-- Restaurant Card 3 -->
+                <a href="#" class="group block">
+                    <div class="aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden mb-4">
+                        <img src="https://static.photos/restaurant/640x360/789" alt="Restaurant 3" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+                    </div>
+                    <h3 class="text-subhero text-white">Pasta Palace</h3>
+                    <div class="flex items-center text-body text-gray-400">
+                        <span>⭐ 4.5</span>
+                        <span class="mx-2">|</span>
+                        <span>6.1 km</span>
+                    </div>
+                </a>
+                <!-- Restaurant Card 4 -->
+                <a href="#" class="group block">
+                    <div class="aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden mb-4">
+                        <img src="https://static.photos/food/640x360/101" alt="Restaurant 4" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+                    </div>
+                    <h3 class="text-subhero text-white">Taco Time</h3>
+                    <div class="flex items-center text-body text-gray-400">
+                        <span>⭐ 4.8</span>
+                        <span class="mx-2">|</span>
+                        <span>2.3 km</span>
+                    </div>
+                </a>
+                <!-- Restaurant Card 5 -->
+                <a href="#" class="group block">
+                    <div class="aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden mb-4">
+                        <img src="https://static.photos/restaurant/640x360/202" alt="Restaurant 5" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+                    </div>
+                    <h3 class="text-subhero text-white">Burger Barn</h3>
+                    <div class="flex items-center text-body text-gray-400">
+                        <span>⭐ 4.6</span>
+                        <span class="mx-2">|</span>
+                        <span>4.7 km</span>
+                    </div>
+                </a>
+                <!-- Restaurant Card 6 -->
+                <a href="#" class="group block">
+                    <div class="aspect-[4/3] bg-gray-800 rounded-lg overflow-hidden mb-4">
+                        <img src="https://static.photos/food/640x360/303" alt="Restaurant 6" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out">
+                    </div>
+                    <h3 class="text-subhero text-white">Pizza Planet</h3>
+                    <div class="flex items-center text-body text-gray-400">
+                        <span>⭐ 4.4</span>
+                        <span class="mx-2">|</span>
+                        <span>5.5 km</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 md:py-16 px-4 md:px-8 text-center animate-on-scroll">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-hero mb-4">Delish</h2>
+            <p class="text-body mb-6">Fast, fresh, and delicious food delivered to your door.</p>
+            <div class="flex justify-center space-x-6 mb-6">
+                <a href="#" class="text-nav nav-link">Twitter</a>
+                <a href="#" class="text-nav nav-link">Instagram</a>
+                <a href="#" class="text-nav nav-link">Facebook</a>
+            </div>
+            <p class="text-body mt-6">&copy; 2026 Delish. All rights reserved.</p>
+            <p class="text-body mt-2"><a href="https://tesslate.com" class="text-nav nav-link">Built with Tesslate</a></p>
+        </div>
+    </footer>
+
+    <!-- Cart Logic -->
+    <script>
+        // Cart data
+        const cart = [];
+
+        // Helper to format price
+        function formatPrice(num) {
+            return `$${num.toFixed(2)}`;
+        }
+
+        // Render cart items
+        function renderCart() {
+            const itemsContainer = document.getElementById('cart-items');
+            itemsContainer.innerHTML = '';
+            let total = 0;
+            cart.forEach(item => {
+                total += item.price * item.quantity;
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}">
+                    <div class="flex-1 ml-2">
+                        <p class="text-body">${item.name}</p>
+                        <p class="text-sm text-gray-400">${item.quantity} × ${formatPrice(item.price)}</p>
+                    </div>
+                    <button class="text-red-500" onclick="removeItem('${item.id}')">✕</button>
+                `;
+                itemsContainer.appendChild(div);
+            });
+            document.getElementById('cart-total').textContent = formatPrice(total);
+            document.getElementById('cart-count').textContent = cart.reduce((a, i) => a + i.quantity, 0);
+            document.getElementById('cart-count').classList.toggle('hidden', cart.length === 0);
+        }
+
+        // Add to cart
+        function addToCart(id, name, price, image) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({ id, name, price, quantity: 1, image });
+            }
+            renderCart();
+        }
+
+        // Remove from cart
+        function removeItem(id) {
+            const index = cart.findIndex(i => i.id === id);
+            if (index > -1) cart.splice(index, 1);
+            renderCart();
+        }
+
+        // Cart toggle
+        document.getElementById('cart-toggle').addEventListener('click', () => {
+            document.getElementById('cart-overlay').style.display = 'flex';
+        });
+
+        document.getElementById('close-cart').addEventListener('click', () => {
+            document.getElementById('cart-overlay').style.display = 'none';
+        });
+
+        document.getElementById('checkout-btn').addEventListener('click', () => {
+            alert('Checkout functionality not implemented yet.');
+            document.getElementById('cart-overlay').style.display = 'none';
+        });
+
+        // Initial render
+        renderCart();
+
+        // Scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('is-visible');
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.animate-on-scroll, .hero-bg-animate').forEach(el => observer.observe(el));
+
+        // Sticky nav background on scroll
+        const nav = document.getElementById('main-nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                nav.style.backdropFilter = 'blur(10px)';
+            } else {
+                nav.style.backgroundColor = 'transparent';
+                nav.style.backdropFilter = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

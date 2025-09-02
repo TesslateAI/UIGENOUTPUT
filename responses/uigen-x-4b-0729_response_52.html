@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeCraft Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.1/ace.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.1/ace.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.1/theme-github.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #334155;
+            --accent: #60a5fa;
+            --accent-dark: #3b82f6;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: #334155;
+        }
+        
+        body {
+            background-color: var(--primary);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+        
+        .editor-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-tree {
+            transition: all 0.2s ease;
+        }
+        
+        .file-tree-item:hover {
+            background-color: rgba(51, 65, 85, 0.5);
+        }
+        
+        .file-tree-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .tab-item {
+            transition: all 0.2s ease;
+        }
+        
+        .tab-item.active {
+            border-bottom: 3px solid var(--accent);
+            color: var(--accent);
+        }
+        
+        .git-panel {
+            transition: all 0.3s ease;
+        }
+        
+        .git-panel.hidden {
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .git-panel.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .git-status {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .ace-content {
+            background: transparent !important;
+            color: var(--text-primary) !important;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .ace-gutter {
+            background: rgba(30, 41, 59, 0.5) !important;
+        }
+        
+        .ace-cursor {
+            border: 2px solid var(--accent) !important;
+        }
+        
+        .ace-selection {
+            background: rgba(59, 130, 246, 0.2) !important;
+        }
+        
+        .status-bar-item {
+            transition: all 0.2s ease;
+        }
+        
+        .status-bar-item:hover {
+            background-color: rgba(51, 65, 85, 0.5);
+        }
+        
+        .code-block {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <!-- Top Navigation -->
+        <div class="bg-[var(--secondary)] border-b border-[var(--border)] px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-code text-[var(--accent)] text-xl"></i>
+                    <h1 class="text-xl font-bold">CodeCraft</h1>
+                </div>
+                
+                <div class="hidden md:flex space-x-4">
+                    <button id="new-file" class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--primary)] transition-colors">
+                        <i class="fas fa-plus mr-2"></i>New File
+                    </button>
+                    <button id="save" class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--primary)] transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save
+                    </button>
+                    <button id="save-all" class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--primary)] transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <button id="git-toggle" class="p-2 rounded-md hover:bg-[var(--primary)] transition-colors">
+                        <i class="fas fa-git-alt text-[var(--accent)]"></i>
+                    </button>
+                    <div class="git-status absolute top-0 right-0 w-3 h-3 bg-[var(--success)] rounded-full border-2 border-[var(--secondary)]"></div>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <div class="text-xs text-[var(--text-secondary)]">UTF-8</div>
+                    <div class="w-px h-6 bg-[var(--border)]"></div>
+                    <div class="text-xs text-[var(--text-secondary)]">Auto</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- File Explorer Sidebar -->
+            <div class="w-64 bg-[var(--secondary)] border-r border-[var(--border)] flex flex-col">
+                <div class="p-4 border-b border-[var(--border)]">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)]"></i>
+                        <input type="text" placeholder="Search files..." class="w-full bg-[var(--primary)] border border-[var(--border)] rounded-md py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]">
+                    </div>
+                </div>
+                
+                <div class="file-tree overflow-y-auto flex-1">
+                    <div class="px-4 py-2 text-xs uppercase text-[var(--text-secondary)] tracking-wider">Projects</div>
+                    <div class="px-4 py-2 text-sm font-medium text-[var(--accent)]">my-project</div>
+                    
+                    <div class="px-4 py-2 text-xs uppercase text-[var(--text-secondary)] tracking-wider">Sources</div>
+                    <div class="file-tree-item active px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>app.js</span>
+                    </div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>index.html</span>
+                    </div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>styles.css</span>
+                    </div>
+                    
+                    <div class="px-4 py-2 text-xs uppercase text-[var(--text-secondary)] tracking-wider">Components</div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>Header.jsx</span>
+                    </div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>Footer.jsx</span>
+                    </div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>Card.jsx</span>
+                    </div>
+                    
+                    <div class="px-4 py-2 text-xs uppercase text-[var(--text-secondary)] tracking-wider">Scripts</div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>script.js</span>
+                    </div>
+                    <div class="file-tree-item px-4 py-2 text-sm flex items-center cursor-pointer">
+                        <i class="fas fa-file-code mr-2 text-[var(--text-secondary)]"></i>
+                        <span>webpack.config.js</span>
+                    </div>
+                </div>
+                
+                <div class="p-4 border-t border-[var(--border)]">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-[var(--text-secondary)]">3 files modified</div>
+                        <button class="text-[var(--accent)] hover:text-[var(--accent-dark)]">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Editor Area -->
+            <div class="flex-1 flex flex-col">
+                <!-- Tab Bar -->
+                <div class="bg-[var(--secondary)] border-b border-[var(--border)] px-4 py-2 flex">
+                    <div class="tab-item active px-4 py-2 text-sm font-medium">app.js</div>
+                    <div class="tab-item px-4 py-2 text-sm font-medium">index.html</div>
+                    <div class="tab-item px-4 py-2 text-sm font-medium">styles.css</div>
+                    <div class="tab-item px-4 py-2 text-sm font-medium">Header.jsx</div>
+                    <div class="tab-item px-4 py-2 text-sm font-medium">script.js</div>
+                    <div class="tab-item px-4 py-2 text-sm font-medium">webpack.config.js</div>
+                    <button class="ml-2 p-2 rounded-md hover:bg-[var(--primary)]">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <!-- Code Editor -->
+                <div class="flex-1 overflow-hidden">
+                    <div id="editor" class="code-block w-full h-full">
+                        <div class="ace-content" id="editor-content"></div>
+                    </div>
+                </div>
+                
+                <!-- Status Bar -->
+                <div class="bg-[var(--secondary)] border-t border-[var(--border)] px-4 py-2 flex items-center text-sm">
+                    <div class="flex items-center mr-4">
+                        <div class="w-2 h-2 rounded-full bg-[var(--success)] mr-2"></div>
+                        <span>Connected to Git</span>
+                    </div>
+                    <div class="flex items-center mr-4">
+                        <i class="fas fa-git-branch mr-2 text-[var(--accent)]"></i>
+                        <span>main</span>
+                    </div>
+                    <div class="flex-1"></div>
+                    <div class="flex items-center">
+                        <span id="status-line">Line 1, Column 1</span>
+                        <div class="w-px h-4 bg-[var(--border)] mx-2"></div>
+                        <div class="flex items-center">
+                            <span>UTF-8</span>
+                            <div class="w-px h-4 bg-[var(--border)] mx-2"></div>
+                            <span>Auto</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Git Panel -->
+    <div id="git-panel" class="git-panel fixed top-0 right-0 h-full w-96 bg-[var(--secondary)] border-l border-[var(--border)] overflow-y-auto z-50">
+        <div class="p-4 border-b border-[var(--border)] flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Git</h2>
+            <button id="close-git" class="p-2 rounded-md hover:bg-[var(--primary)]">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="p-4">
+            <div class="mb-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 rounded-full bg-[var(--success)] flex items-center justify-center text-white mr-3">
+                        <i class="fas fa-git"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium">Git Status</h3>
+                        <p class="text-sm text-[var(--text-secondary)]">Your repository is in a clean state</p>
+                    </div>
+                </div>
+                
+                <div class="bg-[var(--primary)] rounded-lg p-4">
+                    <div class="flex items-center mb-3">
+                        <div class="w-3 h-3 rounded-full bg-[var(--success)] mr-2"></div>
+                        <span>Changes not staged</span>
+                    </div>
+                    <div class="text-sm">
+                        <div class="flex items-center mb-1">
+                            <i class="fas fa-file-code mr-2 text-[var(--accent)]"></i>
+                            <span>app.js</span>
+                        </div>
+                        <div class="flex items-center mb-1">
+                            <i class="fas fa-file-code mr-2 text-[var(--accent)]"></i>
+                            <span>styles.css</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="font-medium mb-4">Recent Commits</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center p-3 hover:bg-[var(--primary)] rounded-md">
+                        <div class="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[var(--accent)] mr-3">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">Fix responsive layout</div>
+                            <div class="text-sm text-[var(--text-secondary)]">app.js</div>
+                        </div>
+                        <div class="text-sm text-[var(--text-secondary)]">2 hours ago</div>
+                    </div>
+                    
+                    <div class="flex items-center p-3 hover:bg-[var(--primary)] rounded-md">
+                        <div class="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[var(--accent)] mr-3">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">Update dependencies</div>
+                            <div class="text-sm text-[var(--text-secondary)]">package.json</div>
+                        </div>
+                        <div class="text-sm text-[var(--text-secondary)]">1 day ago</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="font-medium mb-4">Git Actions</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="py-2 px-4 bg-[var(--primary)] rounded-md hover:bg-[var(--accent)] hover:text-white transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Commit
+                    </button>
+                    <button class="py-2 px-4 bg-[var(--primary)] rounded-md hover:bg-[var(--accent)] hover:text-white transition-colors">
+                        <i class="fas fa-sync mr-2"></i>Push
+                    </button>
+                    <button class="py-2 px-4 bg-[var(--primary)] rounded-md hover:bg-[var(--accent)] hover:text-white transition-colors">
+                        <i class="fas fa-undo mr-2"></i>Pull
+                    </button>
+                    <button class="py-2 px-4 bg-[var(--primary)] rounded-md hover:bg-[var(--accent)] hover:text-white transition-colors">
+                        <i class="fas fa-trash-alt mr-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Ace Editor
+            const editor = ace.edit('editor-content');
+            editor.setTheme('github');
+            editor.setOptions({
+                enableBasicAutocompletion: true,
+                enableLiveAutocompletion: true,
+                showLineNumbers: true,
+                showGutter: true,
+                highlightActiveLine: true,
+                fontSize: 14,
+                fontFamily: 'Inter, monospace'
+            });
+            
+            // Sample code for the editor
+            editor.session.setValue(`// JavaScript file\n\nfunction greet(name) {\n  console.log(\`Hello, \${name}!\`);\n}\n\n// Component example\nfunction App() {\n  return (\n    <div>\n      <h1>Welcome to CodeCraft Editor</h1>\n      <p>This is a modern code editor with Git integration</p>\n    </div>\n  );\n}\n\n// Export component\nexport default App;`);
+            
+            // Tab switching functionality
+            const tabItems = document.querySelectorAll('.tab-item');
+            tabItems.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabItems.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // File tree selection
+            const fileTreeItems = document.querySelectorAll('.file-tree-item');
+            fileTreeItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    fileTreeItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update editor content
+                    const filename = this.querySelector('span').textContent;
+                    const content = `// ${filename}\n\n// File content would be loaded here\nconsole.log('File loaded: ' + \${filename});`;
+                    editor.session.setValue(content);
+                });
+            });
+            
+            // Git panel toggle
+            const gitToggle = document.getElementById('git-toggle');
+            const gitPanel = document.getElementById('git-panel');
+            const closeGit = document.getElementById('close-git');
+            
+            gitToggle.addEventListener('click', function() {
+                gitPanel.classList.toggle('show');
+                gitPanel.classList.toggle('hidden');
+            });
+            
+            closeGit.addEventListener('click', function() {
+                gitPanel.classList.add('hidden');
+            });
+            
+            // Simulate Git status changes
+            setInterval(() => {
+                const statusIndicator = document.querySelector('.git-status');
+                statusIndicator.classList.remove('git-status');
+                setTimeout(() => {
+                    statusIndicator.classList.add('git-status');
+                }, 100);
+            }, 3000);
+            
+            // Status line update
+            editor.on('cursorChange', function() {
+                const line = editor.session.getCursor().row + 1;
+                const column = editor.session.getCursor().column + 1;
+                document.getElementById('status-line').textContent = `Line ${line}, Column ${column}`;
+            });
+        });
+    </script>
+</body>
+</html>

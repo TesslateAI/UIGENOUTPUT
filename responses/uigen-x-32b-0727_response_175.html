@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmony Studio | Real-Time Music Collaboration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f0f12',
+                        'panel-bg': '#1a1a1f',
+                        'accent': '#8b5cf6',
+                        'accent-light': '#a78bfa',
+                        'accent-dark': '#7c3aed',
+                        'text-primary': '#f5f5f7',
+                        'text-secondary': '#a1a1aa',
+                        'track-1': '#8b5cf6',
+                        'track-2': '#ec4899',
+                        'track-3': '#0ea5e9',
+                        'track-4': '#10b981',
+                        'track-5': '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f12;
+            color: #f5f5f7;
+            overflow: hidden;
+        }
+        
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(161, 161, 170, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(161, 161, 170, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .track-panel {
+            background: linear-gradient(180deg, rgba(26, 26, 31, 0.9) 0%, rgba(26, 26, 31, 0.7) 100%);
+            backdrop-filter: blur(10px);
+        }
+        
+        .collaborator-avatar {
+            border: 2px solid;
+            box-shadow: 0 0 0 2px #0f0f12, 0 0 0 4px currentColor;
+        }
+        
+        .playhead {
+            background: linear-gradient(90deg, #8b5cf6, #ec4899);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+        
+        .note {
+            transition: all 0.2s ease;
+        }
+        
+        .note:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .tool-btn:hover {
+            background-color: rgba(139, 92, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .tool-btn.active {
+            background-color: rgba(139, 92, 246, 0.4);
+        }
+        
+        .waveform {
+            background: linear-gradient(90deg, #8b5cf6, #ec4899, #0ea5e9, #10b981, #f59e0b);
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- Top Navigation -->
+    <header class="bg-dark-bg border-b border-gray-800 py-3 px-6 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
+                <i class="fas fa-music text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold">Harmony Studio</h1>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <div class="flex -space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold collaborator-avatar" style="border-color: #8b5cf6;">JD</div>
+                    <div class="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs font-bold collaborator-avatar" style="border-color: #ec4899;">AM</div>
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold collaborator-avatar" style="border-color: #0ea5e9;">TS</div>
+                </div>
+                <span class="text-sm text-text-secondary">3 collaborators online</span>
+            </div>
+            
+            <div class="flex space-x-2">
+                <button class="px-4 py-2 bg-panel-bg rounded-lg flex items-center space-x-2 tool-btn">
+                    <i class="fas fa-save text-accent-light"></i>
+                    <span>Save</span>
+                </button>
+                <button class="px-4 py-2 bg-accent rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Share</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Left Panel - Tracks -->
+        <div class="w-64 bg-panel-bg border-r border-gray-800 flex flex-col">
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-semibold">Tracks</h2>
+                    <button class="text-accent-light hover:text-accent">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="flex items-center p-2 rounded-lg bg-dark-bg">
+                        <div class="w-3 h-3 rounded-full bg-track-1 mr-3"></div>
+                        <div class="flex-1">
+                            <div class="font-medium">Lead Melody</div>
+                            <div class="text-xs text-text-secondary">MIDI • 440 Hz</div>
+                        </div>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center p-2 rounded-lg hover:bg-dark-bg">
+                        <div class="w-3 h-3 rounded-full bg-track-2 mr-3"></div>
+                        <div class="flex-1">
+                            <div class="font-medium">Bass Line</div>
+                            <div class="text-xs text-text-secondary">MIDI • 69 Hz</div>
+                        </div>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center p-2 rounded-lg hover:bg-dark-bg">
+                        <div class="w-3 h-3 rounded-full bg-track-3 mr-3"></div>
+                        <div class="flex-1">
+                            <div class="font-medium">Drum Pattern</div>
+                            <div class="text-xs text-text-secondary">MIDI • 262 Hz</div>
+                        </div>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center p-2 rounded-lg hover:bg-dark-bg">
+                        <div class="w-3 h-3 rounded-full bg-track-4 mr-3"></div>
+                        <div class="flex-1">
+                            <div class="font-medium">Piano</div>
+                            <div class="text-xs text-text-secondary">Audio • 44.1kHz</div>
+                        </div>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center p-2 rounded-lg hover:bg-dark-bg">
+                        <div class="w-3 h-3 rounded-full bg-track-5 mr-3"></div>
+                        <div class="flex-1">
+                            <div class="font-medium">Synth</div>
+                            <div class="text-xs text-text-secondary">MIDI • 220 Hz</div>
+                        </div>
+                        <button class="text-text-secondary hover:text-text-primary">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-800">
+                <h3 class="font-semibold mb-3">Collaborators</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold mr-3">JD</div>
+                        <div>
+                            <div class="font-medium">John Doe</div>
+                            <div class="text-xs text-text-secondary">Editing track 3</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold mr-3">AM</div>
+                        <div>
+                            <div class="font-medium">Alex Morgan</div>
+                            <div class="text-xs text-text-secondary">Recording vocals</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold mr-3">TS</div>
+                        <div>
+                            <div class="font-medium">Taylor Swift</div>
+                            <div class="text-xs text-text-secondary">Mixing</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Editor Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Toolbar -->
+            <div class="bg-panel-bg border-b border-gray-800 p-3 flex items-center space-x-2">
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-undo"></i>
+                </button>
+                
+                <div class="flex-1 mx-4 h-1 bg-gray-700 relative">
+                    <div class="playhead absolute top-0 -mt-1 w-2 h-3 rounded-full"></div>
+                </div>
+                
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-random"></i>
+                </button>
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-record-vinyl"></i>
+                </button>
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center bg-accent">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="tool-btn w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+            
+            <!-- Editor Grid -->
+            <div class="flex-1 overflow-hidden relative">
+                <!-- Timeline -->
+                <div class="absolute top-0 left-0 right-0 h-12 bg-panel-bg border-b border-gray-800 flex items-center px-4">
+                    <div class="text-xs text-text-secondary font-medium">1:23:45</div>
+                    <div class="flex-1 mx-4">
+                        <div class="flex space-x-1">
+                            <div class="text-xs text-text-secondary w-16 text-right">00:00</div>
+                            <div class="text-xs text-text-secondary w-16 text-right">00:02</div>
+                            <div class="text-xs text-text-secondary w-16 text-right">00:04</div>
+                            <div class="text-xs text-text-secondary w-16 text-right">00:06</div>
+                            <div class="text-xs text-text-secondary w-16 text-right">00:08</div>
+                            <div class="text-xs text-text-secondary w-16 text-right">00:10</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Grid Area -->
+                <div class="grid-bg absolute top-12 left-0 right-0 bottom-0 overflow-hidden">
+                    <!-- Track 1 -->
+                    <div class="absolute top-0 left-0 right-0 h-12 flex items-center">
+                        <div class="w-32 flex items-center px-4">
+                            <div class="w-3 h-3 rounded-full bg-track-1 mr-2"></div>
+                            <span class="text-sm">Lead Melody</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-gray-700"></div>
+                            <div class="absolute top-1/2 left-1/4 w-1/8 h-1 bg-track-1 rounded-full"></div>
+                            <div class="absolute top-1/2 left-3/4 w-1/12 h-1 bg-track-1 rounded-full"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Track 2 -->
+                    <div class="absolute top-12 left-0 right-0 h-12 flex items-center">
+                        <div class="w-32 flex items-center px-4">
+                            <div class="w-3 h-3 rounded-full bg-track-2 mr-2"></div>
+                            <span class="text-sm">Bass Line</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-gray-700"></div>
+                            <div class="absolute top-1/2 left-1/8 w-1/12 h-1 bg-track-2 rounded-full"></div>
+                            <div class="absolute top-1/2 left-1/2 w-1/8 h-1 bg-track-2 rounded-full"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Track 3 -->
+                    <div class="absolute top-24 left-0 right-0 h-12 flex items-center">
+                        <div class="w-32 flex items-center px-4">
+                            <div class="w-3 h-3 rounded-full bg-track-3 mr-2"></div>
+                            <span class="text-sm">Drum Pattern</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-gray-700"></div>
+                            <div class="absolute top-1/2 left-1/8 w-1/12 h-1 bg-track-3 rounded-full"></div>
+                            <div class="absolute top-1/2 left-1/4 w-1/12 h-1 bg-track-3 rounded-full"></div>
+                            <div class="absolute top-1/2 left-1/2 w-1/12 h-1 bg-track-3 rounded-full"></div>
+                            <div class="absolute top-1/2 left-3/4 w-1/12 h-1 bg-track-3 rounded-full"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Track 4 -->
+                    <div class="absolute top-36 left-0 right-0 h-12 flex items-center">
+                        <div class="w-32 flex items-center px-4">
+                            <div class="w-3 h-3 rounded-full bg-track-4 mr-2"></div>
+                            <span class="text-sm">Piano</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-gray-700"></div>
+                            <div class="absolute top-1/2 left-1/4 w-1/8 h-1 bg-track-4 rounded-full"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Track 5 -->
+                    <div class="absolute top-48 left-0 right-0 h-12 flex items-center">
+                        <div class="w-32 flex items-center px-4">
+                            <div class="w-3 h-3 rounded-full bg-track-5 mr-2"></div>
+                            <span class="text-sm">Synth</span>
+                        </div>
+                        <div class="flex-1 relative">
+                            <div class="absolute top-1/2 left-0 right-0 h-1 bg-gray-700"></div>
+                            <div class="absolute top-1/2 left-1/2 w-1/8 h-1 bg-track-5 rounded-full"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- MIDI Notes -->
+                    <div class="absolute top-60 left-0 right-0 bottom-0">
+                        <div class="absolute top-1/2 left-1/4 w-1/8 h-16 bg-track-1 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-3/4 w-1/12 h-20 bg-track-1 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/8 w-1/12 h-16 bg-track-2 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/2 w-1/8 h-16 bg-track-2 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/8 w-1/12 h-12 bg-track-3 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/4 w-1/12 h-12 bg-track-3 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/2 w-1/12 h-12 bg-track-3 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-3/4 w-1/12 h-12 bg-track-3 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/4 w-1/8 h-16 bg-track-4 rounded-lg note"></div>
+                        <div class="absolute top-1/2 left-1/2 w-1/8 h-16 bg-track-5 rounded-lg note"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="bg-panel-bg border-t border-gray-800 p-2 px-4 flex items-center justify-between text-sm text-text-secondary">
+                <div>
+                    <span>Project: Harmony Studio</span>
+                    <span class="mx-2">|</span>
+                    <span>44100 Hz</span>
+                    <span class="mx-2">|</span>
+                    <span>32-bit</span>
+                </div>
+                <div>
+                    <span>Connected: 3 collaborators</span>
+                    <span class="mx-2">|</span>
+                    <span>Sync: 128ms</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Mixer -->
+        <div class="w-64 bg-panel-bg border-l border-gray-800 flex flex-col">
+            <div class="p-4 border-b border-gray-800">
+                <h2 class="font-semibold mb-4">Mixer</h2>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Lead Melody</span>
+                            <span>-6 dB</span>
+                        </div>
+                        <div class="h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-accent w-3/4"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Bass Line</span>
+                            <span>-3 dB</span>
+                        </div>
+                        <div class="h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-pink-500 w-2/3"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Drum Pattern</span>
+                            <span>0 dB</span>
+                        </div>
+                        <div class="h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 w-full"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Piano</span>
+                            <span>-4 dB</span>
+                        </div>
+                        <div class="h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-500 w-5/6"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Synth</span>
+                            <span>-2 dB</span>
+                        </div>
+                        <div class="h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-yellow-500 w-4/5"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 flex-1">
+                <h2 class="font-semibold mb-4">Effects</h2>
+                <div class="space-y-3">
+                    <div class="p-3 bg-dark-bg rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">Reverb</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" name="toggle" id="reverb-toggle" class="sr-only" checked>
+                                <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform translate-x-4"></div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <div class="flex-1">
+                                <div class="text-xs text-text-secondary mb-1">Dry/Wet</div>
+                                <input type="range" min="0" max="100" value="60" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-xs text-text-secondary mb-1">Decay</div>
+                                <input type="range" min="0" max="100" value="70" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-dark-bg rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">Delay</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input type="checkbox" name="toggle" id="delay-toggle" class="sr-only">
+                                <div class="block bg-gray-600 w-10 h-6 rounded-full"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <div class="flex-1">
+                                <div class="text-xs text-text-secondary mb-1">Time</div>
+                                <input type="range" min="0" max="100" value="30" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-xs text-text-secondary mb-1">Feedback</div>
+                                <input type="range" min="0" max="100" value="40" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle switches
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const dot = this.nextElementSibling.querySelector('.dot');
+                if (this.checked) {
+                    dot.classList.add('translate-x-4');
+                } else {
+                    dot.classList.remove('translate-x-4');
+                }
+            });
+        });
+        
+        // Play button animation
+        const playBtn = document.querySelector('.tool-btn.bg-accent');
+        playBtn.addEventListener('click', function() {
+            this.classList.toggle('animate-pulse');
+            setTimeout(() => {
+                this.classList.toggle('animate-pulse');
+            }, 1000);
+        });
+        
+        // Simulate real-time collaboration
+        setInterval(() => {
+            const collaborators = document.querySelectorAll('.collaborator-avatar');
+            collaborators.forEach(avatar => {
+                const border = avatar.style.borderColor;
+                avatar.style.borderColor = border === '#8b5cf6' ? '#ec4899' : '#8b5cf6';
+            });
+        }, 2000);
+    </script>
+</body>
+</html>

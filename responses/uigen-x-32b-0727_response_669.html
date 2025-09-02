@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RenovateTrack - Home Renovation Project Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E3A8A',
+                        secondary: '#0F172A',
+                        accent: '#F59E0B',
+                        light: '#F8FAFC',
+                        dark: '#0F172A',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #0F172A;
+            overflow-x: hidden;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 80px 1fr;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, #1E3A8A 0%, #0F172A 100%);
+        }
+        
+        .header {
+            grid-area: header;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: #F1F5F9;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #E2E8F0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #10B981;
+            border-radius: 4px;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #10B981;
+        }
+        
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 25px;
+            bottom: -30px;
+            width: 2px;
+            background-color: #CBD5E1;
+        }
+        
+        .timeline-item:last-child:after {
+            display: none;
+        }
+        
+        .task-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+        }
+        
+        .task-card.high-priority {
+            border-left-color: #EF4444;
+        }
+        
+        .task-card.medium-priority {
+            border-left-color: #F59E0B;
+        }
+        
+        .task-card.low-priority {
+            border-left-color: #10B981;
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-planned {
+            background-color: #E2E8F0;
+            color: #475569;
+        }
+        
+        .status-in-progress {
+            background-color: #FEF3C7;
+            color: #B45309;
+        }
+        
+        .status-completed {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .status-delayed {
+            background-color: #FEE2E2;
+            color: #B91C1C;
+        }
+        
+        .animate-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-link {
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .sidebar-link.active {
+            background: #0F172A;
+            border-left: 4px solid #F59E0B;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar text-white p-6">
+            <div class="flex items-center mb-10">
+                <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center mr-3">
+                    <i class="fas fa-tools text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold">RenovateTrack</h1>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" class="sidebar-link active flex items-center p-3 rounded-lg">
+                    <i class="fas fa-home mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-tasks mr-3"></i>
+                    <span>My Projects</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-calendar mr-3"></i>
+                    <span>Timeline</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-list-check mr-3"></i>
+                    <span>Tasks</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-file-invoice mr-3"></i>
+                    <span>Budget</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-users mr-3"></i>
+                    <span>Team</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-photo-film mr-3"></i>
+                    <span>Gallery</span>
+                </a>
+                <a href="#" class="sidebar-link flex items-center p-3 rounded-lg">
+                    <i class="fas fa-cog mr-3"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-10">
+                <div class="bg-white/10 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-2">Need Help?</h3>
+                    <p class="text-sm opacity-80 mb-3">Our support team is here to assist you</p>
+                    <button class="w-full bg-accent text-white py-2 rounded-lg text-sm font-medium hover:bg-orange-500 transition">
+                        Contact Support
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-8 py-4">
+            <div class="flex items-center">
+                <h2 class="text-xl font-semibold">Project Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-6">
+                <div class="relative">
+                    <i class="fas fa-bell text-gray-500 text-xl"></i>
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+                        <span class="font-semibold text-gray-700">JD</span>
+                    </div>
+                    <div>
+                        <p class="font-medium">John Doe</p>
+                        <p class="text-xs text-gray-500">Project Owner</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-8">
+            <!-- Project Header -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8 animate-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold">Modern Kitchen Renovation</h1>
+                        <p class="text-gray-600 mt-2">123 Main Street, Anytown, ST</p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <button class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-800 transition">
+                            <i class="fas fa-plus mr-2"></i> Add Task
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium">Project Progress</span>
+                        <span class="text-sm font-medium">65%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%"></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div class="stat-card bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-primary">24</div>
+                        <div class="text-sm text-gray-600">Total Tasks</div>
+                    </div>
+                    <div class="stat-card bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-success">15</div>
+                        <div class="text-sm text-gray-600">Completed</div>
+                    </div>
+                    <div class="stat-card bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-warning">6</div>
+                        <div class="text-sm text-gray-600">In Progress</div>
+                    </div>
+                    <div class="stat-card bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-danger">3</div>
+                        <div class="text-sm text-gray-600">Delayed</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Timeline Section -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 animate-in" style="animation-delay: 0.1s">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Project Timeline</h2>
+                            <button class="text-primary text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add Milestone
+                            </button>
+                        </div>
+                        
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <h3 class="font-semibold text-lg mb-1">Design Approval</h3>
+                                <p class="text-sm text-gray-600 mb-2">Finalized kitchen design plans</p>
+                                <div class="flex items-center text-sm">
+                                    <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                    <span>Completed: May 15, 2023</span>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item">
+                                <h3 class="font-semibold text-lg mb-1">Permits Received</h3>
+                                <p class="text-sm text-gray-600 mb-2">Building permits approved by city</p>
+                                <div class="flex items-center text-sm">
+                                    <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                    <span>Completed: May 22, 2023</span>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item">
+                                <h3 class="font-semibold text-lg mb-1">Demolition Phase</h3>
+                                <p class="text-sm text-gray-600 mb-2">Remove existing cabinets and countertops</p>
+                                <div class="flex items-center text-sm">
+                                    <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                    <span>Completed: June 5, 2023</span>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item">
+                                <h3 class="font-semibold text-lg mb-1">Cabinetry Installation</h3>
+                                <p class="text-sm text-gray-600 mb-2">New cabinets and shelving installed</p>
+                                <div class="flex items-center text-sm">
+                                    <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                    <span>In Progress: Due June 20, 2023</span>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-item">
+                                <h3 class="font-semibold text-lg mb-1">Appliance Installation</h3>
+                                <p class="text-sm text-gray-600 mb-2">New kitchen appliances installed</p>
+                                <div class="flex items-center text-sm">
+                                    <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                    <span>Planned: June 25, 2023</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tasks Section -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 animate-in" style="animation-delay: 0.2s">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Active Tasks</h2>
+                            <div class="flex space-x-2">
+                                <button class="text-primary text-sm font-medium flex items-center">
+                                    <i class="fas fa-filter mr-1"></i> Filter
+                                </button>
+                                <button class="text-primary text-sm font-medium flex items-center">
+                                    <i class="fas fa-sort mr-1"></i> Sort
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="task-card high-priority bg-white border border-gray-200 rounded-lg p-4 card-hover">
+                                <div class="flex justify-between">
+                                    <h3 class="font-semibold">Install new plumbing fixtures</h3>
+                                    <span class="status-badge status-in-progress">In Progress</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-2">Replace sink and faucet with new stainless steel fixtures</p>
+                                <div class="flex items-center justify-between mt-4">
+                                    <div class="flex items-center text-sm">
+                                        <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                        <span>Due: June 18, 2023</span>
+                                    </div>
+                                    <div class="flex -space-x-2">
+                                        <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs">JD</div>
+                                        <div class="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs">AB</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="task-card medium-priority bg-white border border-gray-200 rounded-lg p-4 card-hover">
+                                <div class="flex justify-between">
+                                    <h3 class="font-semibold">Electrical wiring for new outlets</h3>
+                                    <span class="status-badge status-planned">Planned</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-2">Add new electrical outlets for small appliances</p>
+                                <div class="flex items-center justify-between mt-4">
+                                    <div class="flex items-center text-sm">
+                                        <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                        <span>Due: June 20, 2023</span>
+                                    </div>
+                                    <div class="flex -space-x-2">
+                                        <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs">TS</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="task-card low-priority bg-white border border-gray-200 rounded-lg p-4 card-hover">
+                                <div class="flex justify-between">
+                                    <h3 class="font-semibold">Paint kitchen walls</h3>
+                                    <span class="status-badge status-completed">Completed</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-2">Apply new paint to kitchen walls and ceiling</p>
+                                <div class="flex items-center justify-between mt-4">
+                                    <div class="flex items-center text-sm">
+                                        <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                        <span>Completed: June 10, 2023</span>
+                                    </div>
+                                    <div class="flex -space-x-2">
+                                        <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs">MJ</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="task-card high-priority bg-white border border-gray-200 rounded-lg p-4 card-hover">
+                                <div class="flex justify-between">
+                                    <h3 class="font-semibold">Install new lighting fixtures</h3>
+                                    <span class="status-badge status-delayed">Delayed</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-2">Replace existing lights with new LED fixtures</p>
+                                <div class="flex items-center justify-between mt-4">
+                                    <div class="flex items-center text-sm">
+                                        <i class="far fa-calendar mr-2 text-gray-500"></i>
+                                        <span>Due: June 15, 2023</span>
+                                    </div>
+                                    <div class="flex -space-x-2">
+                                        <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs">AB</div>
+                                        <div class="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs">TS</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="space-y-6">
+                    <!-- Budget Section -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 animate-in" style="animation-delay: 0.3s">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Project Budget</h2>
+                            <button class="text-primary text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add Expense
+                            </button>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-medium">Total Budget</span>
+                                <span class="text-sm font-medium">$25,000.00</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 72%"></div>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-xs text-gray-600">Spent: $18,000</span>
+                                <span class="text-xs text-gray-600">Remaining: $7,000</span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Materials</span>
+                                    <span class="text-sm">$8,500 / $10,000</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Labor</span>
+                                    <span class="text-sm">$6,200 / $8,000</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 77%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Permits & Fees</span>
+                                    <span class="text-sm">$1,200 / $1,500</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Contingency</span>
+                                    <span class="text-sm">$2,100 / $5,500</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 38%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Team Section -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 animate-in" style="animation-delay: 0.4s">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Project Team</h2>
+                            <button class="text-primary text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add Member
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <span class="font-semibold text-blue-800">JD</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">John Doe</p>
+                                    <p class="text-sm text-gray-600">Project Owner</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <span class="font-semibold text-green-800">AB</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Alex Builder</p>
+                                    <p class="text-sm text-gray-600">General Contractor</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <span class="font-semibold text-purple-800">TS</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Taylor Smith</p>
+                                    <p class="text-sm text-gray-600">Electrician</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                                    <span class="font-semibold text-yellow-800">MJ</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Morgan Johnson</p>
+                                    <p class="text-sm text-gray-600">Carpenter</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gallery Section -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 animate-in" style="animation-delay: 0.5s">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold">Project Gallery</h2>
+                            <button class="text-primary text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add Photo
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                            <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-500 text-2xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Simple animation on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add animation to all animate-in elements
+            const animatedElements = document.querySelectorAll('.animate-in');
+            animatedElements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            // Simulate progress bar animation
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                    bar.style.transition = 'width 1.5s ease-in-out';
+                }, 300);
+            });
+        });
+    </script>
+</body>
+</html>

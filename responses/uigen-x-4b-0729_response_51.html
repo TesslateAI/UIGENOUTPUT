@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Progress Bar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            200: '#fbcfe8',
+                            300: '#f9a8d4',
+                            400: '#f472b6',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            800: '#9d174d',
+                            900: '#831843',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        dark: {
+                            50: '#f8faf9',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    boxShadow: {
+                        '3d': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        '3d-inset': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05), inset 0 -2px 4px 0 rgba(0, 0, 0, 0.05)',
+                        '3d-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -6px rgba(0, 0, 0, 0.1)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .progress-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .progress-bar {
+            position: relative;
+            height: 12px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05), 
+                        inset 0 -2px 4px 0 rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+        
+        .progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9 0%, #ec4899 100%);
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+                        0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transform: translateZ(0);
+        }
+        
+        .progress-fill::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #0ea5e9 0%, #ec4899 100%);
+            opacity: 0.8;
+            z-index: -1;
+            border-radius: 10px;
+        }
+        
+        .progress-segments {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            pointer-events: none;
+        }
+        
+        .progress-segment {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-segment::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 50%;
+            z-index: -1;
+        }
+        
+        .progress-segment.active {
+            transform: scale(1.2) rotate(10deg);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .progress-segment.active::before {
+            background: linear-gradient(135deg, #0ea5e9 0%, #ec4899 100%);
+        }
+        
+        .progress-segment.active .segment-icon {
+            opacity: 1;
+        }
+        
+        .segment-icon {
+            font-size: 14px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 600;
+            color: #334155;
+        }
+        
+        .progress-label {
+            font-size: 1.25rem;
+            color: #0f172a;
+            margin-top: 5px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .control-btn:hover {
+            background: #f1f5f9;
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.primary {
+            background: linear-gradient(90deg, #0ea5e9 0%, #ec4899 100%);
+            color: white;
+            border: none;
+        }
+        
+        .control-btn.primary:hover {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        .pattern-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .pattern-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .pattern-option:hover {
+            background: #f1f5f9;
+        }
+        
+        .pattern-option.active {
+            border-color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.05);
+        }
+        
+        .pattern-option i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #64748b;
+        }
+        
+        .pattern-option.active i {
+            color: #0ea5e9;
+        }
+        
+        .pattern-name {
+            font-weight: 500;
+            color: #334155;
+        }
+        
+        .pattern-option.active .pattern-name {
+            color: #0ea5e9;
+        }
+        
+        .texture-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .texture-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .texture-option:hover {
+            background: #f1f5f9;
+        }
+        
+        .texture-option.active {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.05);
+        }
+        
+        .texture-option i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #64748b;
+        }
+        
+        .texture-option.active i {
+            color: #ec4899;
+        }
+        
+        .texture-name {
+            font-weight: 500;
+            color: #334155;
+        }
+        
+        .texture-option.active .texture-name {
+            color: #ec4899;
+        }
+        
+        .info-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-title i {
+            color: #0ea5e9;
+        }
+        
+        .info-content {
+            color: #475569;
+            line-height: 1.6;
+        }
+        
+        .info-item {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: #334155;
+            width: 120px;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #0f172a;
+        }
+        
+        .progress-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9 0%, #ec4899 100%);
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            z-index: -1;
+        }
+        
+        .progress-animation.active {
+            opacity: 1;
+        }
+        
+        @media (max-width: 640px) {
+            .progress-bar {
+                height: 10px;
+            }
+            
+            .progress-segment {
+                width: 20px;
+                height: 20px;
+            }
+            
+            .progress-segment.active {
+                transform: scale(1.1) rotate(5deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill">
+                <div class="progress-animation" id="progressAnimation"></div>
+                <div class="progress-segments" id="progressSegments">
+                    <div class="progress-segment" id="segment1">
+                        <div class="segment-icon">1</div>
+                    </div>
+                    <div class="progress-segment" id="segment2">
+                        <div class="segment-icon">2</div>
+                    </div>
+                    <div class="progress-segment" id="segment3">
+                        <div class="segment-icon">3</div>
+                    </div>
+                    <div class="progress-segment" id="segment4">
+                        <div class="segment-icon">4</div>
+                    </div>
+                    <div class="progress-segment" id="segment5">
+                        <div class="segment-icon">5</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-text" id="progressText">Progress: 0%</div>
+        <div class="progress-label">Complete your task</div>
+        
+        <div class="controls">
+            <button class="control-btn" id="prevBtn" disabled>
+                <i class="fas fa-arrow-left"></i> Previous
+            </button>
+            <button class="control-btn primary" id="nextBtn">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+        
+        <div class="pattern-options">
+            <div class="pattern-option" data-pattern="dots" class="active">
+                <i class="fas fa-circle-dot"></i>
+                <div class="pattern-name">Dots</div>
+            </div>
+            <div class="pattern-option" data-pattern="lines">
+                <i class="fas fa-haunted"></i>
+                <div class="pattern-name">Lines</div>
+            </div>
+            <div class="pattern-option" data-pattern="crosses">
+                <i class="fas fa-crosshairs"></i>
+                <div class="pattern-name">Crosses</div>
+            </div>
+        </div>
+        
+        <div class="texture-options">
+            <div class="texture-option" data-texture="smooth" class="active">
+                <i class="fas fa-smoothie"></i>
+                <div class="texture-name">Smooth</div>
+            </div>
+            <div class="texture-option" data-texture="rough">
+                <i class="fas fa-grass"></i>
+                <div class="texture-name">Rough</div>
+            </div>
+            <div class="texture-option" data-texture="grid">
+                <i class="fas fa-square-grid"></i>
+                <div class="texture-name">Grid</div>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-title">
+                <i class="fas fa-cogs"></i>
+                Progress Bar Info
+            </div>
+            <div class="info-content">
+                <div class="info-item">
+                    <div class="info-label">Current Progress:</div>
+                    <div class="info-value" id="currentProgress">0%</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Segments:</div>
+                    <div class="info-value" id="segmentsCount">5</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Color Scheme:</div>
+                    <div class="info-value" id="colorScheme">Blue to Pink</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Pattern:</div>
+                    <div class="info-value" id="patternType">Dots</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const progressFill = document.getElementById('progressFill');
+            const progressAnimation = document.getElementById('progressAnimation');
+            const progressSegments = document.getElementById('progressSegments');
+            const progressText = document.getElementById('progressText');
+            const currentProgress = document.getElementById('currentProgress');
+            const segmentsCount = document.getElementById('segmentsCount');
+            const colorScheme = document.getElementById('colorScheme');
+            const patternType = document.getElementById('patternType');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const patternOptions = document.querySelectorAll('.pattern-option');
+            const textureOptions = document.querySelectorAll('.texture-option');
+            
+            // Initial progress
+            let progress = 0;
+            const totalSegments = 5;
+            
+            // Set up pattern and texture
+            let activePattern = 'dots';
+            let activeTexture = 'smooth';
+            
+            // Update progress display
+            function updateProgressDisplay() {
+                const percentage = Math.round((progress / totalSegments) * 100);
+                currentProgress.textContent = `${percentage}%`;
+                progressText.textContent = `Progress: ${percentage}%`;
+                
+                // Update animation
+                progressFill.style.width = `${percentage}%`;
+                
+                // Update segments
+                const segmentCount = Math.min(totalSegments, Math.ceil(progress));
+                for (let i = 0; i < segmentCount; i++) {
+                    const segment = document.getElementById(`segment${i + 1}`);
+                    if (progress > i) {
+                        segment.classList.add('active');
+                    } else {
+                        segment.classList.remove('active');
+                    }
+                }
+                
+                // Update info box
+                colorScheme.textContent = 'Blue to Pink';
+                patternType.textContent = activePattern.charAt(0).toUpperCase() + activePattern.slice(1);
+                
+                // Enable/disable buttons
+                prevBtn.disabled = progress === 0;
+                nextBtn.disabled = progress >= totalSegments;
+            }
+            
+            // Initialize progress
+            updateProgressDisplay();
+            
+            // Next button functionality
+            nextBtn.addEventListener('click', function() {
+                if (progress < totalSegments) {
+                    progress++;
+                    updateProgressDisplay();
+                    
+                    // Add animation effect
+                    progressAnimation.classList.add('active');
+                    setTimeout(() => {
+                        progressAnimation.classList.remove('active');
+                    }, 800);
+                }
+            });
+            
+            // Previous button functionality
+            prevBtn.addEventListener('click', function() {
+                if (progress > 0) {
+                    progress--;
+                    updateProgressDisplay();
+                }
+            });
+            
+            // Pattern selection
+            patternOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove active class from all options
+                    patternOptions.forEach(opt => opt.classList.remove('active'));
+                    
+                    // Add active class to clicked option
+                    this.classList.add('active');
+                    
+                    // Update active pattern
+                    activePattern = this.dataset.pattern;
+                    
+                    // Update progress bar with new pattern
+                    updateProgressDisplay();
+                });
+            });
+            
+            // Texture selection
+            textureOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove active class from all options
+                    textureOptions.forEach(opt => opt.classList.remove('active'));
+                    
+                    // Add active class to clicked option
+                    this.classList.add('active');
+                    
+                    // Update active texture
+                    activeTexture = this.dataset.texture;
+                    
+                    // Update progress bar with new texture
+                    updateProgressDisplay();
+                });
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight' && progress < totalSegments) {
+                    progress++;
+                    updateProgressDisplay();
+                } else if (e.key === 'ArrowLeft' && progress > 0) {
+                    progress--;
+                    updateProgressDisplay();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

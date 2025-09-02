@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genomic Sequence Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary-dark: rgb(17, 17, 21);
+            --color-text-light-gray: rgb(218, 222, 226);
+            --color-bg-accent: rgb(25, 25, 28);
+            --color-card-bg: rgb(38, 38, 42);
+            --color-border-gray: rgb(51, 51, 54);
+            --color-yellow-accent: rgb(227, 215, 117);
+            --color-blue-accent: rgb(129, 140, 248);
+            --color-green-accent: rgb(0, 180, 123);
+            --color-red-accent: rgb(255, 82, 82);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-primary-dark);
+            color: var(--color-text-light-gray);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .zoom-controls button {
+            background-color: var(--color-bg-accent);
+            border: 1px solid var(--color-border-gray);
+            color: var(--color-text-light-gray);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .zoom-controls button:hover {
+            background-color: var(--color-border-gray);
+            color: var(--color-text-light-gray);
+        }
+        .zoom-controls button:active {
+            background-color: var(--color-primary-dark);
+        }
+        .annotation-layer {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .annotation-item {
+            background-color: var(--color-bg-accent);
+            border: 1px solid var(--color-border-gray);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .annotation-item:hover {
+            background-color: var(--color-card-bg);
+            border-color: var(--color-border-gray);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .annotation-item.active {
+            border-color: var(--color-blue-accent);
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+        }
+        .annotation-item .close-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--color-text-light-gray);
+            font-size: 0.875rem;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        .annotation-item .close-btn:hover {
+            color: var(--color-red-accent);
+        }
+        .annotation-content {
+            max-height: 200px; /* Limit height for scrollable content */
+            overflow-y: auto;
+            scrollbar-hide;
+        }
+        .annotation-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .annotation-content::-webkit-scrollbar-track {
+            background: var(--color-bg-accent);
+        }
+        .annotation-content::-webkit-scrollbar-thumb {
+            background: var(--color-border-gray);
+            border-radius: 4px;
+        }
+        .annotation-content::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary-dark);
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-primary-dark)] text-[var(--color-text-light-gray)]">
+
+    <div class="container mx-auto p-4 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 min-h-screen">
+
+        <!-- Left Panel: Sequence Viewer & Controls -->
+        <div class="w-full md:w-1/2 bg-[var(--color-bg-accent)] p-4 rounded-lg shadow-lg flex flex-col">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-dna text-[var(--color-blue-accent)] mr-2"></i>Genomic Sequence
+            </h2>
+            <div class="flex-grow bg-[var(--color-card-bg)] rounded-md p-4 overflow-hidden relative">
+                <!-- Zoomable Sequence Area (Placeholder for actual sequence rendering) -->
+                <div id="sequence-viewer" class="w-full h-48 md:h-64 flex items-center justify-center text-center text-[var(--color-text-light-gray)] text-lg">
+                    <p>Genomic Sequence Viewer (e.g., using D3.js or similar)</p>
+                    <p class="mt-2 text-sm">Zoom in for details...</p>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <canvas id="sequence-canvas" class="w-full h-full"></canvas>
+                    </div>
+                </div>
+                <div class="zoom-controls absolute top-4 right-4 flex flex-col gap-2">
+                    <button class="py-1 px-2 rounded" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button class="py-1 px-2 rounded" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button class="py-1 px-2 rounded" title="Reset Zoom">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Filters, Annotations, & Controls -->
+        <div class="w-full md:w-1/2 bg-[var(--color-bg-accent)] p-4 rounded-lg shadow-lg flex flex-col">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-filter text-[var(--color-yellow-accent)] mr-2"></i>Filters & Annotations
+            </h2>
+
+            <!-- Filters Section -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-3 flex items-center">
+                    <i class="fas fa-sliders-h text-[var(--color-green-accent)] mr-2"></i>Custom Filters
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <label for="gene-filter" class="block text-sm font-medium mb-1">Gene Type</label>
+                        <select id="gene-filter" class="w-full p-2 bg-[var(--color-card-bg)] border border-[var(--color-border-gray)] rounded-md text-[var(--color-text-light-gray)]">
+                            <option value="all">All Genes</option>
+                            <option value="protein-coding">Protein-Coding</option>
+                            <option value="non-coding">Non-Coding</option>
+                            <option value="regulatory">Regulatory</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="chromosome-filter" class="block text-sm font-medium mb-1">Chromosome</label>
+                        <select id="chromosome-filter" class="w-full p-2 bg-[var(--color-card-bg)] border border-[var(--color-border-gray)] rounded-md text-[var(--color-text-light-gray)]">
+                            <option value="all">All Chromosomes</option>
+                            <option value="chr1">Chromosome 1</option>
+                            <option value="chr2">Chromosome 2</option>
+                            <option value="chrX">Chromosome X</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sequence-region-filter" class="block text-sm font-medium mb-1">Sequence Region</label>
+                        <input type="text" id="sequence-region-filter" placeholder="e.g., 100000-105000" class="w-full p-2 bg-[var(--color-card-bg)] border border-[var(--color-border-gray)] rounded-md text-[var(--color-text-light-gray)]">
+                    </div>
+                    <button class="w-full bg-[var(--color-blue-accent)] text-white py-2 rounded-md hover:bg-[var(--color-primary-dark)] transition-colors">
+                        <i class="fas fa-filter mr-2"></i>Apply Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Annotations Section -->
+            <div>
+                <h3 class="text-lg font-medium mb-3 flex items-center">
+                    <i class="fas fa-tags text-[var(--color-red-accent)] mr-2"></i>Multi-Layer Annotations
+                </h3>
+                <div class="annotation-layer" id="annotation-layer">
+                    <!-- Annotation items will be dynamically added here -->
+                </div>
+                <button class="w-full bg-[var(--color-border-gray)] text-[var(--color-text-light-gray)] py-2 rounded-md hover:bg-[var(--color-primary-dark)] transition-colors mt-4">
+                    <i class="fas fa-plus mr-2"></i>Add New Annotation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder for actual genomic sequence and annotation logic
+        // This is a basic structure to demonstrate the UI
+        const annotationLayer = document.getElementById('annotation-layer');
+
+        // Example of adding a new annotation
+        function addAnnotation(name, description, details) {
+            const annotationItem = document.createElement('div');
+            annotationItem.className = 'annotation-item';
+            annotationItem.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-[var(--color-text-light-gray)]">${name}</span>
+                    <button class="close-btn" aria-label="Close annotation"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="annotation-content text-sm">
+                    <p>${description}</p>
+                    <p class="mt-1">${details}</p>
+                </div>
+            `;
+            annotationLayer.appendChild(annotationItem);
+
+            // Add click listener for the close button
+            annotationItem.querySelector('.close-btn').addEventListener('click', () => {
+                annotationItem.remove();
+            });
+        }
+
+        // Add some initial annotations
+        addAnnotation('Exon 1', 'Coding region for gene A, responsible for producing the primary protein isoform.', 'Length: 1500 bp, Start: 100000, End: 115000');
+        addAnnotation('Promoter Region', 'Sequence where transcription initiation occurs. Important for gene regulation.', 'Contains TATA box, enhancers, and other regulatory elements.');
+        addAnnotation('Regulatory Element B', 'A conserved non-coding sequence that influences the expression of gene B in specific tissues.', 'Located 500 bp upstream of the gene, associated with tissue-specific enhancer activity.');
+
+        // Example of how to handle filters (placeholder logic)
+        document.getElementById('gene-filter').addEventListener('change', (event) => {
+            console.log('Gene Type Filter:', event.target.value);
+            // In a real app, this would trigger a re-render or update of the sequence viewer
+        });
+
+        document.getElementById('chromosome-filter').addEventListener('change', (event) => {
+            console.log('Chromosome Filter:', event.target.value);
+            // In a real app, this would trigger a re-render or update of the sequence viewer
+        });
+
+        document.getElementById('sequence-region-filter').addEventListener('input', (event) => {
+            console.log('Sequence Region Filter:', event.target.value);
+            // In a real app, this would trigger a re-render or update of the sequence viewer
+        });
+
+    </script>
+</body>
+</html>

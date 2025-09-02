@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Studio Pro | Create & Publish Podcasts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'studio-dark': '#0f172a',
+                        'studio-darker': '#0a1120',
+                        'studio-gray': '#1e293b',
+                        'studio-light': '#f1f5f9',
+                        'studio-blue': '#3b82f6',
+                        'studio-purple': '#8b5cf6',
+                        'studio-green': '#10b981',
+                        'studio-red': '#ef4444',
+                        'studio-yellow': '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        .waveform {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 80px;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .waveform::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255,255,255,0.1), transparent);
+        }
+        
+        .track-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .track-item:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+            border-left: 3px solid #8b5cf6;
+        }
+        
+        .track-item.active {
+            background-color: rgba(30, 41, 59, 0.7);
+            border-left: 3px solid #8b5cf6;
+        }
+        
+        .knob {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .knob::before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border-radius: 50%;
+            border: 1px solid #334155;
+        }
+        
+        .knob::after {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #334155;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+        }
+        
+        .publish-card {
+            transition: all 0.3s ease;
+            border: 1px solid #334155;
+        }
+        
+        .publish-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.2);
+            border-color: #8b5cf6;
+        }
+        
+        .timeline {
+            height: 40px;
+            background: #1e293b;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: move;
+        }
+        
+        .timeline-playhead {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3);
+        }
+        
+        .audio-visualizer {
+            height: 80px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .visualizer-bar {
+            position: absolute;
+            bottom: 0;
+            width: 3px;
+            background: white;
+            border-radius: 2px 2px 0 0;
+            animation: pulse 1.2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { height: 20%; }
+            50% { height: 100%; }
+            100% { height: 20%; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-studio-dark text-studio-light">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-studio-darker border-b border-studio-gray">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-studio-blue to-studio-purple flex items-center justify-center">
+                        <i class="fas fa-microphone text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold">Podcast<span class="text-studio-purple">Studio</span>Pro</h1>
+                </div>
+                
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-studio-light hover:text-studio-purple transition-colors">Dashboard</a>
+                    <a href="#" class="text-studio-light hover:text-studio-purple transition-colors">Library</a>
+                    <a href="#" class="text-studio-light hover:text-studio-purple transition-colors">Templates</a>
+                    <a href="#" class="text-studio-light hover:text-studio-purple transition-colors">Analytics</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 rounded-lg hover:bg-studio-gray transition-colors">
+                        <i class="fas fa-bell text-studio-light"></i>
+                    </button>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-studio-blue to-studio-purple"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Project Header -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-bold">Tech Talk Weekly</h2>
+                    <p class="text-studio-light/70">Episode 12: Future of AI in Development</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button class="px-4 py-2 bg-studio-gray rounded-lg flex items-center space-x-2 hover:bg-studio-gray/80 transition-colors">
+                        <i class="fas fa-save text-studio-blue"></i>
+                        <span>Save</span>
+                    </button>
+                    <button class="px-4 py-2 bg-gradient-to-r from-studio-blue to-studio-purple rounded-lg flex items-center space-x-2 hover:opacity-90 transition-opacity">
+                        <i class="fas fa-upload"></i>
+                        <span>Publish</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Track List -->
+            <div class="lg:col-span-1 bg-studio-gray rounded-xl p-4 h-fit">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold">Tracks</h3>
+                    <button class="text-studio-purple hover:text-studio-purple/80">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="track-item active p-3 rounded-lg cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-microphone text-studio-purple"></i>
+                                <span>Host Mic</span>
+                            </div>
+                            <span class="text-studio-green text-sm">Recording</span>
+                        </div>
+                        <div class="mt-2 text-xs text-studio-light/60">00:00:00 - 00:15:30</div>
+                    </div>
+                    
+                    <div class="track-item p-3 rounded-lg cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-microphone text-studio-blue"></i>
+                                <span>Guest Mic</span>
+                            </div>
+                            <span class="text-studio-yellow text-sm">Edited</span>
+                        </div>
+                        <div class="mt-2 text-xs text-studio-light/60">00:05:15 - 00:20:45</div>
+                    </div>
+                    
+                    <div class="track-item p-3 rounded-lg cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-music text-studio-green"></i>
+                                <span>Background Music</span>
+                            </div>
+                            <span class="text-studio-green text-sm">Active</span>
+                        </div>
+                        <div class="mt-2 text-xs text-studio-light/60">00:00:00 - 00:25:00</div>
+                    </div>
+                    
+                    <div class="track-item p-3 rounded-lg cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-file-audio text-studio-yellow"></i>
+                                <span>Sound Effect</span>
+                            </div>
+                            <span class="text-studio-light/60 text-sm">Inactive</span>
+                        </div>
+                        <div class="mt-2 text-xs text-studio-light/60">00:10:00 - 00:12:30</div>
+                    </div>
+                    
+                    <div class="track-item p-3 rounded-lg cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-microphone text-studio-blue"></i>
+                                <span>Interview Clip</span>
+                            </div>
+                            <span class="text-studio-light/60 text-sm">Inactive</span>
+                        </div>
+                        <div class="mt-2 text-xs text-studio-light/60">00:18:20 - 00:22:10</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Waveform Editor -->
+            <div class="lg:col-span-3 bg-studio-gray rounded-xl p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold">Waveform Editor</h3>
+                    <div class="flex space-x-2">
+                        <button class="p-2 rounded-lg hover:bg-studio-darker transition-colors">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="p-2 rounded-lg hover:bg-studio-darker transition-colors">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm text-studio-light/70">00:00:00</div>
+                        <div class="text-sm text-studio-light/70">00:25:45</div>
+                    </div>
+                    <div class="timeline relative">
+                        <div class="timeline-marker" style="left: 30%"></div>
+                        <div class="timeline-marker" style="left: 65%"></div>
+                        <div class="timeline-marker" style="left: 85%"></div>
+                        <div class="timeline-playhead" style="left: 45%"></div>
+                        <div class="absolute top-0 left-0 w-full h-full">
+                            <div class="audio-visualizer">
+                                <!-- Visualizer bars will be generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-12 gap-4">
+                    <!-- Mixer Controls -->
+                    <div class="col-span-12 md:col-span-8">
+                        <div class="bg-studio-darker rounded-lg p-4">
+                            <h4 class="font-semibold mb-4">Audio Mixer</h4>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-md bg-studio-purple/20 flex items-center justify-center">
+                                            <i class="fas fa-microphone text-studio-purple"></i>
+                                        </div>
+                                        <span>Host Mic</span>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fas fa-volume-up text-studio-light/60"></i>
+                                            <input type="range" min="0" max="100" value="80" class="slider">
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fas fa-mute text-studio-light/60"></i>
+                                            <input type="range" min="0" max="100" value="0" class="slider">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-md bg-studio-blue/20 flex items-center justify-center">
+                                            <i class="fas fa-microphone text-studio-blue"></i>
+                                        </div>
+                                        <span>Guest Mic</span>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fas fa-volume-up text-studio-light/60"></i>
+                                            <input type="range" min="0" max="100" value="70" class="slider">
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fas fa-mute text-studio-light/60"></i>
+                                            <input type="range" min="0" max="100" value="0" class="slider">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-md bg-studio-green/20 flex items-center justify-center">
+                                            <i class="fas fa-music text-studio-green"></i>
+                                        </div>
+                                        <span>Background Music</span>
+                                    </div>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fas fa-volume-up text-studio-light/60"></i>
+                                            <input type="range" min="0" max="100" value="40" class="slider">
+                                        </div>
+                                        <div class="flex items-center space-x-1">
+                                            <i class="fas fa-mute text-studio-light/60"></i>
+                                            <input type="range" min="0" max="100" value="0" class="slider">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Publishing Options -->
+                    <div class="col-span-12 md:col-span-4">
+                        <div class="bg-studio-darker rounded-lg p-4">
+                            <h4 class="font-semibold mb-4">Publishing Options</h4>
+                            <div class="space-y-4">
+                                <div class="publish-card bg-studio-gray rounded-lg p-4 fade-in">
+                                    <div class="flex items-center space-x-3 mb-3">
+                                        <div class="w-10 h-10 rounded-lg bg-studio-blue/10 flex items-center justify-center">
+                                            <i class="fab fa-spotify text-studio-blue"></i>
+                                        </div>
+                                        <span class="font-medium">Spotify</span>
+                                    </div>
+                                    <p class="text-sm text-studio-light/70 mb-3">Reach millions of listeners on the world's most popular podcast platform</p>
+                                    <button class="w-full py-2 bg-studio-blue/10 text-studio-blue rounded-lg hover:bg-studio-blue/20 transition-colors">
+                                        Publish to Spotify
+                                    </button>
+                                </div>
+                                
+                                <div class="publish-card bg-studio-gray rounded-lg p-4 fade-in">
+                                    <div class="flex items-center space-x-3 mb-3">
+                                        <div class="w-10 h-10 rounded-lg bg-studio-purple/10 flex items-center justify-center">
+                                            <i class="fab fa-apple text-studio-purple"></i>
+                                        </div>
+                                        <span class="font-medium">Apple Podcasts</span>
+                                    </div>
+                                    <p class="text-sm text-studio-light/70 mb-3">Get discovered by Apple's 600+ million users</p>
+                                    <button class="w-full py-2 bg-studio-purple/10 text-studio-purple rounded-lg hover:bg-studio-purple/20 transition-colors">
+                                        Publish to Apple
+                                    </button>
+                                </div>
+                                
+                                <div class="publish-card bg-studio-gray rounded-lg p-4 fade-in">
+                                    <div class="flex items-center space-x-3 mb-3">
+                                        <div class="w-10 h-10 rounded-lg bg-studio-green/10 flex items-center justify-center">
+                                            <i class="fas fa-globe text-studio-green"></i>
+                                        </div>
+                                        <span class="font-medium">Direct Link</span>
+                                    </div>
+                                    <p class="text-sm text-studio-light/70 mb-3">Share your episode via direct download link</p>
+                                    <div class="flex">
+                                        <input type="text" value="https://podcaststudio.pro/episode/12" class="flex-1 bg-studio-darker border border-studio-gray rounded-l-lg px-3 py-2 text-sm">
+                                        <button class="bg-studio-gray border border-l-0 border-studio-gray px-3 rounded-r-lg">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Editing Tools -->
+        <div class="mt-6 bg-studio-gray rounded-xl p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">Editing Tools</h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1.5 bg-studio-darker rounded-lg flex items-center space-x-2 hover:bg-studio-darker/80 transition-colors">
+                        <i class="fas fa-cut"></i>
+                        <span>Cut</span>
+                    </button>
+                    <button class="px-3 py-1.5 bg-studio-darker rounded-lg flex items-center space-x-2 hover:bg-studio-darker/80 transition-colors">
+                        <i class="fas fa-pen"></i>
+                        <span>Draw</span>
+                    </button>
+                    <button class="px-3 py-1.5 bg-studio-darker rounded-lg flex items-center space-x-2 hover:bg-studio-darker/80 transition-colors">
+                        <i class="fas fa-waveform"></i>
+                        <span>Effects</span>
+                    </button>
+                    <button class="px-3 py-1.5 bg-studio-darker rounded-lg flex items-center space-x-2 hover:bg-studio-darker/80 transition-colors">
+                        <i class="fas fa-text-width"></i>
+                        <span>Text</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-12 md:col-span-6">
+                    <div class="bg-studio-darker rounded-lg p-4">
+                        <h4 class="font-semibold mb-3">Audio Effects</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="flex flex-col items-center p-3 rounded-lg bg-studio-gray hover:bg-studio-gray/80 cursor-pointer">
+                                <div class="w-10 h-10 rounded-full bg-studio-blue/10 flex items-center justify-center mb-2">
+                                    <i class="fas fa-compress text-studio-blue"></i>
+                                </div>
+                                <span class="text-sm">Compressor</span>
+                            </div>
+                            <div class="flex flex-col items-center p-3 rounded-lg bg-studio-gray hover:bg-studio-gray/80 cursor-pointer">
+                                <div class="w-10 h-10 rounded-full bg-studio-purple/10 flex items-center justify-center mb-2">
+                                    <i class="fas fa-filter text-studio-purple"></i>
+                                </div>
+                                <span class="text-sm">EQ Filter</span>
+                            </div>
+                            <div class="flex flex-col items-center p-3 rounded-lg bg-studio-gray hover:bg-studio-gray/80 cursor-pointer">
+                                <div class="w-10 h-10 rounded-full bg-studio-green/10 flex items-center justify-center mb-2">
+                                    <i class="fas fa-reverb text-studio-green"></i>
+                                </div>
+                                <span class="text-sm">Reverb</span>
+                            </div>
+                            <div class="flex flex-col items-center p-3 rounded-lg bg-studio-gray hover:bg-studio-gray/80 cursor-pointer">
+                                <div class="w-10 h-10 rounded-full bg-studio-yellow/10 flex items-center justify-center mb-2">
+                                    <i class="fas fa-volume-up text-studio-yellow"></i>
+                                </div>
+                                <span class="text-sm">Limiter</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-span-12 md:col-span-6">
+                    <div class="bg-studio-darker rounded-lg p-4">
+                        <h4 class="font-semibold mb-3">Export Options</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm mb-1">Format</label>
+                                <select class="w-full bg-studio-gray border border-studio-gray rounded-lg px-3 py-2 text-sm">
+                                    <option>MP3 (High Quality)</option>
+                                    <option>MP3 (Medium Quality)</option>
+                                    <option>WAV (Uncompressed)</option>
+                                    <option>FLAC (Lossless)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm mb-1">Bitrate</label>
+                                <select class="w-full bg-studio-gray border border-studio-gray rounded-lg px-3 py-2 text-sm">
+                                    <option>192 kbps</option>
+                                    <option>128 kbps</option>
+                                    <option>320 kbps</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm mb-1">Normalization</label>
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex items-center">
+                                        <input type="radio" id="normalize-yes" name="normalize" class="mr-1" checked>
+                                        <label for="normalize-yes">Yes</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="radio" id="normalize-no" name="normalize" class="mr-1">
+                                        <label for="normalize-no">No</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full py-2.5 bg-gradient-to-r from-studio-blue to-studio-purple rounded-lg hover:opacity-90 transition-opacity">
+                                Export Episode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Player Controls -->
+    <div class="fixed bottom-0 left-0 right-0 bg-studio-darker border-t border-studio-gray">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded bg-studio-gray flex items-center justify-center">
+                        <i class="fas fa-microphone text-studio-purple"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium">Tech Talk Weekly</div>
+                        <div class="text-sm text-studio-light/60">Episode 12: Future of AI</div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <button class="text-studio-light/70 hover:text-studio-light">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-full bg-studio-blue flex items-center justify-center hover:opacity-90">
+                        <i class="fas fa-play text-white"></i>
+                    </button>
+                    <button class="text-studio-light/70 hover:text-studio-light">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm w-24">00:15:30</div>
+                    <div class="flex-1 h-1 bg-studio-gray rounded-full overflow-hidden">
+                        <div class="h-full bg-studio-blue w-3/4"></div>
+                    </div>
+                    <div class="text-sm w-24 text-right">00:25:45</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Generate audio visualizer bars
+        document.addEventListener('DOMContentLoaded', function() {
+            const visualizer = document.querySelector('.audio-visualizer');
+            const barsCount = 64;
+            
+            for (let i = 0; i < barsCount; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'visualizer-bar';
+                bar.style.left = `${(i / barsCount) * 100}%`;
+                bar.style.height = `${Math.random() * 80 + 20}%`;
+                visualizer.appendChild(bar);
+            }
+            
+            // Simulate live recording
+            setInterval(() => {
+                const bars = visualizer.querySelectorAll('.visualizer-bar');
+                bars.forEach(bar => {
+                    bar.style.height = `${Math.random() * 80 + 20}%`;
+                });
+            }, 200);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Simple To-Do List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-background-primary: #f0f2f5; /* Light background */
+            --color-text-primary: #333333;       /* Dark text */
+            --color-accent: #007bff;              /* Blue for actions */
+            --color-border: #e0e0e0;              /* Light grey border */
+            --color-task-completed: #cccccc;     /* Lighter grey for completed tasks */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease-in-out;
+        }
+
+        .task-input:focus {
+            border-color: var(--color-accent);
+        }
+
+        .btn-add {
+            background-color: var(--color-accent);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+            cursor: pointer;
+            margin-left: 0.5rem; /* For mobile stacking */
+        }
+
+        .btn-add:hover {
+            background-color: #0056b3;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 1.5rem;
+        }
+
+        .task-item {
+            background-color: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: var(--color-task-completed);
+        }
+
+        .task-text {
+            flex-grow: 1;
+            font-size: 1.125rem;
+            cursor: pointer;
+            padding-right: 0.75rem;
+        }
+
+        .task-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-primary);
+            font-size: 1.25rem;
+            padding: 0.25rem;
+            transition: color 0.2s ease-in-out;
+        }
+
+        .task-actions button:hover {
+            color: var(--color-accent);
+        }
+
+        .task-actions .btn-edit {
+            color: #28a745; /* Green for edit */
+        }
+
+        .task-actions .btn-edit:hover {
+            color: #218838;
+        }
+
+        .task-actions .btn-delete {
+            color: #dc3545; /* Red for delete */
+        }
+
+        .task-actions .btn-delete:hover {
+            color: #c82333;
+        }
+
+        .task-actions .btn-completed {
+            color: #007bff; /* Blue for complete */
+        }
+
+        .task-actions .btn-completed:hover {
+            color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 class="text-2xl font-bold text-center mb-6">My To-Do List</h2>
+
+        <div class="flex flex-col md:flex-row gap-4 mb-6">
+            <input type="text" id="new-task-input" class="task-input flex-grow" placeholder="Add a new task...">
+            <button id="add-task-btn" class="btn-add w-full md:w-auto">
+                <i class="fas fa-plus mr-2"></i> Add Task
+            </button>
+        </div>
+
+        <ul id="task-list" class="task-list">
+            <!-- Tasks will be dynamically added here -->
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const newTaskInput = document.getElementById('new-task-input');
+            const addTaskBtn = document.getElementById('add-task-btn');
+            const taskList = document.getElementById('task-list');
+
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+            // Function to save tasks to localStorage
+            const saveTasks = () => {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            };
+
+            // Function to render tasks
+            const renderTasks = () => {
+                taskList.innerHTML = ''; // Clear current list
+                tasks.forEach((task, index) => {
+                    const taskItem = document.createElement('li');
+                    taskItem.className = `task-item ${task.completed ? 'completed' : ''}`;
+                    taskItem.setAttribute('data-id', task.id);
+
+                    const taskTextSpan = document.createElement('span');
+                    taskTextSpan.className = 'task-text';
+                    taskTextSpan.textContent = task.text;
+                    taskTextSpan.onclick = () => toggleEdit(task.id);
+
+                    const taskActionsDiv = document.createElement('div');
+                    taskActionsDiv.className = 'task-actions flex items-center space-x-2';
+
+                    const completeBtn = document.createElement('button');
+                    completeBtn.className = 'btn-completed';
+                    completeBtn.innerHTML = `<i class="fas fa-check"></i>`;
+                    completeBtn.title = 'Mark as completed';
+                    completeBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent toggling edit
+                        toggleComplete(task.id);
+                    };
+                    taskActionsDiv.appendChild(completeBtn);
+
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn-edit';
+                    editBtn.innerHTML = `<i class="fas fa-edit"></i>`;
+                    editBtn.title = 'Edit task';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleEdit(task.id);
+                    };
+                    taskActionsDiv.appendChild(editBtn);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn-delete';
+                    deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+                    deleteBtn.title = 'Delete task';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteTask(task.id);
+                    };
+                    taskActionsDiv.appendChild(deleteBtn);
+
+                    taskItem.appendChild(taskTextSpan);
+                    taskItem.appendChild(taskActionsDiv);
+                    taskList.appendChild(taskItem);
+                });
+            };
+
+            // Add new task
+            addTaskBtn.addEventListener('click', () => {
+                const taskText = newTaskInput.value.trim();
+                if (taskText) {
+                    const newTask = {
+                        id: Date.now(), // Simple unique ID
+                        text: taskText,
+                        completed: false
+                    };
+                    tasks.push(newTask);
+                    newTaskInput.value = ''; // Clear input
+                    saveTasks();
+                    renderTasks();
+                }
+            });
+
+            // Add task on Enter key press
+            newTaskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addTaskBtn.click();
+                }
+            });
+
+            // Delete task
+            const deleteTask = (id) => {
+                tasks = tasks.filter(task => task.id !== id);
+                saveTasks();
+                renderTasks();
+            };
+
+            // Toggle task completion
+            const toggleComplete = (id) => {
+                tasks = tasks.map(task => {
+                    if (task.id === id) {
+                        return { ...task, completed: !task.completed };
+                    }
+                    return task;
+                });
+                saveTasks();
+                renderTasks();
+            };
+
+            // Edit task functionality
+            const toggleEdit = (id) => {
+                const taskItem = document.querySelector(`.task-item[data-id="${id}"]`);
+                if (!taskItem) return;
+
+                const taskTextSpan = taskItem.querySelector('.task-text');
+                const originalText = taskTextSpan.textContent;
+
+                if (taskItem.dataset.editing === 'true') {
+                    // Save changes
+                    const newText = taskTextSpan.textContent.trim();
+                    if (newText !== originalText) {
+                        tasks = tasks.map(task => {
+                            if (task.id === id) {
+                                return { ...task, text: newText };
+                            }
+                            return task;
+                        });
+                        saveTasks();
+                    }
+                    taskItem.dataset.editing = 'false';
+                    taskTextSpan.contentEditable = false;
+                    taskTextSpan.style.outline = 'none'; // Remove focus outline
+                } else {
+                    // Start editing
+                    taskItem.dataset.editing = 'true';
+                    taskTextSpan.contentEditable = true;
+                    taskTextSpan.focus();
+                    taskTextSpan.style.outline = '2px solid var(--color-accent)'; // Add focus outline
+                }
+            };
+
+            // Initial render
+            renderTasks();
+        });
+    </script>
+</body>
+</html>

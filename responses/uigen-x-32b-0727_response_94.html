@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heritage Explorer | Genealogy Research App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Manrope:wght@600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-light: #f8f9fa;
+            --color-bg-medium: #e9ecef;
+            --color-bg-dark: #2c3e50;
+            --color-primary: #2c3e50;
+            --color-secondary: #3498db;
+            --color-accent: #d4af37;
+            --color-text-dark: #212529;
+            --color-text-light: #f8f9fa;
+            --color-text-muted: #6c757d;
+            --color-text-subtle: #adb5bd;
+            --color-border: #dee2e6;
+            
+            --font-sans: 'Inter', sans-serif;
+            --font-heading: 'Playfair Display', serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-heading);
+        }
+
+        .font-heading { font-family: var(--font-heading); }
+        .font-sans { font-family: var(--font-sans); }
+
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .scroll-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .family-tree-node {
+            position: absolute;
+            width: 120px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .family-tree-connector {
+            position: absolute;
+            height: 2px;
+            background-color: var(--color-text-muted);
+        }
+        
+        .document-viewer {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .document-page {
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .search-highlight {
+            background-color: rgba(212, 175, 55, 0.2);
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 2px;
+            background-color: var(--color-accent);
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            top: 12px;
+            left: -7px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--color-accent);
+            border: 3px solid var(--color-bg-light);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        }
+        
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1a252f;
+            transform: translateY(-2px);
+        }
+        
+        .btn-accent {
+            background-color: var(--color-accent);
+            color: var(--color-text-dark);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-accent:hover {
+            background-color: #b8972e;
+            transform: translateY(-2px);
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--color-accent);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .active-nav::after {
+            width: 100%;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden bg-[var(--color-bg-light)] text-[var(--color-text-dark)]">
+    <!-- Navbar -->
+    <nav id="navbar" class="sticky top-0 z-50 bg-white shadow-sm transition-all duration-300">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#" class="text-2xl font-bold font-heading text-[var(--color-primary)] flex items-center">
+                    <i class="fas fa-tree text-[var(--color-accent)] mr-2"></i>
+                    Heritage Explorer
+                </a>
+                
+                <div class="hidden lg:flex space-x-8 items-center">
+                    <a href="#features" class="nav-link relative text-[var(--color-text-dark)] hover:text-[var(--color-accent)] font-medium">Features</a>
+                    <a href="#tree" class="nav-link relative text-[var(--color-text-dark)] hover:text-[var(--color-accent)] font-medium">Family Tree</a>
+                    <a href="#documents" class="nav-link relative text-[var(--color-text-dark)] hover:text-[var(--color-accent)] font-medium">Documents</a>
+                    <a href="#search" class="nav-link relative text-[var(--color-text-dark)] hover:text-[var(--color-accent)] font-medium">Search</a>
+                    <a href="#timeline" class="nav-link relative text-[var(--color-text-dark)] hover:text-[var(--color-accent)] font-medium">Timeline</a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="relative hidden md:block">
+                        <input type="text" placeholder="Search ancestors, documents..." class="w-64 px-4 py-2 rounded-full border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent">
+                        <i class="fas fa-search absolute right-3 top-3 text-[var(--color-text-muted)]"></i>
+                    </div>
+                    <button class="btn-primary px-6 py-2 rounded-full font-medium">Sign In</button>
+                    <button id="mobile-menu-button" class="lg:hidden text-[var(--color-primary)] focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white shadow-lg absolute top-20 left-0 right-0 z-40">
+            <div class="px-4 pt-2 pb-4 space-y-2">
+                <a href="#features" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-dark)] hover:bg-[var(--color-bg-medium)]">Features</a>
+                <a href="#tree" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-dark)] hover:bg-[var(--color-bg-medium)]">Family Tree</a>
+                <a href="#documents" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-dark)] hover:bg-[var(--color-bg-medium)]">Documents</a>
+                <a href="#search" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-dark)] hover:bg-[var(--color-bg-medium)]">Search</a>
+                <a href="#timeline" class="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-text-dark)] hover:bg-[var(--color-bg-medium)]">Timeline</a>
+                <div class="pt-4">
+                    <button class="btn-primary w-full py-3 rounded-full font-medium">Sign In</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section pt-16 pb-20 md:pt-24 md:pb-32 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)] to-[#1a252f] opacity-5"></div>
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="text-center md:text-left">
+                    <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold font-heading text-[var(--color-text-dark)] mb-6 scroll-animate">
+                        Discover Your <span class="text-[var(--color-accent)]">Family's</span> Story
+                    </h1>
+                    <p class="text-lg text-[var(--color-text-muted)] mb-8 max-w-xl mx-auto md:mx-0 scroll-animate">
+                        Explore your ancestry with our interactive family tree, historical document viewer, and powerful search tools. Uncover your roots and connect generations.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start scroll-animate">
+                        <button class="btn-primary px-8 py-3 rounded-full font-medium text-lg">Start Research</button>
+                        <button class="btn-accent px-8 py-3 rounded-full font-medium text-lg">View Demo</button>
+                    </div>
+                </div>
+                <div class="relative scroll-animate">
+                    <div class="bg-white rounded-2xl shadow-xl p-6">
+                        <div class="bg-[var(--color-bg-medium)] rounded-lg p-4 mb-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-bold text-[var(--color-text-dark)]">Recent Discoveries</h3>
+                                <span class="text-sm text-[var(--color-accent)]">3 new records</span>
+                            </div>
+                            <div class="space-y-3 max-h-40 overflow-y-auto scrollbar-hide">
+                                <div class="flex items-center p-2 hover:bg-white rounded">
+                                    <div class="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" ></div>
+                                    <div class="ml-3">
+                                        <p class="font-medium">Johnathan Smith</p>
+                                        <p class="text-sm text-[var(--color-text-muted)]">1850 Census Record</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center p-2 hover:bg-white rounded">
+                                    <div class="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" ></div>
+                                    <div class="ml-3">
+                                        <p class="font-medium">Mary Johnson</p>
+                                        <p class="text-sm text-[var(--color-text-muted)]">Marriage Certificate</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center p-2 hover:bg-white rounded">
+                                    <div class="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" ></div>
+                                    <div class="ml-3">
+                                        <p class="font-medium">Robert Davis</p>
+                                        <p class="text-sm text-[var(--color-text-muted)]">WWI Service Record</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-[var(--color-primary)] to-[#1a252f] rounded-lg p-4 text-white">
+                            <h3 class="font-bold text-lg mb-2">Your Research Progress</h3>
+                            <div class="w-full bg-white bg-opacity-20 rounded-full h-2 mb-2">
+                                <div class="bg-[var(--color-accent)] h-2 rounded-full" style="width: 65%"></div>
+                            </div>
+                            <p class="text-sm opacity-80">65% of family tree completed</p>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute -top-6 -right-6 w-32 h-32 bg-[var(--color-accent)] rounded-full opacity-10"></div>
+                    <div class="absolute -bottom-6 -left-6 w-24 h-24 bg-[var(--color-secondary)] rounded-full opacity-10"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 md:py-24 bg-[var(--color-bg-medium)]">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold font-heading text-[var(--color-text-dark)] mb-4 scroll-animate">
+                    Powerful Research Tools
+                </h2>
+                <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto scroll-animate">
+                    Everything you need to trace your family history and preserve your heritage
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card bg-white rounded-xl shadow-md p-6 transition-all duration-300 scroll-animate">
+                    <div class="w-16 h-16 rounded-full bg-[var(--color-bg-light)] flex items-center justify-center mb-6">
+                        <i class="fas fa-sitemap text-2xl text-[var(--color-primary)]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-heading mb-3">Interactive Family Tree</h3>
+                    <p class="text-[var(--color-text-muted)] mb-4">
+                        Build and visualize your family tree with our intuitive drag-and-drop interface. Add ancestors, connect relationships, and see your family history come to life.
+                    </p>
+                    <a href="#tree" class="text-[var(--color-primary)] font-medium flex items-center">
+                        Explore Tree <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="feature-card bg-white rounded-xl shadow-md p-6 transition-all duration-300 scroll-animate" style="transition-delay: 0.1s;">
+                    <div class="w-16 h-16 rounded-full bg-[var(--color-bg-light)] flex items-center justify-center mb-6">
+                        <i class="fas fa-file-alt text-2xl text-[var(--color-primary)]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-heading mb-3">Historical Document Viewer</h3>
+                    <p class="text-[var(--color-text-muted)] mb-4">
+                        Access and view thousands of historical records with our advanced document viewer. Zoom, annotate, and save your findings as you research your ancestry.
+                    </p>
+                    <a href="#documents" class="text-[var(--color-primary)] font-medium flex items-center">
+                        View Documents <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="feature-card bg-white rounded-xl shadow-md p-6 transition-all duration-300 scroll-animate" style="transition-delay: 0.2s;">
+                    <div class="w-16 h-16 rounded-full bg-[var(--color-bg-light)] flex items-center justify-center mb-6">
+                        <i class="fas fa-search text-2xl text-[var(--color-primary)]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold font-heading mb-3">Advanced Search Engine</h3>
+                    <p class="text-[var(--color-text-muted)] mb-4">
+                        Find ancestors and documents with our powerful search tools. Use name, date, location, and keyword filters to pinpoint the records you need.
+                    </p>
+                    <a href="#search" class="text-[var(--color-primary)] font-medium flex items-center">
+                        Search Records <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Family Tree Section -->
+    <section id="tree" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold font-heading text-[var(--color-text-dark)] mb-4 scroll-animate">
+                    Interactive Family Tree
+                </h2>
+                <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto scroll-animate">
+                    Visualize your family connections and discover new relationships
+                </p>
+            </div>
+            
+            <div class="bg-[var(--color-bg-light)] rounded-2xl p-6 shadow-lg scroll-animate">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">Smith Family Tree</h3>
+                    <div class="flex space-x-3">
+                        <button class="px-4 py-2 bg-white border border-[var(--color-border)] rounded-lg text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Member
+                        </button>
+                        <button class="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm font-medium">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative h-96 overflow-hidden rounded-xl" style="background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80') center/cover;">
+                    <!-- Simplified family tree visualization -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="family-tree-node" style="top: 20%; left: 50%;">
+                            <div class="bg-white p-4 rounded-lg shadow-md">
+                                <p class="font-bold">John Smith</p>
+                                <p class="text-sm text-[var(--color-text-muted)]">1820-1890</p>
+                            </div>
+                        </div>
+                        
+                        <div class="family-tree-node" style="top: 40%; left: 30%;">
+                            <div class="bg-white p-4 rounded-lg shadow-md">
+                                <p class="font-bold">Sarah Johnson</p>
+                                <p class="text-sm text-[var(--color-text-muted)]">1830-1905</p>
+                            </div>
+                        </div>
+                        
+                        <div class="family-tree-node" style="top: 40%; left: 70%;">
+                            <div class="bg-white p-4 rounded-lg shadow-md">
+                                <p class="font-bold">Robert Davis</p>
+                                <p class="text-sm text-[var(--color-text-muted)]">1840-1915</p>
+                            </div>
+                        </div>
+                        
+                        <div class="family-tree-node" style="top: 60%; left: 50%;">
+                            <div class="bg-white p-4 rounded-lg shadow-md">
+                                <p class="font-bold">Michael Smith</p>
+                                <p class="text-sm text-[var(--color-text-muted)]">1865-1940</p>
+                            </div>
+                        </div>
+                        
+                        <div class="family-tree-connector" style="top: 30%; left: 45%; width: 10%; transform: rotate(45deg);"></div>
+                        <div class="family-tree-connector" style="top: 30%; left: 55%; width: 10%; transform: rotate(-45deg);"></div>
+                        <div class="family-tree-connector" style="top: 50%; left: 50%; height: 20%;"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-center">
+                    <button class="btn-primary px-6 py-2 rounded-lg font-medium">
+                        <i class="fas fa-plus mr-2"></i>Add More Family Members
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Document Viewer Section -->
+    <section id="documents" class="py-16 md:py-24 bg-[var(--color-bg-medium)]">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold font-heading text-[var(--color-text-dark)] mb-4 scroll-animate">
+                    Historical Document Viewer
+                </h2>
+                <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto scroll-animate">
+                    Access and analyze historical records with our advanced viewer
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div class="document-viewer h-96 flex items-center justify-center">
+                        <div class="document-page w-3/4 h-4/5 flex items-center justify-center">
+                            <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
+                                <div class="text-center">
+                                    <i class="fas fa-file-image text-5xl mb-4"></i>
+                                    <p class="text-lg">Historical Document Viewer</p>
+                                    <p class="text-sm mt-2">1900 United States Federal Census</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold">1900 United States Federal Census</h3>
+                            <p class="text-[var(--color-text-muted)]">Enumeration District: 123-456, Page: 123</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="w-10 h-10 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="w-10 h-10 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center">
+                                <i class="fas fa-rotate"></i>
+                            </button>
+                            <button class="w-10 h-10 rounded-full bg-white border border-[var(--color-border)] flex items-center justify-center">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 scroll-animate">
+                    <h3 class="text-xl font-bold font-heading mb-4">Document Details</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-[var(--color-text-muted)]">Record Type</p>
+                            <p class="font-medium">Census Record</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-[var(--color-text-muted)]">Date</p>
+                            <p class="font-medium">June 1, 1900</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-[var(--color-text-muted)]">Location</p>
+                            <p class="font-medium">New York, New York County, New York</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-[var(--color-text-muted)]">Ancestors Found</p>
+                            <div class="flex items-center mt-2">
+                                <div class="bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10" ></div>
+                                <div class="ml-3">
+                                    <p class="font-medium">John Smith</p>
+                                    <p class="text-sm text-[var(--color-text-muted)]">Age: 30, Occupation: Clerk</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-[var(--color-text-muted)]">Notes</p>
+                            <textarea class="w-full p-3 border border-[var(--color-border)] rounded-lg mt-2" rows="3" placeholder="Add your notes about this document..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-accent w-full mt-6 py-3 rounded-lg font-medium">
+                        Save to Research
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Section -->
+    <section id="search" class="py-16 md:py-24 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold font-heading text-[var(--color-text-dark)] mb-4 scroll-animate">
+                    Advanced Search Tools
+                </h2>
+                <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto scroll-animate">
+                    Find ancestors and documents with powerful search capabilities
+                </p>
+            </div>
+            
+            <div class="max-w-4xl mx-auto bg-[var(--color-bg-light)] rounded-2xl p-6 shadow-lg scroll-animate">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--color-text-muted)] mb-2">Name</label>
+                        <input type="text" class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent" placeholder="First or last name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--color-text-muted)] mb-2">Location</label>
+                        <input type="text" class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent" placeholder="City, county, or state">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--color-text-muted)] mb-2">Year Range</label>
+                        <input type="text" class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent" placeholder="e.g., 1850-1900">
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-[var(--color-text-muted)] mb-2">Keywords</label>
+                    <input type="text" class="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent" placeholder="Occupation, event, or other details">
+                </div>
+                
+                <div class="flex justify-end">
+                    <button class="btn-primary px-6 py-2 rounded-lg font-medium mr-3">
+                        Reset
+                    </button>
+                    <button class="btn-accent px-6 py-2 rounded-lg font-medium">
+                        <i class="fas fa-search mr-2"></i>Search Records
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-12">
+                <h3 class="text-xl font-bold font-heading mb-6">Recent Search Results</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Result 1 -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden scroll-animate">
+                        <div class="p-4 bg-[var(--color-primary)] text-white">
+                            <h4 class="font-bold">Johnathan Smith</h4>
+                            <p class="text-sm opacity-80">1850-1920</p>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-sm text-[var(--color-text-muted)] mb-3">Found in 3 records</p>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-map-marker-alt text-[var(--color-accent)] mr-2"></i>
+                                <span>New York, USA</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Result 2 -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden scroll-animate" style="transition-delay: 0.1s;">
+                        <div class="p-4 bg-[var(--color-primary)] text-white">
+                            <h4 class="font-bold">Mary Johnson</h4>
+                            <p class="text-sm opacity-80">1865-1945</p>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-sm text-[var(--color-text-muted)] mb-3">Found in 5 records</p>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-map-marker-alt text-[var(--color-accent)] mr-2"></i>
+                                <span>Illinois, USA</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Result 3 -->
+                    <div class="bg-white rounded-xl shadow-md overflow-hidden scroll-animate" style="transition-delay: 0.2s;">
+                        <div class="p-4 bg-[var(--color-primary)] text-white">
+                            <h4 class="font-bold">Robert Davis</h4>
+                            <p class="text-sm opacity-80">1880-1965</p>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-sm text-[var(--color-text-muted)] mb-3">Found in 2 records</p>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-map-marker-alt text-[var(--color-accent)] mr-2"></i>
+                                <span>California, USA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Timeline Section -->
+    <section id="timeline" class="py-16 md:py-24 bg-[var(--color-bg-medium)]">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold font-heading text-[var(--color-text-dark)] mb-4 scroll-animate">
+                    Family History Timeline
+                </h2>
+                <p class="text-lg text-[var(--color-text-muted)] max-w-2xl mx-auto scroll-animate">
+                    Visualize your family's journey through history
+                </p>
+            </div>
+            
+            <div class="relative max-w-4xl mx-auto">
+                <!-- Timeline line -->
+                <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-[var(--color-accent)]"></div>
+                
+                <!-- Timeline items -->
+                <div class="mb-12 relative scroll-animate">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 ml-12">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold">1850: First Generation</h3>
+                            <span class="text-sm text-[var(--color-accent)] bg-[var(--color-bg-light)] px-2 py-1 rounded">New York</span>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] mb-4">
+                            John Smith arrives in New York from Ireland. He establishes a small business and begins building his family.
+                        </p>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-file-alt text-[var(--color-primary)] mr-2"></i>
+                            <span>Found in 3 documents</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-12 relative scroll-animate" style="transition-delay: 0.1s;">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 ml-12">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold">1880: Second Generation</h3>
+                            <span class="text-sm text-[var(--color-accent)] bg-[var(--color-bg-light)] px-2 py-1 rounded">Chicago</span>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] mb-4">
+                            Mary Johnson moves to Chicago to work in the garment industry. She later marries Robert Davis in 1895.
+                        </p>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-file-alt text-[var(--color-primary)] mr-2"></i>
+                            <span>Found in 5 documents</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-12 relative scroll-animate" style="transition-delay: 0.2s;">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 ml-12">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold">1940: Third Generation</h3>
+                            <span class="text-sm text-[var(--color-accent)] bg-[var(--color-bg-light)] px-2 py-1 rounded">Los Angeles</span>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] mb-4">
+                            Michael Smith moves to California during the Great Migration. He works as an engineer and starts a family in Los Angeles.
+                        </p>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-file-alt text-[var(--color-primary)] mr-2"></i>
+                            <span>Found in 2 documents</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative scroll-animate" style="transition-delay: 0.3s;">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white rounded-xl shadow-md p-6 ml-12">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold">Present Day</h3>
+                            <span class="text-sm text-[var(--color-accent)] bg-[var(--color-bg-light)] px-2 py-1 rounded">Multiple Locations</span>
+                        </div>
+                        <p class="text-[var(--color-text-muted)] mb-4">
+                            The Smith family is spread across the country. Research continues to uncover more about our Irish and German heritage.
+                        </p>
+                        <div class="flex items-center text-sm">
+                            <i class="fas fa-file-alt text-[var(--color-primary)] mr-2"></i>
+                            <span>Research in progress</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 md:py-24 bg-[var(--color-primary)] text-[var(--color-text-light)]">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl sm:text-4xl font-bold font-heading mb-6 scroll-animate">
+                Start Your Family History Journey Today
+            </h2>
+            <p class="text-lg max-w-2xl mx-auto mb-8 scroll-animate">
+                Join thousands of researchers who are discovering their roots with Heritage Explorer
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4 scroll-animate">
+                <button class="btn-accent px-8 py-3 rounded-full font-medium text-lg">Create Free Account</button>
+                <button class="bg-white text-[var(--color-primary)] px-8 py-3 rounded-full font-medium text-lg">View Demo</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-bg-dark)] text-[var(--color-text-light)] py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold font-heading mb-4 flex items-center">
+                        <i class="fas fa-tree text-[var(--color-accent)] mr-2"></i>
+                        Heritage Explorer
+                    </h3>
+                    <p class="text-[var(--color-text-subtle)] mb-4">
+                        Discover your family's story with our powerful genealogy tools and resources.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Family Tree Builder</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Document Viewer</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Advanced Search</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Collaboration Tools</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Reporting & Export</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Research Guides</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Record Collections</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Learning Center</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Blog</a></li>
+                        <li><a href="#" class="text-[var(--color-text-subtle)] hover:text-[var(--color-accent)]">Support Center</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Contact Us</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope text-[var(--color-accent)] mt-1 mr-3"></i>
+                            <span class="text-[var(--color-text-subtle)]">support@heritageexplorer.com</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone text-[var(--color-accent)] mt-1 mr-3"></i>
+                            <span class="text-[var(--color-text-subtle)]">+1 (800) 123-4567</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt text-[var(--color-accent)] mt-1 mr-3"></i>
+                            <span class="text-[var(--color-text-subtle)]">123 Research Lane, Ancestry City, AC 12345</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-[var(--color-text-subtle)] mt-12 pt-8 text-center text-[var(--color-text-subtle)] text-sm">
+                <p>© 2023 Heritage Explorer. All rights reserved. | Privacy Policy | Terms of Service</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Navbar scroll effect
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('shadow-md', 'bg-white');
+                    navbar.classList.remove('shadow-sm');
+                } else {
+                    navbar.classList.remove('shadow-md', 'bg-white');
+                    navbar.classList.add('shadow-sm');
+                }
+            });
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Close mobile menu when a link is clicked
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.scroll-animate');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Search highlight simulation
+            const searchHighlight = document.querySelectorAll('.search-highlight');
+            searchHighlight.forEach(el => {
+                el.innerHTML = el.innerHTML.replace('Smith', '<span class="search-highlight">Smith</span>');
+            });
+        });
+    </script>
+</body>
+</html>

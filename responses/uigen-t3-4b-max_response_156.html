@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-primary: #7B74F7; /* A vibrant purple */
+            --color-primary-darker: #6D66E6;
+            --color-text-dark: #171517;
+            --color-text-medium: #6C6873;
+            --color-background-main: #FAFAFA;
+            --color-background-alt: #F3F2F7;
+            --color-border-light: #D1D5DB;
+            --color-success: #10B981;
+            --color-error: #EF4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background-main);
+            color: var(--color-text-dark);
+            line-height: 1.6;
+        }
+
+        .quiz-card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .quiz-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .progress-bar-fill {
+            transition: width 0.5s ease-out;
+        }
+
+        .feedback-icon {
+            transition: color 0.3s ease-in-out;
+        }
+
+        .feedback-icon.success {
+            color: var(--color-success);
+        }
+
+        .feedback-icon.error {
+            color: var(--color-error);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 text-[var(--color-text-dark)]">
+            Adaptive Knowledge Quiz
+        </h1>
+
+        <div id="quiz-container" class="quiz-card p-6 md:p-8">
+            <!-- Quiz questions will be dynamically loaded here -->
+        </div>
+
+        <div id="results" class="hidden mt-8 p-6 md:p-8 text-center">
+            <h2 class="text-2xl md:text-3xl font-bold text-[var(--color-text-dark)] mb-4">Quiz Results</h2>
+            <p class="text-lg text-[var(--color-text-medium)]" id="results-summary"></p>
+            <div class="flex items-center justify-center mt-4">
+                <span class="text-3xl font-bold text-[var(--color-success)]" id="correct-count"></span>
+                <span class="text-xl text-[var(--color-text-medium)] ml-2">Correct</span>
+            </div>
+            <div class="flex items-center justify-center mt-2">
+                <span class="text-3xl font-bold text-[var(--color-error)]" id="incorrect-count"></span>
+                <span class="text-xl text-[var(--color-text-medium)] ml-2">Incorrect</span>
+            </div>
+            <button id="restart-quiz" class="mt-6 px-6 py-3 bg-[var(--color-primary)] text-white rounded-full text-lg font-semibold hover:bg-[var(--color-primary-darker)] transition-colors">
+                Restart Quiz
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "What is the primary purpose of Tailwind CSS?",
+                options: ["A framework for building responsive websites by providing utility-first classes.", "A database management system.", "A programming language for web development.", "A tool for creating 3D models."],
+                answer: "A framework for building responsive websites by providing utility-first classes.",
+                level: "beginner"
+            },
+            {
+                question: "Which of the following is NOT a CSS property?",
+                options: ["margin", "font-size", "backgroundColor", "sqlType"],
+                answer: "sqlType",
+                level: "beginner"
+            },
+            {
+                question: "Which JavaScript function is used to declare a variable?",
+                options: ["var", "let", "const", "all of the above"],
+                answer: "all of the above",
+                level: "beginner"
+            },
+            {
+                question: "What does HTML stand for?",
+                options: ["HyperText Markup Language", "HyperText Transfer Protocol", "HyperText Markup Protocol", "HyperText Markup Language 2.0"],
+                answer: "HyperText Markup Language",
+                level: "intermediate"
+            },
+            {
+                question: "Which CSS property controls the spacing between text characters?",
+                options: ["text-indent", "line-height", "letter-spacing", "word-spacing"],
+                answer: "letter-spacing",
+                level: "intermediate"
+            },
+            {
+                question: "Which of the following is a valid JavaScript data type?",
+                options: ["array", "object", "string", "all of the above"],
+                answer: "all of the above",
+                level: "intermediate"
+            },
+            {
+                question: "What is the correct syntax for a JavaScript function?",
+                options: ["function myFunction() { ... }", "myFunction() { ... }", "function myFunction { ... }", "myFunction { ... }"],
+                answer: "function myFunction() { ... }",
+                level: "advanced"
+            },
+            {
+                question: "Which of the following is a modern CSS preprocessor?",
+                options: ["Sass", "Less", "Stylus", "All of the above"],
+                answer: "All of the above",
+                level: "advanced"
+            },
+            {
+                question: "What is the purpose of the 'flex' layout in CSS?",
+                options: ["To create a grid-based layout for elements.", "To arrange elements in a flexible, responsive manner, allowing them to grow or shrink.", "To create a multi-column layout for text.", "To position elements absolutely on the page."],
+                answer: "To arrange elements in a flexible, responsive manner, allowing them to grow or shrink.",
+                level: "advanced"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentLevel = "beginner"; // Will be dynamically determined
+
+        const quizContainer = document.getElementById('quiz-container');
+        const resultsContainer = document.getElementById('results');
+        const restartQuizButton = document.getElementById('restart-quiz');
+
+        const correctCountDisplay = document.getElementById('correct-count');
+        const incorrectCountDisplay = document.getElementById('incorrect-count');
+        const resultsSummaryDisplay = document.getElementById('results-summary');
+
+        function displayQuestion(questionData) {
+            quizContainer.innerHTML = ''; // Clear previous question
+
+            const qDiv = document.createElement('div');
+            qDiv.className = 'mb-6';
+            qDiv.innerHTML = `<p class="text-xl font-semibold text-[var(--color-text-dark)] mb-4">${questionData.question}</p>`;
+
+            questionData.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = `w-full px-4 py-3 rounded-lg text-lg font-medium transition-colors duration-200 ${index === 0 ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-darker)]' : 'bg-[var(--color-background-alt)] text-[var(--color-text-dark)] hover:bg-[var(--color-border-light)]'}`;
+                button.textContent = option;
+                button.addEventListener('click', () => checkAnswer(option, questionData));
+                qDiv.appendChild(button);
+            });
+
+            quizContainer.appendChild(qDiv);
+        }
+
+        function checkAnswer(selectedOption, questionData) {
+            const isCorrect = selectedOption === questionData.answer;
+            const feedbackIcon = document.createElement('i');
+            feedbackIcon.className = `feedback-icon text-3xl ${isCorrect ? 'success' : 'error'} mr-2`;
+
+
+            if (isCorrect) {
+                score++;
+                feedbackIcon.classList.remove('error');
+                feedbackIcon.classList.add('success');
+            } else {
+                feedbackIcon.classList.remove('success');
+                feedbackIcon.classList.add('error');
+            }
+
+            const feedbackText = document.createElement('p');
+            feedbackText.className = `mt-4 text-center ${isCorrect ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`;
+            if (isCorrect) {
+                feedbackText.textContent = "Correct! Great job!";
+            } else {
+                feedbackText.textContent = `Incorrect. The correct answer was: "${questionData.answer.replace(/"/g, '')}"`;
+            }
+
+            quizContainer.appendChild(feedbackIcon);
+            quizContainer.appendChild(feedbackText);
+
+            setTimeout(() => {
+                quizContainer.innerHTML = ''; // Clear the question and feedback
+                currentQuestionIndex++;
+                if (currentQuestionIndex < quizData.length) {
+                    determineNextLevel();
+                    displayQuestion(quizData[currentQuestionIndex]);
+                } else {
+                    showResults();
+                }
+            }, 1500); // Short delay before moving to next question
+        }
+
+        function determineNextLevel() {
+            // Simple logic for demonstration: if user answers correctly, increase level
+            // More complex logic would involve a knowledge score, past performance, etc.
+            if (score > 0) {
+                currentLevel = quizData[currentQuestionIndex].level;
+            }
+        }
+
+        function showResults() {
+            quizContainer.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+
+            correctCountDisplay.textContent = score;
+            incorrectCountDisplay.textContent = quizData.length - score;
+
+            if (score > 0) {
+                resultsSummaryDisplay.textContent = `You scored ${score} out of ${quizData.length}! Based on your performance, you're ready to move to the ${currentLevel} level.`;
+            } else {
+                resultsSummaryDisplay.textContent = `You scored 0 out of ${quizData.length}. It looks like you need more practice!`;
+            }
+        }
+
+        restartQuizButton.addEventListener('click', () => {
+            currentQuestionIndex = 0;
+            score = 0;
+            currentLevel = "beginner"; // Reset level
+            displayQuestion(quizData[currentQuestionIndex]);
+            resultsContainer.classList.add('hidden');
+            quizContainer.classList.remove('hidden');
+        });
+
+        // Initial load
+        displayQuestion(quizData[currentQuestionIndex]);
+    </script>
+</body>
+</html>

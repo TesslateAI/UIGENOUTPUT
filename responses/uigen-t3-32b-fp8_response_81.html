@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --color-primary-val: 28 129 240; /* Google Blue */
+            --color-primary-dark-val: 22 111 220;
+            --color-background-main-val: 242 243 244; /* Light Gray */
+            --color-background-card-val: 255 255 255;
+            --color-text-dark-val: 26 26 26;
+            --color-text-light-val: 242 243 244;
+            --color-text-muted-val: 140 140 140;
+            --color-border-light-val: 230 230 230;
+            --font-family-sans: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family-sans);
+            background-color: rgb(var(--color-background-main-val));
+            color: rgb(var(--color-text-dark-val));
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .bg-primary { background-color: rgb(var(--color-primary-val)); }
+        .text-primary { color: rgb(var(--color-primary-val)); }
+        .border-primary { border-color: rgb(var(--color-primary-val)); }
+        .hover\:bg-primary-dark:hover { background-color: rgb(var(--color-primary-dark-val)); }
+
+        .bg-card { background-color: rgb(var(--color-background-card-val)); }
+        .text-muted { color: rgb(var(--color-text-muted-val)); }
+        .border-light { border-color: rgb(var(--color-border-light-val)); }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgb(var(--color-background-main-val));
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgb(var(--color-border-light-val));
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgb(var(--color-text-muted-val));
+        }
+
+        /* Sidebar collapse/expand animation */
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(0);
+        }
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+        @media (min-width: 768px) {
+            .sidebar {
+                transform: translateX(0); /* Always visible on desktop */
+            }
+            .sidebar.collapsed {
+                transform: translateX(0); /* Keep visible on desktop */
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 w-64 bg-card border-r border-light z-20 md:relative md:translate-x-0">
+        <div class="p-4 flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-primary">Drive</h1>
+            <button id="sidebar-toggle" class="md:hidden p-2 rounded-full hover:bg-gray-100 text-primary focus:outline-none">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <nav class="px-4 py-2">
+            <ul>
+                <li class="mb-2">
+                    <a href="#" class="flex items-center p-2 rounded-lg text-primary bg-blue-100 hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-home w-5 h-5 mr-3"></i> My Drive
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="#" class="flex items-center p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-star w-5 h-5 mr-3"></i> Starred
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="#" class="flex items-center p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-clock-rotate-left w-5 h-5 mr-3"></i> Recent
+                    </a>
+                </li>
+                <li class="mb-2">
+                    <a href="#" class="flex items-center p-2 rounded-lg text-muted hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-trash-alt w-5 h-5 mr-3"></i> Trash
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="px-4 py-2 border-t border-light mt-4">
+            <h3 class="text-sm font-semibold text-muted uppercase mb-2">Folders</h3>
+            <ul id="folder-list" class="space-y-1">
+                <!-- Folders will be dynamically loaded here -->
+            </ul>
+        </div>
+
+        <div class="p-4 border-t border-light mt-4">
+            <button class="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center">
+                <i class="fas fa-plus mr-2"></i> New
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col bg-background-main-val">
+        <!-- Top Bar -->
+        <header class="flex items-center justify-between p-4 bg-card border-b border-light">
+            <div class="flex items-center space-x-4">
+                <button id="mobile-sidebar-toggle" class="md:hidden p-2 rounded-full hover:bg-gray-100 text-primary focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 id="current-path" class="text-lg font-semibold text-primary">My Drive</h2>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button class="p-2 rounded-full hover:bg-gray-100 text-muted focus:outline-none">
+                    <i class="fas fa-search text-lg"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100 text-muted focus:outline-none">
+                    <i class="fas fa-filter text-lg"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100 text-muted focus:outline-none">
+                    <i class="fas fa-ellipsis-h text-lg"></i>
+                </button>
+                <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold text-gray-700">JD</div>
+            </div>
+        </header>
+
+        <!-- File List and Preview -->
+        <main class="flex-1 p-6 overflow-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- File List -->
+                <div class="md:col-span-2 bg-card rounded-lg shadow-sm border border-light p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Files</h3>
+                        <div class="flex space-x-2">
+                            <button class="p-2 rounded-full hover:bg-gray-100 text-muted focus:outline-none">
+                                <i class="fas fa-upload text-lg"></i>
+                            </button>
+                            <button class="p-2 rounded-full hover:bg-gray-100 text-muted focus:outline-none">
+                                <i class="fas fa-plus text-lg"></i>
+                            </button>
+                            <button class="p-2 rounded-full hover:bg-gray-100 text-muted focus:outline-none">
+                                <i class="fas fa-download text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="file-list" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <!-- File items will be dynamically loaded here -->
+                    </div>
+                </div>
+
+                <!-- File Preview -->
+                <div class="md:col-span-1 bg-card rounded-lg shadow-sm border border-light p-4 flex flex-col items-center justify-center text-muted">
+                    <i class="fas fa-file-alt text-5xl mb-4"></i>
+                    <p class="text-lg">Select a file to preview</p>
+                    <div id="file-preview-area" class="mt-6 w-full max-h-80 overflow-auto hidden">
+                        <!-- Preview content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const folderList = document.getElementById('folder-list');
+        const fileList = document.getElementById('file-list');
+        const filePreviewArea = document.getElementById('file-preview-area');
+        const currentPathDisplay = document.getElementById('current-path');
+
+        let currentFolder = 'My Drive';
+        let allFiles = [
+            { id: 'f1', name: 'Document 1.docx', type: 'document', icon: 'fas fa-file-word', previewUrl: 'https://placehold.co/600x400/cccccc/888888?text=Document+Preview' },
+            { id: 'f2', name: 'Image 1.jpg', type: 'image', icon: 'fas fa-file-image', previewUrl: 'https://placehold.co/600x400/cccccc/888888?text=Image+Preview' },
+            { id: 'f3', name: 'Spreadsheet 1.xlsx', type: 'spreadsheet', icon: 'fas fa-file-excel', previewUrl: 'https://placehold.co/600x400/cccccc/888888?text=Spreadsheet+Preview' },
+            { id: 'f4', name: 'Presentation 1.pptx', type: 'presentation', icon: 'fas fa-file-powerpoint', previewUrl: 'https://placehold.co/600x400/cccccc/888888?text=Presentation+Preview' },
+            { id: 'f5', name: 'PDF File.pdf', type: 'pdf', icon: 'fas fa-file-pdf', previewUrl: 'https://placehold.co/600x400/cccccc/888888?text=PDF+Preview' },
+            { id: 'f6', name: 'Text File.txt', type: 'text', icon: 'fas fa-file-alt', previewUrl: 'https://placehold.co/600x400/cccccc/888888?text=Text+File+Preview' },
+        ];
+
+        let allFolders = [
+            { id: 'folder1', name: 'Work Projects', children: ['f1', 'f2', 'folder2'] },
+            { id: 'folder2', name: 'Personal Photos', children: ['f3'] },
+            { id: 'folder3', name: 'Documents', children: ['f4', 'f5'] },
+            { id: 'folder4', name: 'Shared with me', children: ['f6'] },
+        ];
+
+        function renderFolders() {
+            folderList.innerHTML = '';
+            const currentFolderData = allFolders.find(f => f.name === currentFolder);
+            if (currentFolderData) {
+                currentFolderData.children.forEach(childId => {
+                    const child = allFiles.find(f => f.id === childId) || allFolders.find(f => f.id === childId);
+                    if (child) {
+                        const li = document.createElement('li');
+                        li.className = 'p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors';
+                        li.innerHTML = `
+                            <div class="flex items-center space-x-2">
+                                <i class="${child.type === 'folder' ? 'fas fa-folder' : child.icon} text-lg text-primary"></i>
+                                <span class="text-sm">${child.name}</span>
+                            </div>
+                        `;
+                        li.addEventListener('click', () => {
+                            if (child.type === 'folder') {
+                                currentFolder = child.name;
+                                updateContent();
+                            } else {
+                                showFilePreview(child);
+                            }
+                        });
+                        folderList.appendChild(li);
+                    }
+                });
+            }
+        }
+
+        function renderFiles() {
+            fileList.innerHTML = '';
+            const currentFolderData = allFolders.find(f => f.name === currentFolder);
+            if (currentFolderData) {
+                currentFolderData.children.forEach(childId => {
+                    const file = allFiles.find(f => f.id === childId);
+                    if (file) {
+                        const div = document.createElement('div');
+                        div.className = 'file-item bg-white rounded-lg shadow-sm border border-light p-3 flex items-center space-x-3 cursor-pointer hover:bg-gray-50 transition-colors relative group';
+                        div.innerHTML = `
+                            <div class="flex-shrink-0 w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-600">
+                                <i class="${file.icon} text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium truncate">${file.name}</p>
+                                <p class="text-xs text-muted">1.2 MB</p>
+                            </div>
+                            <div class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center text-muted opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button class="text-primary hover:text-primary-dark text-sm p-1 rounded" onclick="renameFile('${file.id}')"><i class="fas fa-edit"></i></button>
+                                <button class="text-red-500 hover:text-red-700 text-sm p-1 rounded" onclick="deleteFile('${file.id}')"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        `;
+                        div.addEventListener('click', () => showFilePreview(file));
+                        fileList.appendChild(div);
+                    }
+                });
+            }
+        }
+
+        function showFilePreview(file) {
+            filePreviewArea.innerHTML = '';
+            if (file.type === 'image') {
+                const img = document.createElement('img');
+                img.src = file.previewUrl;
+                img.alt = file.name;
+                img.className = 'w-full h-auto max-h-80 object-contain';
+                filePreviewArea.appendChild(img);
+            } else if (file.type === 'document' || file.type === 'spreadsheet' || file.type === 'presentation' || file.type === 'pdf') {
+                const iframe = document.createElement('iframe');
+                iframe.src = file.previewUrl;
+                iframe.className = 'w-full h-full border-none';
+                iframe.style.maxHeight = '400px'; // Limit iframe height
+                filePreviewArea.appendChild(iframe);
+            } else {
+                const p = document.createElement('p');
+                p.className = 'text-center text-sm';
+                p.textContent = `Preview not available for ${file.name}`;
+                filePreviewArea.appendChild(p);
+            }
+            filePreviewArea.classList.remove('hidden');
+            // Scroll to the top of the preview area if it's in a scrollable container
+            filePreviewArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function updateContent() {
+            renderFolders();
+            renderFiles();
+            currentPathDisplay.textContent = currentFolder;
+            filePreviewArea.classList.add('hidden'); // Hide preview when changing folders
+        }
+
+        function renameFile(fileId) {
+            const file = allFiles.find(f => f.id === fileId);
+            if (file) {
+                const newName = prompt('Enter new name:', file.name);
+                if (newName && newName !== file.name) {
+                    file.name = newName;
+                    updateContent(); // Re-render to reflect changes
+                }
+            }
+        }
+
+        function deleteFile(fileId) {
+            if (confirm('Are you sure you want to delete this file?')) {
+                allFiles = allFiles.filter(f => f.id !== fileId);
+                updateContent(); // Re-render to reflect changes
+            }
+        }
+
+        // Sidebar toggle for mobile
+        mobileSidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        // Initial load
+        updateContent();
+    </script>
+</body>
+</html>

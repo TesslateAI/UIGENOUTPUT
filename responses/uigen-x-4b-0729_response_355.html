@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnHub - Modern Learning Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f5f9ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            scroll-behavior: smooth;
+        }
+        
+        .header-scrolled {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .video-container {
+            position: relative;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .lesson-item.active {
+            background-color: #e0f2fe;
+            border-left: 4px solid #0ea5e9;
+        }
+        
+        .discussion-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #0ea5e9;
+            border-radius: 3px;
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .tab-button {
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+        
+        .tab-button::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #0ea5e9;
+            transition: width 0.3s ease;
+        }
+        
+        .tab-button.active::after {
+            width: 100%;
+        }
+        
+        .tab-button:hover:not(.active)::after {
+            width: 100%;
+        }
+        
+        .module-card {
+            transition: all 0.3s ease;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4">
+        <div class="container mx-auto px-4 md:px-8 flex justify-between items-center max-w-screen-xl">
+            <a href="#" class="text-2xl font-bold text-primary-800 flex items-center">
+                <i class="fas fa-graduation-cap text-primary-600 mr-2"></i>
+                LearnHub
+            </a>
+            <nav class="hidden md:flex space-x-8 items-center">
+                <a href="#" class="text-dark-600 hover:text-primary-600 font-medium">Dashboard</a>
+                <a href="#" class="text-dark-600 hover:text-primary-600 font-medium">Courses</a>
+                <a href="#" class="text-dark-600 hover:text-primary-600 font-medium">Resources</a>
+                <a href="#" class="text-dark-600 hover:text-primary-600 font-medium">Community</a>
+                <a href="#" class="bg-primary-600 hover:bg-primary-700 text-white px-5 py-2 rounded-lg font-medium transition-colors">
+                    My Account
+                </a>
+            </nav>
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-dark-800 focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute top-full left-0 right-0">
+            <div class="container mx-auto px-4 py-4">
+                <a href="#" class="block py-3 text-dark-600 hover:text-primary-600 font-medium">Dashboard</a>
+                <a href="#" class="block py-3 text-dark-600 hover:text-primary-600 font-medium">Courses</a>
+                <a href="#" class="block py-3 text-dark-600 hover:text-primary-600 font-medium">Resources</a>
+                <a href="#" class="block py-3 text-dark-600 hover:text-primary-600 font-medium">Community</a>
+                <a href="#" class="block py-3 text-center bg-primary-600 hover:bg-primary-700 text-white px-5 py-2 rounded-lg font-medium transition-colors mt-2">
+                    My Account
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-20">
+        <!-- Course Header -->
+        <section class="py-12 bg-gradient-to-r from-primary-50 to-indigo-50">
+            <div class="container mx-auto px-4 md:px-8 max-w-screen-xl">
+                <div class="flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 mb-8 md:mb-0 animate-on-scroll">
+                        <div class="inline-block bg-primary-100 text-primary-800 px-4 py-1 rounded-full text-sm font-medium mb-4">
+                            Web Development Bootcamp
+                        </div>
+                        <h1 class="text-4xl md:text-5xl font-bold text-dark-900 mb-4">Master Modern JavaScript with Projects</h1>
+                        <p class="text-dark-600 mb-6 text-lg">
+                            Learn to build real-world applications with JavaScript, HTML, and CSS. This comprehensive course covers everything from fundamentals to advanced concepts with practical projects.
+                        </p>
+                        <div class="flex items-center mb-6">
+                            <div class="flex items-center mr-6">
+                                <i class="fas fa-clock text-dark-500 mr-2"></i>
+                                <span class="text-dark-600">12 hours</span>
+                            </div>
+                            <div class="flex items-center mr-6">
+                                <i class="fas fa-book text-dark-500 mr-2"></i>
+                                <span class="text-dark-600">24 lessons</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-user-graduate text-dark-500 mr-2"></i>
+                                <span class="text-dark-600">3,450 students</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="flex -space-x-2 mr-4">
+                                <img class="w-10 h-10 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Instructor">
+                                <img class="w-10 h-10 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Instructor">
+                                <img class="w-10 h-10 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/68.jpg" alt="Instructor">
+                            </div>
+                            <div>
+                                <p class="font-medium text-dark-900">Instructor: Sarah Johnson</p>
+                                <p class="text-sm text-dark-500">Senior Frontend Developer</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2 flex justify-center animate-on-scroll" style="transition-delay: 0.2s;">
+                        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-dark-900">Course Progress</h3>
+                                <span class="bg-primary-100 text-primary-800 text-sm px-2 py-1 rounded">45% Complete</span>
+                            </div>
+                            <div class="progress-bar mb-4">
+                                <div class="progress-fill" style="width: 45%"></div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 mb-6">
+                                <div class="text-center p-3 bg-primary-50 rounded-lg">
+                                    <p class="text-2xl font-bold text-primary-700">8</p>
+                                    <p class="text-sm text-dark-600">Lessons</p>
+                                </div>
+                                <div class="text-center p-3 bg-primary-50 rounded-lg">
+                                    <p class="text-2xl font-bold text-primary-700">3</p>
+                                    <p class="text-sm text-dark-600">Projects</p>
+                                </div>
+                                <div class="text-center p-3 bg-primary-50 rounded-lg">
+                                    <p class="text-2xl font-bold text-primary-700">1</p>
+                                    <p class="text-sm text-dark-600">Quizzes</p>
+                                </div>
+                            </div>
+                            <button class="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-medium transition-colors">
+                                Continue Learning
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <section class="py-12">
+            <div class="container mx-auto px-4 md:px-8 max-w-screen-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Video Player & Lesson List -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <!-- Video Player -->
+                            <div class="video-container">
+                                <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                            
+                            <!-- Video Info -->
+                            <div class="p-6">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h2 class="text-2xl font-bold text-dark-900">Introduction to JavaScript Fundamentals</h2>
+                                        <p class="text-dark-500">Lesson 1 of 24</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center hover:bg-primary-100">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button class="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center hover:bg-primary-100">
+                                            <i class="fas fa-share-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center text-dark-500 text-sm mb-6">
+                                    <span>Duration: 24:15</span>
+                                    <span class="mx-2">•</span>
+                                    <span>Published: Jan 12, 2023</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-dark-900">Sarah Johnson</p>
+                                        <p class="text-sm text-dark-500">Senior Frontend Developer at TechCorp</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <button class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                            Mark Complete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lesson List -->
+                        <div class="mt-8 bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <div class="p-6 border-b border-gray-200">
+                                <h3 class="text-xl font-bold text-dark-900">Course Modules</h3>
+                            </div>
+                            
+                            <div class="divide-y divide-gray-100">
+                                <!-- Module 1 -->
+                                <div class="p-6">
+                                    <h4 class="font-bold text-lg text-dark-800 mb-3">Module 1: JavaScript Fundamentals</h4>
+                                    <div class="space-y-2">
+                                        <div class="lesson-item active flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-primary-600 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Introduction to JavaScript</p>
+                                                <p class="text-sm text-dark-500">Lesson 1</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">24:15</div>
+                                        </div>
+                                        
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Variables and Data Types</p>
+                                                <p class="text-sm text-dark-500">Lesson 2</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">18:42</div>
+                                        </div>
+                                        
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Operators and Expressions</p>
+                                                <p class="text-sm text-dark-500">Lesson 3</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">22:30</div>
+                                        </div>
+                                        
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Control Structures</p>
+                                                <p class="text-sm text-dark-500">Lesson 4</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">28:10</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Module 2 -->
+                                <div class="p-6">
+                                    <h4 class="font-bold text-lg text-dark-800 mb-3">Module 2: DOM Manipulation</h4>
+                                    <div class="space-y-2">
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Selecting DOM Elements</p>
+                                                <p class="text-sm text-dark-500">Lesson 5</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">19:25</div>
+                                        </div>
+                                        
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Modifying Elements</p>
+                                                <p class="text-sm text-dark-500">Lesson 6</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">25:15</div>
+                                        </div>
+                                        
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Event Handling</p>
+                                                <p class="text-sm text-dark-500">Lesson 7</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">32:40</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Module 3 -->
+                                <div class="p-6">
+                                    <h4 class="font-bold text-lg text-dark-800 mb-3">Module 3: Advanced Concepts</h4>
+                                    <div class="space-y-2">
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Functions and Scope</p>
+                                                <p class="text-sm text-dark-500">Lesson 8</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">26:10</div>
+                                        </div>
+                                        
+                                        <div class="lesson-item flex items-center p-3 rounded-lg cursor-pointer">
+                                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-play text-gray-400 text-xs"></i>
+                                            </div>
+                                            <div class="flex-1">
+                                                <p class="font-medium text-dark-900">Arrays and Objects</p>
+                                                <p class="text-sm text-dark-500">Lesson 9</p>
+                                            </div>
+                                            <div class="text-dark-500 text-sm">30:20</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Discussion & Resources -->
+                    <div class="lg:col-span-1">
+                        <!-- Discussion Section -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                            <div class="p-6 border-b border-gray-200">
+                                <h3 class="text-xl font-bold text-dark-900">Discussion Forum</h3>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div class="flex items-center mb-6">
+                                    <div class="relative">
+                                        <input type="text" placeholder="Join the discussion..." class="w-full p-3 pr-12 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                        <button class="absolute right-3 top-3 text-gray-400 hover:text-primary-600">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-6">
+                                    <!-- Discussion Thread -->
+                                    <div class="discussion-card bg-gray-50 rounded-xl p-5 transition-all">
+                                        <div class="flex items-start">
+                                            <img class="w-10 h-10 rounded-full mr-4" src="https://randomuser.me/api/portraits/men/32.jpg" alt="User">
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <h4 class="font-bold text-dark-900">Michael Chen</h4>
+                                                    <span class="text-sm text-dark-500">2 hours ago</span>
+                                                </div>
+                                                <p class="mt-2 text-dark-700">
+                                                    Hi team, I'm having trouble understanding closures in JavaScript. Any tips on how to wrap my head around this concept?
+                                                </p>
+                                                <div class="flex mt-4 space-x-4">
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-reply mr-1"></i> Reply
+                                                    </button>
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-thumbs-up mr-1"></i> Like
+                                                    </button>
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-share mr-1"></i> Share
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Discussion Thread -->
+                                    <div class="discussion-card bg-gray-50 rounded-xl p-5 transition-all">
+                                        <div class="flex items-start">
+                                            <img class="w-10 h-10 rounded-full mr-4" src="https://randomuser.me/api/portraits/women/44.jpg" alt="User">
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <h4 class="font-bold text-dark-900">Sarah Johnson</h4>
+                                                    <span class="text-sm text-dark-500">1 hour ago</span>
+                                                </div>
+                                                <p class="mt-2 text-dark-700">
+                                                    Hi Michael! I recommend starting with simple examples of closures in action. The key is understanding that a closure is a function that "closes over" its lexical scope even when executed outside that scope.
+                                                </p>
+                                                <div class="flex mt-4 space-x-4">
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-reply mr-1"></i> Reply
+                                                    </button>
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-thumbs-up mr-1"></i> Like
+                                                    </button>
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-share mr-1"></i> Share
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Discussion Thread -->
+                                    <div class="discussion-card bg-gray-50 rounded-xl p-5 transition-all">
+                                        <div class="flex items-start">
+                                            <img class="w-10 h-10 rounded-full mr-4" src="https://randomuser.me/api/portraits/men/22.jpg" alt="User">
+                                            <div class="flex-1">
+                                                <div class="flex justify-between">
+                                                    <h4 class="font-bold text-dark-900">David Kim</h4>
+                                                    <span class="text-sm text-dark-500">45 minutes ago</span>
+                                                </div>
+                                                <p class="mt-2 text-dark-700">
+                                                    I found this resource that explains closures with real-world examples: closures.io. It's helped me understand better!
+                                                </p>
+                                                <div class="flex mt-4 space-x-4">
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-reply mr-1"></i> Reply
+                                                    </button>
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-thumbs-up mr-1"></i> Like
+                                                    </button>
+                                                    <button class="flex items-center text-dark-500 hover:text-primary-600">
+                                                        <i class="fas fa-share mr-1"></i> Share
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-6 text-center">
+                                    <button class="text-primary-600 hover:text-primary-800 font-medium flex items-center justify-center w-full py-2 rounded-lg hover:bg-primary-50">
+                                        <span>View All Discussions</span>
+                                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Resources -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <div class="p-6 border-b border-gray-200">
+                                <h3 class="text-xl font-bold text-dark-900">Course Resources</h3>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <a href="#" class="module-card bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mr-4">
+                                                <i class="fas fa-file-code text-primary-600 text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Lesson Slides</h4>
+                                                <p class="text-sm text-dark-500">PDF • 2.4 MB</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="module-card bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mr-4">
+                                                <i class="fas fa-file-alt text-primary-600 text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Code Examples</h4>
+                                                <p class="text-sm text-dark-500">ZIP • 5.7 MB</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="module-card bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mr-4">
+                                                <i class="fas fa-video text-primary-600 text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">Video Tutorials</h4>
+                                                <p class="text-sm text-dark-500">MP4 • 128 MB</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="#" class="module-card bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                                        <div class="flex items-center">
+                                            <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mr-4">
+                                                <i class="fas fa-link text-primary-600 text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-bold text-dark-900">External Resources</h4>
+                                                <p class="text-sm text-dark-500">Web Link</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                
+                                <div class="mt-6">
+                                    <button class="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-medium transition-colors">
+                                        Download All Resources
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Related Courses -->
+        <section class="py-16 bg-gray-50">
+            <div class="container mx-auto px-4 md:px-8 max-w-screen-xl">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-dark-900 mb-4">More Courses You Might Like</h2>
+                    <p class="text-dark-600 max-w-2xl mx-auto">Explore our collection of popular courses to enhance your skills and knowledge</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Course Card 1 -->
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02]">
+                        <div class="h-48 bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
+                            <i class="fas fa-react text-white text-5xl"></i>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">React</span>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 font-medium">4.9</span>
+                                </div>
+                            </div>
+                            <h3 class="text-xl font-bold text-dark-900 mb-2">Mastering React with Hooks</h3>
+                            <p class="text-dark-600 text-sm mb-4">Learn to build modern React applications with hooks, context, and advanced patterns.</p>
+                            <div class="flex items-center text-dark-500 text-sm">
+                                <i class="fas fa-clock mr-2"></i>
+                                <span>18 hours</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Course Card 2 -->
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02]">
+                        <div class="h-48 bg-gradient-to-r from-green-500 to-teal-600 flex items-center justify-center">
+                            <i class="fas fa-node-js text-white text-5xl"></i>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Node.js</span>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 font-medium">4.8</span>
+                                </div>
+                            </div>
+                            <h3 class="text-xl font-bold text-dark-900 mb-2">Node.js Backend Development</h3>
+                            <p class="text-dark-600 text-sm mb-4">Build scalable backend services with Node.js, Express, and MongoDB.</p>
+                            <div class="flex items-center text-dark-500 text-sm">
+                                <i class="fas fa-clock mr-2"></i>
+                                <span>24 hours</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Course Card 3 -->
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02]">
+                        <div class="h-48 bg-gradient-to-r from-blue-500 to-cyan-600 flex items-center justify-center">
+                            <i class="fas fa-database text-white text-5xl"></i>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Database</span>
+                                <div class="flex items-center text-yellow-400">
+                                    <i class="fas fa-star"></i>
+                                    <span class="ml-1 font-medium">4.7</span>
+                                </div>
+                            </div>
+                            <h3 class="text-xl font-bold text-dark-900 mb-2">SQL and NoSQL Databases</h3>
+                            <p class="text-dark-600 text-sm mb-4">Master both relational and non-relational databases for modern applications.</p>
+                            <div class="flex items-center text-dark-500 text-sm">
+                                <i class="fas fa-clock mr-2"></i>
+                                <span>15 hours</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark-900 text-white pt-16 pb-8">
+        <div class="container mx-auto px-4 md:px-8 max-w-screen-xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <a href="#" class="text-2xl font-bold text-white flex items-center mb-4">
+                        <i class="fas fa-graduation-cap text-primary-400 mr-2"></i>
+                        LearnHub
+                    </a>
+                    <p class="text-dark-300 mb-4">Empowering learners worldwide with high-quality courses and expert instructors.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-dark-300 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-dark-300 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-dark-300 hover:text-white">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" class="text-dark-300 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h5 class="text-lg font-semibold mb-4">Explore</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-dark-300 hover:text-white">All Courses</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Instructors</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Become an Instructor</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Success Stories</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 class="text-lg font-semibold mb-4">Support</h5>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-dark-300 hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">FAQ</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#" class="text-dark-300 hover:text-white">Terms of Service</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h5 class="text-lg font-semibold mb-4">Subscribe</h5>
+                    <p class="text-dark-300 mb-4">Get the latest course updates and learning resources.</p>
+                    <div class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full text-dark-900 focus:outline-none">
+                        <button class="bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-dark-700 text-center text-dark-400">
+                <p>© 2023 LearnHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Header scroll effect
+            const header = document.getElementById('header');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    header.classList.add('header-scrolled');
+                } else {
+                    header.classList.remove('header-scrolled');
+                }
+            });
+            
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+            
+            // Lesson selection
+            const lessonItems = document.querySelectorAll('.lesson-item');
+            lessonItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    lessonItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                });
+            });
+            
+            // Animation on scroll
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animatedElements.forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

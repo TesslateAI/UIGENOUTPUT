@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        warning: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        
+        .dashboard-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .status-pending {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .plan-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .plan-card:hover {
+            border-color: #0ea5e9;
+        }
+        
+        .plan-card.featured {
+            border: 2px solid #0ea5e9;
+            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.1), 0 4px 6px -2px rgba(14, 165, 233, 0.05);
+        }
+        
+        .payment-method-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .payment-method-card:hover {
+            border-color: #0ea5e9;
+        }
+        
+        .payment-method-card.selected {
+            border-color: #0ea5e9;
+            background-color: #f0f9ff;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            background-color: #0ea5e9;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar fixed lg:relative w-64 bg-white border-r border-gray-200 h-full z-20">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center">
+                    <div class="bg-primary-500 text-white p-2 rounded-lg">
+                        <i class="fas fa-credit-card text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold ml-3 text-primary-800">SubManager</h1>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <nav>
+                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-lg font-medium">
+                        <i class="fas fa-home mr-3"></i>
+                        Dashboard
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg mt-1">
+                        <i class="fas fa-box mr-3"></i>
+                        Subscriptions
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg mt-1">
+                        <i class="fas fa-credit-card mr-3"></i>
+                        Payment Methods
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg mt-1">
+                        <i class="fas fa-file-invoice mr-3"></i>
+                        Billing History
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg mt-1">
+                        <i class="fas fa-cog mr-3"></i>
+                        Settings
+                    </a>
+                </nav>
+                
+                <div class="mt-8">
+                    <h3 class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Plans</h3>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg mt-1">
+                        <i class="fas fa-briefcase mr-3"></i>
+                        Business Plan
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg mt-1">
+                        <i class="fas fa-rocket mr-3"></i>
+                        Pro Plan
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Navigation -->
+            <header class="bg-white border-b border-gray-200">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <div class="flex items-center">
+                        <button id="menu-toggle" class="lg:hidden mr-4 text-gray-500">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-bell text-xl"></i>
+                            </button>
+                            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold">JD</div>
+                            <span class="ml-2 text-gray-700 font-medium hidden md:block">John Doe</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Dashboard Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="dashboard-card bg-white rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-primary-100 text-primary-600">
+                                <i class="fas fa-box text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-gray-500">Active Subscriptions</p>
+                                <p class="text-2xl font-bold text-gray-800">12</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card bg-white rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-green-100 text-green-600">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-gray-500">Payment Success</p>
+                                <p class="text-2xl font-bold text-gray-800">98%</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card bg-white rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-amber-100 text-amber-600">
+                                <i class="fas fa-clock text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-gray-500">Pending Renewals</p>
+                                <p class="text-2xl font-bold text-gray-800">3</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card bg-white rounded-xl p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-purple-100 text-purple-600">
+                                <i class="fas fa-dollar-sign text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-gray-500">Monthly Cost</p>
+                                <p class="text-2xl font-bold text-gray-800">$249.99</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subscription Plans -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800">Your Subscriptions</h3>
+                                <button class="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition">
+                                    <i class="fas fa-plus mr-2"></i> Add Subscription
+                                </button>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="text-left text-gray-500 text-sm border-b">
+                                            <th class="pb-3 font-medium">Plan</th>
+                                            <th class="pb-3 font-medium">Status</th>
+                                            <th class="pb-3 font-medium">Price</th>
+                                            <th class="pb-3 font-medium">Next Billing</th>
+                                            <th class="pb-3 font-medium">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y">
+                                        <tr>
+                                            <td class="py-4">
+                                                <div class="flex items-center">
+                                                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                                                        <i class="fas fa-briefcase"></i>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <p class="font-medium text-gray-800">Business Plan</p>
+                                                        <p class="text-sm text-gray-500">Premium features</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4">
+                                                <span class="status-badge status-active">Active</span>
+                                            </td>
+                                            <td class="py-4 font-medium">$199.99/mo</td>
+                                            <td class="py-4 text-gray-600">Jun 15, 2023</td>
+                                            <td class="py-4">
+                                                <div class="flex space-x-2">
+                                                    <button class="p-2 text-gray-500 hover:text-primary-600">
+                                                        <i class="fas fa-pen"></i>
+                                                    </button>
+                                                    <button class="p-2 text-gray-500 hover:text-danger-600">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr>
+                                            <td class="py-4">
+                                                <div class="flex items-center">
+                                                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
+                                                        <i class="fas fa-rocket"></i>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <p class="font-medium text-gray-800">Pro Plan</p>
+                                                        <p class="text-sm text-gray-500">Advanced features</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4">
+                                                <span class="status-badge status-pending">Pending</span>
+                                            </td>
+                                            <td class="py-4 font-medium">$49.99/mo</td>
+                                            <td class="py-4 text-gray-600">Jun 20, 2023</td>
+                                            <td class="py-4">
+                                                <div class="flex space-x-2">
+                                                    <button class="p-2 text-gray-500 hover:text-primary-600">
+                                                        <i class="fas fa-pen"></i>
+                                                    </button>
+                                                    <button class="p-2 text-gray-500 hover:text-danger-600">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr>
+                                            <td class="py-4">
+                                                <div class="flex items-center">
+                                                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
+                                                        <i class="fas fa-cloud"></i>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <p class="font-medium text-gray-800">Storage Plus</p>
+                                                        <p class="text-sm text-gray-500">1TB Cloud Storage</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4">
+                                                <span class="status-badge status-active">Active</span>
+                                            </td>
+                                            <td class="py-4 font-medium">$24.99/mo</td>
+                                            <td class="py-4 text-gray-600">Jun 10, 2023</td>
+                                            <td class="py-4">
+                                                <div class="flex space-x-2">
+                                                    <button class="p-2 text-gray-500 hover:text-primary-600">
+                                                        <i class="fas fa-pen"></i>
+                                                    </button>
+                                                    <button class="p-2 text-gray-500 hover:text-danger-600">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Methods -->
+                    <div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800">Payment Methods</h3>
+                                <button class="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition">
+                                    <i class="fas fa-plus mr-2"></i> Add Payment
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="payment-method-card p-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                                            <i class="fab fa-cc-visa text-xl"></i>
+                                        </div>
+                                        <div class="ml-3 flex-1">
+                                            <p class="font-medium text-gray-800">Visa ending in 4242</p>
+                                            <p class="text-sm text-gray-500">Expires 12/2024</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm text-gray-500">Default</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="payment-method-card p-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
+                                            <i class="fab fa-cc-mastercard text-xl"></i>
+                                        </div>
+                                        <div class="ml-3 flex-1">
+                                            <p class="font-medium text-gray-800">Mastercard ending in 1881</p>
+                                            <p class="text-sm text-gray-500">Expires 08/2023</p>
+                                        </div>
+                                        <div>
+                                            <button class="text-sm text-primary-600 font-medium">Set as default</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="payment-method-card p-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600">
+                                            <i class="fab fa-paypal text-xl"></i>
+                                        </div>
+                                        <div class="ml-3 flex-1">
+                                            <p class="font-medium text-gray-800">PayPal</p>
+                                            <p class="text-sm text-gray-500">john.doe@example.com</p>
+                                        </div>
+                                        <div>
+                                            <button class="text-sm text-primary-600 font-medium">Set as default</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Usage Stats -->
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6">Usage Statistics</h3>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Storage</span>
+                                        <span class="text-sm font-medium text-gray-700">75%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Bandwidth</span>
+                                        <span class="text-sm font-medium text-gray-700">42%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 42%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-sm font-medium text-gray-700">API Requests</span>
+                                        <span class="text-sm font-medium text-gray-700">68%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 68%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Available Plans -->
+                <div class="mb-6">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800">Available Plans</h3>
+                            <button class="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition">
+                                <i class="fas fa-sync-alt mr-2"></i> Refresh Plans
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="plan-card p-6">
+                                <div class="text-center mb-6">
+                                    <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto text-blue-600">
+                                        <i class="fas fa-cloud text-2xl"></i>
+                                    </div>
+                                    <h4 class="text-lg font-semibold mt-4">Basic</h4>
+                                    <p class="text-gray-600 text-sm mt-1">For individuals</p>
+                                </div>
+                                
+                                <div class="text-center mb-6">
+                                    <p class="text-3xl font-bold">$19.99<span class="text-lg text-gray-500">/mo</span></p>
+                                </div>
+                                
+                                <ul class="space-y-3 mb-6">
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>10GB Storage</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Basic Support</span>
+                                    </li>
+                                    <li class="flex items-center text-gray-400">
+                                        <i class="fas fa-times mr-2"></i>
+                                        <span>Advanced Features</span>
+                                    </li>
+                                    <li class="flex items-center text-gray-400">
+                                        <i class="fas fa-times mr-2"></i>
+                                        <span>Priority Support</span>
+                                    </li>
+                                </ul>
+                                
+                                <button class="w-full py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                                    Select Plan
+                                </button>
+                            </div>
+                            
+                            <div class="plan-card featured p-6">
+                                <div class="text-center mb-6">
+                                    <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto text-purple-600">
+                                        <i class="fas fa-rocket text-2xl"></i>
+                                    </div>
+                                    <h4 class="text-lg font-semibold mt-4">Pro</h4>
+                                    <p class="text-gray-600 text-sm mt-1">For professionals</p>
+                                    <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded-full ml-2">POPULAR</span>
+                                </div>
+                                
+                                <div class="text-center mb-6">
+                                    <p class="text-3xl font-bold">$49.99<span class="text-lg text-gray-500">/mo</span></p>
+                                </div>
+                                
+                                <ul class="space-y-3 mb-6">
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>100GB Storage</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Priority Support</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Advanced Features</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>API Access</span>
+                                    </li>
+                                </ul>
+                                
+                                <button class="w-full py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition">
+                                    Select Plan
+                                </button>
+                            </div>
+                            
+                            <div class="plan-card p-6">
+                                <div class="text-center mb-6">
+                                    <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto text-blue-600">
+                                        <i class="fas fa-briefcase text-2xl"></i>
+                                    </div>
+                                    <h4 class="text-lg font-semibold mt-4">Business</h4>
+                                    <p class="text-gray-600 text-sm mt-1">For teams & companies</p>
+                                </div>
+                                
+                                <div class="text-center mb-6">
+                                    <p class="text-3xl font-bold">$199.99<span class="text-lg text-gray-500">/mo</span></p>
+                                </div>
+                                
+                                <ul class="space-y-3 mb-6">
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>1TB Storage</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>24/7 Support</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>All Features</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Custom Solutions</span>
+                                    </li>
+                                </ul>
+                                
+                                <button class="w-full py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                                    Select Plan
+                                </button>
+                            </div>
+                            
+                            <div class="plan-card p-6">
+                                <div class="text-center mb-6">
+                                    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto text-green-600">
+                                        <i class="fas fa-infinity text-2xl"></i>
+                                    </div>
+                                    <h4 class="text-lg font-semibold mt-4">Enterprise</h4>
+                                    <p class="text-gray-600 text-sm mt-1">For large organizations</p>
+                                </div>
+                                
+                                <div class="text-center mb-6">
+                                    <p class="text-3xl font-bold">Custom</p>
+                                </div>
+                                
+                                <ul class="space-y-3 mb-6">
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Unlimited Storage</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Dedicated Support</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>All Features</span>
+                                    </li>
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>Custom Integrations</span>
+                                    </li>
+                                </ul>
+                                
+                                <button class="w-full py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                                    Contact Sales
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle mobile menu
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('open');
+        });
+        
+        // Toggle payment method selection
+        document.querySelectorAll('.payment-method-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.payment-method-card').forEach(c => {
+                    c.classList.remove('selected');
+                });
+                this.classList.add('selected');
+            });
+        });
+    </script>
+</body>
+</html>

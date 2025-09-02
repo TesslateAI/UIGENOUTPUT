@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Energy Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-primary: #3b82f6;
+            --color-primary-light: #93c5fd;
+            --color-primary-dark: #1d4ed8;
+            --color-secondary: #10b981;
+            --color-secondary-light: #6ee7b7;
+            --color-secondary-dark: #047857;
+            --color-bg-main: #f8fafc;
+            --color-bg-card: #ffffff;
+            --color-text-dark: #1e293b;
+            --color-text-light: #64748b;
+            --color-text-inverted: #f8fafc;
+            --color-border: #e2e8f0;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--color-bg-card);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .energy-saving-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .sidebar {
+            background: var(--color-bg-card);
+            border-right: 1px solid var(--color-border);
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            color: var(--color-text-light);
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: #eff6ff;
+            color: var(--color-primary);
+        }
+
+        .nav-item.active {
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(1, 1fr);
+            }
+            
+            .col-span-8, .col-span-4, .col-span-6 {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar w-64 hidden md:block">
+        <div class="p-6 border-b border-[var(--color-border)]">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-xl mr-3">E</div>
+                <h1 class="text-xl font-bold text-[var(--color-text-dark)]">EnergyDash</h1>
+            </div>
+        </div>
+        
+        <nav class="p-4">
+            <a href="#" class="nav-item active">
+                <div class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
+                </div>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item">
+                <div class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <span>Usage</span>
+            </a>
+            <a href="#" class="nav-item">
+                <div class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <span>Bills</span>
+            </a>
+            <a href="#" class="nav-item">
+                <div class="nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <span>Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-4 md:p-8">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-[var(--color-text-dark)]">Home Energy Dashboard</h1>
+                <p class="text-[var(--color-text-light)]">Monitor and manage your home energy consumption</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center">
+                <div class="relative">
+                    <select class="bg-[var(--color-bg-main)] border border-[var(--color-border)] rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+                        <option>Last 7 days</option>
+                        <option selected>Last 30 days</option>
+                        <option>Last 90 days</option>
+                    </select>
+                </div>
+                <button class="ml-4 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors">
+                    Export Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="dashboard-grid mb-8">
+            <div class="col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="card metric-card">
+                    <div>
+                        <p class="text-[var(--color-text-light)]">Total Consumption</p>
+                        <h2 class="text-2xl font-bold mt-2">1,245 kWh</h2>
+                        <div class="flex items-center mt-1">
+                            <span class="text-[var(--color-secondary)] text-sm font-medium">↓ 12% from last month</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-[var(--color-primary)]" style="width: 65%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="card metric-card">
+                    <div>
+                        <p class="text-[var(--color-text-light)]">Monthly Cost</p>
+                        <h2 class="text-2xl font-bold mt-2">$84.50</h2>
+                        <div class="flex items-center mt-1">
+                            <span class="text-[var(--color-secondary)] text-sm font-medium">↓ 8% from last month</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-[var(--color-secondary)]" style="width: 45%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="card metric-card">
+                    <div>
+                        <p class="text-[var(--color-text-light)]">Energy Savings</p>
+                        <h2 class="text-2xl font-bold mt-2">1,120 kWh</h2>
+                        <div class="flex items-center mt-1">
+                            <span class="text-[var(--color-secondary)] text-sm font-medium">↓ 5% from last month</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-[var(--color-secondary)]" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-span-12 md:col-span-6 lg:col-span-3">
+                <div class="card metric-card">
+                    <div>
+                        <p class="text-[var(--color-text-light)]">Peak Usage</p>
+                        <h2 class="text-2xl font-bold mt-2">2.1 kW</h2>
+                        <div class="flex items-center mt-1">
+                            <span class="text-[var(--color-warning)] text-sm font-medium">↑ 3% from last month</span>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-[var(--color-warning)]" style="width: 35%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="dashboard-grid mb-8">
+            <div class="col-span-12 lg:col-span-8">
+                <div class="card">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold">Energy Consumption</h3>
+                        <div class="flex space-x-2">
+                            <button class="text-xs px-3 py-1 bg-[var(--color-primary)] text-white rounded-full">kWh</button>
+                            <button class="text-xs px-3 py-1 bg-[var(--color-bg-main)] text-[var(--color-text-light)] rounded-full">kW</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-span-12 lg:col-span-4">
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-6">Appliance Breakdown</h3>
+                    <div class="chart-container">
+                        <canvas id="applianceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity and Savings -->
+        <div class="dashboard-grid mb-8">
+            <div class="col-span-12 lg:col-span-6">
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-6">Recent Energy Usage</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[#dbeafe] flex items-center justify-center mr-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[var(--color-primary)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Heating System</p>
+                                    <p class="text-sm text-[var(--color-text-light)]">Living Room</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">1.2 kW</p>
+                                <p class="text-sm text-[var(--color-text-light)]">Today, 14:30</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[#dcfce7] flex items-center justify-center mr-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[var(--color-secondary)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Kitchen AC</p>
+                                    <p class="text-sm text-[var(--color-text-light)]">Kitchen</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">0.8 kW</p>
+                                <p class="text-sm text-[var(--color-text-light)]">Today, 13:15</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[#fef3c7] flex items-center justify-center mr-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[var(--color-warning)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Lighting</p>
+                                    <p class="text-sm text-[var(--color-text-light)]">All lights</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">0.5 kW</p>
+                                <p class="text-sm text-[var(--color-text-light)]">Today, 10:45</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-lg bg-[#ede9fe] flex items-center justify-center mr-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[var(--color-primary)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Refrigerator</p>
+                                    <p class="text-sm text-[var(--color-text-light)]">Running</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-medium">0.3 kW</p>
+                                <p class="text-sm text-[var(--color-text-light)]">Today, 09:20</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-span-12 lg:col-span-6">
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-6">Energy Savings Opportunity</h3>
+                    <div class="bg-[var(--color-bg-main)] rounded-xl p-6">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-12 h-12 rounded-lg bg-[#fef3c7] flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[var(--color-warning)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold text-lg">Heating Efficiency</h4>
+                                <p class="text-[var(--color-text-light)] mt-1">Your heating system could save up to 15% energy by optimizing thermostat settings.</p>
+                                <div class="mt-3 flex space-x-2">
+                                    <button class="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] transition-colors">
+                                        Optimize Settings
+                                    </button>
+                                    <button class="px-4 py-2 bg-[var(--color-bg-main)] text-[var(--color-text-dark)] rounded-lg text-sm font-medium hover:bg-[var(--color-border)] transition-colors">
+                                        Schedule Maintenance
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h4 class="font-semibold mb-3">Top Saving Tip</h4>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 rounded-lg bg-[#dcfce7] flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[var(--color-secondary)]" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <p class="font-medium">Use LED bulbs</p>
+                                <p class="text-sm text-[var(--color-text-light)]">Replace all light bulbs with LED equivalents to save up to 80% on lighting costs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Consumption Chart
+            const consumptionCtx = document.getElementById('consumptionChart').getContext('2d');
+            const consumptionChart = new Chart(consumptionCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Monthly Consumption (kWh)',
+                        data: [950, 1020, 1100, 980, 1200, 1150, 1300, 1250, 1180, 1240, 1120, 1050],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#3b82f6',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Appliance Chart
+            const applianceCtx = document.getElementById('applianceChart').getContext('2d');
+            const applianceChart = new Chart(applianceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Heating', 'Lighting', 'Appliances', 'Cooking', 'Cooling'],
+                    datasets: [{
+                        data: [35, 20, 25, 15, 5],
+                        backgroundColor: [
+                            '#3b82f6',
+                            '#10b981',
+                            '#8b5cf6',
+                            '#f59e0b',
+                            '#ef4444'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        });
+    </script>
+</body>
+</html>

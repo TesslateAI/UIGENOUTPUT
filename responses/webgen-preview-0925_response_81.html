@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Ingredient Inventory</title>
+    <meta name="description" content="A recipe ingredient inventory UI with a list of available ingredients and auto‑suggestions for recipes.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for better UX */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--color-gray-100); }
+        ::-webkit-scrollbar-thumb { background: var(--color-gray-400); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--color-gray-500); }
+
+        /* Custom animations for cards */
+        .animate-slide-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .animate-slide-in.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .animate-fade-in-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-fade-in-up.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .animate-fade-in-left {
+            opacity: 0;
+            transform: translateX(-100px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-fade-in-left.is-visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .animate-fade-in-right {
+            opacity: 0;
+            transform: translateX(100px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .animate-fade-in-right.is-visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .animate-scale-in {
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .animate-scale-in.is-visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .text-balance { text-wrap: balance; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-black': 'rgb(0, 0, 0)',
+                        'brand-white': 'rgb(255, 255, 255)',
+                        'brand-primary': 'rgb(0, 123, 255)',   /* Tailwind blue‑700 */
+                        'brand-primary-light': 'rgb(79, 115, 245)', /* Tailwind blue‑600 */
+                        'brand-primary-lighter': 'rgb(135, 170, 255)', /* Tailwind blue‑500 */
+                        'brand-gray-dark': 'rgb(51, 51, 51)',
+                        'brand-gray': 'rgb(102, 102, 102)',
+                        'brand-gray-light': 'rgb(153, 153, 153)',
+                        'brand-gray-lighter': 'rgb(204, 204, 204)',
+                        'brand-gray-lightest': 'rgb(242, 242, 242)',
+                        'brand-gray-border': 'rgb(217, 217, 217)',
+                        'brand-green-success': 'rgb(34, 139, 34)',
+                        'brand-green-success-light': 'rgb(70, 178, 70)',
+                        'brand-orange-warning': 'rgb(255, 165, 0)',
+                        'brand-orange-warning-light': 'rgb(255, 193, 75)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+                        heading: ['Inter', 'ui-sans-serif', 'system-ui'],
+                    },
+                    animation: {
+                        'marquee-slow': 'marquee 60s linear infinite',
+                        'marquee-normal': 'marquee 40s linear infinite',
+                        'marquee-fast': 'marquee 20s linear infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                    },
+                    boxShadow: {
+                        'custom-lg': '0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.07)',
+                        'custom-md': '0px 8px 10px -4px rgba(0, 0, 0, 0.05), 0px 4px 6px -2px rgba(0, 0, 0, 0.02)',
+                        'custom-sm': '0px 1px 2px -0.5px rgba(0, 0, 0, 0.05), 0px 1px 2px -1px rgba(0, 0, 0, 0.05), 0px 1px 4px -1.5px rgba(0, 0, 0, 0.05)',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-brand-white text-brand-gray-dark font-sans antialiased">
+
+    <!-- Header -->
+    <header class="bg-brand-white sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="#" class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-brand-white font-bold">R</div>
+                    <span class="text-2xl font-bold text-brand-black">RecipeHub</span>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden lg:flex space-x-8 items-center">
+                    <a href="#" class="text-brand-gray-dark hover:text-brand-primary transition-colors">Home</a>
+                    <a href="#" class="text-brand-gray-dark hover:text-brand-primary transition-colors">Ingredients</a>
+                    <a href="#" class="text-brand-gray-dark hover:text-brand-primary transition-colors">Recipes</a>
+                    <a href="#" class="text-brand-gray-dark hover:text-brand-primary transition-colors">About</a>
+                    <a href="#" class="text-brand-gray-dark hover:text-brand-primary transition-colors">Contact</a>
+                </nav>
+
+                <!-- CTA Button -->
+                <div class="hidden lg:flex items-center">
+                    <a href="#" class="bg-brand-primary text-brand-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-primary-light transition-colors shadow-custom-sm">
+                        Get Started
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="lg:hidden">
+                    <button id="mobile-menu-button" class="text-brand-black">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2"
+                             d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-brand-white shadow-lg absolute top-20 left-0 right-0 z-40">
+            <div class="px-4 pt-2 pb-4 space-y-8">
+                <a href="#" class="block py-2 text-brand-gray-dark hover:text-brand-primary">Home</a>
+                <a href="#" class="block py-2 text-brand-gray-dark hover:text-brand-primary">Ingredients</a>
+                <a href="#" class="block py-2 text-brand-gray-dark hover:text-brand-primary">Recipes</a>
+                <a href="#" class="block py-2 text-brand-gray-dark hover:text-brand-primary">About</a>
+                <a href="#" class="block py-2 text-brand-gray-dark hover:text-brand-primary">Contact</a>
+                <a href="#" class="block w-full text-center bg-brand-primary text-brand-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-brand-primary-light transition-colors shadow-custom-sm">
+                    Get Started
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="bg-brand-white py-24 md:py-32 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    <div class="flex flex-col items-center lg:items-start text-center lg:text-left animate-slide-in">
+                        <div class="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center text-brand-white mb-6 shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M9.663 17h4.673M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <h1 class="text-5xl md:text-7xl font-bold text-brand-black mb-6 leading-tight font-heading">
+                            <span class="text-brand-gray-dark">Your</span> <span class="text-brand-primary">Ingredient</span> <span class="text-brand-gray-dark">Inventory</span>
+                        </h1>
+                        <p class="text-lg text-brand-gray-dark max-w-md mb-10">
+                            Keep track of all your pantry staples, auto‑suggest recipes, and never run out of the ingredients you love.
+                        </p>
+                        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                            <a href="#" class="bg-brand-primary text-brand-white px-8 py-3 rounded-xl text-base font-semibold hover:bg-brand-primary-light transition-colors shadow-lg">
+                                Explore Ingredients
+                            </a>
+                            <a href="#" class="bg-transparent text-brand-primary border border-brand-primary px-8 py-3 rounded-xl text-base font-semibold hover:bg-brand-primary-light transition-colors hover:text-brand-white transition-colors shadow-lg">
+                                See Recipes
+                            </a>
+                        </div>
+                    </div>
+                    <div class="relative h-96 md:h-[500px] animate-slide-in">
+                        <div class="absolute inset-0 rounded-3xl overflow-hidden shadow-xl transform rotate-3">
+                            <img src="https://static.photos/food/640x360/123" alt="Fresh ingredients" class="w-full h-full object-cover">
+                        </div>
+                        <div class="absolute -bottom-8 -right-8 w-48 h-32 md:w-64 md:h-40 bg-brand-white p-4 rounded-2xl shadow-lg transform -rotate-6 animate-fade-in-up">
+                            <h4 class="text-brand-primary font-semibold text-sm mb-1">Pantry</h4>
+                            <p class="text-brand-gray-dark text-xs">Apples, rice, pasta</p>
+                        </div>
+                        <div class="absolute -top-8 -left-8 w-32 h-24 md:w-40 md:h-32 bg-brand-primary-light p-3 rounded-2xl shadow-lg transform rotate-12 animate-fade-in-right">
+                            <h4 class="text-brand-white font-semibold text-xs mb-1">Seasonal</h4>
+                            <p class="text-brand-white text-[10px]">Berries, greens</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Ingredients Section -->
+        <section class="bg-brand-white py-16 md:py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 md:mb-16 animate-slide-in">
+                    <p class="text-brand-primary font-semibold text-sm mb-2">Featured Ingredients</p>
+                    <h2 class="text-4xl md:text-5xl font-bold text-brand-black font-heading">Your Kitchen Staples</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Ingredient Card -->
+                    <div class="bg-brand-white p-8 rounded-3xl shadow-custom-md border border-brand-gray-border hover:shadow-xl transition-shadow duration-300 animate-slide-in">
+                        <div class="w-12 h-12 bg-brand-primary-light rounded-xl mb-6 flex items-center justify-center text-brand-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z"/><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M12 14c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-brand-black mb-3 font-heading">Olive Oil</h3>
+                        <p class="text-brand-gray-dark text-sm mb-4">Versatile cooking oil perfect for salads, sautés, and dressings.</p>
+                        <div class="flex items-center">
+                            <span class="text-brand-orange-warning text-xs font-medium mr-2">New</span>
+                            <div class="flex text-brand-orange-warning animate-pulse-slow">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ingredient Card -->
+                    <div class="bg-brand-white p-8 rounded-3xl shadow-custom-md border border-brand-gray-border hover:shadow-xl transition-shadow duration-300 animate-slide-in" style="animation-delay: 0.1s;">
+                        <div class="w-12 h-12 bg-brand-primary-light rounded-xl mb-6 flex items-center justify-center text-brand-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z"/><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M12 14c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-brand-black mb-3 font-heading">Whole Wheat Flour</h3>
+                        <p class="text-brand-gray-dark text-sm mb-4">Bread‑making staple with a nutty flavor and high fiber.</p>
+                        <div class="flex items-center">
+                            <span class="text-brand-orange-warning text-xs font-medium mr-2">Popular</span>
+                            <div class="flex text-brand-orange-warning">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ingredient Card -->
+                    <div class="bg-brand-white p-8 rounded-3xl shadow-custom-md border border-brand-gray-border hover:shadow-xl transition-shadow duration-300 animate-slide-in" style="animation-delay: 0.2s;">
+                        <div class="w-12 h-12 bg-brand-primary-light rounded-xl mb-6 flex items-center justify-center text-brand-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z"/><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M12 14c-4 0-7 2-7 4v2h14v-2c0-2-3-4-7-4z"/></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-brand-black mb-3 font-heading">Vanilla Extract</h3>
+                        <p class="text-brand-gray-dark text-sm mb-4">Classic flavoring for baked goods and desserts.</p>
+                        <div class="flex items-center">
+                            <span class="text-brand-orange-warning text-xs font-medium mr-2">Best Seller</span>
+                            <div class="flex text-brand-orange-warning">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                    clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Auto‑Suggestion Section -->
+        <section class="bg-brand-white py-16 md:py-24">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 md:mb-16 animate-slide-in">
+                    <p class="text-brand-primary font-semibold text-sm mb-2">Recipe Suggestions</p>
+                    <h2 class="text-4xl md:text-5xl font-bold text-brand-black font-heading">Auto‑Suggested Recipes</h2>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="relative mb-12 animate-slide-in">
+                    <input type="text" placeholder="Search ingredients (e.g., flour, olive oil)" id="recipe-search"
+                           class="w-full p-5 text-lg border border-brand-gray-border rounded-2xl focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none transition-shadow bg-brand-gray-lightest text-brand-black">
+                </div>
+
+                <!-- Recipe Grid -->
+                <div id="recipe-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Example Recipe Card -->
+                    <div class="bg-brand-white p-6 rounded-3xl shadow-custom-md border border-brand-gray-border hover:shadow-xl transition-shadow duration-300 animate-slide-in">
+                        <img src="https://static.photos/food/640x360/456" alt="Pasta with Olive Oil" class="w-full h-48 object-cover rounded-xl mb-4">
+                        <h3 class="text-2xl font-bold text-brand-black mb-2 font-heading">Pasta with Olive Oil</h3>
+                        <p class="text-brand-gray-dark mb-3">Simple, fresh pasta tossed in a drizzle of extra‑virgin olive oil.</p>
+                        <ul class="list-disc list-inside text-brand-gray-dark mb-4">
+                            <li>Olive oil</li>
+                            <li>Whole wheat flour</li>
+                            <li>Pasta</li>
+                        </ul>
+                        <a href="#" class="text-brand-primary font-semibold hover:underline">View Recipe</a>
+                    </div>
+
+                    <!-- Example Recipe Card -->
+                    <div class="bg-brand-white p-6 rounded-3xl shadow-custom-md border border-brand-gray-border hover:shadow-xl transition-shadow duration-300 animate-slide-in" style="animation-delay: 0.1s;">
+                        <img src="https://static.photos/food/640x360/789" alt="Vanilla Bean Cake" class="w-full h-48 object-cover rounded-xl mb-4">
+                        <h3 class="text-2xl font-bold text-brand-black mb-2 font-heading">Vanilla Bean Cake</h3>
+                        <p class="text-brand-gray-dark mb-3">Moist vanilla cake with a buttery crumb and vanilla extract.</p>
+                        <ul class="list-disc list-inside text-brand-gray-dark mb-4">
+                            <li>Vanilla extract</li>
+                            <li>Whole wheat flour</li>
+                            <li>Eggs</li>
+                            <li>Butter</li>
+                        </ul>
+                        <a href="#" class="text-brand-primary font-semibold hover:underline">View Recipe</a>
+                    </div>
+
+                    <!-- Example Recipe Card -->
+                    <div class="bg-brand-white p-6 rounded-3xl shadow-custom-md border border-brand-gray-border hover:shadow-xl transition-shadow duration-300 animate-slide-in" style="animation-delay: 0.2s;">
+                        <img src="https://static.photos/food/640x360/101" alt="Olive Oil Salad" class="w-full h-48 object-cover rounded-xl mb-4">
+                        <h3 class="text-2xl font-bold text-brand-black mb-2 font-heading">Olive Oil Salad</h3>
+                        <p class="text-brand-gray-dark mb-3">Fresh greens tossed with olive oil, lemon juice, and herbs.</p>
+                        <ul class="list-disc list-inside text-brand-gray-dark mb-4">
+                            <li>Olive oil</li>
+                            <li>Leafy greens</li>
+                            <li>Lemon juice</li>
+                        </ul>
+                        <a href="#" class="text-brand-primary font-semibold hover:underline">View Recipe</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonial Section -->
+        <section class="bg-brand-gray-lightest py-16 md:py-24">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div class="relative animate-slide-in">
+                    <div class="w-20 h-20 bg-brand-primary-light rounded-full mx-auto mb-8 flex items-center justify-center text-brand-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                             stroke-linejoin="round" stroke-width="2"
+                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <p class="text-2xl md:text-3xl font-semibold text-brand-black font-heading mb-6 text-balance">
+                        "RecipeHub turned my scattered ingredients into a delightful cooking experience. The auto‑suggestions are spot‑on and the UI is beautiful."
+                    </p>
+                    <div class="flex items-center justify-center space-x-3">
+                        <div class="w-12 h-12 rounded-full bg-brand-gray-light flex items-center justify-center text-brand-gray-dark font-bold">JS</div>
+                        <div>
+                            <p class="font-semibold text-brand-black">Jenna Smith</p>
+                            <p class="text-sm text-brand-gray-dark">Home Chef & Blogger</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="bg-brand-white py-16 md:py-24">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12 md:mb-16 animate-slide-in">
+                    <p class="text-brand-primary font-semibold text-sm mb-2">FAQ</p>
+                    <h2 class="text-4xl md:text-5xl font-bold text-brand-black font-heading">Everything You Need to Know</h2>
+                </div>
+                <div class="space-y-4">
+                    <!-- FAQ Item -->
+                    <div class="faq-item bg-brand-gray-lightest rounded-2xl shadow-custom-sm animate-slide-in">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-6 md:p-8">
+                            <span class="text-lg font-semibold text-brand-black font-heading">How does the auto‑suggestion work?</span>
+                            <svg class="faq-icon w-5 h-5 text-brand-black transition-transform duration-300" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="faq-answer hidden p-6 md:p-8 border-t border-brand-gray-border">
+                            <p class="text-brand-gray-dark">As you type in the ingredient search bar, the system cross‑references your pantry with recipe databases and suggests dishes you can make.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item -->
+                    <div class="faq-item bg-brand-gray-lightest rounded-2xl shadow-custom-sm animate-slide-in" style="animation-delay: 0.1s;">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-6 md:p-8">
+                            <span class="text-lg font-semibold text-brand-black font-heading">Can I add my own ingredients?</span>
+                            <svg class="faq-icon w-5 h-5 text-brand-black transition-transform duration-300" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="faq-answer hidden p-6 md:p-8 border-t border-brand-gray-border">
+                            <p class="text-brand-gray-dark">Yes! Use the “Add Ingredient” button to manually input any items you have in your kitchen.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item -->
+                    <div class="faq-item bg-brand-gray-lightest rounded-2xl shadow-custom-sm animate-slide-in" style="animation-delay: 0.2s;">
+                        <button class="faq-question w-full flex justify-between items-center text-left p-6 md:p-8">
+                            <span class="text-lg font-semibold text-brand-black font-heading">Is the data secure?</span>
+                            <svg class="faq-icon w-5 h-5 text-brand-black transition-transform duration-300" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round"
+                                 stroke-linejoin="round" stroke-width="2"
+                                 d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div class="faq-answer hidden p-6 md:p-8 border-t border-brand-gray-border">
+                            <p class="text-brand-gray-dark">All personal data is encrypted and stored locally on your device. No data is sent to remote servers.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-brand-black text-brand-white py-16 md:py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <!-- Column 1: Brand & Contact -->
+                <div class="animate-fade-in-left">
+                    <a href="#" class="flex items-center space-x-2 mb-6">
+                        <div class="w-10 h-10 bg-brand-white rounded-xl flex items-center justify-center text-brand-black font-bold">R</div>
+                        <span class="text-2xl font-bold">RecipeHub</span>
+                    </a>
+                    <div class="flex space-x-3 mb-6">
+                        <a href="#" class="w-8 h-8 bg-brand-gray-800 hover:bg-brand-gray-600 rounded-full flex items-center justify-center text-brand-white transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22.675 0h-21.35C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.73 0 1.323-.593 1.323-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg>
+                        </a>
+                        <a href="#" class="w-8 h-8 bg-brand-gray-800 hover:bg-brand-gray-600 rounded-full flex items-center justify-center text-brand-white transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-2 18h-2v-8h2v8zm-1-9.25c-.69 0-1.25-.56-1.25-1.25S8.31 6.25 9 6.25s1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm8.8-2.25c-.69 0-1.25-.56-1.25-1.25S18.69 8.5 19.38 8.5s1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>
+                        </a>
+                        <a href="#" class="w-8 h-8 bg-brand-gray-800 hover:bg-brand-gray-600 rounded-full flex items-center justify-center text-brand-white transition-colors">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-4.484 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z"/></svg>
+                        </a>
+                    </div>
+                    <p class="text-sm text-brand-gray-300">
+                        123 Cook Street, Culinary City, CA 90210, USA
+                    </p>
+                </div>
+
+                <!-- Column 2: Navigation -->
+                <div class="animate-fade-in-up">
+                    <h4 class="text-lg font-semibold mb-4 font-heading">Navigation</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Home</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Ingredients</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Recipes</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">About</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: Resources -->
+                <div class="animate-fade-in-up">
+                    <h4 class="text-lg font-semibold mb-4 font-heading">Resources</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Blog</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-brand-gray-300 hover:text-brand-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Newsletter -->
+                <div class="animate-fade-in-up">
+                    <h4 class="text-lg font-semibold mb-4 font-heading">Stay Updated</h4>
+                    <form class="flex flex-col sm:flex-row gap-2">
+                        <input type="email" placeholder="Enter your email"
+                               class="flex-grow p-3 rounded-xl bg-brand-gray-800 text-brand-white placeholder-brand-gray-400 focus:ring-2 focus:ring-brand-primary focus:outline-none">
+                        <button type="submit"
+                                class="bg-brand-primary text-brand-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-primary-light transition-colors">
+                            Subscribe
+                        </button>
+                    </form>
+                    <p class="text-xs text-brand-gray-400 mt-3">
+                        No spam, unsubscribe any time.
+                    </p>
+                </div>
+            </div>
+            <div class="border-t border-brand-gray-900 pt-8 text-center">
+                <p class="text-sm text-brand-gray-400">© 2026 RecipeHub. All rights reserved. <a href="https://tesslate.com" class="text-brand-primary hover:underline">Built with Tesslate</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // FAQ accordion
+        document.querySelectorAll('.faq-item').forEach(item => {
+            const question = item.querySelector('.faq-question');
+            const answer = item.querySelector('.faq-answer');
+            const icon = item.querySelector('.faq-icon');
+
+            question.addEventListener('click', () => {
+                const isOpen = !answer.classList.contains('hidden');
+                // close others
+                document.querySelectorAll('.faq-item').forEach(other => {
+                    if (other !== item) {
+                        other.querySelector('.faq-answer').classList.add('hidden');
+                        other.querySelector('.faq-icon').classList.remove('rotate-180');
+                    }
+                });
+
+                answer.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
+        });
+
+        // Animate on scroll
+        const animatedElements = document.querySelectorAll('.animate-slide-in, .animate-fade-in-up, .animate-fade-in-left, .animate-fade-in-right, .animate-scale-in');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        animatedElements.forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

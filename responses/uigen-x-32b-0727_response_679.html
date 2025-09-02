@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProFantasy - Sports Team Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'fantasy-primary': '#3B82F6',
+                        'fantasy-secondary': '#10B981',
+                        'fantasy-dark': '#0F172A',
+                        'fantasy-card': '#1E293B',
+                        'fantasy-border': '#334155',
+                        'fantasy-text': '#E2E8F0',
+                        'fantasy-muted': '#94A3B8',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'heading': ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0F172A;
+            color: #E2E8F0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .player-card {
+            background: linear-gradient(145deg, #1E293B, #1A2435);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        
+        .status-active {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10B981;
+        }
+        
+        .status-inactive {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #EF4444;
+        }
+        
+        .status-injured {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #F59E0B;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(51, 65, 85, 0.5);
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3B82F6, #10B981);
+            border-radius: 4px;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-fantasy-dark text-fantasy-text">
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-fantasy-dark/90 backdrop-blur-md border-b border-fantasy-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="bg-fantasy-primary w-8 h-8 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-trophy text-white"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-bold font-heading">ProFantasy</span>
+                    </div>
+                    <div class="hidden md:block ml-10">
+                        <div class="flex space-x-4">
+                            <a href="#" class="px-3 py-2 rounded-md text-sm font-medium bg-fantasy-card text-fantasy-primary">Dashboard</a>
+                            <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-fantasy-muted hover:text-fantasy-text">Teams</a>
+                            <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-fantasy-muted hover:text-fantasy-text">Players</a>
+                            <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-fantasy-muted hover:text-fantasy-text">Schedule</a>
+                            <a href="#" class="px-3 py-2 rounded-md text-sm font-medium text-fantasy-muted hover:text-fantasy-text">Trade</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="relative ml-3">
+                        <div class="flex items-center space-x-4">
+                            <button class="p-1 rounded-full text-fantasy-muted hover:text-fantasy-text focus:outline-none">
+                                <i class="fas fa-bell text-xl"></i>
+                            </button>
+                            <div class="relative">
+                                <button class="flex text-sm rounded-full focus:outline-none">
+                                    <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User profile">
+                                </button>
+                                <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-fantasy-secondary ring-2 ring-fantasy-dark"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="pt-16 pb-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Dashboard Header -->
+            <div class="mt-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold font-heading">Team Dashboard</h1>
+                        <p class="mt-2 text-fantasy-muted">Manage your fantasy team, view player stats, and make strategic moves</p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <button class="px-4 py-2 bg-fantasy-primary hover:bg-blue-500 text-white rounded-lg flex items-center">
+                            <i class="fas fa-plus mr-2"></i> Add Player
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats Overview -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="card p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-blue-500/10">
+                                <i class="fas fa-medal text-fantasy-primary text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-fantasy-muted text-sm">Current Rank</p>
+                                <p class="text-2xl font-bold">3rd</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-green-500/10">
+                                <i class="fas fa-fire text-fantasy-secondary text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-fantasy-muted text-sm">Points This Week</p>
+                                <p class="text-2xl font-bold">142.5</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-purple-500/10">
+                                <i class="fas fa-users text-purple-400 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-fantasy-muted text-sm">Active Players</p>
+                                <p class="text-2xl font-bold">12/15</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-lg bg-yellow-500/10">
+                                <i class="fas fa-trophy text-yellow-400 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-fantasy-muted text-sm">Season Wins</p>
+                                <p class="text-2xl font-bold">14</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Player Roster -->
+                <div class="lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold font-heading">Your Roster</h2>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg border border-fantasy-border text-fantasy-muted hover:bg-fantasy-card">View All</button>
+                            <button class="px-3 py-1 text-sm rounded-lg border border-fantasy-border text-fantasy-muted hover:bg-fantasy-card">Sort</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-fantasy-border">
+                                <thead>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-fantasy-muted uppercase tracking-wider">Player</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-fantasy-muted uppercase tracking-wider">Position</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-fantasy-muted uppercase tracking-wider">Team</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-fantasy-muted uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-fantasy-muted uppercase tracking-wider">Points</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-fantasy-muted uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-fantasy-border">
+                                    <!-- Player 1 -->
+                                    <tr class="hover:bg-fantasy-card/50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Player">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-fantasy-text">Lionel Messi</div>
+                                                    <div class="text-sm text-fantasy-muted">#10 - Forward</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-fantasy-text">Forward</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            Barcelona
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-active">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            24.5
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-fantasy-primary hover:text-blue-400 mr-3"><i class="fas fa-edit"></i></button>
+                                            <button class="text-fantasy-muted hover:text-red-400"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Player 2 -->
+                                    <tr class="hover:bg-fantasy-card/50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="Player">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-fantasy-text">Cristiano Ronaldo</div>
+                                                    <div class="text-sm text-fantasy-muted">#7 - Forward</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-fantasy-text">Forward</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            Manchester United
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-injured">
+                                                Injured
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            18.2
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-fantasy-primary hover:text-blue-400 mr-3"><i class="fas fa-edit"></i></button>
+                                            <button class="text-fantasy-muted hover:text-red-400"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Player 3 -->
+                                    <tr class="hover:bg-fantasy-card/50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Player">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-fantasy-text">Virgil van Dijk</div>
+                                                    <div class="text-sm text-fantasy-muted">#4 - Defender</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-fantasy-text">Defender</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            Liverpool
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-active">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            15.7
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-fantasy-primary hover:text-blue-400 mr-3"><i class="fas fa-edit"></i></button>
+                                            <button class="text-fantasy-muted hover:text-red-400"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Player 4 -->
+                                    <tr class="hover:bg-fantasy-card/50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-10 w-10">
+                                                    <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="Player">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-fantasy-text">Kevin De Bruyne</div>
+                                                    <div class="text-sm text-fantasy-muted">#17 - Midfielder</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-fantasy-text">Midfielder</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            Manchester City
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-active">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-fantasy-text">
+                                            22.3
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button class="text-fantasy-primary hover:text-blue-400 mr-3"><i class="fas fa-edit"></i></button>
+                                            <button class="text-fantasy-muted hover:text-red-400"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Upcoming Matches -->
+                    <div class="mt-8">
+                        <h2 class="text-xl font-bold font-heading mb-6">Upcoming Matches</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Match 1 -->
+                            <div class="card p-6">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h3 class="font-bold text-lg">Week 12: Barcelona vs Real Madrid</h3>
+                                        <p class="text-fantasy-muted text-sm mt-1">Saturday, Oct 22 • 3:00 PM</p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-fantasy-primary/10 text-fantasy-primary rounded-full text-sm">Your Team</span>
+                                </div>
+                                <div class="mt-6 flex justify-between">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold">Barcelona</div>
+                                        <div class="mt-2 text-fantasy-muted">Your Team</div>
+                                    </div>
+                                    <div class="text-3xl text-fantasy-muted">VS</div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold">Real Madrid</div>
+                                        <div class="mt-2 text-fantasy-muted">Opponent</div>
+                                    </div>
+                                </div>
+                                <div class="mt-6 flex justify-between">
+                                    <button class="px-4 py-2 bg-fantasy-primary hover:bg-blue-500 text-white rounded-lg">View Lineup</button>
+                                    <button class="px-4 py-2 border border-fantasy-border hover:bg-fantasy-card rounded-lg">Set Tactics</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Match 2 -->
+                            <div class="card p-6">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h3 class="font-bold text-lg">Week 13: Liverpool vs Manchester City</h3>
+                                        <p class="text-fantasy-muted text-sm mt-1">Sunday, Oct 23 • 6:00 PM</p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-fantasy-secondary/10 text-fantasy-secondary rounded-full text-sm">Opponent</span>
+                                </div>
+                                <div class="mt-6 flex justify-between">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold">Liverpool</div>
+                                        <div class="mt-2 text-fantasy-muted">Your Team</div>
+                                    </div>
+                                    <div class="text-3xl text-fantasy-muted">VS</div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold">Manchester City</div>
+                                        <div class="mt-2 text-fantasy-muted">Opponent</div>
+                                    </div>
+                                </div>
+                                <div class="mt-6 flex justify-between">
+                                    <button class="px-4 py-2 bg-fantasy-primary hover:bg-blue-500 text-white rounded-lg">View Lineup</button>
+                                    <button class="px-4 py-2 border border-fantasy-border hover:bg-fantasy-card rounded-lg">Set Tactics</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player Stats & Trade Center -->
+                <div>
+                    <!-- Player Stats -->
+                    <div class="card p-6 mb-8">
+                        <h2 class="text-xl font-bold font-heading mb-6">Player Performance</h2>
+                        <div class="space-y-6">
+                            <!-- Stat 1 -->
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-fantasy-muted">Goal Scoring</span>
+                                    <span class="font-medium">84%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 84%"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Stat 2 -->
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-fantasy-muted">Assist Creation</span>
+                                    <span class="font-medium">72%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 72%"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Stat 3 -->
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-fantasy-muted">Defensive Solidity</span>
+                                    <span class="font-medium">65%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 65%"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Stat 4 -->
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-fantasy-muted">Team Chemistry</span>
+                                    <span class="font-medium">91%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 91%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8">
+                            <h3 class="font-bold mb-3">Top Performers</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                        <i class="fas fa-medal text-fantasy-primary"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="font-medium">Lionel Messi</div>
+                                        <div class="text-sm text-fantasy-muted">24.5 points</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                        <i class="fas fa-medal text-fantasy-primary"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="font-medium">Kevin De Bruyne</div>
+                                        <div class="text-sm text-fantasy-muted">22.3 points</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                        <i class="fas fa-medal text-fantasy-primary"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="font-medium">Virgil van Dijk</div>
+                                        <div class="text-sm text-fantasy-muted">15.7 points</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trade Center -->
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold font-heading">Trade Center</h2>
+                            <button class="p-2 rounded-lg bg-fantasy-card hover:bg-fantasy-card/50">
+                                <i class="fas fa-sync-alt text-fantasy-muted"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4 max-h-96 overflow-y-auto scrollbar-hide">
+                            <!-- Trade 1 -->
+                            <div class="p-4 border border-fantasy-border rounded-lg hover:bg-fantasy-card/30 cursor-pointer fade-in">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center">
+                                        <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="Player">
+                                        <div class="ml-3">
+                                            <div class="font-medium">Cristiano Ronaldo</div>
+                                            <div class="text-sm text-fantasy-muted">Forward • Manchester United</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-fantasy-primary font-bold">12.5 pts</div>
+                                </div>
+                                <div class="mt-3 flex justify-between">
+                                    <div class="text-sm text-fantasy-muted">Injured - 3 days remaining</div>
+                                    <button class="px-3 py-1 bg-fantasy-primary/10 text-fantasy-primary rounded-lg text-sm">Trade Now</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Trade 2 -->
+                            <div class="p-4 border border-fantasy-border rounded-lg hover:bg-fantasy-card/30 cursor-pointer fade-in">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center">
+                                        <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Player">
+                                        <div class="ml-3">
+                                            <div class="font-medium">Mohamed Salah</div>
+                                            <div class="text-sm text-fantasy-muted">Forward • Liverpool</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-fantasy-primary font-bold">19.8 pts</div>
+                                </div>
+                                <div class="mt-3 flex justify-between">
+                                    <div class="text-sm text-fantasy-muted">Active - Ready to play</div>
+                                    <button class="px-3 py-1 bg-fantasy-primary/10 text-fantasy-primary rounded-lg text-sm">Trade Now</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Trade 3 -->
+                            <div class="p-4 border border-fantasy-border rounded-lg hover:bg-fantasy-card/30 cursor-pointer fade-in">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center">
+                                        <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt="Player">
+                                        <div class="ml-3">
+                                            <div class="font-medium">Neymar Jr</div>
+                                            <div class="text-sm text-fantasy-muted">Forward • PSG</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-fantasy-primary font-bold">21.4 pts</div>
+                                </div>
+                                <div class="mt-3 flex justify-between">
+                                    <div class="text-sm text-fantasy-muted">Active - Ready to play</div>
+                                    <button class="px-3 py-1 bg-fantasy-primary/10 text-fantasy-primary rounded-lg text-sm">Trade Now</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="mt-6 w-full py-3 border border-fantasy-border rounded-lg hover:bg-fantasy-card">
+                            View All Trade Options
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-fantasy-card border-t border-fantasy-border py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center">
+                    <div class="bg-fantasy-primary w-8 h-8 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-trophy text-white"></i>
+                    </div>
+                    <span class="ml-3 text-xl font-bold font-heading">ProFantasy</span>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <p class="text-fantasy-muted text-sm">© 2023 ProFantasy Sports. All rights reserved.</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex space-x-4">
+                    <a href="#" class="text-fantasy-muted hover:text-fantasy-text"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-fantasy-muted hover:text-fantasy-text"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-fantasy-muted hover:text-fantasy-text"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="text-fantasy-muted hover:text-fantasy-text"><i class="fab fa-discord"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple animations for UI elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add fade-in animation to trade cards
+            const tradeCards = document.querySelectorAll('.fade-in');
+            tradeCards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            // Add pulse animation to active status indicators
+            const activeStatus = document.querySelectorAll('.status-active');
+            activeStatus.forEach(status => {
+                status.classList.add('pulse');
+            });
+            
+            // Simulate loading of trade options
+            setTimeout(() => {
+                const tradeCenter = document.querySelector('.Trade Center');
+                if (tradeCenter) {
+                    tradeCenter.innerHTML += `
+                        <div class="p-4 border border-fantasy-border rounded-lg hover:bg-fantasy-card/30 cursor-pointer fade-in">
+                            <div class="flex justify-between">
+                                <div class="flex items-center">
+                                    <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Player">
+                                    <div class="ml-3">
+                                        <div class="font-medium">Kylian Mbappé</div>
+                                        <div class="text-sm text-fantasy-muted">Forward • Paris Saint-Germain</div>
+                                    </div>
+                                </div>
+                                <div class="text-fantasy-primary font-bold">23.1 pts</div>
+                            </div>
+                            <div class="mt-3 flex justify-between">
+                                <div class="text-sm text-fantasy-muted">Active - Ready to play</div>
+                                <button class="px-3 py-1 bg-fantasy-primary/10 text-fantasy-primary rounded-lg text-sm">Trade Now</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

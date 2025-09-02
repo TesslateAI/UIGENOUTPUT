@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        alert: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        .header {
+            grid-area: header;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: #f8fafc;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-low {
+            background-color: #fff1f2;
+            color: #e11d48;
+        }
+        
+        .status-medium {
+            background-color: #fffbeb;
+            color: #f59e0b;
+        }
+        
+        .status-high {
+            background-color: #f0fdfa;
+            color: #0d9488;
+        }
+        
+        .alert-badge {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .alert-low {
+            background-color: #f43f5e;
+        }
+        
+        .alert-medium {
+            background-color: #f59e0b;
+        }
+        
+        .inventory-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .inventory-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .inventory-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .inventory-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .inventory-table tr:hover td {
+            background-color: #f8fafc;
+        }
+        
+        .progress-bar {
+            height: 0.5rem;
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #cbd5e1;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+        
+        .notification-dot {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 9999px;
+            background-color: #f43f5e;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar text-white">
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center">
+                    <div class="bg-primary-500 w-10 h-10 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-box text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold ml-3">InventoryPro</h1>
+                </div>
+            </div>
+            
+            <nav class="p-4">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="sidebar-link active">
+                            <i class="fas fa-home"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-box-open"></i>
+                            Products
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-tags"></i>
+                            Categories
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-truck"></i>
+                            Suppliers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-warehouse"></i>
+                            Warehouses
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-chart-line"></i>
+                            Reports
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-bell"></i>
+                            Alerts
+                            <span class="notification-dot"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="sidebar-link">
+                            <i class="fas fa-cog"></i>
+                            Settings
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="absolute bottom-0 w-full p-4 border-t border-slate-700">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center">
+                        <i class="fas fa-user text-slate-300"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">Admin User</p>
+                        <p class="text-xs text-slate-400">admin@inventorypro.com</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-6 py-4">
+            <div class="flex items-center">
+                <button class="mobile-menu-button mr-4 lg:hidden">
+                    <i class="fas fa-bars text-slate-600 text-xl"></i>
+                </button>
+                <h2 class="text-xl font-semibold text-slate-800">Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-slate-100">
+                        <i class="fas fa-bell text-slate-600"></i>
+                        <span class="alert-badge alert-low">3</span>
+                    </button>
+                </div>
+                
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-slate-100">
+                        <i class="fas fa-envelope text-slate-600"></i>
+                        <span class="alert-badge alert-medium">5</span>
+                    </button>
+                </div>
+                
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                        <i class="fas fa-user text-primary-600"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-6 overflow-auto">
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium">Total Products</p>
+                            <h3 class="text-2xl font-bold mt-1">1,248</h3>
+                        </div>
+                        <div class="bg-primary-100 p-3 rounded-lg">
+                            <i class="fas fa-box text-primary-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-slate-500">
+                            <i class="fas fa-arrow-up text-green-500 mr-1"></i>
+                            <span>12% from last month</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium">Low Stock Items</p>
+                            <h3 class="text-2xl font-bold mt-1">42</h3>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded-lg">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-slate-500">
+                            <i class="fas fa-arrow-up text-red-500 mr-1"></i>
+                            <span>3 new alerts today</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium">Out of Stock</p>
+                            <h3 class="text-2xl font-bold mt-1">18</h3>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-lg">
+                            <i class="fas fa-ban text-yellow-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-slate-500">
+                            <i class="fas fa-arrow-down text-green-500 mr-1"></i>
+                            <span>5% from last week</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium">Total Value</p>
+                            <h3 class="text-2xl font-bold mt-1">$248,560</h3>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-lg">
+                            <i class="fas fa-dollar-sign text-green-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-slate-500">
+                            <i class="fas fa-arrow-up text-green-500 mr-1"></i>
+                            <span>8% from last month</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts and Alerts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Inventory Levels Chart -->
+                <div class="card p-6 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-slate-800">Inventory Levels</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600">Week</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-primary-500 text-white">Month</button>
+                            <button class="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600">Year</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="inventoryChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Stock Alerts -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-slate-800">Stock Alerts</h3>
+                        <button class="text-primary-500 text-sm font-medium">View All</button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-red-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-exclamation-circle text-red-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-800">Low Stock: Wireless Headphones</h4>
+                                <p class="text-slate-500 text-sm">Only 5 units left in stock</p>
+                                <div class="mt-2">
+                                    <span class="status-badge status-low">Critical</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="bg-yellow-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-800">Low Stock: Laptop Chargers</h4>
+                                <p class="text-slate-500 text-sm">12 units left - reorder needed</p>
+                                <div class="mt-2">
+                                    <span class="status-badge status-medium">Medium</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="bg-red-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-exclamation-circle text-red-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-800">Out of Stock: Smartphone X</h4>
+                                <p class="text-slate-500 text-sm">No units available in inventory</p>
+                                <div class="mt-2">
+                                    <span class="status-badge status-low">Critical</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="bg-yellow-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-slate-800">Low Stock: Keyboard Pro</h4>
+                                <p class="text-slate-500 text-sm">8 units left - below minimum</p>
+                                <div class="mt-2">
+                                    <span class="status-badge status-medium">Medium</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Inventory Table -->
+            <div class="card overflow-hidden">
+                <div class="p-6 border-b border-slate-100">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-slate-800">Product Inventory</h3>
+                        <div class="flex space-x-3">
+                            <div class="relative">
+                                <input type="text" placeholder="Search products..." class="pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                            </div>
+                            <button class="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                Add Product
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>SKU</th>
+                                <th>Current Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas fa-laptop text-blue-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">UltraBook Pro 15"</p>
+                                            <p class="text-slate-500 text-sm">Laptops</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>Electronics</td>
+                                <td>LP-PRO-15</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <span class="font-medium">42</span>
+                                        <div class="progress-bar w-32 ml-2 bg-slate-200">
+                                            <div class="progress-fill bg-green-500" style="width: 75%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-high">Good</span>
+                                </td>
+                                <td>
+                                    <button class="text-slate-500 hover:text-primary-500 mr-2">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-slate-500 hover:text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas fa-mobile-alt text-purple-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">Smartphone X</p>
+                                            <p class="text-slate-500 text-sm">Mobile Phones</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>Electronics</td>
+                                <td>SP-X-2023</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <span class="font-medium">0</span>
+                                        <div class="progress-bar w-32 ml-2 bg-slate-200">
+                                            <div class="progress-fill bg-red-500" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-low">Out of Stock</span>
+                                </td>
+                                <td>
+                                    <button class="text-slate-500 hover:text-primary-500 mr-2">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-slate-500 hover:text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas fa-headphones text-yellow-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">Wireless Headphones</p>
+                                            <p class="text-slate-500 text-sm">Audio</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>Electronics</td>
+                                <td>WH-PRO-BLUE</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <span class="font-medium">5</span>
+                                        <div class="progress-bar w-32 ml-2 bg-slate-200">
+                                            <div class="progress-fill bg-red-500" style="width: 10%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-low">Critical</span>
+                                </td>
+                                <td>
+                                    <button class="text-slate-500 hover:text-primary-500 mr-2">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-slate-500 hover:text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas fa-keyboard text-green-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">Keyboard Pro</p>
+                                            <p class="text-slate-500 text-sm">Accessories</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>Electronics</td>
+                                <td>KB-PRO-2023</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <span class="font-medium">8</span>
+                                        <div class="progress-bar w-32 ml-2 bg-slate-200">
+                                            <div class="progress-fill bg-yellow-500" style="width: 25%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-medium">Low Stock</span>
+                                </td>
+                                <td>
+                                    <button class="text-slate-500 hover:text-primary-500 mr-2">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-slate-500 hover:text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas fa-tablet-alt text-pink-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-slate-800">Tablet Mini</p>
+                                            <p class="text-slate-500 text-sm">Tablets</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>Electronics</td>
+                                <td>TB-MINI-2023</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <span class="font-medium">67</span>
+                                        <div class="progress-bar w-32 ml-2 bg-slate-200">
+                                            <div class="progress-fill bg-green-500" style="width: 60%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-high">Good</span>
+                                </td>
+                                <td>
+                                    <button class="text-slate-500 hover:text-primary-500 mr-2">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-slate-500 hover:text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="p-4 border-t border-slate-100 flex justify-between items-center">
+                    <p class="text-slate-500 text-sm">Showing 1 to 5 of 42 products</p>
+                    <div class="flex space-x-2">
+                        <button class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center">
+                            <i class="fas fa-chevron-left text-slate-500"></i>
+                        </button>
+                        <button class="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center">1</button>
+                        <button class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center">2</button>
+                        <button class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center">3</button>
+                        <button class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center">
+                            <i class="fas fa-chevron-right text-slate-500"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialize the inventory chart
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('inventoryChart').getContext('2d');
+            
+            // Sample data for the chart
+            const data = {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                datasets: [
+                    {
+                        label: 'Current Stock',
+                        data: [320, 350, 310, 380, 420, 400, 450],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Low Stock Threshold',
+                        data: [50, 50, 50, 50, 50, 50, 50],
+                        borderColor: '#f43f5e',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            };
+            
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            };
+            
+            const inventoryChart = new Chart(ctx, config);
+            
+            // Mobile menu toggle
+            const mobileMenuButton = document.querySelector('.mobile-menu-button');
+            const sidebar = document.querySelector('.sidebar');
+            
+            mobileMenuButton.addEventListener('click', function() {
+                sidebar.classList.toggle('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

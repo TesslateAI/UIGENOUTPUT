@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple To-Do List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #3B82F6; /* Blue-500 */
+            --color-primary-dark: #2563EB; /* Blue-600 */
+            --color-text-dark: #1E293B; /* Gray-800 */
+            --color-text-light: #F8FAFC; /* Gray-50 */
+            --color-bg-light: #F8FAFC; /* Gray-50 */
+            --color-bg-medium: #E2E8F0; /* Gray-200 */
+            --color-border: #E2E8F0; /* Gray-200 */
+            --color-task-bg: #FFFFFF;
+            --color-task-completed-bg: #E5E7EB; /* Gray-200 */
+            --color-task-completed-text: #94A3B8; /* Gray-400 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+        }
+
+        .task-item {
+            background-color: var(--color-task-bg);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .task-item.completed {
+            background-color: var(--color-task-completed-bg);
+            color: var(--color-task-completed-text);
+            text-decoration: line-through;
+        }
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+        }
+
+        .task-item button {
+            transition: background-color 0.2s ease-in-out;
+        }
+        .task-item button:hover {
+            background-color: var(--color-bg-medium);
+        }
+
+        .add-task-button {
+            background-color: var(--color-primary);
+            color: var(--color-text-light);
+            transition: background-color 0.2s ease-in-out;
+        }
+        .add-task-button:hover {
+            background-color: var(--color-primary-dark);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md bg-white rounded-lg shadow-xl p-6">
+        <h1 class="text-3xl font-bold text-center mb-6 text-[var(--color-text-dark)]">My To-Do List</h1>
+
+        <!-- Add Task Section -->
+        <div class="flex items-center space-x-2 mb-6">
+            <input type="text" id="new-task-input" placeholder="Add a new task..." 
+                   class="flex-grow p-3 border border-[var(--color-border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+            <button id="add-task-button" 
+                    class="add-task-button px-5 py-3 rounded-lg flex items-center justify-center text-lg">
+                <i class="fas fa-plus mr-2"></i> Add
+            </button>
+        </div>
+
+        <!-- Task List -->
+        <ul id="task-list" class="space-y-3">
+            <!-- Tasks will be dynamically added here -->
+        </ul>
+    </div>
+
+    <script>
+        const newTaskInput = document.getElementById('new-task-input');
+        const addTaskButton = document.getElementById('add-task-button');
+        const taskList = document.getElementById('task-list');
+
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function renderTasks() {
+            taskList.innerHTML = ''; // Clear existing tasks
+            tasks.forEach((task, index) => {
+                const taskItem = document.createElement('li');
+                taskItem.className = `task-item p-4 rounded-lg flex items-center justify-between relative ${task.completed ? 'completed' : ''}`;
+                taskItem.setAttribute('data-id', task.id);
+
+                taskItem.innerHTML = `
+                    <div class="flex items-center flex-grow">
+                        <input type="checkbox" class="toggle-task mr-3 h-5 w-5 text-[var(--color-primary)] rounded focus:ring-[var(--color-primary)]" ${task.completed ? 'checked' : ''}>
+                        <span class="task-text text-lg flex-grow ${task.completed ? 'line-through text-[var(--color-task-completed-text)]' : ''}">${task.text}</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="edit-task-button p-2 rounded-full text-[var(--color-text-dark)] hover:bg-[var(--color-bg-medium)]" aria-label="Edit task">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-task-button p-2 rounded-full text-red-500 hover:bg-red-100" aria-label="Delete task">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                `;
+
+                taskList.appendChild(taskItem);
+            });
+        }
+
+        function addTask() {
+            const taskText = newTaskInput.value.trim();
+            if (taskText) {
+                const newTask = {
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false
+                };
+                tasks.push(newTask);
+                saveTasks();
+                newTaskInput.value = '';
+                renderTasks();
+            }
+        }
+
+        function editTask(id) {
+            const taskIndex = tasks.findIndex(task => task.id === id);
+            if (taskIndex > -1) {
+                const currentText = tasks[taskIndex].text;
+                const newText = prompt('Edit your task:', currentText);
+                if (newText !== null && newText.trim() !== '') {
+                    tasks[taskIndex].text = newText.trim();
+                    saveTasks();
+                    renderTasks();
+                }
+            }
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            saveTasks();
+            renderTasks();
+        }
+
+        function toggleTaskStatus(id) {
+            const taskIndex = tasks.findIndex(task => task.id === id);
+            if (taskIndex > -1) {
+                tasks[taskIndex].completed = !tasks[taskIndex].completed;
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        // Event Listeners
+        addTaskButton.addEventListener('click', addTask);
+        newTaskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+
+        taskList.addEventListener('click', (e) => {
+            const taskId = parseInt(e.target.closest('.task-item')?.dataset.id);
+            if (!taskId) return;
+
+            if (e.target.classList.contains('delete-task-button')) {
+                deleteTask(taskId);
+            } else if (e.target.classList.contains('edit-task-button')) {
+                editTask(taskId);
+            } else if (e.target.classList.contains('toggle-task')) {
+                toggleTaskStatus(taskId);
+            }
+        });
+
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>

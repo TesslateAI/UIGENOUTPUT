@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Scheduler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        
+        .step-indicator {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #e2e8f0;
+            z-index: -1;
+        }
+        
+        .step-indicator {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            background-color: #e2e8f0;
+            color: #64748b;
+            transition: all 0.3s ease;
+        }
+        
+        .step-indicator.active {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .step-indicator.completed {
+            background-color: #14b8a6;
+            color: white;
+        }
+        
+        .time-slot {
+            transition: all 0.2s ease;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .time-slot:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #0ea5e9;
+        }
+        
+        .time-slot.selected {
+            background-color: #e0f2fe;
+            border-color: #0ea5e9;
+        }
+        
+        .time-slot {
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .time-slot:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #0ea5e9;
+        }
+        
+        .time-slot.selected {
+            background-color: #e0f2fe;
+            border-color: #0ea5e9;
+        }
+        
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            background-color: #e0f2fe;
+        }
+        
+        .calendar-day.selected {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .calendar-day {
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #0ea5e9;
+        }
+        
+        .calendar-day.selected {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .calendar-day {
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #0ea5e9;
+        }
+        
+        .calendar-day.selected {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .form-step {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .confirmation-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3">
+            <!-- Left Panel - Visual & Info -->
+            <div class="hidden lg:block bg-gradient-to-br from-primary-700 to-primary-900 text-white p-8">
+                <div class="h-full flex flex-col justify-between">
+                    <div>
+                        <div class="text-3xl font-bold mb-2">SchedulePro</div>
+                        <div class="text-primary-200 mb-8">Professional Appointment Scheduling</div>
+                        
+                        <div class="mt-12">
+                            <h3 class="text-xl font-semibold mb-4">Why Choose Us?</h3>
+                            <ul class="space-y-3">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-3 text-secondary-400"></i>
+                                    <span>Flexible scheduling options</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-3 text-secondary-400"></i>
+                                    <span>Real-time availability</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-3 text-secondary-400"></i>
+                                    <span>Secure and private</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle mt-1 mr-3 text-secondary-400"></i>
+                                    <span>24/7 customer support</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-auto pt-8 border-t border-primary-600">
+                        <div class="flex items-center">
+                            <div class="bg-primary-500 rounded-full p-3 mr-4">
+                                <i class="fas fa-headset text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm opacity-80">Need help?</div>
+                                <div class="font-semibold">+1 (555) 123-4567</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Form -->
+            <div class="lg:col-span-2 p-6 md:p-8">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Schedule Your Appointment</h1>
+                    <p class="text-gray-600">Select a date and time that works for you</p>
+                </div>
+                
+                <!-- Step Indicator -->
+                <div class="flex justify-between mb-10 step-indicator">
+                    <div class="flex flex-col items-center">
+                        <div class="step-indicator active">1</div>
+                        <div class="mt-2 text-sm font-medium text-gray-700">Personal Info</div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="step-indicator">2</div>
+                        <div class="mt-2 text-sm font-medium text-gray-700">Select Date</div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="step-indicator">3</div>
+                        <div class="mt-2 text-sm font-medium text-gray-700">Choose Time</div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="step-indicator">4</div>
+                        <div class="mt-2 text-sm font-medium text-gray-700">Confirmation</div>
+                    </div>
+                </div>
+                
+                <!-- Form Steps -->
+                <div id="form-container">
+                    <!-- Step 1: Personal Information -->
+                    <div id="step-1" class="form-step active">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-gray-700 mb-2" for="name">Full Name</label>
+                                <input type="text" id="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="John Doe">
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-gray-700 mb-2" for="email">Email Address</label>
+                                    <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="john@example.com">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 mb-2" for="phone">Phone Number</label>
+                                    <input type="tel" id="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="(123) 456-7890">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 mb-2" for="service">Service Type</label>
+                                <select id="service" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="">Select a service</option>
+                                    <option value="consultation">Initial Consultation</option>
+                                    <option value="followup">Follow-up Appointment</option>
+                                    <option value="checkup">Regular Checkup</option>
+                                    <option value="emergency">Emergency Visit</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 mb-2" for="notes">Additional Notes (Optional)</label>
+                                <textarea id="notes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Any special requests or information we should know?"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 flex justify-end">
+                            <button onclick="nextStep(2)" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
+                                Continue <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Date Selection -->
+                    <div id="step-2" class="form-step">
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Select a Date</h3>
+                            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div class="font-medium text-gray-700">June 2023</div>
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="grid grid-cols-7 gap-1 mb-2">
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Sun</div>
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Mon</div>
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Tue</div>
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Wed</div>
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Thu</div>
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Fri</div>
+                                    <div class="text-center text-gray-500 text-sm font-medium py-2">Sat</div>
+                                </div>
+                                
+                                <div class="grid grid-cols-7 gap-1">
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">28</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">29</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">30</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">31</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">1</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">2</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">3</div>
+                                    
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">4</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">5</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">6</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">7</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">8</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">9</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">10</div>
+                                    
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">11</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">12</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">13</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">14</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">15</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">16</div>
+                                    <div class="calendar-day selected text-center py-3 rounded-lg cursor-pointer">17</div>
+                                    
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">18</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">19</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">20</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">21</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">22</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">23</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">24</div>
+                                    
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">25</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">26</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">27</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">28</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">29</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">30</div>
+                                    <div class="calendar-day text-center py-3 rounded-lg cursor-pointer">1</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 flex justify-between">
+                            <button onclick="prevStep(1)" class="text-gray-600 hover:text-gray-800 font-medium py-3 px-6 rounded-lg border border-gray-300 transition duration-300">
+                                <i class="fas fa-arrow-left mr-2"></i> Back
+                            </button>
+                            <button onclick="nextStep(3)" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
+                                Continue <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Time Selection -->
+                    <div id="step-3" class="form-step">
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Select a Time Slot</h3>
+                            <p class="text-gray-600 mb-6">Available slots for <span class="font-medium">June 17, 2023</span></p>
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">9:00 AM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">10:00 AM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">11:00 AM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">12:00 PM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">1:00 PM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">2:00 PM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer selected">
+                                    <div class="font-medium">3:00 PM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">4:00 PM</div>
+                                    <div class="text-sm text-gray-500">15 min</div>
+                                </div>
+                                
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">9:30 AM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">10:30 AM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">11:30 AM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">12:30 PM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">1:30 PM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">2:30 PM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">3:30 PM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                                <div class="time-slot text-center py-4 rounded-lg cursor-pointer">
+                                    <div class="font-medium">4:30 PM</div>
+                                    <div class="text-sm text-gray-500">30 min</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 flex justify-between">
+                            <button onclick="prevStep(2)" class="text-gray-600 hover:text-gray-800 font-medium py-3 px-6 rounded-lg border border-gray-300 transition duration-300">
+                                <i class="fas fa-arrow-left mr-2"></i> Back
+                            </button>
+                            <button onclick="nextStep(4)" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
+                                Schedule Appointment <i class="fas fa-check ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Confirmation -->
+                    <div id="step-4" class="form-step">
+                        <div class="text-center py-8">
+                            <div class="w-20 h-20 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i class="fas fa-check text-3xl text-secondary-600"></i>
+                            </div>
+                            
+                            <h2 class="text-2xl font-bold text-gray-800 mb-3">Appointment Confirmed!</h2>
+                            <p class="text-gray-600 mb-6 max-w-md mx-auto">
+                                Your appointment has been successfully scheduled. We've sent a confirmation to your email.
+                            </p>
+                            
+                            <div class="confirmation-card rounded-xl p-6 max-w-md mx-auto mb-8">
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-600">Name</div>
+                                    <div class="font-medium">John Doe</div>
+                                </div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-600">Date & Time</div>
+                                    <div class="font-medium">June 17, 2023 at 3:00 PM</div>
+                                </div>
+                                <div class="flex justify-between items-center mb-4">
+                                    <div class="text-gray-600">Service</div>
+                                    <div class="font-medium">Initial Consultation</div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div class="text-gray-600">Location</div>
+                                    <div class="font-medium">123 Main St, Suite 100</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                                <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
+                                    View Details
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 font-medium py-3 px-6 rounded-lg border border-gray-300 transition duration-300">
+                                    Schedule Another
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function nextStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.form-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show current step
+            document.getElementById(`step-${step}`).classList.add('active');
+            
+            // Update step indicators
+            document.querySelectorAll('.step-indicator > div').forEach((el, index) => {
+                if (index < step - 1) {
+                    el.classList.add('completed');
+                    el.classList.remove('active');
+                } else if (index === step - 1) {
+                    el.classList.add('active');
+                    el.classList.remove('completed');
+                } else {
+                    el.classList.remove('active', 'completed');
+                }
+            });
+        }
+        
+        function prevStep(step) {
+            nextStep(step);
+        }
+        
+        // Add click handlers to time slots
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.addEventListener('click', function() {
+                document.querySelectorAll('.time-slot').forEach(s => {
+                    s.classList.remove('selected');
+                });
+                this.classList.add('selected');
+            });
+        });
+        
+        // Add click handlers to calendar days
+        document.querySelectorAll('.calendar-day').forEach(day => {
+            day.addEventListener('click', function() {
+                document.querySelectorAll('.calendar-day').forEach(d => {
+                    d.classList.remove('selected');
+                });
+                this.classList.add('selected');
+            });
+        });
+    </script>
+</body>
+</html>

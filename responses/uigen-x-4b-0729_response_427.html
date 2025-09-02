@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Insights Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        dark: {
+                            50: '#f8fafa',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8faf9;
+            color: #1e293b;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: 70px 1fr;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+        }
+        
+        .header {
+            grid-area: header;
+        }
+        
+        .main {
+            grid-area: main;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            transform: translateY(-2px);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 10px 0;
+            color: #0ea5e9;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        
+        .metric-change {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+        
+        .positive {
+            color: #10b981;
+        }
+        
+        .negative {
+            color: #ef4444;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: #e0f2fe;
+            color: #0ea5e9;
+        }
+        
+        .nav-link i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .search-bar {
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-bar input {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+            margin-left: 10px;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0ea5e9, #0d9488);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+        
+        .chart-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1e293b;
+        }
+        
+        .chart-subtitle {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+        
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        
+        .grid-cols-6 {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+        
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+        
+        @media (max-width: 1024px) {
+            .grid-cols-6 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "header"
+                    "main";
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .grid-cols-6, .grid-cols-4, .grid-cols-3, .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar bg-white border-r border-gray-200 p-6">
+            <div class="flex items-center mb-10">
+                <div class="bg-primary-500 w-10 h-10 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold ml-3 text-gray-800">DataInsights</h1>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" class="nav-link active">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>Users</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Sales</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Help Center</span>
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-10">
+                <div class="bg-primary-50 rounded-xl p-4">
+                    <h3 class="font-medium text-primary-800 mb-2">Need help?</h3>
+                    <p class="text-sm text-primary-600 mb-3">Our support team is here to help you</p>
+                    <button class="w-full bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition">
+                        Contact Support
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header bg-white border-b border-gray-200 px-6 flex items-center justify-between">
+            <div class="flex items-center">
+                <button class="mobile-menu-button mr-4 lg:hidden">
+                    <i class="fas fa-bars text-xl text-gray-600"></i>
+                </button>
+                <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <div class="search-bar">
+                        <i class="fas fa-search text-gray-400"></i>
+                        <input type="text" placeholder="Search...">
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-gray-100">
+                        <i class="fas fa-bell text-gray-600"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                </div>
+                
+                <div class="user-menu">
+                    <div class="relative">
+                        <button class="flex items-center">
+                            <div class="user-avatar">JD</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main p-6 overflow-auto">
+            <!-- Metrics Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="card metric-card">
+                    <i class="fas fa-users text-primary-500 text-2xl"></i>
+                    <div class="metric-value">12,458</div>
+                    <div class="metric-label">Total Users</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up mr-1"></i> 12.3% from last month
+                    </div>
+                </div>
+                
+                <div class="card metric-card">
+                    <i class="fas fa-shopping-cart text-secondary-500 text-2xl"></i>
+                    <div class="metric-value">$42,890</div>
+                    <div class="metric-label">Total Revenue</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up mr-1"></i> 8.2% from last month
+                    </div>
+                </div>
+                
+                <div class="card metric-card">
+                    <i class="fas fa-chart-line text-amber-500 text-2xl"></i>
+                    <div class="metric-value">4,210</div>
+                    <div class="metric-label">New Orders</div>
+                    <div class="metric-change negative">
+                        <i class="fas fa-arrow-down mr-1"></i> 3.1% from last month
+                    </div>
+                </div>
+                
+                <div class="card metric-card">
+                    <i class="fas fa-percentage text-purple-500 text-2xl"></i>
+                    <div class="metric-value">78.2%</div>
+                    <div class="metric-label">Conversion Rate</div>
+                    <div class="metric-change positive">
+                        <i class="fas fa-arrow-up mr-1"></i> 2.5% from last month
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Revenue Chart -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="chart-title">Revenue Overview</h3>
+                            <p class="chart-subtitle">Last 30 days performance</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="text-xs px-3 py-1 rounded-lg bg-primary-50 text-primary-600 font-medium">Monthly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-gray-100 text-gray-600 font-medium">Quarterly</button>
+                            <button class="text-xs px-3 py-1 rounded-lg bg-gray-100 text-gray-600 font-medium">Yearly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- User Acquisition -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="chart-title">User Acquisition</h3>
+                            <p class="chart-subtitle">By channel and source</p>
+                        </div>
+                        <div class="text-sm text-gray-500">Updated 2 hours ago</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="acquisitionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Traffic Sources -->
+                <div class="card p-6 lg:col-span-1">
+                    <h3 class="chart-title mb-6">Traffic Sources</h3>
+                    <div class="chart-container">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Regional Sales -->
+                <div class="card p-6 lg:col-span-2">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="chart-title">Regional Sales</h3>
+                            <p class="chart-subtitle">Revenue by continent</p>
+                        </div>
+                        <div class="relative">
+                            <select class="bg-white border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                <option>Last 7 days</option>
+                                <option>Last 30 days</option>
+                                <option>Last 90 days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="regionalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="card p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="chart-title">Recent Activity</h3>
+                    <button class="text-sm text-primary-600 font-medium flex items-center">
+                        View All <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-500 text-sm border-b">
+                                <th class="pb-3">User</th>
+                                <th class="pb-3">Action</th>
+                                <th class="pb-3">Date</th>
+                                <th class="pb-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium mr-3">JD</div>
+                                        <div>
+                                            <div class="font-medium">John Doe</div>
+                                            <div class="text-sm text-gray-500">john@example.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">Completed purchase</td>
+                                <td class="py-4">Oct 12, 2023</td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Completed</span>
+                                </td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-medium mr-3">AS</div>
+                                        <div>
+                                            <div class="font-medium">Alex Smith</div>
+                                            <div class="text-sm text-gray-500">alex@example.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">Subscription upgrade</td>
+                                <td class="py-4">Oct 11, 2023</td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Completed</span>
+                                </td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-medium mr-3">MJ</div>
+                                        <div>
+                                            <div class="font-medium">Maria Johnson</div>
+                                            <div class="text-sm text-gray-500">maria@example.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">New user registration</td>
+                                <td class="py-4">Oct 10, 2023</td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Completed</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-medium mr-3">RW</div>
+                                        <div>
+                                            <div class="font-medium">Robert Williams</div>
+                                            <div class="text-sm text-gray-500">robert@example.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4">Payment failed</td>
+                                <td class="py-4">Oct 9, 2023</td>
+                                <td class="py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">Failed</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Revenue Chart (Line)
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [12000, 19000, 15000, 18000, 22000, 25000, 28000, 26000, 30000, 32000],
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Acquisition Chart (Bar)
+            const acquisitionCtx = document.getElementById('acquisitionChart').getContext('2d');
+            const acquisitionChart = new Chart(acquisitionCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Direct', 'Social', 'Referral', 'Email', 'Organic'],
+                    datasets: [{
+                        label: 'Users',
+                        data: [1200, 800, 1500, 600, 2200],
+                        backgroundColor: [
+                            'rgba(14, 165, 233, 0.7)',
+                            'rgba(20, 184, 166, 0.7)',
+                            'rgba(139, 92, 246, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(236, 72, 153, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(14, 165, 233, 1)',
+                            'rgba(20, 184, 166, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(236, 72, 153, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Traffic Chart (Doughnut)
+            const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+            const trafficChart = new Chart(trafficCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Direct', 'Social', 'Referral', 'Email', 'Organic'],
+                    datasets: [{
+                        data: [35, 20, 15, 10, 20],
+                        backgroundColor: [
+                            '#0ea5e9',
+                            '#14b8a6',
+                            '#8b5cf6',
+                            '#f59e0b',
+                            '#ec4899'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Regional Chart (Bar)
+            const regionalCtx = document.getElementById('regionalChart').getContext('2d');
+            const regionalChart = new Chart(regionalCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['North America', 'Europe', 'Asia', 'South America', 'Africa', 'Oceania'],
+                    datasets: [{
+                        label: 'Revenue (in thousands)',
+                        data: [125, 98, 76, 45, 28, 15],
+                        backgroundColor: '#0ea5e9',
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value + 'k';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Mobile menu toggle
+            const mobileMenuButton = document.querySelector('.mobile-menu-button');
+            const sidebar = document.querySelector('.sidebar');
+            
+            mobileMenuButton.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+                sidebar.classList.toggle('block');
+                sidebar.classList.toggle('absolute');
+                sidebar.classList.toggle('z-50');
+                sidebar.classList.toggle('inset-y-0');
+                sidebar.classList.toggle('left-0');
+                sidebar.classList.toggle('w-64');
+            });
+        });
+    </script>
+</body>
+</html>

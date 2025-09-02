@@ -1,0 +1,4221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --twitter-blue: #1DA1F2;
+            --twitter-light-gray: #E1E8ED;
+            --twitter-dark-gray: #657786;
+            --twitter-extra-dark-gray: #A0AEC0;
+            --twitter-white: #FFFFFF;
+            --twitter-border: #E1E8ED;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--twitter-light-gray);
+            color: var(--twitter-dark-gray);
+            display: flex;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll, layout will handle it */
+        }
+
+        .twitter-container {
+            display: grid;
+            grid-template-columns: 280px 1fr; /* Left sidebar, main content */
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .left-sidebar {
+            background-color: var(--twitter-white);
+            border-right: 1px solid var(--twitter-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allow scrolling for tweets */
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allow scrolling for timeline */
+            flex-grow: 1; /* Take remaining space */
+        }
+
+        .top-bar {
+            background-color: var(--twitter-white);
+            border-bottom: 1px solid var(--twitter-border);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .timeline {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto; /* Ensure timeline content is scrollable */
+        }
+
+        .tweet-card {
+            background-color: var(--twitter-white);
+            border-bottom: 1px solid var(--twitter-border);
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+            display: flex;
+        }
+
+        .tweet-card:hover {
+            background-color: #F8F9FA;
+        }
+
+        .tweet-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.5rem;
+        }
+
+        .tweet-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--twitter-light-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--twitter-dark-gray);
+        }
+
+        .tweet-header {
+            display: flex;
+            align-items: center;
+            margin-right: 1rem;
+        }
+
+        .tweet-text {
+            flex-grow: 1;
+            margin-right: 1rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            color: var(--twitter-dark-gray);
+        }
+
+        .tweet-timestamp {
+            font-size: 0.75rem;
+            color: var(--twitter-extra-dark-gray);
+            margin-left: 0.5rem;
+        }
+
+        .tweet-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+            display: block; /* Remove extra space below */
+        }
+
+        .tweet-reply-cta {
+            font-size: 0.875rem;
+            color: var(--twitter-blue);
+            cursor: pointer;
+            position: absolute;
+            top: 0.75rem;
+            left: 1rem;
+            z-index: 10;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--twitter-white);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--twitter-dark-gray);
+            cursor: pointer;
+        }
+
+        .tweet-detail-modal {
+            background-color: var(--twitter-white);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .tweet-detail-modal.active .tweet-detail-modal {
+            transform: translateY(0);
+        }
+
+        .profile-view {
+            background-color: var(--twitter-white);
+            border-bottom: 1px solid var(--twitter-border);
+            padding: 1.5rem 1rem;
+            overflow-y: auto;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: var(--twitter-light-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            border: 3px solid var(--twitter-blue);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-header-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--twitter-light-gray);
+            margin-right: 0.75rem;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1.5rem;
+        }
+
+        .profile-stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .profile-stat-count {
+            font-weight: 600;
+            color: var(--twitter-dark-gray);
+            margin-bottom: 0.25rem;
+        }
+
+        .profile-stat-label {
+            font-size: 0.75rem;
+            color: var(--twitter-extra-dark-gray);
+        }
+
+        .profile-tweets, .profile-followers, .profile-following {
+            text-align: center;
+        }
+
+        .profile-tweets button, .profile-followers button, .profile-following button {
+            background-color: var(--twitter-blue);
+            color: var(--twitter-white);
+            padding: 0.5rem 1rem;
+            border-radius: 24px;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
+
+        .profile-tweets button:hover, .profile-followers button:hover, .profile-following button:hover {
+            background-color: #1A93D2;
+        }
+
+        .profile-followers button, .profile-following button {
+            background-color: var(--twitter-light-gray);
+            color: var(--twitter-dark-gray);
+        }
+
+        .profile-followers button:hover, .profile-following button:hover {
+            background-color: #E1E8ED;
+        }
+
+        .profile-followers button i, .profile-following button i {
+            margin-left: 0.5rem;
+        }
+
+        .profile-followers button i {
+            color: var(--twitter-blue);
+        }
+
+        .profile-following button i {
+            color: var(--twitter-extra-dark-gray);
+        }
+
+        .profile-following button:hover i {
+            color: var(--twitter-blue);
+        }
+
+        .profile-followers button i:hover, .profile-following button i:hover {
+            color: var(--twitter-blue);
+        }
+
+        .profile-tweets button i, .profile-followers button i, .profile-following button i {
+            transition: transform 0.2s ease;
+        }
+
+        .profile-tweets button:hover i, .profile-followers button:hover i, .profile-following button:hover i {
+            transform: rotate(180deg);
+        }
+
+        .profile-tweets button i, .profile-following button i {
+            transform: rotate(180deg);
+        }
+
+        .profile-tweets button i:hover, .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-followers button i:hover, .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-followers button i {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(00deg);
+        }
+
+        .profile-following button i:hover {
+            transform: rotate(0deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="twitter-container">
+        <!-- Left Sidebar -->
+        <div class="left-sidebar">
+            <div class="p-4 flex items-center">
+                <i class="fab fa-twitter text-3xl text-blue-500"></i>
+            </div>
+            <nav class="mt-4 text-left">
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-home text-xl mr-4"></i>
+                    <span class="font-semibold">Home</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-search text-xl mr-4"></i>
+                    <span class="font-semibold">Explore</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-bell text-xl mr-4"></i>
+                    <span class="font-semibold">Notifications</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-envelope text-xl mr-4"></i>
+                    <span class="font-semibold">Messages</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-bookmark text-xl mr-4"></i>
+                    <span class="font-semibold">Bookmarks</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-list text-xl mr-4"></i>
+                    <span class="font-semibold">Lists</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-user text-xl mr-4"></i>
+                    <span class="font-semibold">Profile</span>
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-full hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-ellipsis-h text-xl mr-4"></i>
+                    <span class="font-semibold">More</span>
+                </a>
+            </nav>
+            <div class="mt-auto p-4">
+                <div class="flex items-center">
+                    <img src="https://placehold.co/48x48/A0AEC0/657786?text=U" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                    <div>
+                        <p class="font-semibold">John Doe</p>
+                        <p class="text-xs">@johndoe</p>
+                    </div>
+                    <button class="ml-auto text-blue-500 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+                <button class="w-full mt-4 py-2 bg-blue-500 text-white rounded-full font-bold text-sm hover:bg-blue-600 transition-colors">
+                    Tweet
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <button class="text-gray-600 hover:bg-gray-200 rounded-full p-2">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h1 class="text-xl font-bold">Home</h1>
+                <button class="text-gray-600 hover:bg-gray-200 rounded-full p-2">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Tweet Composer -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-start">
+                    <img src="https://placehold.co/48x48/A0AEC0/657786?text=U" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                    <div class="flex-grow">
+                        <textarea class="w-full bg-white border border-gray-200 rounded-lg p-2 text-lg resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" rows="3" placeholder="What's happening?"></textarea>
+                        <div class="flex justify-between items-center mt-2">
+                            <div class="flex space-x-2 text-blue-500">
+                                <i class="fas fa-image"></i>
+                                <i class="fas fa-poll"></i>
+                                <i class="fas fa-smile"></i>
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <button class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 transition-colors">
+                                Tweet
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="timeline">
+                <!-- Tweet 1 -->
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <img src="https://placehold.co/40x40/1DA1F2/FFFFFF?text=A" alt="Avatar" class="tweet-avatar">
+                        <div>
+                            <p class="font-bold">Alice Smith</p>
+                            <p class="text-xs">@alicesmith</p>
+                        </div>
+                    </div>
+                    <p class="tweet-text">Just launched my new blog! Check it out and let me know what you think. #webdev #blogging</p>
+                    <div class="tweet-actions">
+                        <button class="flex items-center text-blue-500 hover:text-blue-600 transition-colors">
+                            <i class="far fa-comment text-lg mr-2"></i>
+                            <span>25</span>
+                        </button>
+                        <button class="flex items-center text-gray-500 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-retweet text-lg mr-2"></i>
+                            <span>120</span>
+                        </button>
+                        <button class="flex items-center text-red-500 hover:text-red-600 transition-colors">
+                            <i class="far fa-heart text-lg mr-2"></i>
+                            <span>450</span>
+                        </button>
+                        <button class="flex items-center text-gray-500 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-share-alt text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="tweet-timestamp">2h</div>
+                </div>
+
+                <!-- Tweet 2 -->
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <img src="https://placehold.co/40x40/1DA1F2/FFFFFF?text=B" alt="Avatar" class="tweet-avatar">
+                        <div>
+                            <p class="font-bold">Bob Johnson</p>
+                            <p class="text-xs">@bobjohnson</p>
+                        </div>
+                    </div>
+                    <p class="tweet-text">Loving the new features in my favorite coding platform. So much productivity! 🚀</p>
+                    <img src="https://placehold.co/600x300/4A4A4A/FFFFFF?text=Productivity+Image" alt="Tweet Image" class="tweet-image">
+                    <div class="tweet-actions">
+                        <button class="flex items-center text-blue-500 hover:text-blue-600 transition-colors">
+                            <i class="far fa-comment text-lg mr-2"></i>
+                            <span>15</span>
+                        </button>
+                        <button class="flex items-center text-gray-500 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-retweet text-lg mr-2"></i>
+                            <span>80</span>
+                        </button>
+                        <button class="flex items-center text-red-500 hover:text-red-600 transition-colors">
+                            <i class="far fa-heart text-lg mr-2"></i>
+                            <span>320</span>
+                        </button>
+                        <button class="flex items-center text-gray-500 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-share-alt text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="tweet-timestamp">4h</div>
+                </div>
+
+                <!-- Tweet 3 -->
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <img src="https://placehold.co/40x40/1DA1F2/FFFFFF?text=C" alt="Avatar" class="tweet-avatar">
+                        <div>
+                            <p class="font-bold">Charlie Brown</p>
+                            <p class="text-xs">@charliebrown</p>
+                        </div>
+                    </div>
+                    <p class="tweet-text">Excited about the upcoming tech conference! Can't wait to learn and connect. #tech #conferences</p>
+                    <div class="tweet-actions">
+                        <button class="flex items-center text-blue-500 hover:text-blue-600 transition-colors">
+                            <i class="far fa-comment text-lg mr-2"></i>
+                            <span>30</span>
+                        </button>
+                        <button class="flex items-center text-gray-500 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-retweet text-lg mr-2"></i>
+                            <span>180</span>
+                        </button>
+                        <button class="flex items-center text-red-500 hover:text-red-600 transition-colors">
+                            <i class="far fa-heart text-lg mr-2"></i>
+                            <span>700</span>
+                        </button>
+                        <button class="flex items-center text-gray-500 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-share-alt text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="tweet-timestamp">1d</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tweet Detail Modal -->
+    <div id="tweetDetailModal" class="tweet-detail-modal">
+        <button class="close-button" aria-label="Close Tweet Detail">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="flex items-center mb-4">
+            <img src="https://placehold.co/40x40/1DA1F2/FFFFFF?text=A" alt="Tweet Avatar" class="w-10 h-10 rounded-full mr-3">
+            <div>
+                <p class="font-bold">Alice Smith</p>
+                <p class="text-xs">@alicesmith</p>
+            </div>
+        </div>
+        <div class="tweet-text mb-4">
+            Just launched my new blog! Check it out and let me know what you think. #webdev #blogging
+        </div>
+        <img src="https://placehold.co/600x300/4A4A4A/FFFFFF?text=Blog+Launch" alt="Tweet Image" class="tweet-image">
+        <div class="flex justify-between items-center text-sm text-gray-600 mt-4">
+            <div class="flex items-center space-x-4">
+                <button class="flex items-center hover:bg-gray-100 p-2 rounded-full">
+                    <i class="far fa-comment"></i>
+                </button>
+                <button class="flex items-center hover:bg-gray-100 p-2 rounded-full">
+                    <i class="fas fa-retweet"></i>
+                </button>
+                <button class="flex items-center hover:bg-gray-100 p-2 rounded-full">
+                    <i class="far fa-heart"></i>
+                </button>
+                <button class="flex items-center hover:bg-gray-100 p-2 rounded-full">
+                    <i class="fas fa-share"></i>
+                </button>
+            </div>
+            <p>2h · 120 Retweets</p>
+        </div>
+    </div>
+
+    <!-- Compose Tweet Dialog -->
+    <div id="composeTweetModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-button" aria-label="Close Compose Tweet">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="flex items-center mb-4">
+                <img src="https://placehold.co/48x48/A0AEC0/657786?text=U" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
+                <div>
+                    <p class="font-bold">John Doe</p>
+                    <p class="text-xs">@johndoe</p>
+                </div>
+            </div>
+            <textarea class="w-full bg-white border border-gray-200 rounded-lg p-2 text-lg resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" rows="5" placeholder="What's happening?"></textarea>
+            <div class="flex justify-between items-center mt-4">
+                <div class="flex space-x-2 text-blue-500">
+                    <i class="fas fa-image"></i>
+                    <i class="fas fa-poll"></i>
+                    <i class="fas fa-smile"></i>
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <button class="bg-blue-500 text-white font-bold py-2 px-4 rounded-full hover:bg-blue-600 transition-colors">
+                    Tweet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile View (Example: User Profile) -->
+    <div class="profile-view">
+        <div class="flex items-center mb-6">
+            <img src="https://placehold.co/120x120/A0AEC0/657786?text=U" alt="Profile Avatar" class="profile-avatar">
+            <div>
+                <p class="font-bold">Jane Doe</p>
+                <p class="text-xs">@janedoe</p>
+            </div>
+            <button class="ml-auto text-blue-500 hover:text-blue-600 transition-colors">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
+        <div class="flex items-center text-blue-500 mb-4">
+            <i class="fas fa-user-circle mr-2"></i>
+            <span class="font-bold">Follow</span>
+        </div>
+        <div class="flex items-center text-gray-500 mb-4">
+            <i class="fas fa-ellipsis-h"></i>
+        </div>
+
+        <div class="profile-stats">
+            <div class="profile-stat-item">
+                <p class="profile-stat-count">1,234</p>
+                <p class="profile-stat-label">Tweets</p>
+            </div>
+            <div class="profile-stat-item">
+                <p class="profile-stat-count">56,789</p>
+                <p class="profile-stat-label">Followers</p>
+            </div>
+            <div class="profile-stat-item">
+                <p class="profile-stat-count">1,234</p>
+                <p class="profile-stat-label">Following</p>
+            </div>
+        </div>
+
+        <div class="mt-6">
+            <h3 class="font-bold text-lg mb-2">About</h3>
+            <p class="text-sm">Passionate web developer with 5+ years of experience building intuitive and accessible digital products. Always learning and sharing knowledge.</p>
+            <div class="flex items-center text-blue-500 mt-2">
+                <i class="fas fa-link mr-2"></i>
+                <a href="#" class="hover:underline">jane.dev</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const openTweetDetail = (tweetCard) => {
+                const modal = document.getElementById('tweetDetailModal');
+                modal.classList.add('active');
+                // Optional: Scroll to top of modal
+                modal.style.transform = 'translateY(-100px)';
+                setTimeout(() => {
+                    modal.style.transform = 'translateY(0)';
+                }, 10);
+            };
+
+            const closeTweetDetail = () => {
+                const modal = document.getElementById('tweetDetailModal');
+                modal.classList.remove('active');
+                setTimeout(() => {
+                    modal.style.transform = 'translateY(100px)';
+                }, 300);
+            };
+
+            const openComposeTweet = () => {
+                const modal = document.getElementById('composeTweetModal');
+                modal.classList.add('active');
+                // Optional: Scroll to top of modal
+                modal.style.transform = 'translateY(-100px)';
+                setTimeout(() => {
+                    modal.style.transform = 'translateY(0)';
+                }, 10);
+            };
+
+            const closeComposeTweet = () => {
+                const modal = document.getElementById('composeTweetModal');
+                modal.classList.remove('active');
+                setTimeout(() => {
+                    modal.style.transform = 'translateY(100px)';
+                }, 300);
+            };
+
+            // Event Delegation for Tweet Detail
+            document.querySelector('.timeline').addEventListener('click', (event) => {
+                if (event.target.closest('.tweet-card') && !event.target.closest('.tweet-avatar, .tweet-text, .tweet-timestamp, .tweet-actions button, .tweet-header button')) {
+                    // Check if the click was not on the avatar, text, timestamp, or action buttons
+                    const tweetCard = event.target.closest('.tweet-card');
+                    if (tweetCard) {
+                        openTweetDetail(tweetCard);
+                    }
+                }
+            });
+
+            // Event Delegation for Compose Tweet (e.g., from the main tweet composer)
+            document.querySelector('.main-content').addEventListener('click', (event) => {
+                if (event.target.closest('.tweet-card') && !event.target.closest('.tweet-avatar, .tweet-text, .tweet-timestamp, .tweet-actions button, .tweet-header button')) {
+                    // Check if the click was not on the avatar, text, timestamp, or action buttons
+                    const tweetCard = event.target.closest('.tweet-card');
+                    if (tweetCard) {
+                        openTweetDetail(tweetCard);
+                    }
+                }
+            });
+
+            // Close buttons for modals
+            document.querySelectorAll('.modal-overlay .close-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    if (event.target.closest('#tweetDetailModal')) {
+                        closeTweetDetail();
+                    } else if (event.target.closest('#composeTweetModal')) {
+                        closeComposeTweet();
+                    }
+                });
+            });
+
+            // Close modals on outside click
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        if (modal.id === 'tweetDetailModal') {
+                            closeTweetDetail();
+                        } else if (modal.id === 'composeTweetModal') {
+                            closeComposeTweet();
+                        }
+                    }
+                });
+            });
+
+            // Example: Open compose tweet from the main composer button
+            document.querySelector('.main-content .compose-tweet-button').addEventListener('click', openComposeTweet);
+        });
+    </script>
+</body>
+</html>

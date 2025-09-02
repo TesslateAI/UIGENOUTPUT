@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryWeaver | Collaborative Writing Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#f97316',
+                        accent: '#8b5cf6',
+                        dark: '#1e293b',
+                        light: '#f8fafc',
+                        card: '#ffffff',
+                        border: '#e2e8f0'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                        playfair: ['Playfair Display', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-secondary: #f97316;
+            --color-accent: #8b5cf6;
+            --color-dark: #1e293b;
+            --color-light: #f8fafc;
+            --color-card: #ffffff;
+            --color-border: #e2e8f0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-light);
+            color: var(--color-dark);
+            overflow-x: hidden;
+        }
+        
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .text-gradient {
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero-bg {
+            background: radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0) 60%);
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .collaboration-demo {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .collaboration-demo::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            z-index: 0;
+        }
+        
+        .author-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .scroll-animate.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .pricing-card {
+            transition: all 0.3s ease;
+            border: 1px solid var(--color-border);
+        }
+        
+        .pricing-card:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-5px);
+        }
+        
+        .pricing-card.featured {
+            border: 2px solid var(--color-primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pricing-card.featured::before {
+            content: "POPULAR";
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--color-primary);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 1.5rem;
+            transform: translate(30%, -30%);
+            transform-origin: top right;
+            width: 150px;
+        }
+        
+        .cta-button {
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            transition: all 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+        }
+        
+        .testimonial-card {
+            background: linear-gradient(145deg, #ffffff, #f1f5f9);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .faq-item {
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .faq-question {
+            background: var(--color-card);
+            transition: all 0.3s ease;
+        }
+        
+        .faq-question:hover {
+            background: #f1f5f9;
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+        }
+        
+        .typewriter-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1em;
+            background-color: var(--color-primary);
+            animation: blink 1s step-end infinite;
+            margin-left: 2px;
+            vertical-align: text-bottom;
+        }
+        
+        @keyframes blink {
+            from, to { background-color: transparent; }
+            50% { background-color: var(--color-primary); }
+        }
+        
+        .typing-effect {
+            overflow: hidden;
+            border-right: .15em solid var(--color-primary);
+            white-space: nowrap;
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--color-primary); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm py-4 shadow-sm transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center space-x-2">
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                            <i class="fas fa-pen-nib text-white text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-dark font-playfair">StoryWeaver</span>
+                    </a>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-dark hover:text-primary transition-colors">Features</a>
+                    <a href="#testimonials" class="text-dark hover:text-primary transition-colors">Testimonials</a>
+                    <a href="#pricing" class="text-dark hover:text-primary transition-colors">Pricing</a>
+                    <a href="#faq" class="text-dark hover:text-primary transition-colors">FAQ</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="hidden md:block text-dark hover:text-primary transition-colors font-medium">Sign In</a>
+                    <a href="#pricing" class="cta-button px-5 py-2.5 rounded-full text-white font-medium shadow-md">Get Started</a>
+                    
+                    <button class="md:hidden text-dark">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4 hero-bg">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="scroll-animate">
+                    <div class="inline-block bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+                        Collaborative Writing Reimagined
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-dark mb-6 leading-tight">
+                        Write <span class="text-gradient">Together</span> Without Limits
+                    </h1>
+                    <p class="text-lg text-slate-600 mb-8 max-w-2xl">
+                        StoryWeaver brings your team and co-authors into a seamless writing environment. Real-time collaboration, beautiful editing, and project management in one powerful platform.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="#pricing" class="cta-button px-8 py-3.5 rounded-full text-white font-medium text-center shadow-lg">
+                            Get Premium Account
+                        </a>
+                        <a href="#features" class="px-8 py-3.5 rounded-full border-2 border-primary text-primary font-medium text-center hover:bg-primary/10 transition-colors">
+                            Explore Features
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="scroll-animate" style="transition-delay: 0.2s;">
+                    <div class="collaboration-demo rounded-2xl overflow-hidden shadow-xl">
+                        <div class="bg-gradient-to-r from-primary to-accent p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="author-avatar bg-white text-primary mr-2">JD</div>
+                                <div class="author-avatar bg-accent text-white mr-2">MP</div>
+                                <div class="author-avatar bg-secondary text-white">AR</div>
+                            </div>
+                            <div class="bg-white/80 rounded-lg p-4">
+                                <div class="font-mono text-sm h-40 overflow-y-auto mb-2">
+                                    <p class="mb-2">Chapter 3: The Meeting</p>
+                                    <p class="mb-2">They gathered in the dimly lit room, the sound of rain echoing against the windows...</p>
+                                    <p class="mb-2">Sarah paused, her pen hovering over the page. "What if we made the meeting happen earlier?"</p>
+                                    <p class="mb-2">Michael nodded. "I think that would create more tension. The longer they wait, the more...</p>
+                                    <p class="mb-2">Alex raised her hand. "I have an idea. What if the rain stops just as they decide to leave?"</p>
+                                    <p class="mb-2">...</p>
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-500">
+                                    <span>Line 42</span>
+                                    <span>3 collaborators</span>
+                                    <span>Last edited: Now</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16 scroll-animate">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Powerful Collaboration Tools</h2>
+                <p class="text-lg text-slate-600">
+                    Everything you need to create amazing stories together with your team
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="feature-card bg-card rounded-2xl p-6 scroll-animate">
+                    <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
+                        <i class="fas fa-brain text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Real-Time Collaboration</h3>
+                    <p class="text-slate-600 mb-4">
+                        See changes as they happen with live editing capabilities and presence indicators.
+                    </p>
+                    <a href="#" class="text-primary font-medium flex items-center">
+                        Learn more
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card bg-card rounded-2xl p-6 scroll-animate" style="transition-delay: 0.1s;">
+                    <div class="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center mb-6">
+                        <i class="fas fa-history text-accent text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Version History</h3>
+                    <p class="text-slate-600 mb-4">
+                        Never lose progress with automatic backups and unlimited version history.
+                    </p>
+                    <a href="#" class="text-primary font-medium flex items-center">
+                        Learn more
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card bg-card rounded-2xl p-6 scroll-animate" style="transition-delay: 0.2s;">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/10 flex items-center justify-center mb-6">
+                        <i class="fas fa-users text-secondary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Team Management</h3>
+                    <p class="text-slate-600 mb-4">
+                        Invite collaborators, set permissions, and manage projects with ease.
+                    </p>
+                    <a href="#" class="text-primary font-medium flex items-center">
+                        Learn more
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card bg-card rounded-2xl p-6 scroll-animate" style="transition-delay: 0.3s;">
+                    <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
+                        <i class="fas fa-cloud text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Cloud Sync</h3>
+                    <p class="text-slate-600 mb-4">
+                        Access your work from any device with seamless cloud synchronization.
+                    </p>
+                    <a href="#" class="text-primary font-medium flex items-center">
+                        Learn more
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card bg-card rounded-2xl p-6 scroll-animate" style="transition-delay: 0.4s;">
+                    <div class="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center mb-6">
+                        <i class="fas fa-palette text-accent text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Custom Themes</h3>
+                    <p class="text-slate-600 mb-4">
+                        Personalize your writing environment with custom color schemes and layouts.
+                    </p>
+                    <a href="#" class="text-primary font-medium flex items-center">
+                        Learn more
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+                
+                <div class="feature-card bg-card rounded-2xl p-6 scroll-animate" style="transition-delay: 0.5s;">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/10 flex items-center justify-center mb-6">
+                        <i class="fas fa-bell text-secondary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-dark mb-3">Smart Notifications</h3>
+                    <p class="text-slate-600 mb-4">
+                        Get notified about important updates without distracting from your writing.
+                    </p>
+                    <a href="#" class="text-primary font-medium flex items-center">
+                        Learn more
+                        <i class="fas fa-arrow-right ml-2 text-sm"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="py-20 bg-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16 scroll-animate">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Trusted by Creative Teams</h2>
+                <p class="text-lg text-slate-600">
+                    Join thousands of authors who have transformed their collaborative writing
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="testimonial-card p-8 scroll-animate">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mr-4">SJ</div>
+                        <div>
+                            <h4 class="font-bold text-dark">Sarah Johnson</h4>
+                            <p class="text-slate-600 text-sm">Bestselling Author</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-700 mb-4">
+                        "StoryWeaver has completely changed how our team collaborates. The real-time editing is flawless and the interface is incredibly intuitive."
+                    </p>
+                    <div class="flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card p-8 scroll-animate" style="transition-delay: 0.1s;">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold mr-4">MR</div>
+                        <div>
+                            <h4 class="font-bold text-dark">Michael Rodriguez</h4>
+                            <p class="text-slate-600 text-sm">Screenplay Writer</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-700 mb-4">
+                        "The version history feature saved us countless hours. We can experiment without fear of losing our work, and the collaboration tools keep everyone aligned."
+                    </p>
+                    <div class="flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card p-8 scroll-animate" style="transition-delay: 0.2s;">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center text-secondary font-bold mr-4">ET</div>
+                        <div>
+                            <h4 class="font-bold text-dark">Emma Thompson</h4>
+                            <p class="text-slate-600 text-sm">Novel Author</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-700 mb-4">
+                        "I've tried many collaboration tools, but nothing comes close to StoryWeaver. The distraction-free writing environment combined with powerful collaboration features is game-changing."
+                    </p>
+                    <div class="flex text-yellow-400">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16 scroll-animate">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Simple, Transparent Pricing</h2>
+                <p class="text-lg text-slate-600">
+                    Choose the plan that works best for your writing team
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div class="pricing-card bg-card rounded-2xl p-8 scroll-animate">
+                    <h3 class="text-2xl font-bold text-dark mb-2">Starter</h3>
+                    <p class="text-slate-600 mb-6">Perfect for individual writers</p>
+                    <div class="mb-8">
+                        <span class="text-4xl font-bold text-dark">$0</span>
+                        <span class="text-slate-600">/month</span>
+                    </div>
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Up to 3 collaborators</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Basic version history</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>1GB cloud storage</span>
+                        </li>
+                        <li class="flex items-center text-slate-400">
+                            <i class="fas fa-times mr-3"></i>
+                            <span>Real-time collaboration</span>
+                        </li>
+                        <li class="flex items-center text-slate-400">
+                            <i class="fas fa-times mr-3"></i>
+                            <span>Custom themes</span>
+                        </li>
+                    </ul>
+                    <a href="#" class="w-full block text-center border border-primary text-primary py-3 rounded-lg font-medium hover:bg-primary/10 transition-colors">
+                        Get Started
+                    </a>
+                </div>
+                
+                <div class="pricing-card featured bg-card rounded-2xl p-8 scroll-animate" style="transition-delay: 0.1s;">
+                    <h3 class="text-2xl font-bold text-dark mb-2">Premium</h3>
+                    <p class="text-slate-600 mb-6">For professional writing teams</p>
+                    <div class="mb-8">
+                        <span class="text-4xl font-bold text-dark">$12</span>
+                        <span class="text-slate-600">/user/month</span>
+                    </div>
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Unlimited collaborators</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Advanced version history</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>10GB cloud storage</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Real-time collaboration</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Custom themes & layouts</span>
+                        </li>
+                    </ul>
+                    <a href="#" class="cta-button w-full block text-center text-white py-3 rounded-lg font-medium shadow-md">
+                        Get Premium Account
+                    </a>
+                </div>
+                
+                <div class="pricing-card bg-card rounded-2xl p-8 scroll-animate" style="transition-delay: 0.2s;">
+                    <h3 class="text-2xl font-bold text-dark mb-2">Enterprise</h3>
+                    <p class="text-slate-600 mb-6">For large organizations</p>
+                    <div class="mb-8">
+                        <span class="text-4xl font-bold text-dark">Custom</span>
+                    </div>
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Unlimited everything</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Dedicated support</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Custom integrations</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Advanced security</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary mr-3"></i>
+                            <span>Training & onboarding</span>
+                        </li>
+                    </ul>
+                    <a href="#" class="w-full block text-center border border-primary text-primary py-3 rounded-lg font-medium hover:bg-primary/10 transition-colors">
+                        Contact Sales
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="py-20 bg-light">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16 scroll-animate">
+                <h2 class="text-3xl md:text-4xl font-bold text-dark mb-4">Frequently Asked Questions</h2>
+                <p class="text-lg text-slate-600">
+                    Everything you need to know about StoryWeaver
+                </p>
+            </div>
+            
+            <div class="space-y-1">
+                <div class="faq-item scroll-animate">
+                    <div class="faq-question p-6 cursor-pointer">
+                        <h3 class="text-lg font-semibold text-dark flex justify-between items-center">
+                            How does real-time collaboration work?
+                            <i class="fas fa-chevron-down text-primary"></i>
+                        </h3>
+                    </div>
+                    <div class="faq-answer px-6 pb-6">
+                        <p class="text-slate-600">
+                            Our real-time collaboration uses advanced web technologies to sync your document instantly as you type. All collaborators see changes in real-time, and you can track who's currently editing which part of the document.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item scroll-animate" style="transition-delay: 0.1s;">
+                    <div class="faq-question p-6 cursor-pointer">
+                        <h3 class="text-lg font-semibold text-dark flex justify-between items-center">
+                            Can I use StoryWeaver for non-fiction writing?
+                            <i class="fas fa-chevron-down text-primary"></i>
+                        </h3>
+                    </div>
+                    <div class="faq-answer px-6 pb-6">
+                        <p class="text-slate-600">
+                            Absolutely! StoryWeaver is designed for all types of writing - novels, screenplays, academic papers, business documents, and more. Our platform adapts to your writing style and content needs.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item scroll-animate" style="transition-delay: 0.2s;">
+                    <div class="faq-question p-6 cursor-pointer">
+                        <h3 class="text-lg font-semibold text-dark flex justify-between items-center">
+                            How secure is my writing?
+                            <i class="fas fa-chevron-down text-primary"></i>
+                        </h3>
+                    </div>
+                    <div class="faq-answer px-6 pb-6">
+                        <p class="text-slate-600">
+                            Security is our top priority. We use industry-standard encryption for data in transit and at rest. All documents are stored in secure AWS facilities with regular security audits. You retain full ownership of your content.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item scroll-animate" style="transition-delay: 0.3s;">
+                    <div class="faq-question p-6 cursor-pointer">
+                        <h3 class="text-lg font-semibold text-dark flex justify-between items-center">
+                            Can I export my work in multiple formats?
+                            <i class="fas fa-chevron-down text-primary"></i>
+                        </h3>
+                    </div>
+                    <div class="faq-answer px-6 pb-6">
+                        <p class="text-slate-600">
+                            Yes! You can export your documents as PDF, Word (.docx), or even directly to major publishing platforms. We also support exporting character and word counts for your submission needs.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item scroll-animate" style="transition-delay: 0.4s;">
+                    <div class="faq-question p-6 cursor-pointer">
+                        <h3 class="text-lg font-semibold text-dark flex justify-between items-center">
+                            Is there a free trial available?
+                            <i class="fas fa-chevron-down text-primary"></i>
+                        </h3>
+                    </div>
+                    <div class="faq-answer px-6 pb-6">
+                        <p class="text-slate-600">
+                            Yes, we offer a 14-day free trial for our Premium plan. No credit card required. You'll have full access to all Premium features during your trial period.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 bg-gradient-to-r from-primary to-accent text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mx-auto text-center scroll-animate">
+                <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Writing Workflow?</h2>
+                <p class="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+                    Join thousands of authors who are collaborating more effectively with StoryWeaver
+                </p>
+                <a href="#pricing" class="cta-button px-8 py-4 rounded-full text-white font-medium text-lg inline-block shadow-lg">
+                    Get Premium Account
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 bg-dark text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center space-x-2 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                            <i class="fas fa-pen-nib text-white text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white font-playfair">StoryWeaver</span>
+                    </div>
+                    <p class="text-slate-400 mb-6">
+                        The collaborative writing platform for authors, writers, and creative teams.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-white transition-colors">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Product</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Features</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Templates</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Roadmap</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Resources</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Tutorials</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Community</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Company</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Careers</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Contact</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition-colors">Partners</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
+                <p>© 2023 StoryWeaver. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Scroll animation
+            const scrollElements = document.querySelectorAll('.scroll-animate');
+            
+            const elementInView = (el) => {
+                const elementTop = el.getBoundingClientRect().top;
+                return (
+                    elementTop <= (window.innerHeight || document.documentElement.clientHeight) * 0.9
+                );
+            };
+            
+            const displayScrollElement = (element) => {
+                element.classList.add('visible');
+            };
+            
+            const handleScrollAnimation = () => {
+                scrollElements.forEach((el) => {
+                    if (elementInView(el)) {
+                        displayScrollElement(el);
+                    }
+                });
+            };
+            
+            // Initial check
+            handleScrollAnimation();
+            window.addEventListener('scroll', handleScrollAnimation);
+            
+            // FAQ toggle
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    item.classList.toggle('active');
+                });
+            });
+            
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        window.scrollTo({
+                            top: target.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Finder | Ingredient Inventory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#F59E0B',
+                        'primary-dark': '#D97706',
+                        'secondary': '#10B981',
+                        'accent': '#EF4444',
+                        'dark': '#1F2937',
+                        'light': '#F9FAFB',
+                        'medium': '#E5E7EB',
+                        'text-dark': '#111827',
+                        'text-light': '#6B7280'
+                    },
+                    fontFamily: {
+                        'dmsans': ['DM Sans', 'sans-serif'],
+                        'inter': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #F59E0B;
+            --color-primary-dark: #D97706;
+            --color-secondary: #10B981;
+            --color-accent: #EF4444;
+            --color-dark: #1F2937;
+            --color-light: #F9FAFB;
+            --color-medium: #E5E7EB;
+            --color-text-dark: #111827;
+            --color-text-light: #6B7280;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-light);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-dmsans {
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .appear-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .appear-item.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .ingredient-item {
+            transition: all 0.3s ease;
+        }
+        .ingredient-item:hover {
+            transform: translateX(5px);
+        }
+        .ingredient-item.selected {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-left: 3px solid var(--color-primary);
+        }
+
+        .recipe-card {
+            transition: all 0.3s ease;
+        }
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .suggestion-item {
+            transition: all 0.2s ease;
+        }
+        .suggestion-item:hover {
+            background-color: var(--color-medium);
+        }
+
+        .suggestions-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .suggestions-container.open {
+            max-height: 300px;
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: var(--color-primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #0da271;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--color-primary);
+            color: var(--color-primary);
+            transition: all 0.3s ease;
+        }
+        .btn-outline:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        .ingredient-tag {
+            transition: all 0.2s ease;
+        }
+        .ingredient-tag:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-light text-text-dark">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3">
+                        <i class="fas fa-utensils text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-dark font-dmsans">RecipeFinder</h1>
+                </div>
+                <nav class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-text-dark hover:text-primary font-medium">Home</a>
+                    <a href="#" class="text-text-dark hover:text-primary font-medium">Recipes</a>
+                    <a href="#" class="text-text-dark hover:text-primary font-medium">Collections</a>
+                    <a href="#" class="text-text-dark hover:text-primary font-medium">About</a>
+                </nav>
+                <div class="flex items-center space-x-4">
+                    <button class="btn-outline px-4 py-2 rounded-full text-sm font-medium">
+                        <i class="fas fa-user mr-2"></i>Sign In
+                    </button>
+                    <button class="btn-primary px-4 py-2 rounded-full text-sm font-medium">
+                        <i class="fas fa-plus mr-2"></i>Save Recipe
+                    </button>
+                    <button class="md:hidden text-dark">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-24 pb-16">
+        <!-- Hero Section -->
+        <section class="container mx-auto px-4 mb-16">
+            <div class="text-center max-w-3xl mx-auto">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 font-dmsans">
+                    Find Recipes with Your <span class="text-primary">Ingredients</span>
+                </h1>
+                <p class="text-lg text-text-light mb-10">
+                    Select ingredients you have in your kitchen and discover delicious recipes you can make right now.
+                </p>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <section class="container mx-auto px-4">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Ingredients Panel -->
+                <div class="lg:w-1/3">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold font-dmsans">Your Ingredients</h2>
+                            <button class="text-primary text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-1"></i> Add New
+                            </button>
+                        </div>
+                        
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="ingredient-search" 
+                                placeholder="Search ingredients..." 
+                                class="w-full p-3 border border-medium rounded-lg mb-4 focus:ring-2 focus:ring-primary focus:border-transparent"
+                            >
+                            <div class="suggestions-container absolute left-0 right-0 mt-1 bg-white border border-medium rounded-lg shadow-lg z-10 scrollbar-hide">
+                                <!-- Suggestions will appear here -->
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h3 class="font-semibold mb-3 text-text-light">Selected (3)</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="ingredient-tag bg-primary text-white px-3 py-1 rounded-full text-sm">Tomato</span>
+                                <span class="ingredient-tag bg-primary text-white px-3 py-1 rounded-full text-sm">Olive Oil</span>
+                                <span class="ingredient-tag bg-primary text-white px-3 py-1 rounded-full text-sm">Garlic</span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="font-semibold mb-3">All Ingredients</h3>
+                            <div class="space-y-2">
+                                <!-- Ingredient items -->
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Tomato</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Olive Oil</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Garlic</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Basil</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Parmesan</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Mushrooms</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Bell Peppers</span>
+                                </div>
+                                <div class="ingredient-item flex items-center p-3 rounded-lg cursor-pointer">
+                                    <input type="checkbox" class="mr-3 h-5 w-5 text-primary rounded">
+                                    <span class="font-medium">Onion</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recipes Panel -->
+                <div class="lg:w-2/3">
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                            <div>
+                                <h2 class="text-2xl font-bold font-dmsans mb-2">Recipes You Can Make</h2>
+                                <p class="text-text-light">3 recipes match your ingredients</p>
+                            </div>
+                            <div class="mt-4 md:mt-0">
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        id="recipe-search" 
+                                        placeholder="Search recipes..." 
+                                        class="search-input w-full p-3 border border-medium rounded-lg pl-10 focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    >
+                                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-text-light"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Recipe Card 1 -->
+                            <div class="recipe-card bg-white border border-medium rounded-xl overflow-hidden shadow-sm hover:shadow-md">
+                                <div class="h-48 bg-gradient-to-r from-primary to-secondary relative">
+                                    <div class="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium">
+                                        <i class="fas fa-clock mr-1"></i> 30 min
+                                    </div>
+                                </div>
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h3 class="text-xl font-bold font-dmsans">Tomato Pasta Primavera</h3>
+                                        <div class="flex">
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                            <span class="ml-1 font-medium">4.7</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-text-light mb-4">Creamy pasta with fresh vegetables and a rich tomato sauce.</p>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Pasta</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Tomato</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Garlic</span>
+                                    </div>
+                                    <button class="btn-primary w-full py-3 rounded-lg font-medium">
+                                        View Recipe
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Recipe Card 2 -->
+                            <div class="recipe-card bg-white border border-medium rounded-xl overflow-hidden shadow-sm hover:shadow-md">
+                                <div class="h-48 bg-gradient-to-r from-secondary to-accent relative">
+                                    <div class="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium">
+                                        <i class="fas fa-clock mr-1"></i> 45 min
+                                    </div>
+                                </div>
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h3 class="text-xl font-bold font-dmsans">Mediterranean Salad Bowl</h3>
+                                        <div class="flex">
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                            <span class="ml-1 font-medium">4.5</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-text-light mb-4">Fresh vegetables, feta cheese, and a zesty lemon dressing.</p>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Lettuce</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Tomato</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Olive Oil</span>
+                                    </div>
+                                    <button class="btn-primary w-full py-3 rounded-lg font-medium">
+                                        View Recipe
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Recipe Card 3 -->
+                            <div class="recipe-card bg-white border border-medium rounded-xl overflow-hidden shadow-sm hover:shadow-md">
+                                <div class="h-48 bg-gradient-to-r from-accent to-primary relative">
+                                    <div class="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium">
+                                        <i class="fas fa-clock mr-1"></i> 25 min
+                                    </div>
+                                </div>
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h3 class="text-xl font-bold font-dmsans">Garlic Shrimp Skillet</h3>
+                                        <div class="flex">
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                            <span class="ml-1 font-medium">4.8</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-text-light mb-4">Sautéed shrimp with garlic, herbs, and a hint of chili.</p>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Shrimp</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Garlic</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Olive Oil</span>
+                                    </div>
+                                    <button class="btn-primary w-full py-3 rounded-lg font-medium">
+                                        View Recipe
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Recipe Card 4 -->
+                            <div class="recipe-card bg-white border border-medium rounded-xl overflow-hidden shadow-sm hover:shadow-md">
+                                <div class="h-48 bg-gradient-to-r from-primary to-accent relative">
+                                    <div class="absolute top-4 right-4 bg-white rounded-full px-3 py-1 text-sm font-medium">
+                                        <i class="fas fa-clock mr-1"></i> 50 min
+                                    </div>
+                                </div>
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h3 class="text-xl font-bold font-dmsans">Vegetable Ratatouille</h3>
+                                        <div class="flex">
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                            <span class="ml-1 font-medium">4.6</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-text-light mb-4">A classic French vegetable dish with a rich, savory flavor.</p>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Eggplant</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Zucchini</span>
+                                        <span class="text-xs px-2 py-1 bg-medium rounded">Tomato</span>
+                                    </div>
+                                    <button class="btn-primary w-full py-3 rounded-lg font-medium">
+                                        View Recipe
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 flex justify-center">
+                            <button class="btn-outline px-6 py-3 rounded-full font-medium">
+                                <i class="fas fa-sync-alt mr-2"></i>Load More Recipes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3">
+                            <i class="fas fa-utensils text-white text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-bold font-dmsans">RecipeFinder</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">
+                        Discover delicious recipes based on your ingredients and dietary preferences.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Features</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Recipe Finder</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Ingredient Inventory</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Meal Planning</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Dietary Filters</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Cooking Timer</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Cooking Tips</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Seasonal Recipes</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Kitchen Essentials</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Video Tutorials</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Newsletter</h3>
+                    <p class="text-gray-400 mb-4">
+                        Subscribe to get weekly recipe inspiration and cooking tips.
+                    </p>
+                    <form class="flex">
+                        <input type="email" placeholder="Your email" class="px-4 py-2 rounded-l-lg w-full focus:outline-none text-dark">
+                        <button class="bg-primary px-4 py-2 rounded-r-lg">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500">
+                <p>© 2023 RecipeFinder. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Appear animations
+            const appearItems = document.querySelectorAll('.appear-item');
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+            
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, observerOptions);
+            
+            appearItems.forEach(item => {
+                observer.observe(item);
+            });
+            
+            // Auto-suggestions for ingredient search
+            const ingredientSearch = document.getElementById('ingredient-search');
+            const ingredientSuggestions = document.querySelector('.suggestions-container');
+            
+            const ingredients = [
+                "Tomato", "Olive Oil", "Garlic", "Basil", "Parmesan", 
+                "Mushrooms", "Bell Peppers", "Onion", "Pasta", "Shrimp",
+                "Eggplant", "Zucchini", "Lettuce", "Feta", "Chili Flakes",
+                "Oregano", "Thyme", "Rosemary", "Bread", "Eggs"
+            ];
+            
+            ingredientSearch.addEventListener('input', function() {
+                const inputValue = this.value.toLowerCase();
+                ingredientSuggestions.innerHTML = '';
+                
+                if (inputValue.length > 1) {
+                    const filtered = ingredients.filter(ing => 
+                        ing.toLowerCase().includes(inputValue)
+                    );
+                    
+                    if (filtered.length > 0) {
+                        ingredientSuggestions.classList.add('open');
+                        filtered.forEach(item => {
+                            const suggestion = document.createElement('div');
+                            suggestion.className = 'suggestion-item px-4 py-2 cursor-pointer';
+                            suggestion.textContent = item;
+                            suggestion.addEventListener('click', function() {
+                                ingredientSearch.value = item;
+                                ingredientSuggestions.classList.remove('open');
+                            });
+                            ingredientSuggestions.appendChild(suggestion);
+                        });
+                    } else {
+                        ingredientSuggestions.classList.remove('open');
+                    }
+                } else {
+                    ingredientSuggestions.classList.remove('open');
+                }
+            });
+            
+            // Close suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!ingredientSearch.contains(e.target) && !ingredientSuggestions.contains(e.target)) {
+                    ingredientSuggestions.classList.remove('open');
+                }
+            });
+            
+            // Ingredient selection
+            const ingredientItems = document.querySelectorAll('.ingredient-item');
+            ingredientItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    
+                    this.classList.toggle('selected', checkbox.checked);
+                });
+            });
+            
+            // Recipe search functionality
+            const recipeSearch = document.getElementById('recipe-search');
+            recipeSearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const recipeCards = document.querySelectorAll('.recipe-card');
+                
+                recipeCards.forEach(card => {
+                    const title = card.querySelector('h3').textContent.toLowerCase();
+                    if (title.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

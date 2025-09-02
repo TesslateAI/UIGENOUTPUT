@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitFlow - Workout Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'montserrat': ['Montserrat', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            scroll-behavior: smooth;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .exercise-card {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .exercise-card:hover, .exercise-card.selected {
+            border-color: #0ea5e9;
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+        
+        .workout-builder {
+            min-height: 500px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .exercise-item {
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        
+        .exercise-item:active {
+            cursor: grabbing;
+        }
+        
+        .dropzone {
+            min-height: 100px;
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .dropzone.active {
+            border-color: #0ea5e9;
+            background-color: rgba(14, 165, 233, 0.05);
+        }
+        
+        .btn-primary {
+            background-color: #0ea5e9;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0284c7;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: #14b8a6;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #0d9488;
+            transform: translateY(-2px);
+        }
+        
+        .nav-link {
+            position: relative;
+            padding-bottom: 4px;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #0ea5e9;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link::after {
+            width: 100%;
+        }
+        
+        .tab-button {
+            background-color: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #0ea5e9;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center mr-3">
+                    <i class="fas fa-dumbbell text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-primary-800">FitFlow</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8">
+                <a href="#hero" class="nav-link text-gray-600 hover:text-gray-900 font-medium">Home</a>
+                <a href="#library" class="nav-link text-gray-600 hover:text-gray-900 font-medium">Exercise Library</a>
+                <a href="#builder" class="nav-link text-gray-600 hover:text-gray-900 font-medium">Workout Builder</a>
+                <a href="#features" class="nav-link text-gray-600 hover:text-gray-900 font-medium">Features</a>
+                <a href="#testimonials" class="nav-link text-gray-600 hover:text-gray-900 font-medium">Testimonials</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="hidden md:block px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition">
+                    Sign In
+                </button>
+                <button class="md:hidden text-gray-600">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="pt-24 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-primary-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-12 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                        Build Your Perfect <span class="text-primary-600">Workout Routine</span>
+                    </h1>
+                    <p class="text-lg text-gray-600 mb-8 max-w-lg">
+                        Create personalized fitness plans with our extensive exercise library and intuitive drag-and-drop builder. Achieve your goals faster with smart workout routines.
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <button class="btn-primary px-6 py-3 rounded-lg font-semibold text-lg">
+                            Start Building Now
+                        </button>
+                        <button class="px-6 py-3 rounded-lg font-semibold text-lg border-2 border-primary-500 text-primary-600 hover:bg-primary-50 transition">
+                            Explore Exercises
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div class="w-64 h-64 md:w-80 md:h-80 rounded-full bg-primary-100 flex items-center justify-center">
+                            <div class="w-56 h-56 md:w-72 md:h-72 rounded-full bg-primary-200 flex items-center justify-center">
+                                <div class="w-48 h-48 md:w-64 md:h-64 rounded-full bg-primary-300 flex items-center justify-center">
+                                    <div class="w-40 h-40 md:w-56 md:h-56 rounded-full bg-primary-500 flex items-center justify-center">
+                                        <i class="fas fa-dumbbell text-white text-6xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute -top-4 -right-4 bg-white p-4 rounded-xl shadow-lg">
+                            <div class="text-accent-500 font-bold text-xl">120+</div>
+                            <div class="text-gray-600 text-sm">Exercises</div>
+                        </div>
+                        <div class="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg">
+                            <div class="text-secondary-500 font-bold text-xl">4.9</div>
+                            <div class="text-gray-600 text-sm">Avg Rating</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Exercise Library -->
+    <section id="library" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Exercise Library</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Browse our extensive collection of exercises. Filter by category, difficulty, or equipment to find the perfect moves for your routine.
+                </p>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-2 mb-8">
+                <button class="tab-button px-4 py-2 rounded-lg font-medium active">All Exercises</button>
+                <button class="tab-button px-4 py-2 rounded-lg font-medium">Strength</button>
+                <button class="tab-button px-4 py-2 rounded-lg font-medium">Cardio</button>
+                <button class="tab-button px-4 py-2 rounded-lg font-medium">Flexibility</button>
+                <button class="tab-button px-4 py-2 rounded-lg font-medium">Bodyweight</button>
+                <button class="tab-button px-4 py-2 rounded-lg font-medium">Beginner</button>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Exercise Card 1 -->
+                <div class="exercise-card bg-white rounded-xl overflow-hidden shadow-md card-hover">
+                    <div class="h-48 bg-gradient-to-r from-primary-400 to-primary-600 flex items-center justify-center">
+                        <i class="fas fa-dumbbell text-white text-6xl"></i>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold text-gray-900">Bench Press</h3>
+                            <span class="bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded">Strength</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Compound chest exercise using a barbell.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <i class="fas fa-dumbbell text-gray-400 mr-2"></i>
+                                <span class="text-gray-500">Barbell</span>
+                            </div>
+                            <button class="add-to-builder px-3 py-1 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium">
+                                Add to Routine
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Exercise Card 2 -->
+                <div class="exercise-card bg-white rounded-xl overflow-hidden shadow-md card-hover">
+                    <div class="h-48 bg-gradient-to-r from-secondary-400 to-secondary-600 flex items-center justify-center">
+                        <i class="fas fa-running text-white text-6xl"></i>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold text-gray-900">Running</h3>
+                            <span class="bg-secondary-100 text-secondary-800 text-xs px-2 py-1 rounded">Cardio</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">High-intensity cardio exercise for endurance.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <i class="fas fa-road text-gray-400 mr-2"></i>
+                                <span class="text-gray-500">Treadmill/Outdoors</span>
+                            </div>
+                            <button class="add-to-builder px-3 py-1 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium">
+                                Add to Routine
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Exercise Card 3 -->
+                <div class="exercise-card bg-white rounded-xl overflow-hidden shadow-md card-hover">
+                    <div class="h-48 bg-gradient-to-r from-purple-400 to-purple-600 flex items-center justify-center">
+                        <i class="fas fa-spa text-white text-6xl"></i>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold text-gray-900">Yoga</h3>
+                            <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">Flexibility</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Mind-body exercise focusing on flexibility.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <i class="fas fa-mat text-gray-400 mr-2"></i>
+                                <span class="text-gray-500">Yoga Mat</span>
+                            </div>
+                            <button class="add-to-builder px-3 py-1 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium">
+                                Add to Routine
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Exercise Card 4 -->
+                <div class="exercise-card bg-white rounded-xl overflow-hidden shadow-md card-hover">
+                    <div class="h-48 bg-gradient-to-r from-yellow-400 to-yellow-600 flex items-center justify-center">
+                        <i class="fas fa-fire text-white text-6xl"></i>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold text-gray-900">HIIT Circuit</h3>
+                            <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Cardio</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">High-intensity interval training for fat burn.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <i class="fas fa-bolt text-gray-400 mr-2"></i>
+                                <span class="text-gray-500">Bodyweight</span>
+                            </div>
+                            <button class="add-to-builder px-3 py-1 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium">
+                                Add to Routine
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <button class="px-6 py-3 border-2 border-primary-500 text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition">
+                    View All Exercises
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workout Builder -->
+    <section id="builder" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Workout Builder</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Drag and drop exercises to create your perfect workout routine. Customize sets, reps, and rest periods.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Available Exercises -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Available Exercises</h3>
+                    <div class="space-y-3">
+                        <div class="exercise-item bg-gray-50 p-4 rounded-lg cursor-move">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-dumbbell text-primary-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Bench Press</h4>
+                                    <p class="text-sm text-gray-500">Strength • Barbell</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="exercise-item bg-gray-50 p-4 rounded-lg cursor-move">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-secondary-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-running text-secondary-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Running</h4>
+                                    <p class="text-sm text-gray-500">Cardio • Treadmill</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="exercise-item bg-gray-50 p-4 rounded-lg cursor-move">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-spa text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Yoga</h4>
+                                    <p class="text-sm text-gray-500">Flexibility • Mat</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="exercise-item bg-gray-50 p-4 rounded-lg cursor-move">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-fire text-yellow-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">HIIT Circuit</h4>
+                                    <p class="text-sm text-gray-500">Cardio • Bodyweight</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Workout Builder Area -->
+                <div class="lg:col-span-2">
+                    <div class="workout-builder p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Your Workout Routine</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200">
+                                    <i class="fas fa-plus mr-2"></i>Add Set
+                                </button>
+                                <button class="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600">
+                                    Save Routine
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="dropzone p-6 text-center mb-6">
+                            <div class="text-gray-400 mb-2">
+                                <i class="fas fa-arrow-down text-3xl"></i>
+                            </div>
+                            <p class="text-gray-500">Drag exercises here to build your routine</p>
+                        </div>
+                        
+                        <!-- Sample Routine -->
+                        <div class="space-y-6">
+                            <!-- Set 1 -->
+                            <div class="bg-white rounded-xl shadow-sm p-5">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="font-bold text-gray-900">Set 1</h4>
+                                    <div class="flex space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <!-- Exercise 1 -->
+                                    <div class="flex items-center justify-between p-3 border-b">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-dumbbell text-primary-600"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-medium">Bench Press</h5>
+                                                <p class="text-sm text-gray-500">3 sets × 8 reps</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Exercise 2 -->
+                                    <div class="flex items-center justify-between p-3">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-secondary-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-running text-secondary-600"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-medium">Running</h5>
+                                                <p class="text-sm text-gray-500">30 minutes</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Set 2 -->
+                            <div class="bg-white rounded-xl shadow-sm p-5">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="font-bold text-gray-900">Set 2</h4>
+                                    <div class="flex space-x-2">
+                                        <button class="text-gray-400 hover:text-gray-600">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-gray-600">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <!-- Exercise 1 -->
+                                    <div class="flex items-center justify-between p-3 border-b">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                                <i class="fas fa-spa text-purple-600"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="font-medium">Yoga</h5>
+                                                <p class="text-sm text-gray-500">20 minutes</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-gray-400 hover:text-gray-600">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose FitFlow?</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Our workout builder is designed to help you achieve your fitness goals faster and more efficiently.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-gray-50 rounded-xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-database text-primary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Extensive Exercise Library</h3>
+                    <p class="text-gray-600">
+                        Access over 120 exercises with detailed instructions, videos, and difficulty levels to suit all fitness levels.
+                    </p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-full bg-secondary-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-sliders-h text-secondary-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Customizable Routines</h3>
+                    <p class="text-gray-600">
+                        Drag and drop interface makes it easy to create personalized workout plans tailored to your goals.
+                    </p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-mobile-alt text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Mobile Friendly</h3>
+                    <p class="text-gray-600">
+                        Access and modify your workout routines on any device, anywhere. Perfect for on-the-go fitness planning.
+                    </p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-line text-yellow-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Progress Tracking</h3>
+                    <p class="text-gray-600">
+                        Track your progress over time with detailed analytics and performance metrics.
+                    </p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-full bg-accent-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-users text-accent-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Community Support</h3>
+                    <p class="text-gray-600">
+                        Join our community of fitness enthusiasts to share routines, tips, and motivation.
+                    </p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl p-6 card-hover">
+                    <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
+                        <i class="fas fa-robot text-indigo-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">AI Recommendations</h3>
+                    <p class="text-gray-600">
+                        Get personalized exercise suggestions based on your goals, fitness level, and equipment availability.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="py-16 bg-gradient-to-br from-primary-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">What Our Users Say</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Join thousands of fitness enthusiasts who have transformed their workout routines with FitFlow.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mr-4">
+                            <span class="text-primary-600 font-bold">JS</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900">John Smith</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">
+                        "FitFlow has completely transformed how I plan my workouts. The drag-and-drop interface is intuitive, and the exercise library is comprehensive. I've seen significant improvements in my strength training since using it!"
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center mr-4">
+                            <span class="text-secondary-600 font-bold">MJ</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900">Maria Johnson</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">
+                        "As a beginner, I was intimidated by creating workout plans. FitFlow made it so easy! The AI recommendations helped me build a routine that's perfect for my goals. I'm stronger and more confident than ever."
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+                            <span class="text-purple-600 font-bold">TR</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-900">Tom Rodriguez</h4>
+                            <div class="flex text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">
+                        "The exercise library is incredible - I've discovered so many new moves I never would have tried. The progress tracking feature keeps me motivated. Highly recommended for anyone serious about fitness!"
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-16 bg-primary-700 text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">Start Building Your Perfect Workout Today</h2>
+            <p class="text-primary-100 max-w-2xl mx-auto mb-8 text-lg">
+                Join thousands of fitness enthusiasts creating effective workout routines with FitFlow. No credit card required.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <button class="btn-secondary px-8 py-3 rounded-lg font-semibold text-lg">
+                    Get Started Free
+                </button>
+                <button class="px-8 py-3 rounded-lg font-semibold text-lg border-2 border-white hover:bg-white hover:text-primary-600 transition">
+                    Schedule a Demo
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center mr-3">
+                            <i class="fas fa-dumbbell text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold">FitFlow</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">
+                        The ultimate workout builder for fitness enthusiasts of all levels.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Product</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Features</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Exercise Library</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Pricing</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Integrations</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Updates</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Tutorials</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Support</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Community</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Developers</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Company</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Careers</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Contact</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Partners</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Legal</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500">
+                <p>&copy; 2023 FitFlow. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple animation for elements when they come into view
+        document.addEventListener('DOMContentLoaded', function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-fade-in');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.card-hover, .workout-builder, .exercise-card').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                });
+            });
+            
+            // Add to builder buttons
+            const addToBuilderButtons = document.querySelectorAll('.add-to-builder');
+            addToBuilderButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    button.textContent = 'Added!';
+                    button.classList.remove('bg-primary-100', 'text-primary-700');
+                    button.classList.add('bg-green-100', 'text-green-700');
+                    
+                    setTimeout(() => {
+                        button.textContent = 'Add to Routine';
+                        button.classList.remove('bg-green-100', 'text-green-700');
+                        button.classList.add('bg-primary-100', 'text-primary-700');
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

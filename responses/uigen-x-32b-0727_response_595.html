@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanilla JS Quiz Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+        }
+        
+        .quiz-container {
+            box-shadow: 0 20px 50px rgba(2, 132, 199, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            transition: width 0.5s ease;
+        }
+        
+        .option-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .option-card.selected {
+            border-color: #0ea5e9;
+            background-color: #f0f9ff;
+        }
+        
+        .option-card.correct {
+            border-color: #14b8a6;
+            background-color: #f0fdfa;
+        }
+        
+        .option-card.incorrect {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+        
+        .timer-circle {
+            transition: stroke-dashoffset 1s linear;
+        }
+        
+        .result-card {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800">
+    <div class="min-h-screen flex flex-col items-center justify-center py-12 px-4">
+        <div class="w-full max-w-4xl">
+            <div class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-bold text-primary-800 mb-3">Vanilla JavaScript Quiz</h1>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Test your knowledge of pure JavaScript without frameworks. 10 questions with a 60-second timer!</p>
+            </div>
+            
+            <div class="quiz-container bg-white">
+                <!-- Quiz Header -->
+                <div class="p-6 bg-gradient-to-r from-primary-500 to-primary-700 text-white">
+                    <div class="flex flex-col md:flex-row justify-between items-center">
+                        <div class="mb-4 md:mb-0">
+                            <div class="text-sm font-medium opacity-80">Question</div>
+                            <div class="text-2xl font-bold" id="question-number">1/10</div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-6">
+                            <div class="text-center">
+                                <div class="text-sm font-medium opacity-80">Time</div>
+                                <div class="text-2xl font-bold" id="timer">60s</div>
+                            </div>
+                            
+                            <div class="hidden md:block">
+                                <div class="w-32 h-2 bg-white bg-opacity-30 rounded-full overflow-hidden">
+                                    <div class="progress-bar bg-white h-full" id="progress-bar" style="width: 10%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Question Area -->
+                <div class="p-6 md:p-8">
+                    <div class="question-container" id="question-container">
+                        <h2 class="text-xl md:text-2xl font-semibold mb-6 text-center" id="question-text">What is the correct way to declare a variable in JavaScript that cannot be reassigned?</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto" id="options-container">
+                            <!-- Options will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Results Screen (hidden initially) -->
+                    <div class="result-card bg-white rounded-xl p-8 text-center hidden" id="result-container">
+                        <div class="mb-6">
+                            <div class="text-5xl font-bold text-primary-600 mb-2" id="score">8/10</div>
+                            <div class="text-lg text-gray-600" id="result-message">Great job! You know your Vanilla JS!</div>
+                        </div>
+                        
+                        <div class="flex justify-center space-x-4 mb-8">
+                            <div class="bg-primary-50 rounded-lg p-4">
+                                <div class="text-2xl font-bold text-primary-700" id="correct-answers">8</div>
+                                <div class="text-sm text-gray-600">Correct</div>
+                            </div>
+                            <div class="bg-accent-50 rounded-lg p-4">
+                                <div class="text-2xl font-bold text-accent-700" id="incorrect-answers">2</div>
+                                <div class="text-sm text-gray-600">Incorrect</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row justify-center gap-4">
+                            <button id="restart-btn" class="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition duration-200">
+                                <i class="fas fa-redo mr-2"></i>Restart Quiz
+                            </button>
+                            <button id="review-btn" class="px-6 py-3 bg-white border border-primary-500 text-primary-500 hover:bg-primary-50 font-medium rounded-lg transition duration-200">
+                                <i class="fas fa-list mr-2"></i>Review Answers
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <div class="p-6 bg-gray-50 flex justify-between">
+                    <button id="prev-btn" class="px-5 py-2.5 text-gray-600 hover:text-primary-600 font-medium rounded-lg transition duration-200 hidden">
+                        <i class="fas fa-arrow-left mr-2"></i>Previous
+                    </button>
+                    <button id="next-btn" class="ml-auto px-5 py-2.5 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition duration-200">
+                        Next Question<i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-gray-500 text-sm">
+                <p>Built with pure JavaScript and Tailwind CSS</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quiz questions data
+        const questions = [
+            {
+                question: "What is the correct way to declare a variable in JavaScript that cannot be reassigned?",
+                options: [
+                    "var x = 5;",
+                    "let x = 5;",
+                    "const x = 5;",
+                    "variable x = 5;"
+                ],
+                answer: 2
+            },
+            {
+                question: "Which method adds one or more elements to the end of an array?",
+                options: [
+                    "push()",
+                    "pop()",
+                    "shift()",
+                    "unshift()"
+                ],
+                answer: 0
+            },
+            {
+                question: "What does the 'this' keyword refer to in JavaScript?",
+                options: [
+                    "The function itself",
+                    "The global object",
+                    "The object that the function belongs to",
+                    "The parent object"
+                ],
+                answer: 2
+            },
+            {
+                question: "Which of these is NOT a JavaScript data type?",
+                options: [
+                    "Boolean",
+                    "Float",
+                    "Symbol",
+                    "BigInt"
+                ],
+                answer: 1
+            },
+            {
+                question: "What is the output of: console.log(1 + '1' + 1)?",
+                options: [
+                    "3",
+                    "111",
+                    "12",
+                    "1 + 1 + 1"
+                ],
+                answer: 1
+            },
+            {
+                question: "Which method is used to parse a JSON string to an object?",
+                options: [
+                    "JSON.parse()",
+                    "JSON.stringify()",
+                    "JSON.toObject()",
+                    "JSON.decode()"
+                ],
+                answer: 0
+            },
+            {
+                question: "What is the purpose of the 'use strict' directive?",
+                options: [
+                    "To enforce stricter type checking",
+                    "To enable modern JavaScript features",
+                    "To enforce better coding practices and catch common errors",
+                    "To improve performance"
+                ],
+                answer: 2
+            },
+            {
+                question: "Which of these is a valid way to create an object in JavaScript?",
+                options: [
+                    "let obj = new Object();",
+                    "let obj = {};",
+                    "let obj = Object.create(null);",
+                    "All of the above"
+                ],
+                answer: 3
+            },
+            {
+                question: "What does the Array.map() method do?",
+                options: [
+                    "Modifies the original array",
+                    "Creates a new array with transformed elements",
+                    "Filters array elements based on a condition",
+                    "Reduces the array to a single value"
+                ],
+                answer: 1
+            },
+            {
+                question: "Which event is fired when an element is clicked?",
+                options: [
+                    "onhover",
+                    "onchange",
+                    "onclick",
+                    "onselect"
+                ],
+                answer: 2
+            }
+        ];
+
+        // DOM elements
+        const questionContainer = document.getElementById('question-container');
+        const resultContainer = document.getElementById('result-container');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const questionNumber = document.getElementById('question-number');
+        const timerDisplay = document.getElementById('timer');
+        const progressBar = document.getElementById('progress-bar');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const reviewBtn = document.getElementById('review-btn');
+        const scoreDisplay = document.getElementById('score');
+        const resultMessage = document.getElementById('result-message');
+        const correctAnswersDisplay = document.getElementById('correct-answers');
+        const incorrectAnswersDisplay = document.getElementById('incorrect-answers');
+
+        // Quiz state
+        let currentQuestion = 0;
+        let score = 0;
+        let userAnswers = Array(questions.length).fill(null);
+        let timeLeft = 60;
+        let timerInterval;
+        let quizStarted = false;
+
+        // Initialize the quiz
+        function initQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            userAnswers = Array(questions.length).fill(null);
+            timeLeft = 60;
+            clearInterval(timerInterval);
+            startTimer();
+            showQuestion();
+            updateProgressBar();
+        }
+
+        // Start the timer
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishQuiz();
+                }
+            }, 1000);
+        }
+
+        // Show current question
+        function showQuestion() {
+            const question = questions[currentQuestion];
+            questionText.textContent = question.question;
+            questionNumber.textContent = `${currentQuestion + 1}/10`;
+            
+            // Clear previous options
+            optionsContainer.innerHTML = '';
+            
+            // Add new options
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option-card bg-white border-2 border-gray-200 rounded-xl p-4';
+                optionElement.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mr-3 font-medium">${String.fromCharCode(65 + index)}</div>
+                        <div class="text-gray-700">${option}</div>
+                    </div>
+                `;
+                
+                // Add selected class if this option was previously selected
+                if (userAnswers[currentQuestion] === index) {
+                    optionElement.classList.add('selected');
+                }
+                
+                optionElement.addEventListener('click', () => selectOption(index));
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            // Update button visibility
+            prevBtn.classList.toggle('hidden', currentQuestion === 0);
+            nextBtn.textContent = currentQuestion === questions.length - 1 ? 
+                'Finish Quiz' : 'Next Question';
+            
+            // Show question container, hide results
+            questionContainer.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+        }
+
+        // Select an option
+        function selectOption(optionIndex) {
+            // Remove selected class from all options
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            event.currentTarget.classList.add('selected');
+            
+            // Store user's answer
+            userAnswers[currentQuestion] = optionIndex;
+            
+            // Check if answer is correct
+            const isCorrect = optionIndex === questions[currentQuestion].answer;
+            
+            // Show correct/incorrect state
+            setTimeout(() => {
+                document.querySelectorAll('.option-card').forEach((card, index) => {
+                    if (index === questions[currentQuestion].answer) {
+                        card.classList.add('correct');
+                    } else if (index === optionIndex && !isCorrect) {
+                        card.classList.add('incorrect');
+                    }
+                });
+            }, 100);
+        }
+
+        // Navigate to next question
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                showQuestion();
+                updateProgressBar();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        // Navigate to previous question
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion();
+                updateProgressBar();
+            }
+        }
+
+        // Update progress bar
+        function updateProgressBar() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // Finish the quiz
+        function finishQuiz() {
+            clearInterval(timerInterval);
+            
+            // Calculate score
+            score = 0;
+            questions.forEach((question, index) => {
+                if (userAnswers[index] === question.answer) {
+                    score++;
+                }
+            });
+            
+            // Update result display
+            scoreDisplay.textContent = `${score}/${questions.length}`;
+            correctAnswersDisplay.textContent = score;
+            incorrectAnswersDisplay.textContent = questions.length - score;
+            
+            // Set result message based on score
+            if (score === questions.length) {
+                resultMessage.textContent = "Perfect! You're a Vanilla JS expert!";
+            } else if (score >= questions.length * 0.8) {
+                resultMessage.textContent = "Great job! You know your Vanilla JS!";
+            } else if (score >= questions.length * 0.6) {
+                resultMessage.textContent = "Good effort! Keep learning!";
+            } else {
+                resultMessage.textContent = "Keep practicing! You'll get better!";
+            }
+            
+            // Show results, hide question container
+            resultContainer.classList.remove('hidden');
+            questionContainer.classList.add('hidden');
+        }
+
+        // Restart the quiz
+        function restartQuiz() {
+            initQuiz();
+        }
+
+        // Review answers
+        function reviewAnswers() {
+            alert("Review feature would show which questions were answered correctly/incorrectly. In a real app, this would display a detailed breakdown.");
+        }
+
+        // Event listeners
+        nextBtn.addEventListener('click', nextQuestion);
+        prevBtn.addEventListener('click', prevQuestion);
+        restartBtn.addEventListener('click', restartQuiz);
+        reviewBtn.addEventListener('click', reviewAnswers);
+
+        // Initialize the quiz when the page loads
+        document.addEventListener('DOMContentLoaded', initQuiz);
+    </script>
+</body>
+</html>

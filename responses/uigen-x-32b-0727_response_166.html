@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700;1,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'chat-bg': '#0a1921',
+                        'chat-dark': '#132f39',
+                        'chat-darker': '#0d1e26',
+                        'chat-accent': '#00c6a7',
+                        'chat-light': '#e6f1f5',
+                        'chat-gray': '#8a9ba8',
+                        'chat-border': '#1e3a45'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'jakarta': ['Plus Jakarta Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a1921;
+            color: #e6f1f5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+        
+        .chat-container {
+            height: 100vh;
+            max-height: 100vh;
+        }
+        
+        .message-bubble {
+            max-width: 80%;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: #132f39;
+            border-radius: 18px;
+            width: fit-content;
+            margin-top: 4px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #8a9ba8;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .reaction {
+            transition: all 0.2s ease;
+        }
+        
+        .reaction:hover {
+            transform: scale(1.1);
+            color: #00c6a7;
+        }
+        
+        .thread {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .thread.open {
+            max-height: 500px;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .message-enter {
+            animation: messageEnter 0.4s ease-out;
+        }
+        
+        @keyframes messageEnter {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .read-receipt {
+            color: #00c6a7;
+        }
+        
+        .unread-receipt {
+            color: #8a9ba8;
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 198, 167, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-chat-bg text-chat-light">
+    <div class="flex flex-col chat-container">
+        <!-- Header -->
+        <header class="bg-chat-darker border-b border-chat-border py-4 px-6 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-chat-accent to-teal-500 flex items-center justify-center text-white font-bold">JD</div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-chat-darker"></div>
+                </div>
+                <div class="ml-4">
+                    <h2 class="font-jakarta font-bold text-lg">John Doe</h2>
+                    <p class="text-chat-gray text-sm">Online - Last seen just now</p>
+                </div>
+            </div>
+            <div class="flex space-x-4">
+                <button class="text-chat-gray hover:text-chat-accent transition-colors">
+                    <i class="fas fa-phone-alt"></i>
+                </button>
+                <button class="text-chat-gray hover:text-chat-accent transition-colors">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button class="text-chat-gray hover:text-chat-accent transition-colors">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Messages Area -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide" id="messagesContainer">
+            <!-- Date Divider -->
+            <div class="flex items-center my-6">
+                <div class="flex-1 border-t border-chat-border"></div>
+                <span class="px-4 text-chat-gray text-sm">Today</span>
+                <div class="flex-1 border-t border-chat-border"></div>
+            </div>
+            
+            <!-- Received Message -->
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs">JD</div>
+                <div class="flex-1">
+                    <div class="message-bubble bg-chat-dark p-4 rounded-2xl rounded-tl-none">
+                        <p>Hey there! How's the project going? I've finished the initial designs for the new dashboard.</p>
+                    </div>
+                    <div class="flex items-center mt-1 ml-1">
+                        <span class="message-time">10:24 AM</span>
+                        <div class="ml-2 flex space-x-1">
+                            <button class="reaction text-chat-gray hover:text-chat-accent">
+                                <i class="far fa-thumbs-up"></i>
+                            </button>
+                            <button class="reaction text-chat-gray hover:text-chat-accent">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <button class="reaction text-chat-gray hover:text-chat-accent">
+                                <i class="far fa-comment"></i>
+                            </button>
+                        </div>
+                        <span class="read-receipt ml-2 text-xs">
+                            <i class="fas fa-check-double"></i> Read
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sent Message -->
+            <div class="flex items-start justify-end space-x-3">
+                <div class="flex-1 text-right">
+                    <div class="message-bubble bg-chat-accent text-chat-bg p-4 rounded-2xl rounded-tr-none">
+                        <p>That's great news! I've been working on the backend integration. Can you share the design files?</p>
+                    </div>
+                    <div class="flex items-center justify-end mt-1 mr-1">
+                        <span class="read-receipt text-xs mr-2">
+                            <i class="fas fa-check-double"></i> Read
+                        </span>
+                        <span class="message-time">10:26 AM</span>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xs">ME</div>
+            </div>
+            
+            <!-- Received Message with Thread -->
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs">JD</div>
+                <div class="flex-1">
+                    <div class="message-bubble bg-chat-dark p-4 rounded-2xl rounded-tl-none relative" id="messageWithThread">
+                        <p>Sure, I've uploaded them to the shared drive. Let me know what you think!</p>
+                        <div class="mt-3 flex space-x-2">
+                            <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                                <i class="fas fa-file-pdf text-white text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center mt-1 ml-1">
+                        <span class="message-time">10:28 AM</span>
+                        <div class="ml-2 flex space-x-1">
+                            <button class="reaction text-chat-gray hover:text-chat-accent">
+                                <i class="far fa-thumbs-up"></i>
+                            </button>
+                            <button class="reaction text-chat-gray hover:text-chat-accent">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <button class="reaction text-chat-accent">
+                                <i class="fas fa-comment"></i>
+                            </button>
+                        </div>
+                        <span class="read-receipt ml-2 text-xs">
+                            <i class="fas fa-check-double"></i> Read
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Threaded Replies -->
+            <div class="thread ml-16" id="threadContainer">
+                <div class="bg-chat-darker rounded-2xl p-4 mb-3">
+                    <div class="flex items-center mb-2">
+                        <span class="text-xs text-chat-gray">Replies (2)</span>
+                        <button class="close-thread ml-2 text-chat-gray hover:text-chat-accent">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Thread Message 1 -->
+                    <div class="flex items-start space-x-3 mb-4">
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center text-white text-xs">AS</div>
+                        <div class="flex-1">
+                            <div class="message-bubble bg-chat-dark p-3 rounded-2xl rounded-tl-none">
+                                <p class="text-sm">The color scheme looks amazing! I love the new dashboard layout.</p>
+                            </div>
+                            <div class="flex items-center mt-1 ml-1">
+                                <span class="message-time text-xs">10:30 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thread Message 2 -->
+                    <div class="flex items-start space-x-3">
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center text-white text-xs">MJ</div>
+                        <div class="flex-1">
+                            <div class="message-bubble bg-chat-dark p-3 rounded-2xl rounded-tl-none">
+                                <p class="text-sm">The file doesn't open properly on my end. Getting a corrupted file error.</p>
+                            </div>
+                            <div class="flex items-center mt-1 ml-1">
+                                <span class="message-time text-xs">10:32 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Typing Indicator -->
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs">JD</div>
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <span class="ml-2 text-chat-gray">typing...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div class="border-t border-chat-border p-4">
+            <div class="flex items-center">
+                <div class="flex space-x-2 mr-3">
+                    <button class="w-10 h-10 rounded-full bg-chat-darker flex items-center justify-center text-chat-gray hover:text-chat-accent transition-colors">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-full bg-chat-darker flex items-center justify-center text-chat-gray hover:text-chat-accent transition-colors">
+                        <i class="fas fa-image"></i>
+                    </button>
+                </div>
+                <div class="flex-1 relative">
+                    <input 
+                        type="text" 
+                        placeholder="Type a message..." 
+                        class="chat-input w-full bg-chat-darker border border-chat-border rounded-full py-3 px-4 pr-12 focus:border-chat-accent transition-colors"
+                    >
+                    <button class="absolute right-3 top-1/2 transform -translate-y-1/2 text-chat-gray hover:text-chat-accent">
+                        <i class="far fa-smile"></i>
+                    </button>
+                </div>
+                <button class="ml-3 w-12 h-12 rounded-full bg-chat-accent flex items-center justify-center text-chat-bg hover:bg-teal-400 transition-colors">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const threadContainer = document.getElementById('threadContainer');
+            const messageWithThread = document.getElementById('messageWithThread');
+            const closeThreadBtn = document.querySelector('.close-thread');
+            
+            // Toggle thread visibility
+            messageWithThread.addEventListener('click', function(e) {
+                if (!e.target.closest('.reaction') && !e.target.closest('.read-receipt')) {
+                    threadContainer.classList.toggle('open');
+                }
+            });
+            
+            // Close thread
+            closeThreadBtn.addEventListener('click', function() {
+                threadContainer.classList.remove('open');
+            });
+            
+            // Simulate receiving a new message
+            setTimeout(() => {
+                const typingIndicator = document.querySelector('.typing-indicator');
+                if (typingIndicator) typingIndicator.remove();
+                
+                const newMessage = document.createElement('div');
+                newMessage.className = 'flex items-start space-x-3 message-enter';
+                newMessage.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs">JD</div>
+                    <div class="flex-1">
+                        <div class="message-bubble bg-chat-dark p-4 rounded-2xl rounded-tl-none">
+                            <p>Let me check that. I think I sent the wrong file by mistake. I'll upload the correct one right now.</p>
+                        </div>
+                        <div class="flex items-center mt-1 ml-1">
+                            <span class="message-time">Just now</span>
+                            <div class="ml-2 flex space-x-1">
+                                <button class="reaction text-chat-gray hover:text-chat-accent">
+                                    <i class="far fa-thumbs-up"></i>
+                                </button>
+                                <button class="reaction text-chat-gray hover:text-chat-accent">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                                <button class="reaction text-chat-gray hover:text-chat-accent">
+                                    <i class="far fa-comment"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                messagesContainer.appendChild(newMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 3000);
+            
+            // Add reaction to message
+            document.querySelectorAll('.reaction').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const icon = this.querySelector('i');
+                    if (icon.classList.contains('far')) {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        icon.classList.add('text-chat-accent');
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.remove('text-chat-accent');
+                        icon.classList.add('far');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

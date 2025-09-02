@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberShield - Threat Monitoring Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a',
+                        'dark-panel': '#1e293b',
+                        'dark-border': '#334155',
+                        'primary': '#0ea5e9',
+                        'critical': '#ef4444',
+                        'warning': '#f59e0b',
+                        'info': '#3b82f6',
+                        'success': '#10b981',
+                        'text-primary': '#f1f5f9',
+                        'text-secondary': '#94a3b8'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 80px 1fr;
+            grid-template-areas: 
+                "sidebar header"
+                "sidebar main";
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            grid-area: sidebar;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        .header {
+            grid-area: header;
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .main-content {
+            grid-area: main;
+            background-color: #0f172a;
+        }
+        
+        .card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .alert-critical {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .alert-warning {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .alert-info {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-active {
+            background-color: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+        }
+        
+        .status-pending {
+            background-color: #f59e0b;
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+        }
+        
+        .status-critical {
+            background-color: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .activity-item {
+            border-bottom: 1px solid #334155;
+            padding: 1rem 0;
+            transition: background-color 0.2s;
+        }
+        
+        .activity-item:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .threat-meter {
+            height: 8px;
+            background-color: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .meter-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .meter-critical {
+            background: linear-gradient(90deg, #ef4444, #f97316);
+        }
+        
+        .meter-warning {
+            background: linear-gradient(90deg, #f59e0b, #eab308);
+        }
+        
+        .meter-info {
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <!-- Sidebar -->
+        <aside class="sidebar p-6">
+            <div class="flex items-center mb-10">
+                <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mr-3">
+                    <i class="fas fa-shield-alt text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">CyberShield</h1>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" class="flex items-center p-3 rounded-lg bg-dark-panel text-primary font-medium">
+                    <i class="fas fa-gauge-high mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-lg text-text-secondary hover:bg-dark-panel hover:text-text-primary">
+                    <i class="fas fa-virus mr-3"></i>
+                    Threat Intel
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-lg text-text-secondary hover:bg-dark-panel hover:text-text-primary">
+                    <i class="fas fa-network-wired mr-3"></i>
+                    Network Monitoring
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-lg text-text-secondary hover:bg-dark-panel hover:text-text-primary">
+                    <i class="fas fa-user-shield mr-3"></i>
+                    User Activity
+                </a>
+                <a href="#" class="flex items-center p-3 rounded-lg text-text-secondary hover:bg-dark-panel hover:text-text-primary">
+                    <i class="fas fa-cog mr-3"></i>
+                    Settings
+                </a>
+            </nav>
+            
+            <div class="mt-auto pt-10">
+                <div class="flex items-center p-3 bg-dark-panel rounded-lg">
+                    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold mr-3">JD</div>
+                    <div>
+                        <p class="font-medium">John Doe</p>
+                        <p class="text-xs text-text-secondary">Security Analyst</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Header -->
+        <header class="header flex items-center justify-between px-8">
+            <div class="relative w-96">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary"></i>
+                <input type="text" placeholder="Search threats, alerts..." class="w-full pl-10 pr-4 py-2.5 bg-dark-panel border border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            
+            <div class="flex items-center space-x-6">
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-dark-panel">
+                        <i class="fas fa-bell text-xl"></i>
+                    </button>
+                    <span class="notification-badge">3</span>
+                </div>
+                <div class="relative">
+                    <button class="p-2 rounded-full hover:bg-dark-panel">
+                        <i class="fas fa-comment-dots text-xl"></i>
+                    </button>
+                    <span class="notification-badge">5</span>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">JD</div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="main-content p-8 overflow-auto">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold">Threat Monitoring Dashboard</h2>
+                    <p class="text-text-secondary">Real-time security monitoring and threat detection</p>
+                </div>
+                <div class="flex space-x-4">
+                    <button class="px-4 py-2 bg-dark-panel border border-dark-border rounded-lg flex items-center">
+                        <i class="fas fa-filter mr-2"></i>
+                        Filters
+                    </button>
+                    <button class="px-4 py-2 bg-primary rounded-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i>
+                        New Report
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Total Threats</p>
+                            <p class="text-3xl font-bold mt-2">1,248</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <i class="fas fa-shield-alt text-blue-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="threat-meter">
+                            <div class="meter-fill meter-critical" style="width: 65%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-text-secondary mt-2">
+                            <span>Critical: 65%</span>
+                            <span>Last 24h</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Active Incidents</p>
+                            <p class="text-3xl font-bold mt-2">24</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center">
+                            <i class="fas fa-triangle-exclamation text-red-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="threat-meter">
+                            <div class="meter-fill meter-warning" style="width: 42%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-text-secondary mt-2">
+                            <span>High: 42%</span>
+                            <span>Requiring action</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Protected Assets</p>
+                            <p class="text-3xl font-bold mt-2">98.7%</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                            <i class="fas fa-lock text-green-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="threat-meter">
+                            <div class="meter-fill meter-info" style="width: 98%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-text-secondary mt-2">
+                            <span>Protected</span>
+                            <span>12 assets at risk</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-text-secondary">Threats Blocked</p>
+                            <p class="text-3xl font-bold mt-2">3,452</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <i class="fas fa-ban text-purple-500 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="threat-meter">
+                            <div class="meter-fill meter-info" style="width: 89%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-text-secondary mt-2">
+                            <span>Today: 142</span>
+                            <span>Since yesterday</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Alert Panel -->
+                <div class="lg:col-span-2">
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold">Recent Threat Alerts</h3>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm bg-dark-panel rounded-lg">All</button>
+                                <button class="px-3 py-1 text-sm bg-dark-panel rounded-lg">Critical</button>
+                                <button class="px-3 py-1 text-sm bg-dark-panel rounded-lg">New</button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4 max-h-[600px] overflow-y-auto scrollbar-hide">
+                            <!-- Alert Item -->
+                            <div class="alert-critical p-4 rounded-lg">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="flex items-center">
+                                            <span class="status-indicator status-critical pulse"></span>
+                                            <span class="font-bold text-critical">CRITICAL</span>
+                                        </div>
+                                        <p class="mt-2 font-medium">Ransomware attack detected on Server-24</p>
+                                        <p class="text-sm text-text-secondary mt-1">Exploit: Ryuk variant targeting financial systems</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-text-secondary">10:24 AM</p>
+                                        <p class="text-xs text-text-secondary mt-1">High priority</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Alert Item -->
+                            <div class="alert-warning p-4 rounded-lg">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="flex items-center">
+                                            <span class="status-indicator status-pending"></span>
+                                            <span class="font-bold text-warning">WARNING</span>
+                                        </div>
+                                        <p class="mt-2 font-medium">Unusual outbound traffic from Workstation-12</p>
+                                        <p class="text-sm text-text-secondary mt-1">Connection to known C2 server in Russia</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-text-secondary">9:45 AM</p>
+                                        <p class="text-xs text-text-secondary mt-1">Medium priority</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Alert Item -->
+                            <div class="alert-info p-4 rounded-lg">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="flex items-center">
+                                            <span class="status-indicator status-active"></span>
+                                            <span class="font-bold text-info">INFORMATION</span>
+                                        </div>
+                                        <p class="mt-2 font-medium">New vulnerability scan completed</p>
+                                        <p class="text-sm text-text-secondary mt-1">24 critical vulnerabilities found in network devices</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-text-secondary">8:30 AM</p>
+                                        <p class="text-xs text-text-secondary mt-1">Low priority</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Alert Item -->
+                            <div class="alert-critical p-4 rounded-lg">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="flex items-center">
+                                            <span class="status-indicator status-critical pulse"></span>
+                                            <span class="font-bold text-critical">CRITICAL</span>
+                                        </div>
+                                        <p class="mt-2 font-medium">Phishing campaign detected in email system</p>
+                                        <p class="text-sm text-text-secondary mt-1">245 employees targeted with credential harvesting</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-text-secondary">7:15 AM</p>
+                                        <p class="text-xs text-text-secondary mt-1">High priority</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Alert Item -->
+                            <div class="alert-warning p-4 rounded-lg">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="flex items-center">
+                                            <span class="status-indicator status-pending"></span>
+                                            <span class="font-bold text-warning">WARNING</span>
+                                        </div>
+                                        <p class="mt-2 font-medium">Multiple failed login attempts on admin panel</p>
+                                        <p class="text-sm text-text-secondary mt-1">IP: 192.168.3.12 - 12 attempts in 5 minutes</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs text-text-secondary">6:50 AM</p>
+                                        <p class="text-xs text-text-secondary mt-1">Medium priority</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Panel -->
+                <div class="space-y-6">
+                    <!-- Threat Activity -->
+                    <div class="card p-6">
+                        <h3 class="text-xl font-bold mb-6">Threat Activity Timeline</h3>
+                        <div class="space-y-6">
+                            <div class="flex">
+                                <div class="mr-4">
+                                    <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                                        <i class="fas fa-bug text-red-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">New exploit kit detected</p>
+                                    <p class="text-sm text-text-secondary mt-1">Neurevtic exploit kit targeting IE vulnerabilities</p>
+                                    <p class="text-xs text-text-secondary mt-2">10:15 AM • Network</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-4">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                        <i class="fas fa-user-slash text-blue-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">User account compromise</p>
+                                    <p class="text-sm text-text-secondary mt-1">admin@finance detected unusual activity</p>
+                                    <p class="text-xs text-text-secondary mt-2">9:30 AM • User Activity</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-4">
+                                    <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                                        <i class="fas fa-file-lines text-yellow-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">Data exfiltration attempt</p>
+                                    <p class="text-sm text-text-secondary mt-1">1.2GB encrypted data transfer to external server</p>
+                                    <p class="text-xs text-text-secondary mt-2">8:45 AM • Network</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex">
+                                <div class="mr-4">
+                                    <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                        <i class="fas fa-virus text-purple-500"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium">New malware variant identified</p>
+                                    <p class="text-sm text-text-secondary mt-1">Emotet variant with new C2 communication method</p>
+                                    <p class="text-xs text-text-secondary mt-2">7:20 AM • Threat Intel</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- System Status -->
+                    <div class="card p-6">
+                        <h3 class="text-xl font-bold mb-6">System Status</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Firewall</span>
+                                    <span class="text-sm text-success">Active</span>
+                                </div>
+                                <div class="threat-meter">
+                                    <div class="meter-fill meter-info" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Intrusion Detection</span>
+                                    <span class="text-sm text-success">Active</span>
+                                </div>
+                                <div class="threat-meter">
+                                    <div class="meter-fill meter-info" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Endpoint Protection</span>
+                                    <span class="text-sm text-warning">2 agents offline</span>
+                                </div>
+                                <div class="threat-meter">
+                                    <div class="meter-fill meter-warning" style="width: 95%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">SIEM</span>
+                                    <span class="text-sm text-success">Active</span>
+                                </div>
+                                <div class="threat-meter">
+                                    <div class="meter-fill meter-info" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-sm">Backup Systems</span>
+                                    <span class="text-sm text-critical">Last backup failed</span>
+                                </div>
+                                <div class="threat-meter">
+                                    <div class="meter-fill meter-critical" style="width: 75%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Simulate real-time updates
+        setInterval(() => {
+            // Add a new alert
+            const alerts = document.querySelector('.space-y-4');
+            const newAlert = document.createElement('div');
+            newAlert.className = 'alert-info p-4 rounded-lg';
+            newAlert.innerHTML = `
+                <div class="flex justify-between">
+                    <div>
+                        <div class="flex items-center">
+                            <span class="status-indicator status-active"></span>
+                            <span class="font-bold text-info">INFORMATION</span>
+                        </div>
+                        <p class="mt-2 font-medium">New security patch available</p>
+                        <p class="text-sm text-text-secondary mt-1">Patch for CVE-2023-12345 - Critical Windows vulnerability</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-text-secondary">Just now</p>
+                        <p class="text-xs text-text-secondary mt-1">Low priority</p>
+                    </div>
+                </div>
+            `;
+            alerts.prepend(newAlert);
+            
+            // Add animation effect
+            newAlert.classList.add('animate-fadeIn');
+            setTimeout(() => {
+                newAlert.classList.remove('animate-fadeIn');
+            }, 500);
+        }, 15000);
+        
+        // Add pulse animation to critical alerts
+        setInterval(() => {
+            const criticalIndicators = document.querySelectorAll('.status-critical');
+            criticalIndicators.forEach(indicator => {
+                indicator.classList.toggle('pulse');
+            });
+        }, 2000);
+    </script>
+</body>
+</html>

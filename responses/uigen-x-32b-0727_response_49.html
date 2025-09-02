@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Garden Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --color-primary: #10B981; /* Emerald green */
+            --color-secondary: #0EA5E9; /* Sky blue */
+            --color-accent: #8B5CF6; /* Violet */
+            --color-background: #F9FAFB;
+            --color-surface: #FFFFFF;
+            --color-text-dark: #1F2937;
+            --color-text-medium: #4B5563;
+            --color-text-light: #9CA3AF;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-danger: #EF4444;
+            --font-family-main: 'Inter', sans-serif;
+            --font-family-heading: 'Work Sans', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family-main);
+            background-color: var(--color-background);
+            color: var(--color-text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-heading { font-family: var(--font-family-heading); }
+
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .scroll-animate.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .garden-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .garden-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .health-indicator {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .watering-schedule {
+            position: relative;
+        }
+        .watering-schedule::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: var(--color-text-light);
+        }
+
+        .sensor-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s;
+        }
+
+        .plant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .plant-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden bg-[var(--color-background)]">
+    <!-- Header -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#" class="text-2xl font-bold font-heading text-[var(--color-primary)]">
+                    <i class="fas fa-leaf mr-2"></i>GreenSense
+                </a>
+                <nav class="hidden md:flex space-x-8 items-center">
+                    <a href="#dashboard" class="text-[var(--color-text-medium)] hover:text-[var(--color-primary)] transition-colors">Dashboard</a>
+                    <a href="#plants" class="text-[var(--color-text-medium)] hover:text-[var(--color-primary)] transition-colors">Plants</a>
+                    <a href="#sensors" class="text-[var(--color-text-medium)] hover:text-[var(--color-primary)] transition-colors">Sensors</a>
+                    <a href="#schedule" class="text-[var(--color-text-medium)] hover:text-[var(--color-primary)] transition-colors">Schedule</a>
+                    <a href="#settings" class="bg-[var(--color-primary)] text-white px-6 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity">Settings</a>
+                </nav>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-[var(--color-text-dark)] focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg">
+            <a href="#dashboard" class="block px-4 py-3 text-[var(--color-text-medium)] hover:bg-gray-50 hover:text-[var(--color-primary)]">Dashboard</a>
+            <a href="#plants" class="block px-4 py-3 text-[var(--color-text-medium)] hover:bg-gray-50 hover:text-[var(--color-primary)]">Plants</a>
+            <a href="#sensors" class="block px-4 py-3 text-[var(--color-text-medium)] hover:bg-gray-50 hover:text-[var(--color-primary)]">Sensors</a>
+            <a href="#schedule" class="block px-4 py-3 text-[var(--color-text-medium)] hover:bg-gray-50 hover:text-[var(--color-primary)]">Schedule</a>
+            <a href="#settings" class="block px-4 py-3 text-center bg-[var(--color-primary)] text-white m-4 rounded-full hover:opacity-90">Settings</a>
+        </div>
+    </header>
+
+    <main class="pt-20">
+        <!-- Dashboard Overview -->
+        <section id="dashboard" class="py-12 md:py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-8 scroll-animate">
+                    <h1 class="font-heading text-3xl sm:text-4xl font-bold text-[var(--color-text-dark)]">Garden Dashboard</h1>
+                    <p class="text-[var(--color-text-medium)] mt-2">Monitor your plants and garden conditions in real-time</p>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-medium)] text-sm">Total Plants</p>
+                                <h3 class="font-heading text-3xl font-bold mt-1">24</h3>
+                            </div>
+                            <div class="bg-[var(--color-primary)] bg-opacity-10 p-3 rounded-full">
+                                <i class="fas fa-leaf text-[var(--color-primary)] text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-[var(--color-text-medium)]">
+                                <span>Healthy: 18</span>
+                                <span>Needs attention: 6</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="health-indicator bg-[var(--color-success)] w-3/4"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate" style="transition-delay: 0.1s;">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-medium)] text-sm">Water Level</p>
+                                <h3 class="font-heading text-3xl font-bold mt-1">78%</h3>
+                            </div>
+                            <div class="bg-[var(--color-secondary)] bg-opacity-10 p-3 rounded-full">
+                                <i class="fas fa-tint text-[var(--color-secondary)] text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-[var(--color-text-medium)]">
+                                <span>Last watered: Today</span>
+                                <span>Next: 2 days</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="health-indicator bg-[var(--color-success)] w-2/3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate" style="transition-delay: 0.2s;">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-medium)] text-sm">Temperature</p>
+                                <h3 class="font-heading text-3xl font-bold mt-1">22°C</h3>
+                            </div>
+                            <div class="bg-[var(--color-accent)] bg-opacity-10 p-3 rounded-full">
+                                <i class="fas fa-thermometer-half text-[var(--color-accent)] text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-[var(--color-text-medium)]">
+                                <span>Ideal: 18-26°C</span>
+                                <span>Status: Optimal</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="health-indicator bg-[var(--color-success)] w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate" style="transition-delay: 0.3s;">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-[var(--color-text-medium)] text-sm">Humidity</p>
+                                <h3 class="font-heading text-3xl font-bold mt-1">65%</h3>
+                            </div>
+                            <div class="bg-[var(--color-warning)] bg-opacity-10 p-3 rounded-full">
+                                <i class="fas fa-wind text-[var(--color-warning)] text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex justify-between text-sm text-[var(--color-text-medium)]">
+                                <span>Ideal: 40-70%</span>
+                                <span>Status: Good</span>
+                            </div>
+                            <div class="mt-2">
+                                <div class="health-indicator bg-[var(--color-warning)] w-3/4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts and Visualizations -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-heading text-xl font-semibold">Moisture Levels</h3>
+                            <div class="flex space-x-2">
+                                <button class="text-xs px-3 py-1 bg-gray-100 rounded-full">7D</button>
+                                <button class="text-xs px-3 py-1 bg-[var(--color-primary)] text-white rounded-full">30D</button>
+                                <button class="text-xs px-3 py-1 bg-gray-100 rounded-full">90D</button>
+                            </div>
+                        </div>
+                        <canvas id="moistureChart" height="250"></canvas>
+                    </div>
+
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate" style="transition-delay: 0.1s;">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-heading text-xl font-semibold">Plant Health Status</h3>
+                            <button class="text-sm text-[var(--color-primary)] font-medium">View All</button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <svg width="40" height="40" viewBox="0 0 40 40" class="progress-ring">
+                                        <circle class="progress-ring-circle" stroke="#10B981" stroke-width="4" fill="transparent" r="15" cx="20" cy="20" stroke-dasharray="94.2" stroke-dashoffset="0"></circle>
+                                    </svg>
+                                    <span class="absolute inset-0 flex items-center justify-center text-sm font-semibold">95%</span>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-medium">Herb Garden</h4>
+                                    <p class="text-sm text-[var(--color-text-medium)]">Excellent health</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <svg width="40" height="40" viewBox="0 0 40 40" class="progress-ring">
+                                        <circle class="progress-ring-circle" stroke="#F59E0B" stroke-width="4" fill="transparent" r="15" cx="20" cy="20" stroke-dasharray="94.2" stroke-dashoffset="28.26"></circle>
+                                    </svg>
+                                    <span class="absolute inset-0 flex items-center justify-center text-sm font-semibold">70%</span>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-medium">Flower Beds</h4>
+                                    <p class="text-sm text-[var(--color-text-medium)]">Needs attention</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <svg width="40" height="40" viewBox="0 0 40 40" class="progress-ring">
+                                        <circle class="progress-ring-circle" stroke="#10B981" stroke-width="4" fill="transparent" r="15" cx="20" cy="20" stroke-dasharray="94.2" stroke-dashoffset="18.84"></circle>
+                                    </svg>
+                                    <span class="absolute inset-0 flex items-center justify-center text-sm font-semibold">80%</span>
+                                </div>
+                                <div class="ml-4">
+                                    <h4 class="font-medium">Vegetable Patch</h4>
+                                    <p class="text-sm text-[var(--color-text-medium)]">Good condition</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plant Grid -->
+                <div class="mb-8 scroll-animate">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-heading text-2xl font-bold">Your Plants</h2>
+                        <button class="text-[var(--color-primary)] font-medium flex items-center">
+                            <i class="fas fa-plus mr-2"></i> Add New
+                        </button>
+                    </div>
+                    
+                    <div class="plant-grid">
+                        <!-- Plant Card 1 -->
+                        <div class="garden-card bg-white rounded-2xl overflow-hidden">
+                            <div class="relative">
+                                <div class="h-40 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] flex items-center justify-center">
+                                    <i class="fas fa-carrot text-white text-6xl"></i>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="sensor-badge bg-[var(--color-success)] text-white">Healthy</span>
+                                </div>
+                            </div>
+                            <div class="p-5">
+                                <h3 class="font-heading text-xl font-bold mb-1">Carrot Patch</h3>
+                                <p class="text-[var(--color-text-medium)] text-sm mb-4">Last watered: 2 hours ago</p>
+                                <div class="flex justify-between text-sm">
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Moisture</p>
+                                        <p class="font-medium">75%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Temperature</p>
+                                        <p class="font-medium">20°C</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Light</p>
+                                        <p class="font-medium">8h/day</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Plant Card 2 -->
+                        <div class="garden-card bg-white rounded-2xl overflow-hidden">
+                            <div class="relative">
+                                <div class="h-40 bg-gradient-to-r from-[var(--color-accent)] to-purple-500 flex items-center justify-center">
+                                    <i class="fas fa-rose text-white text-6xl"></i>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="sensor-badge bg-[var(--color-warning)] text-white">Needs Water</span>
+                                </div>
+                            </div>
+                            <div class="p-5">
+                                <h3 class="font-heading text-xl font-bold mb-1">Rose Garden</h3>
+                                <p class="text-[var(--color-text-medium)] text-sm mb-4">Last watered: 3 days ago</p>
+                                <div class="flex justify-between text-sm">
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Moisture</p>
+                                        <p class="font-medium">30%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Temperature</p>
+                                        <p class="font-medium">24°C</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Light</p>
+                                        <p class="font-medium">6h/day</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Plant Card 3 -->
+                        <div class="garden-card bg-white rounded-2xl overflow-hidden">
+                            <div class="relative">
+                                <div class="h-40 bg-gradient-to-r from-green-600 to-teal-500 flex items-center justify-center">
+                                    <i class="fas fa-basil text-white text-6xl"></i>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="sensor-badge bg-[var(--color-danger)] text-white">Issue</span>
+                                </div>
+                            </div>
+                            <div class="p-5">
+                                <h3 class="font-heading text-xl font-bold mb-1">Basil Plants</h3>
+                                <p class="text-[var(--color-text-medium)] text-sm mb-4">Pests detected</p>
+                                <div class="flex justify-between text-sm">
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Moisture</p>
+                                        <p class="font-medium">65%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Temperature</p>
+                                        <p class="font-medium">28°C</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[var(--color-text-light)]">Light</p>
+                                        <p class="font-medium">10h/day</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Watering Schedule -->
+        <section id="schedule" class="py-16 bg-[var(--color-background)]">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-8 scroll-animate">
+                    <h2 class="font-heading text-3xl font-bold text-[var(--color-text-dark)]">Watering Schedule</h2>
+                    <p class="text-[var(--color-text-medium)] mt-2">Automated watering plan for your garden</p>
+                </div>
+                
+                <div class="garden-card bg-white p-6 rounded-2xl scroll-animate">
+                    <div class="flex flex-wrap gap-4 mb-6">
+                        <button class="px-4 py-2 bg-[var(--color-primary)] text-white rounded-full text-sm">Today</button>
+                        <button class="px-4 py-2 bg-gray-100 rounded-full text-sm">Tomorrow</button>
+                        <button class="px-4 py-2 bg-gray-100 rounded-full text-sm">This Week</button>
+                        <button class="px-4 py-2 bg-gray-100 rounded-full text-sm">Next Week</button>
+                    </div>
+                    
+                    <div class="watering-schedule">
+                        <!-- Schedule Item 1 -->
+                        <div class="flex items-center py-4 border-b border-[var(--color-text-light)] border-opacity-20">
+                            <div class="w-16 text-center">
+                                <p class="text-sm text-[var(--color-text-medium)]">Today</p>
+                                <p class="font-medium">8:00 AM</p>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium">Morning Watering</h3>
+                                <p class="text-sm text-[var(--color-text-medium)]">All plants</p>
+                            </div>
+                            <div class="w-16 text-right">
+                                <span class="sensor-badge bg-[var(--color-success)] text-white">Active</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Schedule Item 2 -->
+                        <div class="flex items-center py-4 border-b border-[var(--color-text-light)] border-opacity-20">
+                            <div class="w-16 text-center">
+                                <p class="text-sm text-[var(--color-text-medium)]">Today</p>
+                                <p class="font-medium">6:00 PM</p>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium">Evening Watering</h3>
+                                <p class="text-sm text-[var(--color-text-medium)]">Flower beds & herbs</p>
+                            </div>
+                            <div class="w-16 text-right">
+                                <span class="sensor-badge bg-[var(--color-success)] text-white">Active</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Schedule Item 3 -->
+                        <div class="flex items-center py-4 border-b border-[var(--color-text-light)] border-opacity-20">
+                            <div class="w-16 text-center">
+                                <p class="text-sm text-[var(--color-text-medium)]">Tomorrow</p>
+                                <p class="font-medium">8:30 AM</p>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium">Deep Watering</h3>
+                                <p class="text-sm text-[var(--color-text-medium)]">Vegetable patch</p>
+                            </div>
+                            <div class="w-16 text-right">
+                                <span class="sensor-badge bg-[var(--color-warning)] text-white">Pending</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Schedule Item 4 -->
+                        <div class="flex items-center py-4">
+                            <div class="w-16 text-center">
+                                <p class="text-sm text-[var(--color-text-medium)]">Tomorrow</p>
+                                <p class="font-medium">7:00 PM</p>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium">Night Watering</h3>
+                                <p class="text-sm text-[var(--color-text-medium)]">Succulent garden</p>
+                            </div>
+                            <div class="w-16 text-right">
+                                <span class="sensor-badge bg-[var(--color-warning)] text-white">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-end">
+                        <button class="bg-[var(--color-primary)] text-white px-6 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity">
+                            <i class="fas fa-plus mr-2"></i> Add New Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sensor Data -->
+        <section id="sensors" class="py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-8 scroll-animate">
+                    <h2 class="font-heading text-3xl font-bold text-[var(--color-text-dark)]">Sensor Data</h2>
+                    <p class="text-[var(--color-text-medium)] mt-2">Real-time environmental readings from your garden</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Sensor Card 1 -->
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate">
+                        <div class="flex items-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-[var(--color-primary)] bg-opacity-10 flex items-center justify-center mr-4">
+                                <i class="fas fa-thermometer-half text-[var(--color-primary)] text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-heading text-xl font-semibold">Temperature</h3>
+                                <p class="text-[var(--color-text-medium)]">Garden Center</p>
+                            </div>
+                        </div>
+                        <div class="text-4xl font-bold mb-2">22.5°C</div>
+                        <div class="flex items-center text-sm text-[var(--color-text-medium)]">
+                            <i class="fas fa-arrow-up text-[var(--color-danger)] mr-1"></i>
+                            <span>0.3°C from yesterday</span>
+                        </div>
+                        <div class="mt-6">
+                            <canvas id="tempChart" height="100"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Sensor Card 2 -->
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate" style="transition-delay: 0.1s;">
+                        <div class="flex items-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-[var(--color-secondary)] bg-opacity-10 flex items-center justify-center mr-4">
+                                <i class="fas fa-tint text-[var(--color-secondary)] text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-heading text-xl font-semibold">Humidity</h3>
+                                <p class="text-[var(--color-text-medium)]">Greenhouse</p>
+                            </div>
+                        </div>
+                        <div class="text-4xl font-bold mb-2">68%</div>
+                        <div class="flex items-center text-sm text-[var(--color-text-medium)]">
+                            <i class="fas fa-arrow-down text-[var(--color-success)] mr-1"></i>
+                            <span>2% from yesterday</span>
+                        </div>
+                        <div class="mt-6">
+                            <canvas id="humidityChart" height="100"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Sensor Card 3 -->
+                    <div class="garden-card bg-white p-6 rounded-2xl scroll-animate" style="transition-delay: 0.2s;">
+                        <div class="flex items-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-[var(--color-accent)] bg-opacity-10 flex items-center justify-center mr-4">
+                                <i class="fas fa-sun text-[var(--color-accent)] text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-heading text-xl font-semibold">Light Intensity</h3>
+                                <p class="text-[var(--color-text-medium)]">West Side</p>
+                            </div>
+                        </div>
+                        <div class="text-4xl font-bold mb-2">7200 lux</div>
+                        <div class="flex items-center text-sm text-[var(--color-text-medium)]">
+                            <i class="fas fa-arrow-up text-[var(--color-success)] mr-1"></i>
+                            <span>Ideal range</span>
+                        </div>
+                        <div class="mt-6">
+                            <canvas id="lightChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--color-text-dark)] text-white py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="font-heading text-xl font-bold mb-4">GreenSense</h3>
+                    <p class="text-[var(--color-text-light)] text-sm">Smart garden monitoring for healthier plants and a more sustainable environment.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Navigation</h4>
+                    <ul class="space-y-2 text-sm text-[var(--color-text-light)]">
+                        <li><a href="#dashboard" class="hover:text-white transition-colors">Dashboard</a></li>
+                        <li><a href="#plants" class="hover:text-white transition-colors">Plants</a></li>
+                        <li><a href="#sensors" class="hover:text-white transition-colors">Sensors</a></li>
+                        <li><a href="#schedule" class="hover:text-white transition-colors">Watering Schedule</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Resources</h4>
+                    <ul class="space-y-2 text-sm text-[var(--color-text-light)]">
+                        <li><a href="#" class="hover:text-white transition-colors">Plant Care Guides</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Troubleshooting</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Device Manuals</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Community Forum</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Connect</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-[#3B5998] flex items-center justify-center hover:bg-[#2d4673] transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-[#1DA1F2] flex items-center justify-center hover:bg-[#1a91da] transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-[#0A66C2] flex items-center justify-center hover:bg-[#0954a8] transition-colors">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-[#E1306C] flex items-center justify-center hover:bg-[#c0255b] transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-[var(--color-text-light)] border-opacity-20 mt-8 pt-8 text-center text-sm text-[var(--color-text-light)]">
+                <p>© 2023 GreenSense. All rights reserved. Designed with <i class="fas fa-heart text-[var(--color-danger)]"></i> for plant lovers.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile menu toggle
+            const menuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (menuButton && mobileMenu) {
+                menuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Scroll animations
+            const animatedElements = document.querySelectorAll('.scroll-animate');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            animatedElements.forEach(el => observer.observe(el));
+
+            // Charts
+            // Moisture Chart
+            const moistureCtx = document.getElementById('moistureChart').getContext('2d');
+            new Chart(moistureCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Moisture Level (%)',
+                        data: [65, 70, 68, 72, 69, 75, 78],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 50,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Temperature Chart
+            const tempCtx = document.getElementById('tempChart').getContext('2d');
+            new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    labels: ['', '', '', '', '', '', ''],
+                    datasets: [{
+                        label: '',
+                        data: [20, 21, 22, 23, 24, 23, 22],
+                        borderColor: '#10B981',
+                        pointRadius: 0,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false
+                        },
+                        x: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Humidity Chart
+            const humidityCtx = document.getElementById('humidityChart').getContext('2d');
+            new Chart(humidityCtx, {
+                type: 'line',
+                data: {
+                    labels: ['', '', '', '', '', '', ''],
+                    datasets: [{
+                        label: '',
+                        data: [70, 68, 65, 68, 70, 72, 68],
+                        borderColor: '#0EA5E9',
+                        pointRadius: 0,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false
+                        },
+                        x: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Light Chart
+            const lightCtx = document.getElementById('lightChart').getContext('2d');
+            new Chart(lightCtx, {
+                type: 'line',
+                data: {
+                    labels: ['', '', '', '', '', '', ''],
+                    datasets: [{
+                        label: '',
+                        data: [6500, 7000, 7200, 7500, 7200, 6800, 6500],
+                        borderColor: '#8B5CF6',
+                        pointRadius: 0,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false
+                        },
+                        x: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

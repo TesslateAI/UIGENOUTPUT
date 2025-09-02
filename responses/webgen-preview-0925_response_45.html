@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Journal – Simple Personal App</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Quill.js (for rich text editor) -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+
+    <style>
+        /* Custom colour tokens */
+        :root {
+            --color-background: #f5f5f5;
+            --color-text-primary: #111827;
+            --color-text-secondary: #4b5563;
+            --color-surface: #ffffff;
+            --color-border-light: #e5e7eb;
+            --color-border-dark: #d1d5db;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Marquee animation */
+        .marquee-container {
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+        .marquee-content {
+            display: flex;
+            width: max-content;
+            animation: marquee-scroll 30s linear infinite;
+        }
+        .marquee-content > div {
+            flex-shrink: 0;
+            padding: 0 1.5rem;
+        }
+        @keyframes marquee-scroll {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Scroll reveal */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+        .reveal-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Button hover effect */
+        .btn-hover-fill {
+            position: relative;
+            overflow: hidden;
+            transition: color .3s ease-in-out;
+            z-index: 1;
+        }
+        .btn-hover-fill::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-text-primary);
+            transition: left .3s ease-in-out;
+            z-index: -1;
+        }
+        .btn-hover-fill:hover {
+            color: var(--color-background);
+        }
+        .btn-hover-fill:hover::before {
+            left: 0;
+        }
+
+        /* Mobile menu */
+        #mobile-menu {
+            transform: translateX(100%);
+            transition: transform .3s ease-in-out;
+        }
+        #mobile-menu.open {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="bg-[var(--color-background)] text-[var(--color-text-primary)]">
+
+    <div id="main-container" class="relative mx-auto max-w-screen-xl flex flex-col items-center">
+
+        <!-- Header -->
+        <header class="sticky top-0 z-50 bg-[var(--color-background)]/80 backdrop-blur-md">
+            <nav class="container mx-auto px-6 py-4 flex justify-between items-center max-w-screen-xl">
+                <!-- Logo -->
+                <a href="#" class="text-2xl font-bold">MyJournal</a>
+
+                <!-- Desktop Nav -->
+                <div class="hidden lg:flex items-center gap-8">
+                    <a href="#" class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Home</a>
+                    <a href="#" class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">About</a>
+                    <a href="#" class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Contact</a>
+                </div>
+
+                <!-- CTA Button -->
+                <a href="#journal-form" class="hidden lg:inline-block bg-[var(--color-text-primary)] text-[var(--color-background)] px-6 py-3 rounded-full text-sm font-medium hover:opacity-80 transition-opacity">
+                    Start Journaling
+                </a>
+
+                <!-- Mobile Menu Button -->
+                <button id="menu-toggle" class="lg:hidden text-[var(--color-text-secondary)] focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                </button>
+            </nav>
+
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="fixed inset-0 bg-[var(--color-background)] z-40 lg:hidden p-6 pt-24 transform translate-x-full">
+                <div class="flex flex-col items-center gap-8 text-center">
+                    <a href="#" class="mobile-link text-lg font-medium text-[var(--color-text-secondary)]">Home</a>
+                    <a href="#" class="mobile-link text-lg font-medium text-[var(--color-text-secondary)]">About</a>
+                    <a href="#" class="mobile-link text-lg font-medium text-[var(--color-text-secondary)]">Contact</a>
+                    <a href="#journal-form" class="mt-4 bg-[var(--color-text-primary)] text-[var(--color-background)] px-8 py-3 rounded-full text-md font-medium">
+                        Start Journaling
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="relative w-full py-24 px-6 text-center overflow-hidden">
+            <div class="absolute inset-0 bg-cover bg-center opacity-10" style="background-image:url('https://static.photos/abstract/1024x576/123');"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[var(--color-background)] via-transparent to-transparent"></div>
+
+            <div class="relative z-10 flex flex-col items-center gap-6">
+                <div class="reveal-on-scroll inline-block bg-[var(--color-surface)] text-sm font-medium px-4 py-1.5 rounded-full border border-[var(--color-border-light)] shadow-sm">
+                    📓 Your Personal Journal
+                </div>
+                <h1 class="reveal-on-scroll text-4xl md:text-6xl lg:text-7xl font-medium tracking-tighter max-w-3xl">
+                    Capture moments, thoughts & stories
+                </h1>
+                <p class="reveal-on-scroll text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl">
+                    Simple, beautiful, and private. Write, take photos, and schedule entries all in one place.
+                </p>
+                <a href="#journal-form" class="reveal-on-scroll btn-hover-fill inline-block bg-[var(--color-text-primary)] text-[var(--color-background)] px-8 py-4 rounded-full text-base font-medium">
+                    Start Writing
+                </a>
+            </div>
+        </section>
+
+        <!-- Journal Form Section -->
+        <section id="journal-form" class="w-full max-w-3xl mx-auto py-24 px-6">
+            <h2 class="text-3xl font-medium text-center mb-8">New Entry</h2>
+            <form class="space-y-6">
+                <!-- Date Picker -->
+                <div class="flex justify-center">
+                    <input type="date" class="w-full md:w-auto px-4 py-2 border border-[var(--color-border-light)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-text-primary)]">
+                </div>
+
+                <!-- Text Editor -->
+                <div class="w-full">
+                    <textarea id="editor" class="w-full h-64 p-4 border border-[var(--color-border-light)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-text-primary)]" placeholder="Write your thoughts..."></textarea>
+                </div>
+
+                <!-- Photo Upload -->
+                <div class="flex flex-col items-center gap-4">
+                    <label for="photo-upload" class="cursor-pointer">
+                        <img id="preview-img" src="https://static.photos/abstract/320x240/123" alt="Preview" class="w-48 h-48 object-cover rounded-md shadow-md hidden">
+                        <div class="w-48 h-48 bg-[var(--color-border-light)] rounded-md shadow-md flex items-center justify-center text-sm text-[var(--color-text-secondary)]">
+                            Click to attach a photo
+                        </div>
+                    </label>
+                    <input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="previewPhoto(event)">
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full bg-[var(--color-text-primary)] text-[var(--color-background)] py-3 rounded-full font-medium hover:opacity-90 transition-opacity">
+                    Save Entry
+                </button>
+            </form>
+        </section>
+
+        <!-- Photo Gallery Section (optional) -->
+        <section class="w-full py-24 px-6">
+            <h2 class="text-3xl font-medium text-center mb-12">Featured Photos</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Example static.photos image -->
+                <img src="https://static.photos/nature/640x360/456" alt="Nature" class="w-full h-64 object-cover rounded-lg border border-[var(--color-border-light)]">
+                <img src="https://static.photos/office/200x200/789" alt="Office" class="w-full h-64 object-cover rounded-lg border border-[var(--color-border-light)]">
+                <img src="https://static.photos/people/320x240/123" alt="People" class="w-full h-64 object-cover rounded-lg border border-[var(--color-border-light)]">
+                <img src="https://static.photos/technology/640x360/456" alt="Technology" class="w-full h-64 object-cover rounded-lg border border-[var(--color-border-light)]">
+                <img src="https://static.photos/abstract/1024x576/789" alt="Abstract" class="w-full h-64 object-cover rounded-lg border border-[var(--color-border-light)]">
+                <img src="https://static.photos/food/320x240/123" alt="Food" class="w-full h-64 object-cover rounded-lg border border-[var(--color-border-light)]">
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="w-full bg-[var(--color-surface)] border-t border-[var(--color-border-light)] py-16 px-6">
+            <div class="max-w-screen-xl mx-auto flex flex-col items-center gap-12">
+                <div class="text-center">
+                    <h2 class="text-4xl lg:text-6xl font-medium tracking-tight">Stay Inspired</h2>
+                    <p class="mt-4 text-lg text-[var(--color-text-secondary)]">Subscribe for weekly journal prompts & tips</p>
+                </div>
+                <form class="flex flex-col sm:flex-row items-center gap-4 w-full max-w-md">
+                    <input type="email" placeholder="you@example.com" class="flex-grow w-full px-4 py-3 border border-[var(--color-border-light)] rounded-full focus:outline-none focus:ring-2 focus:ring-[var(--color-text-primary)] text-sm">
+                    <button type="submit" class="px-6 py-3 bg-[var(--color-text-primary)] text-[var(--color-background)] rounded-full font-medium text-sm hover:opacity-80 transition-opacity">
+                        Subscribe
+                    </button>
+                </form>
+
+                <div class="w-full flex flex-col md:flex-row justify-between items-center gap-8 pt-8 text-sm text-[var(--color-text-secondary)]">
+                    <div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                        <a href="#" class="hover:text-[var(--color-text-primary)]">Home</a>
+                        <a href="#" class="hover:text-[var(--color-text-primary)]">About</a>
+                        <a href="#" class="hover:text-[var(--color-text-primary)]">Contact</a>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+                        <a href="#" class="hover:text-[var(--color-text-primary)]">Twitter</a>
+                        <a href="#" class="hover:text-[var(--color-text-primary)]">Instagram</a>
+                        <a href="#" class="hover:text-[var(--color-text-primary)]">LinkedIn</a>
+                    </div>
+                    <p>&copy; 2026 MyJournal. All rights reserved.</p>
+                </div>
+
+                <p class="text-xs text-center">Built with <a href="https://tesslate.com" class="underline hover:text-[var(--color-text-primary)]">Tesslate</a></p>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Init Quill editor
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Write your journal entry here...',
+        });
+
+        // Simple photo preview
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('preview-img');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('open');
+            menuToggle.innerHTML = mobileMenu.classList.contains('open')
+                ? '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>'
+                : '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>';
+        });
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+                menuToggle.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>';
+            });
+        });
+
+        // Scroll reveal
+        const revealEls = document.querySelectorAll('.reveal-on-scroll');
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('is-visible');
+            });
+        }, { threshold: .1 });
+
+        revealEls.forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

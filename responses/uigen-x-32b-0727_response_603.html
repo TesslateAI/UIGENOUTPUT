@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatSphere - Modern Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .chat-container {
+            height: calc(100vh - 4rem);
+        }
+        
+        .thread-item:hover {
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+        
+        .thread-item.active {
+            background-color: rgba(14, 165, 233, 0.15);
+            border-left: 3px solid #0ea5e9;
+        }
+        
+        .message-bubble {
+            max-width: 75%;
+            border-radius: 1.25rem;
+            padding: 0.75rem 1.25rem;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .sent {
+            background-color: #0ea5e9;
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+            align-self: flex-end;
+        }
+        
+        .received {
+            background-color: #1e293b;
+            border-bottom-left-radius: 0.25rem;
+            align-self: flex-start;
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #94a3b8;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .emoji-picker {
+            transition: all 0.3s ease;
+            transform-origin: top right;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .message-enter {
+            animation: messageEnter 0.3s ease-out;
+        }
+        
+        @keyframes messageEnter {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
+                    <i class="fas fa-comment-dots text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold ml-3">ChatSphere</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                    <i class="fas fa-cog text-dark-300"></i>
+                </button>
+                <div class="relative">
+                    <button id="user-menu-button" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-semibold">JD</div>
+                        <span class="hidden md:block text-sm font-medium">John Doe</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="flex flex-col md:flex-row gap-6 h-[calc(100vh-120px)]">
+            <!-- Threads Sidebar -->
+            <div class="w-full md:w-1/3 lg:w-1/4 bg-dark-800 rounded-2xl overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-dark-700">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            placeholder="Search conversations..." 
+                            class="w-full bg-dark-700 border border-dark-600 rounded-lg py-2 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                        <i class="fas fa-search absolute left-3 top-2.5 text-dark-400"></i>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto scrollbar-hide">
+                    <div class="p-2">
+                        <h3 class="text-xs uppercase text-dark-400 font-semibold px-3 py-2">Recent Chats</h3>
+                        
+                        <!-- Thread List -->
+                        <div class="space-y-1">
+                            <!-- Active Thread -->
+                            <div class="thread-item active flex items-center p-3 rounded-xl cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-accent-500 to-primary-500 flex items-center justify-center text-white font-semibold">AS</div>
+                                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-dark-800"></div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">Alex Smith</h4>
+                                        <span class="text-xs text-dark-400">10:42 AM</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">See you at the meeting!</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Other Threads -->
+                            <div class="thread-item flex items-center p-3 rounded-xl cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">MJ</div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">Marketing Team</h4>
+                                        <span class="text-xs text-dark-400">Yesterday</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">Sarah: The campaign is ready for review</p>
+                                </div>
+                            </div>
+                            
+                            <div class="thread-item flex items-center p-3 rounded-xl cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-semibold">RT</div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">Robert Taylor</h4>
+                                        <span class="text-xs text-dark-400">Wed</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">Thanks for the help with the project!</p>
+                                </div>
+                            </div>
+                            
+                            <div class="thread-item flex items-center p-3 rounded-xl cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center text-white font-semibold">ES</div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">Emma Stone</h4>
+                                        <span class="text-xs text-dark-400">Tue</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">Are we still meeting tomorrow?</p>
+                                </div>
+                            </div>
+                            
+                            <div class="thread-item flex items-center p-3 rounded-xl cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-semibold">DC</div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">Design Collective</h4>
+                                        <span class="text-xs text-dark-400">Mon</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">Michael: New assets uploaded</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xs uppercase text-dark-400 font-semibold px-3 py-2 mt-4">Archived</h3>
+                        
+                        <div class="space-y-1">
+                            <div class="thread-item flex items-center p-3 rounded-xl cursor-pointer opacity-60">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold">TL</div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">Tech Leaders</h4>
+                                        <span class="text-xs text-dark-400">Jun 12</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">Meeting notes attached</p>
+                                </div>
+                            </div>
+                            
+                            <div class="thread-item flex items-center p-3 rounded-xl cursor-pointer opacity-60">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-500 to-slate-500 flex items-center justify-center text-white font-semibold">HR</div>
+                                </div>
+                                <div class="ml-3 flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <h4 class="font-semibold truncate">HR Department</h4>
+                                        <span class="text-xs text-dark-400">May 28</span>
+                                    </div>
+                                    <p class="text-sm text-dark-300 truncate">Benefits enrollment reminder</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Area -->
+            <div class="flex-1 flex flex-col bg-dark-800 rounded-2xl overflow-hidden">
+                <!-- Chat Header -->
+                <div class="p-4 border-b border-dark-700 flex items-center">
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-accent-500 to-primary-500 flex items-center justify-center text-white font-semibold">AS</div>
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-dark-800"></div>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="font-semibold">Alex Smith</h3>
+                        <p class="text-xs text-dark-400">Online - Last seen just now</p>
+                    </div>
+                    <div class="ml-auto flex space-x-2">
+                        <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                            <i class="fas fa-phone-alt text-dark-300"></i>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                            <i class="fas fa-video text-dark-300"></i>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                            <i class="fas fa-ellipsis-h text-dark-300"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Messages Area -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide" id="messages-container">
+                    <!-- Date Divider -->
+                    <div class="flex items-center my-6">
+                        <div class="flex-1 border-t border-dark-700"></div>
+                        <span class="px-4 text-sm text-dark-400">Today</span>
+                        <div class="flex-1 border-t border-dark-700"></div>
+                    </div>
+                    
+                    <!-- Received Message -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble received message-enter">
+                            <p>Hey John! How's the project going?</p>
+                        </div>
+                        <div class="text-xs text-dark-400 self-start mt-1 ml-2">10:30 AM</div>
+                    </div>
+                    
+                    <!-- Sent Message -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble sent message-enter">
+                            <p>It's going well! Just finished the UI designs. Should I send them over?</p>
+                        </div>
+                        <div class="text-xs text-dark-400 self-end mt-1 mr-2">10:32 AM</div>
+                    </div>
+                    
+                    <!-- Received Message with Image -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble received message-enter">
+                            <p>Yes please! I'd love to see what you've come up with.</p>
+                        </div>
+                        <div class="text-xs text-dark-400 self-start mt-1 ml-2">10:33 AM</div>
+                    </div>
+                    
+                    <!-- Sent Message with Image -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble sent message-enter">
+                            <p>Here are the mockups:</p>
+                            <div class="mt-2 rounded-lg overflow-hidden">
+                                <div class="bg-gradient-to-br from-primary-500 to-accent-500 w-full h-40 flex items-center justify-center">
+                                    <i class="fas fa-image text-white text-4xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-dark-400 self-end mt-1 mr-2">10:35 AM</div>
+                    </div>
+                    
+                    <!-- Received Message -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble received message-enter">
+                            <p>These look amazing! The color scheme is perfect. Exactly what we discussed.</p>
+                        </div>
+                        <div class="text-xs text-dark-400 self-start mt-1 ml-2">10:37 AM</div>
+                    </div>
+                    
+                    <!-- Sent Message -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble sent message-enter">
+                            <p>Glad you like them! I've also created some interactive prototypes if you want to take a look.</p>
+                        </div>
+                        <div class="text-xs text-dark-400 self-end mt-1 mr-2">10:38 AM</div>
+                    </div>
+                    
+                    <!-- Received Message with Emoji -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble received message-enter">
+                            <p>That would be great! 👍 I'll schedule a quick review session tomorrow at 2 PM.</p>
+                        </div>
+                        <div class="text-xs text-dark-400 self-start mt-1 ml-2">10:40 AM</div>
+                    </div>
+                    
+                    <!-- Typing Indicator -->
+                    <div class="flex flex-col">
+                        <div class="message-bubble received">
+                            <div class="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Input Area -->
+                <div class="p-4 border-t border-dark-700">
+                    <div class="flex items-center">
+                        <button id="emoji-button" class="p-2 rounded-full hover:bg-dark-700 transition-colors mr-1">
+                            <i class="far fa-smile text-dark-300"></i>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-dark-700 transition-colors mr-1">
+                            <i class="fas fa-paperclip text-dark-300"></i>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-dark-700 transition-colors">
+                            <i class="fas fa-image text-dark-300"></i>
+                        </button>
+                        
+                        <div class="flex-1 mx-2">
+                            <input 
+                                type="text" 
+                                placeholder="Type a message..." 
+                                class="w-full bg-dark-700 border border-dark-600 rounded-full py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                id="message-input"
+                            >
+                        </div>
+                        
+                        <button class="bg-primary-500 hover:bg-primary-600 text-white rounded-full p-3 transition-colors">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Emoji Picker (Hidden by default) -->
+                    <div id="emoji-picker" class="emoji-picker absolute bottom-16 right-4 w-80 bg-dark-700 rounded-xl border border-dark-600 shadow-lg z-50 hidden">
+                        <div class="p-3 border-b border-dark-600 flex items-center">
+                            <h4 class="font-semibold">Emoji Picker</h4>
+                            <button id="close-emoji" class="ml-auto p-1 rounded hover:bg-dark-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="p-3">
+                            <div class="grid grid-cols-8 gap-2">
+                                <!-- Sample emojis -->
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😀</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😂</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😍</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😎</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">👍</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">❤️</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎉</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🔥</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🚀</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">✨</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🌟</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎉</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🍕</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🍔</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">☕</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">📚</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">💻</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">📱</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">📸</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎨</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎵</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎮</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">⚽</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🏀</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🏈</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">⚾</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎾</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🏐</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🏉</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎱</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🏓</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🏸</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🥊</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🥋</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎽</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">⛸️</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎣</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎚️</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎤</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎧</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎼</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎹</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎻</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🥁</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎷</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎺</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎸</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">👾</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🤖</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">👽</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">👾</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">👻</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">💀</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🎃</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😺</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😸</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😹</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😻</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😼</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😽</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">🙀</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😿</button>
+                                <button class="text-2xl p-1 hover:bg-dark-600 rounded">😾</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle emoji picker
+        const emojiButton = document.getElementById('emoji-button');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const closeEmoji = document.getElementById('close-emoji');
+        
+        emojiButton.addEventListener('click', () => {
+            emojiPicker.classList.toggle('hidden');
+        });
+        
+        closeEmoji.addEventListener('click', () => {
+            emojiPicker.classList.add('hidden');
+        });
+        
+        // Close emoji picker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!emojiButton.contains(e.target) && !emojiPicker.contains(e.target)) {
+                emojiPicker.classList.add('hidden');
+            }
+        });
+        
+        // Send message functionality
+        const messageInput = document.getElementById('message-input');
+        const messagesContainer = document.getElementById('messages-container');
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                // Create message element
+                const messageElement = document.createElement('div');
+                messageElement.className = 'flex flex-col';
+                messageElement.innerHTML = `
+                    <div class="message-bubble sent message-enter">
+                        <p>${message}</p>
+                    </div>
+                    <div class="text-xs text-dark-400 self-end mt-1 mr-2">Just now</div>
+                `;
+                
+                // Add to messages container
+                messagesContainer.appendChild(messageElement);
+                
+                // Clear input
+                messageInput.value = '';
+                
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Simulate reply after delay
+                setTimeout(simulateReply, 1500);
+            }
+        }
+        
+        function simulateReply() {
+            // Show typing indicator
+            const typingIndicator = document.querySelector('.typing-indicator');
+            typingIndicator.parentElement.parentElement.classList.remove('hidden');
+            
+            // Hide after delay and show message
+            setTimeout(() => {
+                typingIndicator.parentElement.parentElement.classList.add('hidden');
+                
+                const replies = [
+                    "Thanks for the update!",
+                    "I'll review this and get back to you.",
+                    "That sounds good to me.",
+                    "Let me check and confirm.",
+                    "Great! I'll schedule accordingly."
+                ];
+                
+                const randomReply = replies[Math.floor(Math.random() * replies.length)];
+                
+                const messageElement = document.createElement('div');
+                messageElement.className = 'flex flex-col';
+                messageElement.innerHTML = `
+                    <div class="message-bubble received message-enter">
+                        <p>${randomReply}</p>
+                    </div>
+                    <div class="text-xs text-dark-400 self-start mt-1 ml-2">Just now</div>
+                `;
+                
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 2000);
+        }
+        
+        // Initialize scroll position
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    </script>
+</body>
+</html>

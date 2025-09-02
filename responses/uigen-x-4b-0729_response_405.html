@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Quest - Interactive Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f5f7fa',
+                            100: '#e9eef5',
+                            200: '#d1d8e0',
+                            300: '#a6b4c2',
+                            400: '#788aa8',
+                            500: '#5a678c',
+                            600: '#405178',
+                            700: '#314065',
+                            800: '#273a56',
+                            900: '#1d2e4a',
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #f5f7fa 100%);
+            min-height: 100vh;
+        }
+        
+        .quiz-card {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            border-radius: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .option-card {
+            transition: all 0.2s ease;
+            border: 2px solid #e9ecef;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-3px);
+            border-color: #0ea5e9;
+            box-shadow: 0 10px 20px rgba(14, 165, 233, 0.1);
+        }
+        
+        .option-card.selected {
+            border-color: #14b8a6;
+            background-color: rgba(20, 184, 166, 0.05);
+        }
+        
+        .option-card.correct {
+            border-color: #14b8a6;
+            background-color: rgba(20, 184, 166, 0.05);
+        }
+        
+        .option-card.incorrect {
+            border-color: #f87171;
+            background-color: rgba(248, 113, 113, 0.05);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #14b8a6);
+            transition: width 0.5s ease;
+        }
+        
+        .timer-circle {
+            transform: rotate(-90deg);
+        }
+        
+        .timer-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #f87171;
+            position: relative;
+        }
+        
+        .timer-dot::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #0ea5e9;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(2); }
+            100% { opacity: 0.2; transform: scale(1); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bounce {
+            animation: bounce 0.5s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-3">Knowledge Quest</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Test your knowledge across various topics with our interactive quiz platform</p>
+        </header>
+        
+        <!-- Quiz Container -->
+        <div class="quiz-card bg-white p-6 md:p-8 rounded-2xl">
+            <!-- Progress Section -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-medium text-gray-600">Question <span id="current-question">1</span> of <span id="total-questions">5</span></span>
+                    <span class="text-sm font-medium text-gray-600">Score: <span id="current-score">0</span></span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 20%"></div>
+                </div>
+            </div>
+            
+            <!-- Timer Section -->
+            <div class="flex justify-center items-center mb-8">
+                <div class="relative">
+                    <div class="w-24 h-24 rounded-full border-4 border-gray-200 flex items-center justify-center">
+                        <div class="timer-circle">
+                            <div class="text-center">
+                                <span id="timer" class="text-3xl font-bold text-gray-800">20</span>
+                                <span class="text-sm text-gray-500">s</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                        Time Left
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question Section -->
+            <div class="mb-8 fade-in" id="question-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6" id="question-text">What is the capital of France?</h2>
+                <div class="flex justify-center mb-6">
+                    <div class="w-20 h-20 rounded-full border-4 border-gray-200 flex items-center justify-center">
+                        <div class="timer-dot"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Options Section -->
+            <div class="mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="options-container">
+                    <!-- Options will be inserted here by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="flex justify-between">
+                <button id="prev-btn" class="px-6 py-3 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-arrow-left mr-2"></i> Previous
+                </button>
+                <button id="next-btn" class="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700">
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Results Section (Hidden Initially) -->
+        <div id="results-section" class="hidden mt-12 text-center">
+            <div class="quiz-card bg-white p-8 rounded-2xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Quiz Completed!</h2>
+                <div class="text-6xl font-bold text-primary-600 mb-4" id="final-score">80%</div>
+                <p class="text-xl text-gray-600 mb-8" id="result-message">Great job! You've demonstrated excellent knowledge in this area.</p>
+                <div class="flex justify-center space-x-4">
+                    <button id="restart-btn" class="px-6 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700">
+                        <i class="fas fa-redo mr-2"></i> Restart Quiz
+                    </button>
+                    <button id="review-btn" class="px-6 py-3 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200">
+                        <i class="fas fa-eye mr-2"></i> Review Answers
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quiz questions data
+        const quizData = [
+            {
+                question: "What is the capital of France?",
+                options: ["London", "Berlin", "Paris", "Madrid"],
+                answer: "Paris"
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                answer: "Mars"
+            },
+            {
+                question: "What is the largest mammal in the world?",
+                options: ["Elephant", "Blue Whale", "Giraffe", "Hippopotamus"],
+                answer: "Blue Whale"
+            },
+            {
+                question: "Which element has the chemical symbol 'O'?",
+                options: ["Gold", "Oxygen", "Osmium", "Oganesson"],
+                answer: "Oxygen"
+            },
+            {
+                question: "What is the main language of Brazil?",
+                options: ["English", "Spanish", "French", "Portuguese"],
+                answer: "Portuguese"
+            }
+        ];
+
+        // DOM Elements
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const currentQuestionEl = document.getElementById('current-question');
+        const totalQuestionsEl = document.getElementById('total-questions');
+        const currentScoreEl = document.getElementById('current-score');
+        const progressFill = document.getElementById('progress-fill');
+        const timerEl = document.getElementById('timer');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const reviewBtn = document.getElementById('review-btn');
+        const resultsSection = document.getElementById('results-section');
+        const finalScoreEl = document.getElementById('final-score');
+        const resultMessageEl = document.getElementById('result-message');
+
+        // Quiz state
+        let currentQuestion = 0;
+        let score = 0;
+        let userAnswers = [];
+        let timeLeft = 20;
+        let timerInterval;
+        let answered = false;
+
+        // Initialize quiz
+        function initQuiz() {
+            totalQuestionsEl.textContent = quizData.length;
+            loadQuestion();
+            startTimer();
+            updateProgress();
+        }
+
+        // Load question
+        function loadQuestion() {
+            const question = quizData[currentQuestion];
+            questionText.textContent = question.question;
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionEl = document.createElement('div');
+                optionEl.classList.add('option-card', 'p-4', 'rounded-xl', 'cursor-pointer');
+                optionEl.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center mr-3">
+                            ${String.fromCharCode(65 + index)}
+                        </div>
+                        <span>${option}</span>
+                    </div>
+                `;
+                optionEl.addEventListener('click', () => selectOption(optionEl, option));
+                optionsContainer.appendChild(optionEl);
+            });
+            
+            currentQuestionEl.textContent = currentQuestion + 1;
+            updateProgress();
+        }
+
+        // Select option
+        function selectOption(optionEl, option) {
+            if (answered) return;
+            
+            // Remove selected class from all options
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            optionEl.classList.add('selected');
+            
+            // Check if answer is correct
+            const isCorrect = option === quizData[currentQuestion].answer;
+            userAnswers[currentQuestion] = isCorrect;
+            
+            if (isCorrect) {
+                score++;
+                currentScoreEl.textContent = score;
+            }
+            
+            answered = true;
+            
+            // Disable other options
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.disabled = true;
+            });
+            
+            // Update next button
+            nextBtn.textContent = "Finish Quiz";
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const progress = ((currentQuestion) / quizData.length) * 100;
+            progressFill.style.width = `${progress}%`;
+        }
+
+        // Start timer
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 20;
+            timerEl.textContent = timeLeft;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishQuiz();
+                }
+            }, 1000);
+        }
+
+        // Finish quiz
+        function finishQuiz() {
+            clearInterval(timerInterval);
+            answered = false;
+            currentQuestion = quizData.length;
+            
+            // Calculate final score
+            const finalScore = Math.round((score / quizData.length) * 100);
+            finalScoreEl.textContent = `${finalScore}%`;
+            
+            // Set appropriate message
+            if (finalScore >= 80) {
+                resultMessageEl.textContent = "Great job! You've demonstrated excellent knowledge in this area.";
+            } else if (finalScore >= 60) {
+                resultMessageEl.textContent = "Good effort! You have a solid understanding of the material.";
+            } else {
+                resultMessageEl.textContent = "Keep learning! Review the material to improve your knowledge.";
+            }
+            
+            // Show results
+            document.querySelector('.quiz-card').classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+        }
+
+        // Event listeners
+        prevBtn.addEventListener('click', () => {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                loadQuestion();
+                startTimer();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentQuestion < quizData.length) {
+                currentQuestion++;
+                loadQuestion();
+                startTimer();
+            } else {
+                finishQuiz();
+            }
+        });
+
+        restartBtn.addEventListener('click', () => {
+            currentQuestion = 0;
+            score = 0;
+            userAnswers = [];
+            timeLeft = 20;
+            currentScoreEl.textContent = "0";
+            resultsSection.classList.add('hidden');
+            document.querySelector('.quiz-card').classList.remove('hidden');
+            loadQuestion();
+            startTimer();
+        });
+
+        reviewBtn.addEventListener('click', () => {
+            // In a real app, this would show the user's answers
+            alert('Review functionality would show your answers here.');
+        });
+
+        // Initialize the quiz
+        initQuiz();
+    </script>
+</body>
+</html>

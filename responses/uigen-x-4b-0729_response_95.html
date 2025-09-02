@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bg-dark': '#0b0b0d',
+                        'bg-card': '#141417',
+                        'primary-teal': '#4db6ac',
+                        'accent-lime': '#e0f2f1',
+                        'text-light': '#ffffff',
+                        'text-muted': '#949fa6',
+                        'border-dark': '#21212a',
+                        'border-medium': '#323240',
+                        'category-work': '#4db6ac',
+                        'category-personal': '#ff6b6b',
+                        'category-education': '#4895ef',
+                        'category-health': '#f9c74f',
+                        'category-other': '#9b5de5'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'scale-in': 'scaleIn 0.2s ease-out'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: 0 },
+                            '100%': { opacity: 1 }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: 0 },
+                            '100%': { transform: 'translateY(0)', opacity: 1 }
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0b0d;
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .calendar-day {
+            min-height: 120px;
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .event-item {
+            transition: all 0.2s ease;
+        }
+        
+        .event-item:hover {
+            transform: translateX(2px);
+        }
+        
+        .category-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            animation: scaleIn 0.3s ease-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .calendar-header {
+            transition: all 0.3s ease;
+        }
+        
+        .calendar-header:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .day-number {
+            transition: all 0.2s ease;
+        }
+        
+        .day-number:hover {
+            background-color: rgba(77, 182, 172, 0.1);
+        }
+        
+        .today .day-number {
+            background-color: rgba(77, 182, 172, 0.2);
+            color: #4db6ac;
+        }
+        
+        .has-events .day-number {
+            position: relative;
+        }
+        
+        .has-events .day-number::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: #4db6ac;
+        }
+    </style>
+</head>
+<body class="bg-bg-dark text-text-light min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-bg-card border-b border-border-dark">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-primary-teal flex items-center justify-center">
+                    <i class="fas fa-calendar-alt text-xl text-bg-dark"></i>
+                </div>
+                <h1 class="text-xl font-bold">Event Calendar</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button id="add-event-btn" class="bg-primary-teal hover:bg-opacity-80 text-bg-dark font-medium py-2 px-4 rounded-lg flex items-center transition-all">
+                    <i class="fas fa-plus mr-2"></i> Add Event
+                </button>
+                <div class="relative">
+                    <button class="w-10 h-10 rounded-full bg-bg-card border border-border-dark flex items-center justify-center">
+                        <i class="fas fa-user text-text-muted"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Calendar Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                <button id="prev-month" class="w-10 h-10 rounded-lg bg-bg-card border border-border-dark flex items-center justify-center hover:bg-primary-teal hover:bg-opacity-10 transition-colors">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 id="current-month" class="text-2xl font-bold">June 2023</h2>
+                <button id="next-month" class="w-10 h-10 rounded-lg bg-bg-card border border-border-dark flex items-center justify-center hover:bg-primary-teal hover:bg-opacity-10 transition-colors">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="flex space-x-2">
+                <button class="px-4 py-2 rounded-lg bg-bg-card border border-border-dark text-sm hover:bg-primary-teal hover:bg-opacity-10 transition-colors">Today</button>
+                <button class="px-4 py-2 rounded-lg bg-bg-card border border-border-dark text-sm hover:bg-primary-teal hover:bg-opacity-10 transition-colors">Week</button>
+                <button class="px-4 py-2 rounded-lg bg-primary-teal text-bg-dark text-sm font-medium">Month</button>
+            </div>
+        </div>
+        
+        <!-- Weekday Headers -->
+        <div class="calendar-grid mb-2">
+            <div class="text-center text-text-muted font-medium py-2">Sun</div>
+            <div class="text-center text-text-muted font-medium py-2">Mon</div>
+            <div class="text-center text-text-muted font-medium py-2">Tue</div>
+            <div class="text-center text-text-muted font-medium py-2">Wed</div>
+            <div class="text-center text-text-muted font-medium py-2">Thu</div>
+            <div class="text-center text-text-muted font-medium py-2">Fri</div>
+            <div class="text-center text-text-muted font-medium py-2">Sat</div>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div id="calendar-grid" class="calendar-grid">
+            <!-- Calendar days will be populated by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Event Modal -->
+    <div id="event-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0"></div>
+        <div class="modal-content relative bg-bg-card rounded-xl border border-border-dark w-full max-w-md z-10">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Add New Event</h3>
+                    <button id="close-modal" class="text-text-muted hover:text-text-light">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="event-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Event Title</label>
+                        <input type="text" id="event-title" class="w-full bg-bg-card border border-border-dark rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-teal" placeholder="Meeting with team" required>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Date</label>
+                            <input type="date" id="event-date" class="w-full bg-bg-card border border-border-dark rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-teal" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Time</label>
+                            <input type="time" id="event-time" class="w-full bg-bg-card border border-border-dark rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-teal">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Category</label>
+                        <select id="event-category" class="w-full bg-bg-card border border-border-dark rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-teal">
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="education">Education</option>
+                            <option value="health">Health</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Description</label>
+                        <textarea id="event-description" class="w-full bg-bg-card border border-border-dark rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-teal" rows="3" placeholder="Add event details..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-event" class="px-4 py-2 rounded-lg border border-border-dark hover:bg-bg-card transition-colors">Cancel</button>
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-primary-teal text-bg-dark font-medium hover:bg-opacity-80 transition-colors">Save Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Current date state
+            let currentDate = new Date();
+            let currentMonth = currentDate.getMonth();
+            let currentYear = currentDate.getFullYear();
+            
+            // Sample events data
+            let events = [
+                { id: 1, title: "Team Meeting", date: "2023-06-15", time: "10:00", category: "work", description: "Weekly team sync" },
+                { id: 2, title: "Dentist Appointment", date: "2023-06-18", time: "14:30", category: "health", description: "Regular dental checkup" },
+                { id: 3, title: "Project Deadline", date: "2023-06-22", time: "17:00", category: "work", description: "Submit final project documents" },
+                { id: 4, title: "Birthday Party", date: "2023-06-25", time: "19:00", category: "personal", description: "John's birthday celebration" },
+                { id: 5, title: "Online Course", date: "2023-06-28", time: "12:00", category: "education", description: "Advanced JavaScript certification" }
+            ];
+            
+            // DOM Elements
+            const calendarGrid = document.getElementById('calendar-grid');
+            const currentMonthEl = document.getElementById('current-month');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+            const addEventBtn = document.getElementById('add-event-btn');
+            const eventModal = document.getElementById('event-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+            const cancelEventBtn = document.getElementById('cancel-event');
+            const eventForm = document.getElementById('event-form');
+            
+            // Initialize calendar
+            renderCalendar();
+            
+            // Event Listeners
+            prevMonthBtn.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar();
+            });
+            
+            nextMonthBtn.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar();
+            });
+            
+            addEventBtn.addEventListener('click', () => {
+                eventModal.classList.remove('hidden');
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                eventModal.classList.add('hidden');
+            });
+            
+            cancelEventBtn.addEventListener('click', () => {
+                eventModal.classList.add('hidden');
+            });
+            
+            eventForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                addNewEvent();
+                eventModal.classList.add('hidden');
+                eventForm.reset();
+            });
+            
+            // Render calendar function
+            function renderCalendar() {
+                // Update month/year display
+                const monthNames = ["January", "February", "March", "April", "May", "June",
+                                    "July", "August", "September", "October", "November", "December"];
+                currentMonthEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+                
+                // Clear calendar grid
+                calendarGrid.innerHTML = '';
+                
+                // Get first day of month and number of days
+                const firstDay = new Date(currentYear, currentMonth, 1);
+                const lastDay = new Date(currentYear, currentMonth + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                
+                // Day of week for first day (0 = Sunday, 1 = Monday, etc)
+                const firstDayOfWeek = firstDay.getDay();
+                
+                // Create empty cells for days before first day of month
+                for (let i = 0; i < firstDayOfWeek; i++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.classList.add('calendar-header', 'opacity-30');
+                    calendarGrid.appendChild(emptyDay);
+                }
+                
+                // Create cells for each day of the month
+                const today = new Date();
+                const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayElement = document.createElement('div');
+                    dayElement.classList.add('calendar-day', 'bg-bg-card', 'border', 'border-border-dark', 'rounded-lg', 'p-2');
+                    
+                    // Check if this is today
+                    if (isCurrentMonth && day === today.getDate()) {
+                        dayElement.classList.add('today');
+                    }
+                    
+                    // Day number
+                    const dayNumber = document.createElement('div');
+                    dayNumber.classList.add('day-number', 'w-8', 'h-8', 'text-center', 'font-medium', 'rounded-full', 'flex', 'items-center', 'justify-center');
+                    dayNumber.textContent = day;
+                    dayElement.appendChild(dayNumber);
+                    
+                    // Check if this day has events
+                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const hasEvents = events.some(event => event.date === dateStr);
+                    
+                    if (hasEvents) {
+                        dayElement.classList.add('has-events');
+                    }
+                    
+                    // Add click event to open event form
+                    dayElement.addEventListener('click', () => {
+                        document.getElementById('event-date').value = dateStr;
+                        eventModal.classList.remove('hidden');
+                    });
+                    
+                    calendarGrid.appendChild(dayElement);
+                    
+                    // Add events for this day
+                    const dayEvents = events.filter(event => event.date === dateStr);
+                    
+                    if (dayEvents.length > 0) {
+                        const eventsContainer = document.createElement('div');
+                        eventsContainer.classList.add('mt-2', 'space-y-1', 'max-h-20', 'overflow-y-auto');
+                        
+                        dayEvents.forEach(event => {
+                            const eventEl = document.createElement('div');
+                            eventEl.classList.add('event-item', 'text-xs', 'p-2', 'rounded', 'cursor-pointer', 'opacity-80');
+                            
+                            // Get category color
+                            let categoryColor = 'category-work';
+                            switch(event.category) {
+                                case 'personal': categoryColor = 'category-personal'; break;
+                                case 'education': categoryColor = 'category-education'; break;
+                                case 'health': categoryColor = 'category-health'; break;
+                                case 'other': categoryColor = 'category-other'; break;
+                            }
+                            
+                            eventEl.innerHTML = `
+                                <div class="flex items-center">
+                                    <span class="category-dot bg-${categoryColor}"></span>
+                                    <span class="font-medium truncate">${event.title}</span>
+                                </div>
+                                <div class="text-xs text-text-muted mt-1">${event.time}</div>
+                            `;
+                            
+                            eventEl.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                alert(`Event: ${event.title}\nDate: ${new Date(event.date).toLocaleDateString()}\nTime: ${event.time}\nDescription: ${event.description}`);
+                            });
+                            
+                            eventsContainer.appendChild(eventEl);
+                        });
+                        
+                        dayElement.appendChild(eventsContainer);
+                    }
+                }
+            }
+            
+            // Add new event
+            function addNewEvent() {
+                const title = document.getElementById('event-title').value;
+                const date = document.getElementById('event-date').value;
+                const time = document.getElementById('event-time').value;
+                const category = document.getElementById('event-category').value;
+                const description = document.getElementById('event-description').value;
+                
+                if (!title || !date) return;
+                
+                const newEvent = {
+                    id: events.length + 1,
+                    title,
+                    date,
+                    time,
+                    category,
+                    description
+                };
+                
+                events.push(newEvent);
+                renderCalendar();
+            }
+            
+            // Initialize today's date in form
+            const today = new Date();
+            const formattedDate = `${String(today.getFullYear()).slice(2)}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            document.getElementById('event-date').value = formattedDate;
+        });
+    </script>
+</body>
+</html>

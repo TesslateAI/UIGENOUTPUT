@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicHub - Smart Speaker Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        'primary-dark': '#2563EB',
+                        'primary-light': '#93C5FD',
+                        'secondary': '#8B5CF6',
+                        'dark': '#1E293B',
+                        'light': '#F8FAFC',
+                        'accent': '#10B981',
+                        'accent-dark': '#059669',
+                        'card': '#FFFFFF',
+                        'card-alt': '#F1F5F9'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .card {
+            background: linear-gradient(145deg, #FFFFFF, #F1F5F9);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s;
+            transform-origin: 50% 50%;
+        }
+        
+        .now-playing-bg {
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+        }
+        
+        .command-item {
+            transition: all 0.2s ease;
+        }
+        
+        .command-item:hover {
+            background-color: #EDE9FE;
+            transform: translateX(4px);
+        }
+        
+        .animate-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .play-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+        }
+        
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <i class="fas fa-headphones text-white text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold text-dark">SonicHub</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button class="p-2 rounded-full hover:bg-light transition">
+                    <i class="fas fa-bell text-dark"></i>
+                </button>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
+                        <i class="fas fa-user text-primary"></i>
+                    </div>
+                    <span class="text-sm font-medium text-dark">Alex</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-6">
+        <!-- Dashboard Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-dark">Smart Speaker</h2>
+                <p class="text-gray-500">Connected and ready to use</p>
+            </div>
+            <div class="flex space-x-3">
+                <button class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition">
+                    <i class="fas fa-sync-alt mr-2"></i>Sync Now
+                </button>
+                <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg font-medium hover:bg-light transition">
+                    <i class="fas fa-cog mr-2"></i>Settings
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Now Playing Card -->
+                <div class="card now-playing-bg rounded-2xl overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-white text-lg font-semibold">Morning Mix</h3>
+                                <p class="text-primary-light text-sm">Now Playing</p>
+                            </div>
+                            <button class="play-btn bg-white text-primary p-2 rounded-full">
+                                <i class="fas fa-pause text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-center">
+                            <div class="relative w-48 h-48">
+                                <svg class="w-full h-full" viewBox="0 0 100 100">
+                                    <circle class="text-white opacity-20" stroke-width="8" stroke="currentColor" fill="none" r="42" cx="50" cy="50"/>
+                                    <circle class="progress-ring-circle text-white" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="none" r="42" cx="50" cy="50" 
+                                    stroke-dasharray="251.2" stroke-dashoffset="75.36"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between mt-4">
+                            <div>
+                                <p class="text-white text-sm">12:45</p>
+                                <p class="text-primary-light text-xs">15:00</p>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button class="p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30">
+                                    <i class="fas fa-step-backward text-white"></i>
+                                </button>
+                                <button class="p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30">
+                                    <i class="fas fa-step-forward text-white"></i>
+                                </button>
+                                <button class="p-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30">
+                                    <i class="fas fa-redo text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex items-center">
+                            <div class="w-32 h-1 bg-white bg-opacity-30 rounded-full overflow-hidden">
+                                <div class="h-full bg-white rounded-full" style="width: 80%"></div>
+                            </div>
+                            <span class="text-white text-sm ml-2">80%</span>
+                        </div>
+                        
+                        <div class="mt-6 flex items-center space-x-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-volume-up text-white mr-2"></i>
+                                <input type="range" min="0" max="100" value="80" class="volume-slider w-32 accent-primary">
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-expand text-white mr-2"></i>
+                                <select class="bg-white bg-opacity-20 text-white rounded-lg px-3 py-1">
+                                    <option>Large</option>
+                                    <option>Medium</option>
+                                    <option>Small</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Playlist Management -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-dark">Playlists</h3>
+                        <button class="text-primary font-medium flex items-center">
+                            <i class="fas fa-plus mr-1"></i> Create
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-light transition">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-blue-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-music text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-dark">Morning Mix</h4>
+                                    <p class="text-sm text-gray-500">12 songs</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-3">3:45</span>
+                                <button class="text-primary">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-light transition">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-purple-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-music text-purple-500"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-dark">Workout Energy</h4>
+                                    <p class="text-sm text-gray-500">15 songs</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-3">4:20</span>
+                                <button class="text-primary">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-light transition">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-music text-green-500"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-dark">Focus Flow</h4>
+                                    <p class="text-sm text-gray-500">10 songs</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-3">3:15</span>
+                                <button class="text-primary">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-light transition">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-yellow-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-music text-yellow-500"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-dark">Road Trip</h4>
+                                    <p class="text-sm text-gray-500">18 songs</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-sm text-gray-500 mr-3">4:55</span>
+                                <button class="text-primary">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Device Settings -->
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold text-dark mb-6">Device Settings</h3>
+                    
+                    <div class="space-y-5">
+                        <div class="flex justify-between">
+                            <div>
+                                <h4 class="font-medium text-dark">Speaker Name</h4>
+                                <p class="text-sm text-gray-500">Customize your speaker</p>
+                            </div>
+                            <div class="relative">
+                                <select class="w-40 bg-white border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <option>Living Room Speaker</option>
+                                    <option>Bedroom Speaker</option>
+                                    <option>Kitchen Speaker</option>
+                                    <option>Office Speaker</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <div>
+                                <h4 class="font-medium text-dark">Volume Level</h4>
+                                <p class="text-sm text-gray-500">Adjust to your preference</p>
+                            </div>
+                            <div class="w-40">
+                                <input type="range" min="0" max="100" value="70" class="volume-slider w-full accent-primary">
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <div>
+                                <h4 class="font-medium text-dark">Color Theme</h4>
+                                <p class="text-sm text-gray-500">Choose your display color</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white cursor-pointer"></div>
+                                <div class="w-8 h-8 rounded-full bg-purple-500 border-2 border-white cursor-pointer"></div>
+                                <div class="w-8 h-8 rounded-full bg-green-500 border-2 border-white cursor-pointer"></div>
+                                <div class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-white cursor-pointer"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <div>
+                                <h4 class="font-medium text-dark">Notifications</h4>
+                                <p class="text-sm text-gray-500">Manage alerts</p>
+                            </div>
+                            <div class="relative inline-block w-12 h-6">
+                                <input type="checkbox" class="opacity-0 w-0 h-0" id="notifications" checked>
+                                <label for="notifications" class="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition before:duration-300"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <div>
+                                <h4 class="font-medium text-dark">Voice Assistant</h4>
+                                <p class="text-sm text-gray-500">Enable for commands</p>
+                            </div>
+                            <div class="relative inline-block w-12 h-6">
+                                <input type="checkbox" class="opacity-0 w-0 h-0" id="voice-assistant" checked>
+                                <label for="voice-assistant" class="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition duration-300 before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition before:duration-300"></label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex space-x-3">
+                        <button class="flex-1 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition">
+                            Save Changes
+                        </button>
+                        <button class="w-12 h-12 flex items-center justify-center bg-light rounded-lg hover:bg-gray-100 transition">
+                            <i class="fas fa-cog text-dark"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Voice Command History -->
+                <div class="card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-dark">Voice Commands</h3>
+                        <button class="text-primary font-medium flex items-center">
+                            <i class="fas fa-history mr-1"></i> History
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4 max-h-80 overflow-y-auto pr-2">
+                        <div class="command-item p-3 rounded-lg bg-light">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-microphone text-blue-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark">"Play Morning Mix"</p>
+                                    <p class="text-sm text-gray-500">2 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="command-item p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-volume-up text-purple-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark">"Volume up"</p>
+                                    <p class="text-sm text-gray-500">4 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="command-item p-3 rounded-lg bg-light">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-music text-green-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark">"Play Focus Flow"</p>
+                                    <p class="text-sm text-gray-500">Yesterday</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="command-item p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-sun text-yellow-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark">"Good morning"</p>
+                                    <p class="text-sm text-gray-500">Yesterday</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="command-item p-3 rounded-lg bg-light">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-stop text-red-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark">"Stop music"</p>
+                                    <p class="text-sm text-gray-500">2 days ago</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="command-item p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-book-open text-indigo-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-dark">"Set timer for 10 minutes"</p>
+                                    <p class="text-sm text-gray-500">3 days ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                        <i class="fas fa-headphones text-white"></i>
+                    </div>
+                    <span class="font-bold text-dark">SonicHub</span>
+                </div>
+                <div class="text-gray-500 text-sm">
+                    © 2023 SonicHub. All rights reserved.
+                </div>
+                <div class="flex space-x-4 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-500 hover:text-primary transition">
+                        <i class="fab fa-apple"></i>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary transition">
+                        <i class="fab fa-google"></i>
+                    </a>
+                    <a href="#" class="text-gray-500 hover:text-primary transition">
+                        <i class="fab fa-amazon"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle play/pause button
+        document.querySelector('.play-btn').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            if (icon.classList.contains('fa-play')) {
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-pause');
+            } else {
+                icon.classList.remove('fa-pause');
+                icon.classList.add('fa-play');
+            }
+        });
+        
+        // Simulate progress ring animation
+        setTimeout(() => {
+            const progressCircle = document.querySelector('.progress-ring-circle');
+            if (progressCircle) {
+                progressCircle.style.strokeDashoffset = '75.36'; // 25% of 251.2
+            }
+        }, 300);
+        
+        // Add animation to command items
+        const commandItems = document.querySelectorAll('.command-item');
+        commandItems.forEach((item, index) => {
+            item.style.animationDelay = `${index * 0.1}s`;
+            item.classList.add('animate-in');
+        });
+    </script>
+</body>
+</html>

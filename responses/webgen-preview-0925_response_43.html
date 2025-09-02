@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Art Portfolio – Gallery</title>
+    <meta name="description" content="A modern digital art portfolio gallery built with Tailwind CSS. Browse a curated collection of artworks with hover effects revealing titles and artist names.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: rgb(255, 255, 255);
+            --color-bg-secondary: rgb(247, 247, 247);
+            --color-bg-tertiary: rgb(245, 245, 245);
+            --color-text-primary: rgb(0, 0, 0);
+            --color-text-secondary: rgb(128, 128, 128);
+            --color-accent: rgb(0, 122, 255); /* a fresh blue for accents */
+        }
+
+        body {
+            background-color: var(--color-bg-primary);
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        @keyframes marquee {
+            0%   { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        @keyframes marquee-reverse {
+            0%   { transform: translateX(-50%); }
+            100% { transform: translateX(0%); }
+        }
+        .animate-marquee { animation: marquee 60s linear infinite; }
+        .animate-marquee-reverse { animation: marquee-reverse 60s linear infinite; }
+
+        @keyframes float-1 {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-20px); }
+        }
+        @keyframes float-2 {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(10px); }
+        }
+        @keyframes float-3 {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-10px); }
+        }
+        .animate-float-1 { animation: float-1 8s ease-in-out infinite; }
+        .animate-float-2 { animation: float-2 10s ease-in-out infinite; }
+        .animate-float-3 { animation: float-3 9s ease-in-out infinite; }
+
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(64px);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+        .reveal-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-on-scroll-scale {
+            opacity: 0;
+            transform: scale(.9);
+            transition: opacity .6s ease-out, transform .6s ease-out;
+        }
+        .reveal-on-scroll-scale.is-visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .reveal-on-scroll-left {
+            opacity: 0;
+            transform: translateX(-100px);
+            transition: opacity .8s ease-out, transform .8s ease-out;
+        }
+        .reveal-on-scroll-left.is-visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-on-scroll-right {
+            opacity: 0;
+            transform: translateX(100px);
+            transition: opacity .8s ease-out, transform .8s ease-out;
+        }
+        .reveal-on-scroll-right.is-visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .nav-link {
+            position: relative;
+            padding-bottom: 4px;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: var(--color-text-primary);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform .3s ease-out;
+        }
+        .nav-link:hover::after,
+        .nav-link.is-active::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .5s ease-in-out, padding .5s ease-in-out, margin .5s ease-in-out;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 300px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .faq-item.open .faq-icon-plus { display: none; }
+        .faq-item:not(.open) .faq-icon-minus { display: none; }
+        .faq-icon-plus,
+        .faq-icon-minus { transition: transform .3s ease-in-out; }
+        .faq-item.open .faq-icon-plus { transform: rotate(-180deg); }
+        .faq-item:not(.open) .faq-icon-minus { transform: rotate(-180deg); }
+
+        .hero-text-reveal span {
+            display: inline-block;
+            opacity: 0;
+            filter: blur(4px);
+            transform: translateY(10px);
+            animation: revealText 1s forwards;
+        }
+        @keyframes revealText {
+            to {
+                opacity: 1;
+                filter: blur(0);
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Header -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-colors duration-300 bg-[var(--color-bg-primary)]">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <a href="#" class="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">DigiArt<span class="text-[var(--color-accent)]">.</span></a>
+                <div class="hidden lg:flex items-center space-x-6">
+                    <a href="#works" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">Works</a>
+                    <a href="#about" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">About</a>
+                    <a href="#pricing" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">Pricing</a>
+                    <a href="#contact" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">Contact</a>
+                </div>
+                <div class="hidden lg:flex items-center space-x-2">
+                    <a href="#" class="px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors">Log In</a>
+                    <a href="#" class="px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors">Sign Up</a>
+                </div>
+                <div class="lg:hidden">
+                    <button id="menu-toggle" class="text-[var(--color-text-primary)] focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-[var(--color-bg-primary)] absolute top-full left-0 right-0 shadow-lg">
+            <div class="flex flex-col items-center space-y-4 py-4">
+                <a href="#works" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">Works</a>
+                <a href="#about" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">About</a>
+                <a href="#pricing" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">Pricing</a>
+                <a href="#contact" class="nav-link text-sm font-medium text-[var(--color-text-primary)]">Contact</a>
+                <div class="w-full flex justify-center space-x-2 pt-2">
+                    <a href="#" class="px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] transition-colors">Log In</a>
+                    <a href="#" class="px-4 py-2 text-sm font-medium bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] hover:bg-opacity-80 transition-colors">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-20">
+
+        <!-- Hero Section -->
+        <section class="pt-32 pb-16 lg:pt-48 lg:pb-24">
+            <div class="container mx-auto px-6 text-center">
+                <div class="max-w-3xl mx-auto">
+                    <h1 class="hero-text-reveal text-4xl md:text-6xl lg:text-7xl font-medium leading-tight text-[var(--color-text-primary)] mb-4">
+                        Explore the <span class="text-[var(--color-accent)]">Digital Art</span> Gallery
+                    </h1>
+                    <p class="hero-text-reveal text-lg md:text-xl text-[var(--color-text-secondary)] max-w-xl mx-auto mb-8">
+                        A curated collection of digital artworks showcasing creativity, technology, and imagination.
+                    </p>
+                    <a href="#works" class="nav-link inline-block text-sm font-medium bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] hover:bg-opacity-80 transition-colors py-3 px-8">
+                        View Portfolio
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Works Section (Grid of Artworks) -->
+        <section id="works" class="py-16 lg:py-24 bg-[var(--color-bg-secondary)]">
+            <div class="container mx-auto px-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+
+                    <!-- Artwork 1 -->
+                    <div class="reveal-on-scroll-scale group relative aspect-[3/4] bg-[var(--color-bg-tertiary)] rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://static.photos/abstract/640x360/123" alt="Abstract digital artwork" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 transition-opacity duration-300 group-hover:bg-opacity-50"></div>
+                        <div class="absolute bottom-0 left-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                            <h3 class="text-lg font-medium">Abstract Flow</h3>
+                            <p class="text-sm opacity-80">by Maya Rivera</p>
+                        </div>
+                    </div>
+
+                    <!-- Artwork 2 -->
+                    <div class="reveal-on-scroll-scale group relative aspect-[3/4] bg-[var(--color-bg-tertiary)] rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://static.photos/nature/1200x630/456" alt="Nature digital artwork" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 transition-opacity duration-300 group-hover:bg-opacity-50"></div>
+                        <div class="absolute bottom-0 left-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                            <h3 class="text-lg font-medium">Mountain Echoes</h3>
+                            <p class="text-sm opacity-80">by Liam O'Connor</p>
+                        </div>
+                    </div>
+
+                    <!-- Artwork 3 -->
+                    <div class="reveal-on-scroll-scale group relative aspect-[3/4] bg-[var(--color-bg-tertiary)] rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://static.photos/technology/320x240/789" alt="Technology digital artwork" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 transition-opacity duration-300 group-hover:bg-opacity-50"></div>
+                        <div class="absolute bottom-0 left-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                            <h3 class="text-lg font-medium">Neural Network</h3>
+                            <p class="text-sm opacity-80">by Sofia Patel</p>
+                        </div>
+                    </div>
+
+                    <!-- Artwork 4 -->
+                    <div class="reveal-on-scroll-scale group relative aspect-[3/4] bg-[var(--color-bg-tertiary)] rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://static.photos/people/640x360/101" alt="People digital artwork" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 transition-opacity duration-300 group-hover:bg-opacity-50"></div>
+                        <div class="absolute bottom-0 left-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                            <h3 class="text-lg font-medium">Urban Pulse</h3>
+                            <p class="text-sm opacity-80">by Noah Kim</p>
+                        </div>
+                    </div>
+
+                    <!-- Artwork 5 -->
+                    <div class="reveal-on-scroll-scale group relative aspect-[3/4] bg-[var(--color-bg-tertiary)] rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://static.photos/food/320x240/202" alt="Food digital artwork" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 transition-opacity duration-300 group-hover:bg-opacity-50"></div>
+                        <div class="absolute bottom-0 left-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                            <h3 class="text-lg font-medium">Savory Palette</h3>
+                            <p class="text-sm opacity-80">by Aisha Rahman</p>
+                        </div>
+                    </div>
+
+                    <!-- Artwork 6 -->
+                    <div class="reveal-on-scroll-scale group relative aspect-[3/4] bg-[var(--color-bg-tertiary)] rounded-xl overflow-hidden shadow-lg">
+                        <img src="https://static.photos/travel/1200x630/303" alt="Travel digital artwork" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 transition-opacity duration-300 group-hover:bg-opacity-50"></div>
+                        <div class="absolute bottom-0 left-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                            <h3 class="text-lg font-medium">Sunset Over the Sea</h3>
+                            <p class="text-sm opacity-80">by Ethan Brooks</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="py-16 lg:py-24">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-24">
+                    <div class="lg:w-1/2 reveal-on-scroll-left">
+                        <img src="https://static.photos/abstract/640x360/404" alt="Abstract background" class="w-full h-auto aspect-[4/5] object-cover rounded-xl shadow-lg">
+                    </div>
+                    <div class="lg:w-1/2 reveal-on-scroll-right">
+                        <h2 class="text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--color-text-primary)] mb-6 leading-tight">
+                            About DigiArt<span class="text-[var(--color-accent)]">.</span>
+                        </h2>
+                        <p class="text-lg text-[var(--color-text-secondary)] mb-6">
+                            DigiArt is a digital portfolio platform that showcases the work of emerging and established artists. We believe that art should be accessible, inspiring, and constantly evolving.
+                        </p>
+                        <p class="text-lg text-[var(--color-text-secondary)] mb-8">
+                            Our gallery features a diverse range of styles, from abstract and surreal to realistic and hyper‑realistic, all created with the latest digital tools.
+                        </p>
+                        <a href="#contact" class="nav-link inline-block text-sm font-medium bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-opacity-80 transition-colors py-3 px-8">
+                            Get in Touch
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Section -->
+        <section class="py-16 lg:py-24 bg-[var(--color-bg-secondary)]">
+            <div class="container mx-auto px-6 text-center">
+                <div class="max-w-2xl mx-auto mb-12 reveal-on-scroll">
+                    <h2 class="text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--color-text-primary)] mb-4">
+                        What We Offer<span class="text-[var(--color-accent)]">.</span>
+                    </h2>
+                    <p class="text-lg text-[var(--color-text-secondary)]">
+                        From concept to final piece, we provide a full suite of services to help artists bring their vision to life.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Service 1 -->
+                    <div class="reveal-on-scroll bg-[var(--color-bg-primary)] p-8 rounded-xl shadow-lg flex flex-col items-center text-center">
+                        <img src="https://static.photos/abstract/200x200/505" alt="Concept" class="w-16 h-16 mb-6 object-cover rounded-full">
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)] mb-3">Concept Development</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)] flex-grow">
+                            Detailed brainstorming and visual planning to turn ideas into compelling artwork.
+                        </p>
+                    </div>
+                    <!-- Service 2 -->
+                    <div class="reveal-on-scroll bg-[var(--color-bg-primary)] p-8 rounded-xl shadow-lg flex flex-col items-center text-center">
+                        <img src="https://static.photos/technology/200x200/606" alt="Design" class="w-16 h-16 mb-6 object-cover rounded-full">
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)] mb-3">Digital Design</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)] flex-grow">
+                            High‑quality raster and vector work using industry‑standard tools.
+                        </p>
+                    </div>
+                    <!-- Service 3 -->
+                    <div class="reveal-on-scroll bg-[var(--color-bg-primary)] p-8 rounded-xl shadow-lg flex flex-col items-center text-center">
+                        <img src="https://static.photos/abstract/200x200/707" alt="Delivery" class="w-16 h-16 mb-6 object-cover rounded-full">
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)] mb-3">Delivery & Support</h3>
+                        <p class="text-sm text-[var(--color-text-secondary)] flex-grow">
+                            Professional packaging, print services, and ongoing support for clients.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section class="py-16 lg:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12 reveal-on-scroll">
+                    <h2 class="text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--color-text-primary)] mb-4">
+                        What Our Clients Say<span class="text-[var(--color-accent)]">.</span>
+                    </h2>
+                </div>
+                <div class="relative">
+                    <div id="testimonial-slider" class="flex overflow-hidden">
+                        <!-- Testimonial 1 -->
+                        <div class="testimonial-slide min-w-full p-4">
+                            <div class="bg-[var(--color-bg-secondary)] p-8 rounded-xl shadow-lg">
+                                <div class="flex items-center mb-4">
+                                    <img src="https://static.photos/people/200x200/808" alt="Client avatar" class="w-12 h-12 rounded-full mr-4 object-cover">
+                                    <div>
+                                        <h4 class="font-medium text-[var(--color-text-primary)]">Sofia Patel</h4>
+                                        <p class="text-xs text-[var(--color-text-secondary)]">Founder, ArtCo</p>
+                                    </div>
+                                </div>
+                                <p class="text-[var(--color-text-secondary)] italic">“The digital art gallery is a perfect showcase for our brand. The artwork looks amazing on every device.”</p>
+                            </div>
+                        </div>
+                        <!-- Testimonial 2 -->
+                        <div class="testimonial-slide min-w-full p-4">
+                            <div class="bg-[var(--color-bg-secondary)] p-8 rounded-xl shadow-lg">
+                                <div class="flex items-center mb-4">
+                                    <img src="https://static.photos/people/200x200/909" alt="Client avatar" class="w-12 h-12 rounded-full mr-4 object-cover">
+                                    <div>
+                                        <h4 class="font-medium text-[var(--color-text-primary)]">Liam O'Connor</h4>
+                                        <p class="text-xs text-[var(--color-text-secondary)]">Creative Director, Studio X</p>
+                                    </div>
+                                </div>
+                                <p class="text-[var(--color-text-secondary)] italic">“Working with DigiArt has been seamless. Their attention to detail is outstanding.”</p>
+                            </div>
+                        </div>
+                        <!-- Testimonial 3 -->
+                        <div class="testimonial-slide min-w-full p-4">
+                            <div class="bg-[var(--color-bg-secondary)] p-8 rounded-xl shadow-lg">
+                                <div class="flex items-center mb-4">
+                                    <img src="https://static.photos/people/200x200/1010" alt="Client avatar" class="w-12 h-12 rounded-full mr-4 object-cover">
+                                    <div>
+                                        <h4 class="font-medium text-[var(--color-text-primary)]">Noah Kim</h4>
+                                        <p class="text-xs text-[var(--color-text-secondary)]">Artist, Freelance</p>
+                                    </div>
+                                </div>
+                                <p class="text-[var(--color-text-secondary)] italic">“The platform’s responsive design makes my portfolio look professional everywhere.”</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="prev-testimonial" class="absolute top-1/2 left-0 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors focus:outline-none p-2">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button id="next-testimonial" class="absolute top-1/2 right-0 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors focus:outline-none p-2">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="py-16 lg:py-24 bg-[var(--color-bg-secondary)]">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12 reveal-on-scroll">
+                    <h2 class="text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--color-text-primary)] mb-4">
+                        Pricing<span class="text-[var(--color-accent)]">.</span>
+                    </h2>
+                    <p class="text-lg text-[var(--color-text-secondary)]">Simple, transparent pricing for artists and galleries.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Plan 1 -->
+                    <div class="reveal-on-scroll bg-[var(--color-bg-primary)] p-8 rounded-xl shadow-lg flex flex-col">
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)] mb-2">Starter</h3>
+                        <p class="text-[var(--color-text-secondary)] mb-6 flex-grow">Perfect for emerging artists looking to showcase a small portfolio.</p>
+                        <div class="text-4xl font-bold text-[var(--color-text-primary)] mb-1">$49<span class="text-base font-normal text-[var(--color-text-secondary)]">/mo</span></div>
+                        <a href="#" class="w-full text-center text-sm font-medium bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] border border-[var(--color-text-primary)] hover:bg-[var(--color-text-primary)] hover:text-[var(--color-bg-primary)] transition-colors py-3 px-6 mb-6">Choose Plan</a>
+                        <ul class="space-y-3 text-[var(--color-text-secondary)]">
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Unlimited Portfolio Uploads</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Basic Analytics</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Email Support</li>
+                        </ul>
+                    </div>
+                    <!-- Plan 2 (Popular) -->
+                    <div class="reveal-on-scroll bg-[var(--color-bg-primary)] p-8 rounded-xl shadow-2xl shadow-[var(--color-accent)]/20 flex flex-col border-2 border-[var(--color-accent)]">
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)] mb-2">Professional</h3>
+                        <p class="text-[var(--color-text-secondary)] mb-6 flex-grow">Ideal for established artists and galleries needing advanced features.</p>
+                        <div class="text-4xl font-bold text-[var(--color-text-primary)] mb-1">$199<span class="text-base font-normal text-[var(--color-text-secondary)]">/mo</span></div>
+                        <a href="#" class="w-full text-center text-sm font-medium bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-opacity-80 transition-colors py-3 px-6 mb-6">Choose Plan</a>
+                        <ul class="space-y-3 text-[var(--color-text-secondary)]">
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Unlimited Portfolio Uploads</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Advanced Analytics</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Priority Email & Chat Support</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Custom Branding</li>
+                        </ul>
+                    </div>
+                    <!-- Plan 3 -->
+                    <div class="reveal-on-scroll bg-[var(--color-bg-primary)] p-8 rounded-xl shadow-lg flex flex-col">
+                        <h3 class="text-xl font-medium text-[var(--color-text-primary)] mb-2">Enterprise</h3>
+                        <p class="text-[var(--color-text-secondary)] mb-6 flex-grow">Tailored solutions for large galleries and organizations.</p>
+                        <div class="text-4xl font-bold text-[var(--color-text-primary)] mb-1">Contact<span class="text-base font-normal text-[var(--color-text-secondary)]">/mo</span></div>
+                        <a href="#" class="w-full text-center text-sm font-medium bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] border border-[var(--color-text-primary)] hover:bg-[var(--color-text-primary)] hover:text-[var(--color-bg-primary)] transition-colors py-3 px-6 mb-6">Contact Sales</a>
+                        <ul class="space-y-3 text-[var(--color-text-secondary)]">
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> All Professional Features</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Dedicated Account Manager</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> Custom Integrations</li>
+                            <li class="flex items-center"><span class="text-[var(--color-accent)] mr-2">✓</span> 24/7 Premium Support</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="py-16 lg:py-24">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col lg:flex-row gap-12 lg:gap-24">
+                    <div class="lg:w-1/3 reveal-on-scroll-left">
+                        <h2 class="text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--color-text-primary)] mb-4">
+                            Frequently Asked Questions<span class="text-[var(--color-accent)]">.</span>
+                        </h2>
+                        <p class="text-lg text-[var(--color-text-secondary)] mb-6">
+                            Find answers to common questions about our digital art platform.
+                        </p>
+                        <a href="#contact" class="nav-link inline-block text-sm font-medium bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-opacity-80 transition-colors py-3 px-8">
+                            Contact Us
+                        </a>
+                    </div>
+                    <div class="lg:w-2/3 space-y-4 reveal-on-scroll-right">
+                        <div class="faq-item bg-[var(--color-bg-secondary)] rounded-xl">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-4 md:p-6 focus:outline-none">
+                                <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">How do I upload my artwork?</span>
+                                <span class="faq-icon-plus text-[var(--color-text-primary)] text-2xl font-light">+</span>
+                                <span class="faq-icon-minus text-[var(--color-text-primary)] text-2xl font-light">-</span>
+                            </button>
+                            <div class="faq-answer px-4 md:px-6">
+                                <p class="text-sm text-[var(--color-text-secondary)]">Log in to your account, navigate to the “Upload” section, and select your image file. Our system will automatically resize and optimize it for display.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item bg-[var(--color-bg-secondary)] rounded-xl">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-4 md:p-6 focus:outline-none">
+                                <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">Can I change the title or artist name later?</span>
+                                <span class="faq-icon-plus text-[var(--color-text-primary)] text-2xl font-light">+</span>
+                                <span class="faq-icon-minus text-[var(--color-text-primary)] text-2xl font-light">-</span>
+                            </button>
+                            <div class="faq-answer px-4 md:px-6">
+                                <p class="text-sm text-[var(--color-text-secondary)]">Yes! After uploading, you can edit the title, description, and artist name directly from your artwork’s edit page.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item bg-[var(--color-bg-secondary)] rounded-xl">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-4 md:p-6 focus:outline-none">
+                                <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">Is there a free tier?</span>
+                                <span class="faq-icon-plus text-[var(--color-text-primary)] text-2xl font-light">+</span>
+                                <span class="faq-icon-minus text-[var(--color-text-primary)] text-2xl font-light">-</span>
+                            </button>
+                            <div class="faq-answer px-4 md:px-6">
+                                <p class="text-sm text-[var(--color-text-secondary)]">We offer a free “Starter” plan with limited uploads, perfect for early adopters.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item bg-[var(--color-bg-secondary)] rounded-xl">
+                            <button class="faq-question w-full flex justify-between items-center text-left p-4 md:p-6 focus:outline-none">
+                                <span class="text-base md:text-lg font-medium text-[var(--color-text-primary)]">How is my data protected?</span>
+                                <span class="faq-icon-plus text-[var(--color-text-primary)] text-2xl font-light">+</span>
+                                <span class="faq-icon-minus text-[var(--color-text-primary)] text-2xl font-light">-</span>
+                            </button>
+                            <div class="faq-answer px-4 md:px-6">
+                                <p class="text-sm text-[var(--color-text-secondary)]">All data is encrypted in transit and at rest. We comply with GDPR and other privacy regulations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-16 lg:py-24">
+            <div class="container mx-auto px-6">
+                <div class="bg-[var(--color-bg-secondary)] rounded-3xl p-8 md:p-16 lg:p-24 relative overflow-hidden reveal-on-scroll">
+                    <div class="absolute inset-0 opacity-10">
+                        <div class="absolute top-0 left-0 w-1/2 h-full bg-[var(--color-accent)]/20 rounded-full blur-3xl animate-float-1"></div>
+                        <div class="absolute bottom-0 right-0 w-1/2 h-full bg-[var(--color-accent)]/20 rounded-full blur-3xl animate-float-2"></div>
+                        <div class="absolute top-0 right-1/4 w-1/4 h-3/4 bg-[var(--color-accent)]/20 rounded-full blur-3xl animate-float-3"></div>
+                    </div>
+                    <div class="relative z-10 max-w-2xl mx-auto text-center">
+                        <h2 class="text-3xl md:text-4xl lg:text-5xl font-medium text-[var(--color-text-primary)] mb-6 leading-tight">
+                            Ready to Showcase Your Art<span class="text-[var(--color-accent)]">?</span>
+                        </h2>
+                        <p class="text-lg text-[var(--color-text-secondary)] mb-8">
+                            Join thousands of artists who trust DigiArt to present their work to the world.
+                        </p>
+                        <a href="#pricing" class="nav-link inline-block text-sm font-medium bg-[var(--color-accent)] text-[var(--color-bg-primary)] hover:bg-opacity-80 transition-colors py-3 px-8">
+                            Get Started
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-16 lg:py-24 bg-[var(--color-bg-primary)]">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-12">
+                <div class="lg:col-span-2">
+                    <a href="#" class="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] mb-4 inline-block">DigiArt<span class="text-[var(--color-accent)]">.</span></a>
+                    <p class="text-sm text-[var(--color-text-secondary)] max-w-xs">
+                        A modern digital art portfolio platform built with Tailwind CSS.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-medium text-[var(--color-text-primary)] mb-4">Explore</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#works" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Works</a></li>
+                        <li><a href="#about" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">About</a></li>
+                        <li><a href="#pricing" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Pricing</a></li>
+                        <li><a href="#contact" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-[var(--color-text-primary)] mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-[var(--color-bg-tertiary)] pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-[var(--color-text-secondary)]">
+                <p>© 2026 DigiArt. All rights reserved.</p>
+                <p>Built with <a href="https://tesslate.com" class="underline hover:text-[var(--color-text-primary)]">Tesslate</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Header scroll effect
+            const header = document.getElementById('header');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    header.classList.add('bg-[var(--color-bg-primary)]', 'shadow-md');
+                } else {
+                    header.classList.remove('shadow-md');
+                }
+            });
+
+            // Mobile menu toggle
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (menuToggle && mobileMenu) {
+                menuToggle.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Reveal on scroll
+            const revealElements = document.querySelectorAll('.reveal-on-scroll, .reveal-on-scroll-scale, .reveal-on-scroll-left, .reveal-on-scroll-right');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+            revealElements.forEach(el => observer.observe(el));
+
+            // Hero text staggered reveal
+            const heroText = document.querySelector('.hero-text-reveal');
+            if (heroText) {
+                const words = heroText.textContent.trim().split(/\s+/);
+                heroText.innerHTML = '';
+                words.forEach((word, i) => {
+                    const span = document.createElement('span');
+                    span.textContent = word + ' ';
+                    span.style.animationDelay = `${i * 0.05}s`;
+                    heroText.appendChild(span);
+                });
+            }
+
+            // Testimonial slider
+            const slider = document.getElementById('testimonial-slider');
+            const slides = document.querySelectorAll('.testimonial-slide');
+            const prevBtn = document.getElementById('prev-testimonial');
+            const nextBtn = document.getElementById('next-testimonial');
+            let current = 0;
+            if (slider && slides.length) {
+                const updateSlider = () => {
+                    slider.style.transform = `translateX(-${current * 100}%)`;
+                };
+                if (prevBtn) prevBtn.addEventListener('click', () => {
+                    current = (current === 0) ? slides.length - 1 : current - 1;
+                    updateSlider();
+                });
+                if (nextBtn) nextBtn.addEventListener('click', () => {
+                    current = (current === slides.length - 1) ? 0 : current + 1;
+                    updateSlider();
+                });
+            }
+
+            // FAQ accordion
+            document.querySelectorAll('.faq-item').forEach(item => {
+                const btn = item.querySelector('.faq-question');
+                btn.addEventListener('click', () => {
+                    const open = item.classList.contains('open');
+                    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+                    if (!open) item.classList.add('open');
+                });
+            });
+
+            // Smooth scroll for internal links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
